@@ -112,15 +112,15 @@ function StudentReportView() {
             <div className="report-area">
                 {uniData.length !== 0 && <RadarChart
                     title="Универсальный личностный опросник"
-                    seriesLabel="1"
+                    seriesLabel={res.res_year}
                     seriesData={uniData}
                     categories={uniCategories}
                 />}
             </div>
-            <div>
+            <div className="report-area">
                 {motData.length !== 0 && <RadarChart
                     title="Мотивационно-ценностный профиль"
-                    seriesLabel="1"
+                    seriesLabel={res.res_year}
                     seriesData={motData}
                     categories={motCategories}
                 />}
@@ -128,7 +128,7 @@ function StudentReportView() {
             <div>
                 {compData.length !== 0 && <RadarChart
                     title="Компетенции"
-                    seriesLabel="1"
+                    seriesLabel={res.res_year}
                     seriesData={compData}
                     categories={compCategories}
                 />}
@@ -136,7 +136,7 @@ function StudentReportView() {
             <div>
                 {vitaData.length !== 0 && <RadarChart
                     title="Жизнестойкость"
-                    seriesLabel="1"
+                    seriesLabel={res.res_year}
                     seriesData={vitaData}
                     categories={vitaCategories}
                 />}
@@ -144,7 +144,7 @@ function StudentReportView() {
             <div>
                 {leadData.length !== 0 && <RadarChart
                     title="Ценостные установки лидера"
-                    seriesLabel="1"
+                    seriesLabel={res.res_year}
                     seriesData={leadData}
                     categories={leadCategories}
                 />}
@@ -152,6 +152,7 @@ function StudentReportView() {
             <div>
                 {profData.length !== 0 && <RadarChart
                     title="Индивидуальный профиль"
+                    seriesLabel={res.res_year}
                     seriesData={profData}
                     categories={profCategories}
                 />}
@@ -163,7 +164,6 @@ function StudentReportView() {
         <div className="StudentReportView">
             <Header />
             {content}
-            
         </div>
     );
 }
