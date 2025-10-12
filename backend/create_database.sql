@@ -5,11 +5,11 @@ CREATE TABLE Students
     stud_name  VARCHAR(512)  NOT NULL
 );
 
-CREATE TABLE Result
+CREATE TABLE Results
 (
     res_id    INTEGER    PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     res_stud  INTEGER    NOT NULL REFERENCES Students(stud_id) ON DELETE CASCADE ON UPDATE CASCADE,
-    res_date  TIMESTAMP  NOT NULL,
+    res_year  INT        NOT NULL,
     -- Универсальный личностный опросник (Индивидуальный профиль)
     res_uni_communication     INT, -- Коммуникативность
     res_uni_complex_thinking  INT, -- Комплексное мышление
@@ -56,5 +56,6 @@ CREATE TABLE Result
     res_prof_stress_resistance     INT, -- Стрессоустойчивость
     res_prof_partnership           INT, -- Партнёрство
     res_prof_rules_compliance      INT, -- Следование правилам
-    res_prof_self_development      INT  -- Саморазвитие
+    res_prof_self_development      INT, -- Саморазвитие
+    res_prof_communication         INT  -- Коммуникация
 );
