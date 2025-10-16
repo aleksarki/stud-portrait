@@ -1,13 +1,15 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
+import React from "react";
+import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
-import App from './views/App';
-import ErrorView from './views/ErrorView';
-import StudentReportView from './views/StudentReportView';
+import App from "./views/App";
+import ErrorView from "./views/ErrorView";
+import AdminMainView from "./views/admin/AdminMainView";
+import StudentMainView from "./views/student/StudentMainView";
+import StudentReportView from "./views/student/StudentReportView";
 
-import './index.css';
-import reportWebVitals from './reportWebVitals';
+import "./index.css";
+import reportWebVitals from "./reportWebVitals";
 
 const router = createBrowserRouter([
   {
@@ -16,8 +18,16 @@ const router = createBrowserRouter([
     errorElement: <ErrorView />
   },
   {
-    path: "/stud-report/:studId",
+    path: "/student/:studentId",
+    element: <StudentMainView />
+  },
+  {
+    path: "/student/:studentId/report",
     element: <StudentReportView />
+  },
+  {
+    path: "/admin/:adminId",
+    element: <AdminMainView />
   }
 ])
 
