@@ -13,7 +13,7 @@ import reportWebVitals from "./reportWebVitals";
 
 const router = createBrowserRouter([
   {
-    path: "/",
+    path: "/",  // should be excluded
     element: <App />,
     errorElement: <ErrorView />
   },

@@ -1,8 +1,11 @@
+import Header from "../../components/Header";
 import "./AdminMainView.scss";
 
 function AdminMainView() {
     return (
-        <div className="AdminMainView"></div>
+        <div className="StudentMainView">
+            <Header title="Администратор" />
+        </div>
     );
 }
 

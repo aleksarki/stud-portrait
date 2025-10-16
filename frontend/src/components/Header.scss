@@ -15,10 +15,25 @@
         justify-content: left;
         gap: 50px;
 
+        .logo-area {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            align-items: center;
+            justify-content: left;
+            gap: 5px;
+
+            .logo-title {
+                color: #fff;
+                font-size: 22px;  //16
+                font-weight: 500;  //500
+            }
+        }
+
         .title {
             color: #fff;
-            font-size: 20px;  //16
-            font-weight: 400;  //500
+            font-size: 22px;
+            font-weight: 300;
         }
     }
 

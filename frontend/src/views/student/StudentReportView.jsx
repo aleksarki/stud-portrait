@@ -1,5 +1,5 @@
-import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import { portraitGetResults } from "../../api";
 
 import Header from "../../components/Header";
@@ -109,7 +109,7 @@ function StudentReportView() {
 
         content = <>
             <div className="page-title">
-                <span>Результаты студента {studResults.student.stud_name}</span>
+                <span>Результаты студента</span>
             </div>
             <div className="report-area">
                 {uniData.length !== 0 && <RadarChart
@@ -164,7 +164,7 @@ function StudentReportView() {
 
     return (
         <div className="StudentReportView">
-            <Header />
+            <Header title={`Студент ${studResults?.student?.stud_name}`} />
             {content}
         </div>
     );
