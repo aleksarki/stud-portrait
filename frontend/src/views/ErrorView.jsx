@@ -8,7 +8,9 @@ function ErrorView() {
     return (
         <div className="ErrorView">
             <Header />
-            <span>Несуществующая страница</span>
+            <div className="page-title">
+                <span>Несуществующая страница</span>
+            </div>
         </div>
     );
 }
