@@ -1,10 +1,6 @@
-import Chart from 'react-apexcharts';
+import Chart from "react-apexcharts";
 
 function RadarChart({title, seriesLabel, seriesData, categories}) {
-    // const seriesLabel = 'Студент 1';
-    // const seriesData = [80, 90, 70, 85, 60, 95];
-    // const categories = ['Коммуникативность', 'Мышление', 'Команда', 'Методичность', 'Стрессоустойчивость', 'Амбициозность'];
-
     const chartOptions = {
         chart: {
             type: 'radar',

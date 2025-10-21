@@ -1,7 +1,16 @@
 asgiref==3.10.0
+colorama==0.4.6
+coverage==7.10.7
 Django==5.2.7
 django-cors-headers==4.9.0
+iniconfig==2.1.0
+packaging==25.0
+pluggy==1.6.0
 psycopg==3.2.10
+Pygments==2.19.2
+pytest==8.4.2
+pytest-cov==7.0.0
+pytest-django==4.11.1
 sqlparse==0.5.3
 typing_extensions==4.15.0
 tzdata==2025.2

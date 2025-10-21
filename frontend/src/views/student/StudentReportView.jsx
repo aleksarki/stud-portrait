@@ -1,12 +1,14 @@
-import { useParams } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import { portraitGetResults } from '../api';
-import Header from '../components/Header';
-import RadarChart from '../components/RadarChart';
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import { portraitGetResults } from "../../api";
+
+import Header from "../../components/Header";
+import RadarChart from "../../components/RadarChart";
+
 import "./StudentReportView.scss";
 
 function StudentReportView() {
-    const {studId} = useParams();
+    const {studentId} = useParams();
     const [studResults, setStudResults] = useState();
     const [loading, setLoading] = useState(true);
     // const [error, setError] = useState(null);
@@ -16,7 +18,7 @@ function StudentReportView() {
             try {
                 setLoading(true);
                 // setError(null);
-                await portraitGetResults(studId, setStudResults);
+                await portraitGetResults(studentId, setStudResults);
             } catch (err) {
                 // setError(err.message);
                 console.error(err);
@@ -24,10 +26,10 @@ function StudentReportView() {
                 setLoading(false);
             }
         };
-        if (studId) {
+        if (studentId) {
             fetchData();
         }
-    }, [studId]);
+    }, [studentId]);
 
     let content = null;
     if (studResults) {
@@ -107,7 +109,7 @@ function StudentReportView() {
 
         content = <>
             <div className="page-title">
-                <span>Результаты студента {studResults.student.stud_name}</span>
+                <span>Результаты студента</span>
             </div>
             <div className="report-area">
                 {uniData.length !== 0 && <RadarChart
@@ -162,7 +164,7 @@ function StudentReportView() {
 
     return (
         <div className="StudentReportView">
-            <Header />
+            <Header title={`Студент ${studResults?.student?.stud_name}`} />
             {content}
         </div>
     );
