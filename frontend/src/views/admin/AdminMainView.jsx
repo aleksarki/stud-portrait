@@ -4,7 +4,7 @@ import "./AdminMainView.scss";
 function AdminMainView() {
     return (
         <div className="StudentMainView">
-            <Header title="Администратор" />
+            <Header title="Профиль" name="Администратор" />
         </div>
     );
 }

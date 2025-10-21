@@ -31,7 +31,7 @@ function StudentMainView() {
 
     return (
         <div className="StudentMainView">
-            <Header title={`Студент ${studResults?.student?.stud_name}`} />
+            <Header title="Профиль" name={`${studResults?.student?.stud_name}`} />
         </div>
     );
 }

@@ -164,7 +164,7 @@ function StudentReportView() {
 
     return (
         <div className="StudentReportView">
-            <Header title={`Студент ${studResults?.student?.stud_name}`} />
+            <Header title="Результаты" name={`${studResults?.student?.stud_name}`} />
             {content}
         </div>
     );
