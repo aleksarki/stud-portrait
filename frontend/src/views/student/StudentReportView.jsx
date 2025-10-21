@@ -4,6 +4,7 @@ import { portraitGetResults } from "../../api";
 
 import Header from "../../components/Header";
 import RadarChart from "../../components/RadarChart";
+import Title from "../../components/Title";
 
 import "./StudentReportView.scss";
 
@@ -108,9 +109,6 @@ function StudentReportView() {
         });
 
         content = <>
-            <div className="page-title">
-                <span>Результаты студента</span>
-            </div>
             <div className="report-area">
                 {uniData.length !== 0 && <RadarChart
                     title="Универсальный личностный опросник"
@@ -165,6 +163,7 @@ function StudentReportView() {
     return (
         <div className="StudentReportView">
             <Header title="Результаты" name={`${studResults?.student?.stud_name}`} />
+            <Title title="Результаты студента" />
             {content}
         </div>
     );

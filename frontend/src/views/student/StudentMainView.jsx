@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { portraitGetResults } from "../../api";
 
 import Header from "../../components/Header"
+import Title from "../../components/Title";
 
 import "./StudentMainView.scss";
 
@@ -32,6 +33,7 @@ function StudentMainView() {
     return (
         <div className="StudentMainView">
             <Header title="Профиль" name={`${studResults?.student?.stud_name}`} />
+            <Title title="Обзор" />
         </div>
     );
 }
