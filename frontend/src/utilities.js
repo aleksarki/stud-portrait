@@ -192,3 +192,44 @@ export function prepareTableData(resultsData, categoryKey) {
 
     return { tableData, years };
 }
+
+// Функция для получения данных за последний доступный год
+export function getLastYearData(resultsData, categoryKey) {
+    if (!resultsData?.length) return { labels: [], data: [], year: null };
+
+    const category = RESULT_CATEGORIES[categoryKey];
+    if (!category) return { labels: [], data: [], year: null };
+
+    // Находим последний год с данными
+    const yearsWithData = resultsData
+        .filter(yearData => 
+            category.fields.some(field => 
+                yearData[field.key] !== null && yearData[field.key] !== undefined
+            )
+        )
+        .map(yearData => yearData.res_year)
+        .sort((a, b) => b - a); // Сортируем по убыванию
+
+    const lastYear = yearsWithData[0]; // Берем самый последний год
+    
+    if (!lastYear) return { labels: [], data: [], year: null };
+
+    // Находим данные за последний год
+    const lastYearData = resultsData.find(item => item.res_year === lastYear);
+    
+    if (!lastYearData) return { labels: [], data: [], year: null };
+
+    // Формируем данные для радарного графика
+    const labels = [];
+    const data = [];
+
+    category.fields.forEach(field => {
+        const value = lastYearData[field.key];
+        if (value !== null && value !== undefined) {
+            labels.push(field.label);
+            data.push(value);
+        }
+    });
+
+    return { labels, data, year: lastYear };
+}
