@@ -6,8 +6,8 @@ function RadarChart({title, seriesLabel, seriesData, categories}) {
             type: 'radar',
             toolbar: {show: false}
         },
-        xaxis: {categories: categories},
-        title: {text: title, align: 'center'}
+        title: {text: title, align: 'center'},
+        xaxis: {categories: categories}
     };
 
     const chartSeries = [{
@@ -15,11 +15,13 @@ function RadarChart({title, seriesLabel, seriesData, categories}) {
         data: seriesData
     }];
 
-    return <Chart
-        options={chartOptions}
-        series={chartSeries}
-        type="radar"
-    />;
+    return (
+        <Chart
+            options={chartOptions}
+            series={chartSeries}
+            type="radar"
+        />
+    );
     // height={350}
 }
 
