@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { portraitGetResults } from "../../api";
-import { getAvailableCategories } from "../../utilities";
+import { getAvailableCategories, getCategoryDataForChart } from "../../utilities";
 
 import Header from "../../components/Header"
+import LineChart from "../../components/LineChart";
 import SidebarLayout from "../../components/SidebarLayout";
 import Sidepanel from "../../components/Sidepanel";
 import Title from "../../components/Title";
@@ -15,6 +16,7 @@ function StudentMainView() {
     const [studResults, setStudResults] = useState();
     // const [availableCategories, setAvailableCategories] = useState([]);
     const [linkList, setLinkList] = useState([]);
+    const [chartsData, setChartsData] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -47,6 +49,19 @@ function StudentMainView() {
                     title: category.title
                 };
             }));
+
+            // Подготавливаем данные для всех графиков
+            const charts = available.map(category => {
+                const chartData = getCategoryDataForChart(studResults.results, category.key);
+                return {
+                    category: category,
+                    title: category.title,
+                    labels: chartData.labels,
+                    series: chartData.series
+                };
+            });
+
+            setChartsData(charts);
         };
 
         if (studResults) {
@@ -59,7 +74,29 @@ function StudentMainView() {
             <Header title="Профиль" name={`${studResults?.student?.stud_name}`} />
             <Title title="Обзор" />
             <SidebarLayout sidebar={<Sidepanel links={linkList} />}>
-                <span>текст</span>
+                <div className="charts-grid">
+                    {loading ? (
+                        <div className="loading">Загрузка данных...</div>
+                    ) : chartsData.length > 0 ? (
+                        chartsData.map((chart, index) => (
+                            <div key={chart.category.key} className="chart-card">
+                                <div className="chart-header">
+                                    <h3>{chart.title}</h3>
+                                </div>
+                                <div className="chart-container">
+                                    <LineChart
+                                        title={chart.title}
+                                        seriesLabels={chart.labels}
+                                        chartSeries={chart.series}
+                                        height="300"
+                                    />
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="no-data">Нет данных для отображения</div>
+                    )}
+                </div>
             </SidebarLayout>
         </div>
     );

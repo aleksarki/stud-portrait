@@ -125,3 +125,29 @@ export function getCategoryData(data, categoryKey) {
         return fieldData;
     });
 };
+
+export function getCategoryDataForChart(data, categoryKey) {
+    if (!data) return { labels: [], series: [] };
+    
+    const category = RESULT_CATEGORIES[categoryKey];
+    if (!category) return { labels: [], series: [] };
+
+    // Получаем labels (названия компетенций)
+    const labels = category.fields.map(field => field.label);
+
+    // Получаем все уникальные годы
+    const allYears = [...new Set(data.map(item => item.res_year))].sort();
+
+    // Создаем серии по годам
+    const series = allYears.map(year => {
+        const yearData = data.find(item => item.res_year === year);
+        return {
+            name: year.toString(),
+            data: category.fields.map(field => 
+                yearData && yearData[field.key] !== null ? yearData[field.key] : null
+            )
+        };
+    });
+
+    return { labels, series };
+}
