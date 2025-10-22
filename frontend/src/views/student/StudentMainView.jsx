@@ -45,10 +45,14 @@ function StudentMainView() {
             // setAvailableCategories(available);
             setLinkList(available.map(category => {
                 return {
-                    to: `http://localhost:3000/student/${studResults.student.stud_id}/report/${category.key}`,  // dubious
+                    to: `/student/${studResults.student.stud_id}/report/${category.key}`,  // dubious
                     title: category.title
                 };
             }));
+            setLinkList(ll => [{
+                to: `/student/${studResults.student.stud_id}`,
+                title: "Обзор"
+            }, ...ll]);
 
             // Подготавливаем данные для всех графиков
             const charts = available.map(category => {
