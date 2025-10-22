@@ -22,7 +22,7 @@ const router = createBrowserRouter([
     element: <StudentMainView />
   },
   {
-    path: "/student/:studentId/report",
+    path: "/student/:studentId/report/:reportType",
     element: <StudentReportView />
   },
   {
