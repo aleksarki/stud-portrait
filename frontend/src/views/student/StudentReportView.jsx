@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { portraitGetResults } from "../../api";
-import { getAvailableCategories, getCategoryData, RESULT_CATEGORIES } from "../../utilities";
+import { getAvailableCategories, prepareTableData, RESULT_CATEGORIES } from "../../utilities";
 
 import Header from "../../components/Header";
-import LineChart from "../../components/LineChart";
+import ResultTable from "../../components/ResultTable";
 import SidebarLayout from "../../components/SidebarLayout";
 import Sidepanel from "../../components/Sidepanel";
 import Title from "../../components/Title";
@@ -15,8 +15,8 @@ function StudentReportView() {
     const {studentId, reportType} = useParams();
     const [studResults, setStudResults] = useState();
     const [linkList, setLinkList] = useState([]);
-    const [reportData, setReportData] = useState([]);
-    const [chartSeries, setChartSeries] = useState([]);
+    const [tableData, setTableData] = useState([]);
+    const [years, setYears] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const reportTitle = RESULT_CATEGORIES[reportType]?.title;
@@ -56,54 +56,31 @@ function StudentReportView() {
 
         if (studResults) {
             defineAvaliableResults();
-            const data = getCategoryData(studResults.results, reportType);
-            setReportData(data);
-            prepareChartData(data);
+            
+            const {
+                tableData: preparedTableData, years: preparedYears 
+            } = prepareTableData(studResults.results, reportType);
+            
+            setTableData(preparedTableData);
+            setYears(preparedYears);
         }
-    }, [studResults]);
-
-    // group by year
-    const prepareChartData = (categoryData) => {
-        if (!categoryData.length) return;
-
-        // Получаем все уникальные годы из данных
-        const allYears = [...new Set(
-            categoryData.flatMap(field => 
-                field.values.map(value => value.year)
-            )
-        )].sort();
-
-        // Создаем серии данных по годам
-        const series = allYears.map(year => {
-            const yearData = {
-                name: year.toString(),
-                data: []
-            };
-
-            // Для каждой компетенции находим значение за этот год
-            categoryData.forEach(field => {
-                const yearValue = field.values.find(value => value.year === year);
-                yearData.data.push(yearValue ? yearValue.value : null);
-            });
-
-            return yearData;
-        });
-
-        setChartSeries(series);
-    };
+    }, [studResults, reportType]);
 
     return (
         <div className="StudentReportView">
             <Header title="Результаты" name={`${studResults?.student?.stud_name}`} />
             <Title title={reportTitle} />
             <SidebarLayout sidebar={<Sidepanel links={linkList} />}>
-                {reportData.length > 0 && (
-                    <LineChart
-                        title={reportTitle}
-                        seriesLabels={reportData?.map(result => result.label)}
-                        chartSeries={chartSeries}
-                    />
-                )}
+                <div className="report-container">
+                    {loading ? (
+                        <div className="loading">Загрузка данных...</div>
+                    ) : (
+                        <ResultTable
+                            data={tableData}
+                            years={years}
+                        />
+                    )}
+                </div>
             </SidebarLayout>
         </div>
     );

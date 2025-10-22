@@ -80,6 +80,7 @@ export const RESULT_CATEGORIES = {
     }
 };
 
+/** ... */
 export function getAvailableCategories(data) {
     if (!data) return [];
 
@@ -150,4 +151,44 @@ export function getCategoryDataForChart(data, categoryKey) {
     });
 
     return { labels, series };
+}
+
+export function prepareTableData(resultsData, categoryKey) {
+    if (!resultsData?.length) return { tableData: [], years: [] };
+
+    const category = RESULT_CATEGORIES[categoryKey];
+    if (!category) return { tableData: [], years: [] };
+
+    // Получаем все года
+    const years = [...new Set(resultsData.map(item => item.res_year))].sort();
+    
+    // Создаем табличные данные
+    const tableData = category.fields.map(field => {
+        const values = years.map((year, index) => {
+            const yearData = resultsData.find(item => item.res_year === year);
+            const value = yearData?.[field.key] ?? null;
+            
+            let change = null;
+            let changePercent = null;
+            
+            // Вычисляем изменение относительно предыдущего года
+            if (value !== null && index > 0) {
+                const prevYearData = resultsData.find(item => item.res_year === years[index - 1]);
+                const prevValue = prevYearData?.[field.key];
+                if (prevValue !== null && prevValue !== undefined) {
+                    change = value - prevValue;
+                    changePercent = ((change / prevValue) * 100).toFixed(1);
+                }
+            }
+
+            return { year, value, change, changePercent };
+        });
+
+        return {
+            competency: field.label,
+            values
+        };
+    });
+
+    return { tableData, years };
 }
