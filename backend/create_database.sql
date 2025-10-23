@@ -1,8 +1,14 @@
 
+DROP TABLE IF EXISTS Results;
+DROP TABLE IF EXISTS Students;
+
 CREATE TABLE Students
 (
-    stud_id    INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    stud_name  VARCHAR(512)  NOT NULL
+    stud_id          INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    stud_name        VARCHAR(512)  NOT NULL,
+    stud_enter_year  INT           NOT NULL,
+    stud_major       VARCHAR(512)  NOT NULL,
+    stud_edu_instit  VARCHAR(512)  NOT NULL
 );
 
 CREATE TABLE Results
