@@ -1,7 +1,8 @@
 import "./Header.scss";
 import logo from "../static/logo_white.png";
+import Dropdown from "./Dropdown";
 
-function Header({ title }) {
+function Header({ title, name }) {
     return (
         <div className="Header">
             <div className="left-side">
@@ -12,7 +13,9 @@ function Header({ title }) {
                 <span className="title">{title}</span>
             </div>
             <div className="right-side">
-                <a className="label" href="#">Войти</a>
+                <Dropdown handle={<span className="menu-handle">{name}</span>}>
+                    <span style={{cursor: "pointer"}}>Выход</span>
+                </Dropdown>
             </div>
         </div>
     );

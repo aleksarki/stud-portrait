@@ -1,0 +1,158 @@
+.ResultTable {
+    .table-title {
+        margin: 0 0 16px 0;
+        color: #333;
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+
+    .no-data-message {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+        font-size: 1.1rem;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .table-wrapper {
+        overflow-x: auto;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .results-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+
+        th, td {
+            padding: 12px 16px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }
+
+        .competency-header {
+            background: #f8f9fa;
+            font-weight: 600;
+            text-align: left;
+            min-width: 200px;
+            position: sticky;
+            left: 0;
+            z-index: 10;
+        }
+
+        .year-header {
+            background: #f8f9fa;
+            font-weight: 600;
+            min-width: 120px;
+        }
+
+        .competency-cell {
+            text-align: left;
+            font-weight: 500;
+            background: white;
+            position: sticky;
+            left: 0;
+            z-index: 5;
+        }
+
+        .value-cell {
+            transition: background-color 0.3s ease;
+            
+            &:hover {
+                filter: brightness(0.95);
+            }
+
+            .no-data {
+                color: #999;
+                font-style: italic;
+            }
+
+            .value-with-change {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+
+                .value {
+                    font-weight: 600;
+                    font-size: 16px;
+                }
+
+                .change {
+                    font-size: 11px;
+                    padding: 2px 6px;
+                    border-radius: 10px;
+                    font-weight: 500;
+
+                    &.positive {
+                        background: #e8f5e8;
+                        color: #2e7d32;
+                    }
+
+                    &.negative {
+                        background: #ffebee;
+                        color: #c62828;
+                    }
+
+                    &.neutral {
+                        background: #f5f5f5;
+                        color: #666;
+                    }
+                }
+            }
+        }
+
+        // Альтернативные строки для лучшей читаемости
+        tbody tr:nth-child(even) {
+            background: #fafafa;
+            
+            .competency-cell {
+                background: #fafafa;
+            }
+        }
+
+        tbody tr:hover {
+            background: #f0f7ff;
+            
+            .competency-cell {
+                background: #f0f7ff;
+            }
+        }
+    }
+}
+
+// Адаптивность для мобильных устройств
+@media (max-width: 768px) {
+    .result-table-container {
+        .results-table {
+            font-size: 12px;
+
+            th, td {
+                padding: 8px 12px;
+            }
+
+            .competency-header {
+                min-width: 150px;
+            }
+
+            .year-header {
+                min-width: 100px;
+            }
+
+            .value-cell {
+                .value-with-change {
+                    .value {
+                        font-size: 14px;
+                    }
+
+                    .change {
+                        font-size: 10px;
+                    }
+                }
+            }
+        }
+    }
+}

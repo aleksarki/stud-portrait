@@ -1,0 +1,235 @@
+
+export const RESULT_CATEGORIES = {
+    universal: {
+        key: 'universal',
+        title: "Универсальный личностный опросник",
+        fields: [
+            { key: 'res_uni_communication', label: 'Коммуникативность' },
+            { key: 'res_uni_complex_thinking', label: 'Комплексное мышление' },
+            { key: 'res_uni_command_work', label: 'Работа в команде' },
+            { key: 'res_uni_methodicalness', label: 'Методичность' },
+            { key: 'res_uni_stress_susceptib', label: 'Подверженность стрессу' },
+            { key: 'res_uni_ambitousness', label: 'Амбициозность' },
+            { key: 'res_uni_rules_compliance', label: 'Следование правилам' }
+        ]
+    },
+    motivation: {
+        key: 'motivation',
+        title: "Мотивационно-ценностный профиль",
+        fields: [
+            { key: 'res_mot_purpose', label: 'Смысл' },
+            { key: 'res_mot_cooperation', label: 'Сотрудничество' },
+            { key: 'res_mot_creativity', label: 'Креативность' },
+            { key: 'res_mot_challenge', label: 'Вызов' },
+            { key: 'res_mot_autonomy', label: 'Автономия' },
+            { key: 'res_mot_self_development', label: 'Саморазвитие' },
+            { key: 'res_mot_recognition', label: 'Признание' },
+            { key: 'res_mot_career', label: 'Карьера' },
+            { key: 'res_mot_management', label: 'Управление' },
+            { key: 'res_mot_altruism', label: 'Альтруизм' },
+            { key: 'res_mot_relationships', label: 'Отношения' },
+            { key: 'res_mot_affiliation', label: 'Принадлежность' },
+            { key: 'res_mot_tradition', label: 'Традиция' },
+            { key: 'res_mot_health', label: 'Здоровье' },
+            { key: 'res_mot_stability', label: 'Стабильность' },
+            { key: 'res_mot_salary', label: 'Заработок' }
+        ]
+    },
+    competence: {
+        key: 'competence',
+        title: "Компетенции",
+        fields: [
+            { key: 'res_comp_digital_analysis', label: 'Анализ числовой информации' },
+            { key: 'res_comp_verbal_analysis', label: 'Анализ вербальной информации' }
+        ]
+    },
+    vitality: {
+        key: 'vitality',
+        title: "Жизнестойкость",
+        fields: [
+            { key: 'res_vita_positive_self_attit', label: 'Положительное отношение к себе' },
+            { key: 'res_vita_attit_twrd_future', label: 'Отношение к будущему' },
+            { key: 'res_vita_organization', label: 'Организованность' },
+            { key: 'res_vita_persistence', label: 'Настойчивость' }
+        ]
+    },
+    leadership: {
+        key: 'leadership',
+        title: "Ценностные установки лидера",
+        fields: [
+            { key: 'res_lead_awareness', label: 'Осознанность' },
+            { key: 'res_lead_proactivity', label: 'Проактивность' },
+            { key: 'res_lead_command_work', label: 'Работа с командой' },
+            { key: 'res_lead_control', label: 'Контроль' },
+            { key: 'res_lead_social_responsib', label: 'Социальная ответственность' }
+        ]
+    },
+    profile: {
+        key: 'profile',
+        title: "Индивидуальный профиль",
+        fields: [
+            { key: 'res_prof_information_analysis', label: 'Анализ информации' },
+            { key: 'res_prof_result_orientation', label: 'Ориентация на результат' },
+            { key: 'res_prof_planning', label: 'Планирование' },
+            { key: 'res_prof_stress_resistance', label: 'Стрессоустойчивость' },
+            { key: 'res_prof_partnership', label: 'Партнёрство' },
+            { key: 'res_prof_rules_compliance', label: 'Следование правилам' },
+            { key: 'res_prof_self_development', label: 'Саморазвитие' },
+            { key: 'res_prof_communication', label: 'Коммуникация' }
+        ]
+    }
+};
+
+/** ... */
+export function getAvailableCategories(data) {
+    if (!data) return [];
+
+    const availableCats = [];
+
+    Object.values(RESULT_CATEGORIES).forEach(category => {
+        const hasData = data.some(yearData => {
+            return category.fields.some(field =>
+                yearData[field.key] !== null && yearData[field.key] !== undefined
+            );
+        });
+        
+        if (hasData) {
+            availableCats.push(category);
+        }
+    });
+
+    return availableCats;
+}
+
+export function getCategoryData(data, categoryKey) {
+    if (!data) return [];
+    
+    const category = RESULT_CATEGORIES[categoryKey];
+    if (!category) return [];
+
+    return category.fields.map(field => {
+        const fieldData = {
+            label: field.label,
+            key: field.key,
+            values: []
+        };
+
+        data.forEach(yearData => {
+            if (yearData[field.key] !== null && yearData[field.key] !== undefined) {
+                fieldData.values.push({
+                    year: yearData.res_year,
+                    value: yearData[field.key]
+                });
+            }
+        });
+
+        return fieldData;
+    });
+};
+
+export function getCategoryDataForChart(data, categoryKey) {
+    if (!data) return { labels: [], series: [] };
+    
+    const category = RESULT_CATEGORIES[categoryKey];
+    if (!category) return { labels: [], series: [] };
+
+    // Получаем labels (названия компетенций)
+    const labels = category.fields.map(field => field.label);
+
+    // Получаем все уникальные годы
+    const allYears = [...new Set(data.map(item => item.res_year))].sort();
+
+    // Создаем серии по годам
+    const series = allYears.map(year => {
+        const yearData = data.find(item => item.res_year === year);
+        return {
+            name: year.toString(),
+            data: category.fields.map(field => 
+                yearData && yearData[field.key] !== null ? yearData[field.key] : null
+            )
+        };
+    });
+
+    return { labels, series };
+}
+
+export function prepareTableData(resultsData, categoryKey) {
+    if (!resultsData?.length) return { tableData: [], years: [] };
+
+    const category = RESULT_CATEGORIES[categoryKey];
+    if (!category) return { tableData: [], years: [] };
+
+    // Получаем все года
+    const years = [...new Set(resultsData.map(item => item.res_year))].sort();
+    
+    // Создаем табличные данные
+    const tableData = category.fields.map(field => {
+        const values = years.map((year, index) => {
+            const yearData = resultsData.find(item => item.res_year === year);
+            const value = yearData?.[field.key] ?? null;
+            
+            let change = null;
+            let changePercent = null;
+            
+            // Вычисляем изменение относительно предыдущего года
+            if (value !== null && index > 0) {
+                const prevYearData = resultsData.find(item => item.res_year === years[index - 1]);
+                const prevValue = prevYearData?.[field.key];
+                if (prevValue !== null && prevValue !== undefined) {
+                    change = value - prevValue;
+                    changePercent = ((change / prevValue) * 100).toFixed(1);
+                }
+            }
+
+            return { year, value, change, changePercent };
+        });
+
+        return {
+            competency: field.label,
+            values
+        };
+    });
+
+    return { tableData, years };
+}
+
+// Функция для получения данных за последний доступный год
+export function getLastYearData(resultsData, categoryKey) {
+    if (!resultsData?.length) return { labels: [], data: [], year: null };
+
+    const category = RESULT_CATEGORIES[categoryKey];
+    if (!category) return { labels: [], data: [], year: null };
+
+    // Находим последний год с данными
+    const yearsWithData = resultsData
+        .filter(yearData => 
+            category.fields.some(field => 
+                yearData[field.key] !== null && yearData[field.key] !== undefined
+            )
+        )
+        .map(yearData => yearData.res_year)
+        .sort((a, b) => b - a); // Сортируем по убыванию
+
+    const lastYear = yearsWithData[0]; // Берем самый последний год
+    
+    if (!lastYear) return { labels: [], data: [], year: null };
+
+    // Находим данные за последний год
+    const lastYearData = resultsData.find(item => item.res_year === lastYear);
+    
+    if (!lastYearData) return { labels: [], data: [], year: null };
+
+    // Формируем данные для радарного графика
+    const labels = [];
+    const data = [];
+
+    category.fields.forEach(field => {
+        const value = lastYearData[field.key];
+        if (value !== null && value !== undefined) {
+            labels.push(field.label);
+            data.push(value);
+        }
+    });
+
+    return { labels, data, year: lastYear };
+}

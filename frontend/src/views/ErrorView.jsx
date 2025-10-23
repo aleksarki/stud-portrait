@@ -1,5 +1,6 @@
 import { useRouteError } from "react-router-dom";
 import Header from "../components/Header";
+import Title from "../components/Title";
 import "./ErrorView.scss";
 
 function ErrorView() {
@@ -8,9 +9,7 @@ function ErrorView() {
     return (
         <div className="ErrorView">
             <Header />
-            <div className="page-title">
-                <span>Несуществующая страница</span>
-            </div>
+            <Title title="Несуществующая страница" />
         </div>
     );
 }
