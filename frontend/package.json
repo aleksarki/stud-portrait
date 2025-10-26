@@ -20,6 +20,8 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "test:visual": "node test/selenium/runner.js",
+    "test:selenium": "npx jest --config=jest.config.js --verbose",
     "test:selenium:edge": "node tests/selenium/edge-runner.js",
     "eject": "react-scripts eject"
   },
@@ -42,11 +44,16 @@
     ]
   },
   "devDependencies": {
+    "@applitools/eyes-selenium": "^4.82.13",
+    "@types/jest": "^30.0.0",
     "chai": "^6.2.0",
+    "chromedriver": "^141.0.4",
     "cross-env": "^10.1.0",
     "edgedriver": "^6.1.2",
+    "expect": "^30.2.0",
+    "jest": "^27.5.1",
     "mocha": "^11.7.4",
     "sass": "^1.93.2",
-    "selenium-webdriver": "^4.36.0"
+    "selenium-webdriver": "^4.38.0"
   }
 }
