@@ -19,7 +19,10 @@ def students(request):
             students_list = [
                 {
                     "stud_id": student.stud_id,
-                    "stud_name": student.stud_name
+                    "stud_name": student.stud_name,
+                    "stud_enter_year": student.stud_enter_year,
+                    "stud_major": student.stud_major,
+                    "stud_edu_instit": student.stud_edu_instit
                 }
                 for student in Students.objects.all()
             ]

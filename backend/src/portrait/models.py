@@ -5,6 +5,9 @@ from django.db import models
 class Students(models.Model):
     stud_id = models.AutoField(primary_key=True)
     stud_name = models.CharField(max_length=512)
+    stud_enter_year = models.IntegerField()
+    stud_major = models.CharField(max_length=512)
+    stud_edu_instit = models.CharField(max_length=512)
     
     class Meta:
         managed = False
