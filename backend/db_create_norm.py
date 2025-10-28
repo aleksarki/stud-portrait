@@ -1,25 +1,23 @@
 import random
-from math import sqrt
 
-# Настройки для нормальных распределений по направлениям и университетам
-mu_base = {
-    'Математическое': {'mean': 400, 'sigma': 50},
-    'Гуманитарное': {'mean': 300, 'sigma': 60},
-    'Экономическое': {'mean': 350, 'sigma': 40}
+NUM_STUDENTS = 1000
+START_YEARS = range(2021, 2024)  # Годы начала учёбы
+
+programs_base = {
+    "Математическое":     {'mean': 400, 'sigma': 50},
+    "Гуманитарное":       {'mean': 300, 'sigma': 60},
+    "Экономическое":      {'mean': 350, 'sigma': 40},
+    "Техническое":        {'mean': 380, 'sigma': 45},
+    "Естественнонаучное": {'mean': 370, 'sigma': 55}
 }
+programs_list = list(programs_base.keys())
 
-universities = ['Университет №1', 'Университет №2', 'Университет №3']
-directions = list(mu_base.keys())
+institutions = "Университет №1", "Университет №2", "Университет №3", "Университет №4"
 
-# Добавляем множители для университетов (случайные отклонения от базового уровня)
-university_multipliers = {}
-for university in universities:
-    # Случайный множитель от 0.8 до 1.2 для каждого университета
-    university_multipliers[university] = random.uniform(0.8, 1.2)
+institution_multipliers = {}
+for institution in institutions:
+    institution_multipliers[institution] = random.uniform(.7, 1.3)
 
-# Количество студентов
-num_students = 1000
-start_years = range(2021, 2024)  # Годы начала учёбы
 fields = [
     'res_uni_communication',
     'res_uni_complex_thinking',
@@ -67,42 +65,56 @@ fields = [
     'res_prof_partnership',
     'res_prof_rules_compliance',
     'res_prof_self_development',
-    'res_prof_communication'
+    'res_prof_communication',
+    
+    'res_val_honesty_justice',
+    'res_val_humanism', 
+    'res_val_patriotism',
+    'res_val_family',
+    'res_val_health',
+    'res_val_environment'
 ]
+competence_base_means = {}
+for field in fields:
+    competence_base_means[field] = random.randint(200, 500)
 
 def generate_normal_value(mean, std_dev):
     """Генерирует значение по нормальному распределению."""
-    return max(0, int(random.gauss(mean, std_dev)))  # Добавлено ограничение снизу
-
-# Создаем случайные базовые матожидания для разных компетенций
-competence_base_means = {}
-for field in fields:
-    # Случайное базовое матожидание от 200 до 500 для разных компетенций
-    competence_base_means[field] = random.randint(200, 500)
+    return max(200, min(800, int(random.gauss(mean, std_dev))))  # Ограничение от 0 до 1000
 
 with open('synthetic_fill_database.sql', 'w', encoding='utf-8') as f:
+    # Сначала создаем записи в Institutions
+    f.write("-- Заполнение учебных заведений\n")
+    for i, institution_name in enumerate(institutions, 1):
+        f.write(f"INSERT INTO Institutions (inst_name) VALUES ('{institution_name}');\n")
+    
+    # Создаем записи в Programs
+    f.write("\n-- Заполнение направлений\n")
+    for i, program_name in enumerate(programs_list, 1):
+        f.write(f"INSERT INTO Programs (prog_name) VALUES ('{program_name}');\n")
+    
     # Таблица Students
+    f.write("\n-- Заполнение студентов\n")
     students = []
-    for i in range(num_students):
-        start_year = random.choice(start_years)
-        university = random.choice(universities)
-        direction = random.choice(directions)
-        student_name = f'Студент {i+1}'
+    for i in range(NUM_STUDENTS):
+        start_year = random.choice(START_YEARS)
+        institution_name = random.choice(institutions)
+        program_name = random.choice(programs_list)
+        student_name = f"Студент {i+1}"
         
-        # Определяем курс для 2025 года (или NULL если уже выпустился)
-        if 2025 >= start_year:
-            course = min(4, 2025 - start_year + 1)  # Максимум 4 курс
-        else:
-            course = None
+        # Определяем ID учреждения и программы (начиная с 1)
+        institution_id = institutions.index(institution_name) + 1
+        program_id = programs_list.index(program_name) + 1
             
         f.write(
-            "INSERT INTO Students (stud_name, stud_enter_year, stud_major, stud_edu_instit) "
-            f"VALUES ('{student_name}', {start_year}, '{direction}', '{university}');\n"
+            "INSERT INTO Students (stud_name, stud_enter_year, stud_program, stud_institution) "
+            f"VALUES ('{student_name}', {start_year}, {program_id}, {institution_id});\n"
         )
-        students.append((i+1, start_year, direction, university))  # Сохраняем ID, год поступления, направление и вуз
+        students.append((i+1, start_year, program_name, institution_name, program_id, institution_id))
 
     # Таблица Results
-    for student_id, start_year, direction, university in students:
+    f.write("\n-- Заполнение результатов\n")
+    for student_id, start_year, program_name, institution_name, program_id, institution_id in students:
         # Генерируем данные для каждого года обучения (максимум 4 года)
         for year_offset in range(4):  # 0, 1, 2, 3 - соответствует 1, 2, 3, 4 курсу
             current_year = start_year + year_offset
@@ -113,8 +125,8 @@ with open('synthetic_fill_database.sql', 'w', encoding='utf-8') as f:
             
             # Комбинированная динамика матожидания: по годам и по курсам
             # Базовое матожидание для направления + влияние курса + влияние года
-            base_mean = mu_base[direction]['mean']
-            base_sigma = mu_base[direction]['sigma']
+            base_mean = programs_base[program_name]['mean']
+            base_sigma = programs_base[program_name]['sigma']
             
             # Увеличение матожидания с курсом (курс 1-4)
             course_multiplier = 0.8 + (course * 0.1)  # 0.9, 1.0, 1.1, 1.2
@@ -130,13 +142,13 @@ with open('synthetic_fill_database.sql', 'w', encoding='utf-8') as f:
                 competence_mean = competence_base_means[field] * combined_multiplier
                 
                 # Добавляем случайное отклонение между направлениями (±10%)
-                direction_variation = random.uniform(0.9, 1.1)
+                program_variation = random.uniform(0.9, 1.1)
                 
                 # Добавляем влияние университета
-                university_multiplier = university_multipliers[university]
+                institution_multiplier = institution_multipliers[institution_name]
                 
                 # Комбинируем все множители
-                final_mean = competence_mean * direction_variation * university_multiplier
+                final_mean = competence_mean * program_variation * institution_multiplier
                 
                 value = generate_normal_value(final_mean, base_sigma)
                 values.append(str(value))
@@ -147,9 +159,13 @@ with open('synthetic_fill_database.sql', 'w', encoding='utf-8') as f:
                 f"VALUES ({student_id}, {current_year}, {values_str});\n"
             )
 
-# Выводим информацию о множителях университетов для отладки
-print("Множители университетов:")
-for university, multiplier in university_multipliers.items():
-    print(f"{university}: {multiplier:.2f}")
+print("Множители учебных заведений:")
+for institution, multiplier in institution_multipliers.items():
+    print(f"{institution}: {multiplier:.2f}")
 
+print("\nБазовые настройки направлений:")
+for program, settings in programs_base.items():
+    print(f"{program}: mean={settings['mean']}, sigma={settings['sigma']}")
+
+print(f"\nСгенерировано {NUM_STUDENTS} студентов.")
 print("Файл synthetic_fill_database.sql успешно создан.")

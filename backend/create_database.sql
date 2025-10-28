@@ -1,16 +1,34 @@
 
 DROP TABLE IF EXISTS Results;
 DROP TABLE IF EXISTS Students;
+DROP TABLE IF EXISTS Programs;
+DROP TABLE IF EXISTS Institutions;
 
-CREATE TABLE Students
+-- Учебное заведение
+CREATE TABLE Institutions
 (
-    stud_id          INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    stud_name        VARCHAR(512)  NOT NULL,
-    stud_enter_year  INT           NOT NULL,
-    stud_major       VARCHAR(512)  NOT NULL,
-    stud_edu_instit  VARCHAR(512)  NOT NULL
+    inst_id    INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    inst_name  VARCHAR(512)  NOT NULL
 );
 
+-- Направление
+CREATE TABLE Programs
+(
+    prog_id    INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    prog_name  VARCHAR(512)  NOT NULL
+);
+
+-- Студент
+CREATE TABLE Students
+(
+    stud_id           INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    stud_name         VARCHAR(512)  NOT NULL,
+    stud_enter_year   INT           NOT NULL,
+    stud_program      INTEGER       NOT NULL REFERENCES Programs(prog_id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    stud_institution  INTEGER       NOT NULL REFERENCES Institutions(inst_id) ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+-- Результат
 CREATE TABLE Results
 (
     res_id    INTEGER    PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -63,5 +81,12 @@ CREATE TABLE Results
     res_prof_partnership           INT, -- Партнёрство
     res_prof_rules_compliance      INT, -- Следование правилам
     res_prof_self_development      INT, -- Саморазвитие
-    res_prof_communication         INT  -- Коммуникация
+    res_prof_communication         INT, -- Коммуникация
+    -- Ценностные ориентации
+    res_val_honesty_justice  INT, -- Честность и справедливость
+    res_val_humanism         INT, -- Гуманизм
+    res_val_patriotism       INT, -- Патриотизм
+    res_val_family           INT, -- Семейные ценности
+    res_val_health           INT, -- Здоровый образ жизни
+    res_val_environment      INT  -- Сохранение природы
 );
