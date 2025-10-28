@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from .models import Students, Results
+from .models import Students, Results, Institutions, Programs
 
 # Create your views here.
 
@@ -21,10 +21,16 @@ def students(request):
                     "stud_id": student.stud_id,
                     "stud_name": student.stud_name,
                     "stud_enter_year": student.stud_enter_year,
-                    "stud_major": student.stud_major,
-                    "stud_edu_instit": student.stud_edu_instit
+                    "stud_program": {
+                        "prog_id": student.stud_program.prog_id,
+                        "prog_name": student.stud_program.prog_name
+                    },
+                    "stud_institution": {
+                        "inst_id": student.stud_institution.inst_id,
+                        "inst_name": student.stud_institution.inst_name
+                    }
                 }
-                for student in Students.objects.all()
+                for student in Students.objects.all().select_related('stud_program', 'stud_institution')
             ]
             return successResponse({"students": students_list})
         
@@ -45,7 +51,7 @@ def results(request):
             stud_id = int(stud_id)
             
             try:
-                student = Students.objects.get(stud_id=stud_id)
+                student = Students.objects.select_related('stud_program', 'stud_institution').get(stud_id=stud_id)
             except Students.DoesNotExist:
                 return notFoundResponse("Student not found")
             
@@ -55,60 +61,90 @@ def results(request):
                     'res_id': result.res_id,
                     'res_year': result.res_year,
                     # Универсальный личностный опросник
-                    'res_uni_communication': result.res_uni_communication,
-                    'res_uni_complex_thinking': result.res_uni_complex_thinking,
-                    'res_uni_command_work': result.res_uni_command_work,
-                    'res_uni_methodicalness': result.res_uni_methodicalness,
-                    'res_uni_stress_susceptib': result.res_uni_stress_susceptib,
-                    'res_uni_ambitousness': result.res_uni_ambitousness,
-                    'res_uni_rules_compliance': result.res_uni_rules_compliance,
+                    'universal' : {
+                        'res_uni_communication': result.res_uni_communication,
+                        'res_uni_complex_thinking': result.res_uni_complex_thinking,
+                        'res_uni_command_work': result.res_uni_command_work,
+                        'res_uni_methodicalness': result.res_uni_methodicalness,
+                        'res_uni_stress_susceptib': result.res_uni_stress_susceptib,
+                        'res_uni_ambitousness': result.res_uni_ambitousness,
+                        'res_uni_rules_compliance': result.res_uni_rules_compliance
+                    },
                     # Мотивационно-ценностный профиль
-                    'res_mot_purpose': result.res_mot_purpose,
-                    'res_mot_cooperation': result.res_mot_cooperation,
-                    'res_mot_creativity': result.res_mot_creativity,
-                    'res_mot_challenge': result.res_mot_challenge,
-                    'res_mot_autonomy': result.res_mot_autonomy,
-                    'res_mot_self_development': result.res_mot_self_development,
-                    'res_mot_recognition': result.res_mot_recognition,
-                    'res_mot_career': result.res_mot_career,
-                    'res_mot_management': result.res_mot_management,
-                    'res_mot_altruism': result.res_mot_altruism,
-                    'res_mot_relationships': result.res_mot_relationships,
-                    'res_mot_affiliation': result.res_mot_affiliation,
-                    'res_mot_tradition': result.res_mot_tradition,
-                    'res_mot_health': result.res_mot_health,
-                    'res_mot_stability': result.res_mot_stability,
-                    'res_mot_salary': result.res_mot_salary,
+                    'motivation': {
+                        'res_mot_purpose': result.res_mot_purpose,
+                        'res_mot_cooperation': result.res_mot_cooperation,
+                        'res_mot_creativity': result.res_mot_creativity,
+                        'res_mot_challenge': result.res_mot_challenge,
+                        'res_mot_autonomy': result.res_mot_autonomy,
+                        'res_mot_self_development': result.res_mot_self_development,
+                        'res_mot_recognition': result.res_mot_recognition,
+                        'res_mot_career': result.res_mot_career,
+                        'res_mot_management': result.res_mot_management,
+                        'res_mot_altruism': result.res_mot_altruism,
+                        'res_mot_relationships': result.res_mot_relationships,
+                        'res_mot_affiliation': result.res_mot_affiliation,
+                        'res_mot_tradition': result.res_mot_tradition,
+                        'res_mot_health': result.res_mot_health,
+                        'res_mot_stability': result.res_mot_stability,
+                        'res_mot_salary': result.res_mot_salary
+                    },
                     # Компетенции
-                    'res_comp_digital_analysis': result.res_comp_digital_analysis,
-                    'res_comp_verbal_analysis': result.res_comp_verbal_analysis,
+                    'competence' : {
+                        'res_comp_digital_analysis': result.res_comp_digital_analysis,
+                        'res_comp_verbal_analysis': result.res_comp_verbal_analysis
+                    },
                     # Жизнестойкость
-                    'res_vita_positive_self_attit': result.res_vita_positive_self_attit,
-                    'res_vita_attit_twrd_future': result.res_vita_attit_twrd_future,
-                    'res_vita_organization': result.res_vita_organization,
-                    'res_vita_persistence': result.res_vita_persistence,
+                    'vitality': {
+                        'res_vita_positive_self_attit': result.res_vita_positive_self_attit,
+                        'res_vita_attit_twrd_future': result.res_vita_attit_twrd_future,
+                        'res_vita_organization': result.res_vita_organization,
+                        'res_vita_persistence': result.res_vita_persistence
+                    },
                     # Ценностные установки лидера
-                    'res_lead_awareness': result.res_lead_awareness,
-                    'res_lead_proactivity': result.res_lead_proactivity,
-                    'res_lead_command_work': result.res_lead_command_work,
-                    'res_lead_control': result.res_lead_control,
-                    'res_lead_social_responsib': result.res_lead_social_responsib,
+                    'leadership': {
+                        'res_lead_awareness': result.res_lead_awareness,
+                        'res_lead_proactivity': result.res_lead_proactivity,
+                        'res_lead_command_work': result.res_lead_command_work,
+                        'res_lead_control': result.res_lead_control,
+                        'res_lead_social_responsib': result.res_lead_social_responsib
+                    },
                     # Индивидуальный профиль
-                    'res_prof_information_analysis': result.res_prof_information_analysis,
-                    'res_prof_result_orientation': result.res_prof_result_orientation,
-                    'res_prof_planning': result.res_prof_planning,
-                    'res_prof_stress_resistance': result.res_prof_stress_resistance,
-                    'res_prof_partnership': result.res_prof_partnership,
-                    'res_prof_rules_compliance': result.res_prof_rules_compliance,
-                    'res_prof_self_development': result.res_prof_self_development,
-                    'res_prof_communication': result.res_prof_communication,
+                    'profile': {
+                        'res_prof_information_analysis': result.res_prof_information_analysis,
+                        'res_prof_result_orientation': result.res_prof_result_orientation,
+                        'res_prof_planning': result.res_prof_planning,
+                        'res_prof_stress_resistance': result.res_prof_stress_resistance,
+                        'res_prof_partnership': result.res_prof_partnership,
+                        'res_prof_rules_compliance': result.res_prof_rules_compliance,
+                        'res_prof_self_development': result.res_prof_self_development,
+                        'res_prof_communication': result.res_prof_communication
+                    },
+                    # Ценностные ориентации
+                    'values': {
+                        'res_val_honesty_justice': result.res_val_honesty_justice,
+                        'res_val_humanism': result.res_val_humanism,
+                        'res_val_patriotism': result.res_val_patriotism,
+                        'res_val_family': result.res_val_family,
+                        'res_val_health': result.res_val_health,
+                        'res_val_environment': result.res_val_environment
+                    }
                 }
                 results_list.append(result_data)
-            
+            # 
             return successResponse({
                 "student": {
                     "stud_id": student.stud_id,
-                    "stud_name": student.stud_name
+                    "stud_name": student.stud_name,
+                    "stud_enter_year": student.stud_enter_year,
+                    "stud_program": {
+                        "prog_id": student.stud_program.prog_id,
+                        "prog_name": student.stud_program.prog_name
+                    },
+                    "stud_institution": {
+                        "inst_id": student.stud_institution.inst_id,
+                        "inst_name": student.stud_institution.inst_name
+                    }
                 },
                 "results": results_list
             })
@@ -116,6 +152,42 @@ def results(request):
         except ValueError:
             return errorResponse("stud_id must be an integer")
 
+        except Exception as e:
+            return exceptionResponse(e)
+    
+    return notAllowedResponse()
+
+@csrf_exempt
+def institutions(request):
+    if request.method == 'GET':
+        try:
+            institutions_list = [
+                {
+                    "inst_id": institution.inst_id,
+                    "inst_name": institution.inst_name
+                }
+                for institution in Institutions.objects.all()
+            ]
+            return successResponse({"institutions": institutions_list})
+        
+        except Exception as e:
+            return exceptionResponse(e)
+    
+    return notAllowedResponse()
+
+@csrf_exempt
+def programs(request):
+    if request.method == 'GET':
+        try:
+            programs_list = [
+                {
+                    "prog_id": program.prog_id,
+                    "prog_name": program.prog_name
+                }
+                for program in Programs.objects.all()
+            ]
+            return successResponse({"programs": programs_list})
+        
         except Exception as e:
             return exceptionResponse(e)
     
