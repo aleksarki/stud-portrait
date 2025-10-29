@@ -5,14 +5,46 @@
     align-items: center;
     justify-content: center;
     
-    // ApexCharts container
     > div {
         width: 100% !important;
         max-width: 100% !important;
+        height: 100% !important;
         
         svg {
-            max-width: 100% !important;
+            width: 100% !important;
+            height: 100% !important;
+            max-width: none !important;
+            max-height: none !important;
             overflow: visible !important;
+        }
+
+        // Стили для многострочных подписей
+        .apexcharts-xaxis-label {
+            tspan {
+                font-size: 11px !important;
+                font-weight: 500 !important;
+                line-height: 1.2 !important;
+            }
+        }
+        
+        // Увеличиваем отступы для многострочных labels
+        .apexcharts-radar-polygon {
+            transform: scale(0.9); // Немного уменьшаем радар чтобы было место для текста
+        }
+
+        .apexcharts-datalabels {
+            transform: translateY(5px); // Сдвигаем labels для лучшего отображения
+        }
+
+        .custom-tooltip {
+            padding: 10px;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            font-size: 12px;
+            line-height: 1.4;
         }
     }
 }
+

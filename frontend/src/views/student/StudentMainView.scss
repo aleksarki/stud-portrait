@@ -92,7 +92,7 @@
             .chart-container {
                 width: 100%;
                 flex: 1;
-                min-height: 300px;
+                min-height: 450px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -186,6 +186,43 @@
                 .chart-container {
                     min-height: 250px;
                 }
+            }
+        }
+    }
+}
+
+// Оптимизация для мобильных устройств
+@media (max-width: 768px) {
+    .charts-grid {
+        .chart-card {
+            flex: 1 1 100%;
+            min-width: auto;
+            margin: 5px;
+            padding: 15px;
+            
+            .chart-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+                
+                .chart-year {
+                    margin-left: 0;
+                    align-self: flex-start;
+                }
+            }
+            
+            .chart-container {
+                min-height: 350px; // Увеличили для мобильных
+            }
+        }
+    }
+    
+    .RadarChart {
+        > div {
+            // Увеличиваем размер на мобильных
+            svg {
+                transform: scale(1.1);
+                transform-origin: center;
             }
         }
     }
