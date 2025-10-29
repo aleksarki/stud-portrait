@@ -20,7 +20,9 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "test:visual": "node test/selenium/runner.js",
+    "test:visual": "node test/selenium/visual-runner.js",
+    "test:functional": "npx jest test/selenium/ --config=jest.config.js --testPathIgnorePatterns=VisualTests.test.js",
+    "test:all": "npm run test:functional && npm run test:visual",
     "test:selenium": "npx jest --config=jest.config.js --verbose",
     "test:selenium:edge": "node tests/selenium/edge-runner.js",
     "eject": "react-scripts eject"
