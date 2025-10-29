@@ -51,7 +51,7 @@ function StudentReportView() {
             
             setLinkList([{
                 to: `/student/${studResults.student.stud_id}`,
-                title: "Обзор"
+                title: "Главная страница"
             }, ...profileLinks]);
         };
 

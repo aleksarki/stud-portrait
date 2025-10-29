@@ -49,7 +49,7 @@ function StudentMainView() {
             
             setLinkList([{
                 to: `/student/${studResults.student.stud_id}`,
-                title: "Обзор"
+                title: "Главная страница"
             }, ...profileLinks]);
 
             // Данные для диаграмм по категориям внутри профилей
@@ -85,7 +85,7 @@ function StudentMainView() {
     return (
         <div className="StudentMainView">
             <Header title="Профиль" name={`${studResults?.student?.stud_name}`} />
-            <Title title="Обзор" />
+            <Title title="Главная страница" />
             <SidebarLayout sidebar={<Sidepanel links={linkList} />}>
                 <div className="charts-grid">
                     {loading ? (

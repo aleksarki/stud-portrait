@@ -6,7 +6,7 @@ function AdminMainView() {
     return (
         <div className="StudentMainView">
             <Header title="Профиль" name="Администратор" />
-            <Title title="Обзор" />
+            <Title title="Главная страница" />
         </div>
     );
 }

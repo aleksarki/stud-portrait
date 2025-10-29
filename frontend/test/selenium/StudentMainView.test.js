@@ -29,7 +29,7 @@ describe('Student Main View', () => {
         // Проверяем заголовок
         const titleElement = await baseTest.waitForElement('.Title h1');
         const titleText = await titleElement.getText();
-        expect(titleText).toContain('Обзор');
+        expect(titleText).toContain('Главная страница');
     });
 
     it('should display loading state or content', async () => {
@@ -57,12 +57,12 @@ describe('Student Main View', () => {
         const sidebarLinks = await baseTest.driver.findElements(By.css('.Sidepanel a'));
         console.log(`Found ${sidebarLinks.length} sidebar links`);
         
-        // Должна быть хотя бы одна ссылка (ОБЗОР)
+        // Должна быть хотя бы одна ссылка (ГЛАВНАЯ СТРАНИЦА)
         expect(sidebarLinks.length).toBeGreaterThan(0);
         
         // Проверяем первую ссылку
         const firstLinkText = await sidebarLinks[0].getText();
-        expect(firstLinkText).toBe('ОБЗОР');
+        expect(firstLinkText).toBe('ГЛАВНАЯ СТРАНИЦА');
     });
 
     it('should display student name in header', async () => {
