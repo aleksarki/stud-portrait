@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { portraitGetResults } from "../../api";
-import { getAvailableCategories, getLastYearData } from "../../utilities";
+import { getAvailableProfiles, getAvailableCategories, getLastYearCategoryData } from "../../utilities";
 
 import Header from "../../components/Header"
 import RadarChart from "../../components/RadarChart";
@@ -22,10 +22,8 @@ function StudentMainView() {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                // setError(null);
                 await portraitGetResults(studentId, setStudResults);
             } catch (err) {
-                // setError(err.message);
                 console.error(err);
             } finally {
                 setLoading(false);
@@ -37,38 +35,50 @@ function StudentMainView() {
     }, [studentId]);
 
     useEffect(() => {
-        const defineAvaliableResults = () => {
+        const defineAvailableData = () => {
             if (!studResults?.results?.length) return;
 
-            const available = getAvailableCategories(studResults.results);
-            const categoryLinks = available.map(category => {
+            // Ссылки для боковой панели
+            const availableProfiles = getAvailableProfiles(studResults.results);
+            const profileLinks = availableProfiles.map(profile => {
                 return {
-                    to: `/student/${studResults.student.stud_id}/report/${category.key}`,  // dubious
-                    title: category.title
+                    to: `/student/${studResults.student.stud_id}/report/${profile.key}`,
+                    title: profile.title
                 };
             });
+            
             setLinkList([{
                 to: `/student/${studResults.student.stud_id}`,
                 title: "Обзор"
-            }, ...categoryLinks]);
+            }, ...profileLinks]);
 
-            // last year data for radar charts
-            const charts = available.map(category => {
-                const lastYearData = getLastYearData(studResults.results, category.key);
-                return {
-                    category: category,
-                    title: category.title,
-                    year: lastYearData.year,
-                    labels: lastYearData.labels,
-                    data: lastYearData.data
-                };
+            // Данные для диаграмм по категориям внутри профилей
+            const charts = [];
+            
+            availableProfiles.forEach(profile => {
+                const availableCategories = getAvailableCategories(studResults.results, profile.key);
+                
+                availableCategories.forEach(category => {
+                    const lastYearData = getLastYearCategoryData(studResults.results, profile.key, category.key);
+                    
+                    if (lastYearData.labels.length > 0) {
+                        charts.push({
+                            profile: profile,
+                            category: category,
+                            title: `${profile.title}: ${category.title}`,
+                            year: lastYearData.year,
+                            labels: lastYearData.labels,
+                            data: lastYearData.data
+                        });
+                    }
+                });
             });
 
             setChartsData(charts);
         };
 
         if (studResults) {
-            defineAvaliableResults();
+            defineAvailableData();
         }
     }, [studResults]);
 
@@ -81,8 +91,8 @@ function StudentMainView() {
                     {loading ? (
                         <div className="loading">Загрузка данных...</div>
                     ) : chartsData.length > 0 ? (
-                        chartsData.map(chart => (
-                            <div key={chart.category.key} className="chart-card">
+                        chartsData.map((chart, index) => (
+                            <div key={index} className="chart-card">
                                 <div className="chart-header">
                                     <h3>{chart.title}</h3>
                                     {chart.year && (

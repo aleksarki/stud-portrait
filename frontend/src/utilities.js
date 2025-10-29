@@ -1,92 +1,146 @@
-
-export const RESULT_CATEGORIES = {
-    universal: {
-        key: 'universal',
-        title: "Универсальный личностный опросник",
-        fields: [
-            { key: 'res_uni_communication', label: 'Коммуникативность' },
-            { key: 'res_uni_complex_thinking', label: 'Комплексное мышление' },
-            { key: 'res_uni_command_work', label: 'Работа в команде' },
-            { key: 'res_uni_methodicalness', label: 'Методичность' },
-            { key: 'res_uni_stress_susceptib', label: 'Подверженность стрессу' },
-            { key: 'res_uni_ambitousness', label: 'Амбициозность' },
-            { key: 'res_uni_rules_compliance', label: 'Следование правилам' }
-        ]
+// utilities.js
+export const RESULT_PROFILES = {
+    competencies: {
+        key: 'competencies',
+        title: "Компетентностный профиль",
+        categories: {
+            universal: {
+                key: 'universal',
+                title: "Универсальный личностный опросник",
+                fields: [
+                    { key: 'res_uni_communication', label: 'Коммуникативность' },
+                    { key: 'res_uni_complex_thinking', label: 'Комплексное мышление' },
+                    { key: 'res_uni_command_work', label: 'Работа в команде' },
+                    { key: 'res_uni_methodicalness', label: 'Методичность' },
+                    { key: 'res_uni_stress_susceptib', label: 'Подверженность стрессу' },
+                    { key: 'res_uni_ambitousness', label: 'Амбициозность' },
+                    { key: 'res_uni_rules_compliance', label: 'Следование правилам' }
+                ]
+            },
+            competence: {
+                key: 'competence',
+                title: "Компетенции",
+                fields: [
+                    { key: 'res_comp_digital_analysis', label: 'Анализ числовой информации' },
+                    { key: 'res_comp_verbal_analysis', label: 'Анализ вербальной информации' }
+                ]
+            },
+            vitality: {
+                key: 'vitality',
+                title: "Жизнестойкость",
+                fields: [
+                    { key: 'res_vita_positive_self_attit', label: 'Положительное отношение к себе' },
+                    { key: 'res_vita_attit_twrd_future', label: 'Отношение к будущему' },
+                    { key: 'res_vita_organization', label: 'Организованность' },
+                    { key: 'res_vita_persistence', label: 'Настойчивость' }
+                ]
+            },
+            profile: {
+                key: 'profile',
+                title: "Индивидуальный профиль",
+                fields: [
+                    { key: 'res_prof_information_analysis', label: 'Анализ информации' },
+                    { key: 'res_prof_result_orientation', label: 'Ориентация на результат' },
+                    { key: 'res_prof_planning', label: 'Планирование' },
+                    { key: 'res_prof_stress_resistance', label: 'Стрессоустойчивость' },
+                    { key: 'res_prof_partnership', label: 'Партнёрство' },
+                    { key: 'res_prof_rules_compliance', label: 'Следование правилам' },
+                    { key: 'res_prof_self_development', label: 'Саморазвитие' },
+                    { key: 'res_prof_communication', label: 'Коммуникация' }
+                ]
+            }
+        }
     },
     motivation: {
         key: 'motivation',
-        title: "Мотивационно-ценностный профиль",
-        fields: [
-            { key: 'res_mot_purpose', label: 'Смысл' },
-            { key: 'res_mot_cooperation', label: 'Сотрудничество' },
-            { key: 'res_mot_creativity', label: 'Креативность' },
-            { key: 'res_mot_challenge', label: 'Вызов' },
-            { key: 'res_mot_autonomy', label: 'Автономия' },
-            { key: 'res_mot_self_development', label: 'Саморазвитие' },
-            { key: 'res_mot_recognition', label: 'Признание' },
-            { key: 'res_mot_career', label: 'Карьера' },
-            { key: 'res_mot_management', label: 'Управление' },
-            { key: 'res_mot_altruism', label: 'Альтруизм' },
-            { key: 'res_mot_relationships', label: 'Отношения' },
-            { key: 'res_mot_affiliation', label: 'Принадлежность' },
-            { key: 'res_mot_tradition', label: 'Традиция' },
-            { key: 'res_mot_health', label: 'Здоровье' },
-            { key: 'res_mot_stability', label: 'Стабильность' },
-            { key: 'res_mot_salary', label: 'Заработок' }
-        ]
+        title: "Мотивационный профиль",
+        categories: {
+            motivation: {
+                key: 'motivation',
+                title: "Мотивационно-ценностный профиль",
+                fields: [
+                    { key: 'res_mot_purpose', label: 'Смысл' },
+                    { key: 'res_mot_cooperation', label: 'Сотрудничество' },
+                    { key: 'res_mot_creativity', label: 'Креативность' },
+                    { key: 'res_mot_challenge', label: 'Вызов' },
+                    { key: 'res_mot_autonomy', label: 'Автономия' },
+                    { key: 'res_mot_self_development', label: 'Саморазвитие' },
+                    { key: 'res_mot_recognition', label: 'Признание' },
+                    { key: 'res_mot_career', label: 'Карьера' },
+                    { key: 'res_mot_management', label: 'Управление' },
+                    { key: 'res_mot_altruism', label: 'Альтруизм' },
+                    { key: 'res_mot_relationships', label: 'Отношения' },
+                    { key: 'res_mot_affiliation', label: 'Принадлежность' },
+                    { key: 'res_mot_tradition', label: 'Традиция' },
+                    { key: 'res_mot_health', label: 'Здоровье' },
+                    { key: 'res_mot_stability', label: 'Стабильность' },
+                    { key: 'res_mot_salary', label: 'Заработок' }
+                ]
+            }
+        }
     },
-    competence: {
-        key: 'competence',
-        title: "Компетенции",
-        fields: [
-            { key: 'res_comp_digital_analysis', label: 'Анализ числовой информации' },
-            { key: 'res_comp_verbal_analysis', label: 'Анализ вербальной информации' }
-        ]
-    },
-    vitality: {
-        key: 'vitality',
-        title: "Жизнестойкость",
-        fields: [
-            { key: 'res_vita_positive_self_attit', label: 'Положительное отношение к себе' },
-            { key: 'res_vita_attit_twrd_future', label: 'Отношение к будущему' },
-            { key: 'res_vita_organization', label: 'Организованность' },
-            { key: 'res_vita_persistence', label: 'Настойчивость' }
-        ]
-    },
-    leadership: {
-        key: 'leadership',
-        title: "Ценностные установки лидера",
-        fields: [
-            { key: 'res_lead_awareness', label: 'Осознанность' },
-            { key: 'res_lead_proactivity', label: 'Проактивность' },
-            { key: 'res_lead_command_work', label: 'Работа с командой' },
-            { key: 'res_lead_control', label: 'Контроль' },
-            { key: 'res_lead_social_responsib', label: 'Социальная ответственность' }
-        ]
-    },
-    profile: {
-        key: 'profile',
-        title: "Индивидуальный профиль",
-        fields: [
-            { key: 'res_prof_information_analysis', label: 'Анализ информации' },
-            { key: 'res_prof_result_orientation', label: 'Ориентация на результат' },
-            { key: 'res_prof_planning', label: 'Планирование' },
-            { key: 'res_prof_stress_resistance', label: 'Стрессоустойчивость' },
-            { key: 'res_prof_partnership', label: 'Партнёрство' },
-            { key: 'res_prof_rules_compliance', label: 'Следование правилам' },
-            { key: 'res_prof_self_development', label: 'Саморазвитие' },
-            { key: 'res_prof_communication', label: 'Коммуникация' }
-        ]
+    values: {
+        key: 'values',
+        title: "Ценностный профиль",
+        categories: {
+            leadership: {
+                key: 'leadership',
+                title: "Ценностные установки лидера",
+                fields: [
+                    { key: 'res_lead_awareness', label: 'Осознанность' },
+                    { key: 'res_lead_proactivity', label: 'Проактивность' },
+                    { key: 'res_lead_command_work', label: 'Работа с командой' },
+                    { key: 'res_lead_control', label: 'Контроль' },
+                    { key: 'res_lead_social_responsib', label: 'Социальная ответственность' }
+                ]
+            },
+            values: {
+                key: 'values',
+                title: "Ценностные ориентации",
+                fields: [
+                    { key: 'res_val_honesty_justice', label: 'Честность и справедливость' },
+                    { key: 'res_val_humanism', label: 'Гуманизм' },
+                    { key: 'res_val_patriotism', label: 'Патриотизм' },
+                    { key: 'res_val_family', label: 'Семейные ценности' },
+                    { key: 'res_val_health', label: 'Здоровый образ жизни' },
+                    { key: 'res_val_environment', label: 'Сохранение природы' }
+                ]
+            }
+        }
     }
 };
 
-/** ... */
-export function getAvailableCategories(data) {
+/** Получить доступные профили на основе данных */
+export function getAvailableProfiles(data) {
     if (!data) return [];
 
-    const availableCats = [];
+    const availableProfiles = [];
 
-    Object.values(RESULT_CATEGORIES).forEach(category => {
+    Object.values(RESULT_PROFILES).forEach(profile => {
+        const hasData = Object.values(profile.categories).some(category => {
+            return category.fields.some(field =>
+                data.some(yearData => yearData[field.key] !== null && yearData[field.key] !== undefined)
+            );
+        });
+        
+        if (hasData) {
+            availableProfiles.push(profile);
+        }
+    });
+
+    return availableProfiles;
+}
+
+/** Получить доступные категории внутри профиля */
+export function getAvailableCategories(data, profileKey) {
+    if (!data) return [];
+
+    const profile = RESULT_PROFILES[profileKey];
+    if (!profile) return [];
+
+    const availableCategories = [];
+
+    Object.values(profile.categories).forEach(category => {
         const hasData = data.some(yearData => {
             return category.fields.some(field =>
                 yearData[field.key] !== null && yearData[field.key] !== undefined
@@ -94,17 +148,21 @@ export function getAvailableCategories(data) {
         });
         
         if (hasData) {
-            availableCats.push(category);
+            availableCategories.push(category);
         }
     });
 
-    return availableCats;
+    return availableCategories;
 }
 
-export function getCategoryData(data, categoryKey) {
+/** Получить данные категории */
+export function getCategoryData(data, profileKey, categoryKey) {
     if (!data) return [];
     
-    const category = RESULT_CATEGORIES[categoryKey];
+    const profile = RESULT_PROFILES[profileKey];
+    if (!profile) return [];
+
+    const category = profile.categories[categoryKey];
     if (!category) return [];
 
     return category.fields.map(field => {
@@ -127,19 +185,19 @@ export function getCategoryData(data, categoryKey) {
     });
 };
 
-export function getCategoryDataForChart(data, categoryKey) {
+/** Получить данные категории для графика */
+export function getCategoryDataForChart(data, profileKey, categoryKey) {
     if (!data) return { labels: [], series: [] };
     
-    const category = RESULT_CATEGORIES[categoryKey];
+    const profile = RESULT_PROFILES[profileKey];
+    if (!profile) return { labels: [], series: [] };
+
+    const category = profile.categories[categoryKey];
     if (!category) return { labels: [], series: [] };
 
-    // Получаем labels (названия компетенций)
     const labels = category.fields.map(field => field.label);
-
-    // Получаем все уникальные годы
     const allYears = [...new Set(data.map(item => item.res_year))].sort();
 
-    // Создаем серии по годам
     const series = allYears.map(year => {
         const yearData = data.find(item => item.res_year === year);
         return {
@@ -153,16 +211,18 @@ export function getCategoryDataForChart(data, categoryKey) {
     return { labels, series };
 }
 
-export function prepareTableData(resultsData, categoryKey) {
+/** Подготовить данные для таблицы категории */
+export function prepareCategoryTableData(resultsData, profileKey, categoryKey) {
     if (!resultsData?.length) return { tableData: [], years: [] };
 
-    const category = RESULT_CATEGORIES[categoryKey];
+    const profile = RESULT_PROFILES[profileKey];
+    if (!profile) return { tableData: [], years: [] };
+
+    const category = profile.categories[categoryKey];
     if (!category) return { tableData: [], years: [] };
 
-    // Получаем все года
     const years = [...new Set(resultsData.map(item => item.res_year))].sort();
     
-    // Создаем табличные данные
     const tableData = category.fields.map(field => {
         const values = years.map((year, index) => {
             const yearData = resultsData.find(item => item.res_year === year);
@@ -171,7 +231,6 @@ export function prepareTableData(resultsData, categoryKey) {
             let change = null;
             let changePercent = null;
             
-            // Вычисляем изменение относительно предыдущего года
             if (value !== null && index > 0) {
                 const prevYearData = resultsData.find(item => item.res_year === years[index - 1]);
                 const prevValue = prevYearData?.[field.key];
@@ -193,14 +252,16 @@ export function prepareTableData(resultsData, categoryKey) {
     return { tableData, years };
 }
 
-// Функция для получения данных за последний доступный год
-export function getLastYearData(resultsData, categoryKey) {
+/** Получить данные за последний доступный год для категории */
+export function getLastYearCategoryData(resultsData, profileKey, categoryKey) {
     if (!resultsData?.length) return { labels: [], data: [], year: null };
 
-    const category = RESULT_CATEGORIES[categoryKey];
+    const profile = RESULT_PROFILES[profileKey];
+    if (!profile) return { labels: [], data: [], year: null };
+
+    const category = profile.categories[categoryKey];
     if (!category) return { labels: [], data: [], year: null };
 
-    // Находим последний год с данными
     const yearsWithData = resultsData
         .filter(yearData => 
             category.fields.some(field => 
@@ -208,18 +269,16 @@ export function getLastYearData(resultsData, categoryKey) {
             )
         )
         .map(yearData => yearData.res_year)
-        .sort((a, b) => b - a); // Сортируем по убыванию
+        .sort((a, b) => b - a);
 
-    const lastYear = yearsWithData[0]; // Берем самый последний год
+    const lastYear = yearsWithData[0];
     
     if (!lastYear) return { labels: [], data: [], year: null };
 
-    // Находим данные за последний год
     const lastYearData = resultsData.find(item => item.res_year === lastYear);
     
     if (!lastYearData) return { labels: [], data: [], year: null };
 
-    // Формируем данные для радарного графика
     const labels = [];
     const data = [];
 
