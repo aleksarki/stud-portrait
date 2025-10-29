@@ -292,3 +292,40 @@ export function getLastYearCategoryData(resultsData, profileKey, categoryKey) {
 
     return { labels, data, year: lastYear };
 }
+
+// utilities.js - добавьте эту функцию
+// ... остальной код ...
+
+/** Получить все доступные годы из данных */
+export function getAvailableYears(data) {
+  if (!data?.length) return [];
+  return [...new Set(data.map(item => item.res_year))].sort((a, b) => b - a); // по убыванию
+}
+
+/** Получить данные за конкретный год для категории */
+export function getCategoryDataForYear(resultsData, profileKey, categoryKey, year) {
+    if (!resultsData?.length) return { labels: [], data: [], year: null };
+
+    const profile = RESULT_PROFILES[profileKey];
+    if (!profile) return { labels: [], data: [], year: null };
+
+    const category = profile.categories[categoryKey];
+    if (!category) return { labels: [], data: [], year: null };
+
+    const yearData = resultsData.find(item => item.res_year === year);
+    
+    if (!yearData) return { labels: [], data: [], year: null };
+
+    const labels = [];
+    const data = [];
+
+    category.fields.forEach(field => {
+        const value = yearData[field.key];
+        if (value !== null && value !== undefined) {
+        labels.push(field.label);
+        data.push(value);
+        }
+    });
+
+    return { labels, data, year };
+}
