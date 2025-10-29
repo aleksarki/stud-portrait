@@ -4,13 +4,12 @@ import { portraitGetResults } from "../../api";
 import { 
   getAvailableProfiles, 
   getAvailableCategories, 
-  getLastYearCategoryData, 
   getAvailableYears,
   getCategoryDataForYear 
 } from "../../utilities";
 
+import ChartSwitcher from "../../components/ChartSwitcher";
 import Header from "../../components/Header"
-import RadarChart from "../../components/RadarChart";
 import SidebarLayout from "../../components/SidebarLayout";
 import Sidepanel from "../../components/Sidepanel";
 import Title from "../../components/Title";
@@ -160,10 +159,11 @@ function StudentMainView() {
                                     )}
                                 </div>
                                 <div className="chart-container">
-                                    <RadarChart
+                                    <ChartSwitcher
                                         seriesLabel={`${chart.year} год`}
                                         seriesData={chart.data}
                                         categories={chart.labels}
+                                        title={chart.title} // Добавьте title если нужно
                                     />
                                 </div>
                             </div>

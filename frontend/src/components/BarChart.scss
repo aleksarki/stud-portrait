@@ -1,4 +1,4 @@
-.RadarChart {
+.BarChart {
     width: 100%;
     height: 100%;
     display: flex;
@@ -25,15 +25,6 @@
                 font-weight: 500 !important;
                 line-height: 1.2 !important;
             }
-        }
-        
-        // Увеличиваем отступы для многострочных labels
-        .apexcharts-radar-polygon {
-            transform: scale(0.9); // Немного уменьшаем радар чтобы было место для текста
-        }
-
-        .apexcharts-datalabels {
-            transform: translateY(5px); // Сдвигаем labels для лучшего отображения
         }
 
         .custom-tooltip {
