@@ -62,7 +62,7 @@ function BarChart({title, seriesLabel, seriesData, categories, competencyKeys, h
         yaxis: {
             min: 200,
             max: 800,
-            tickAmount: 4,
+            tickAmount: 3,
             title: {
                 text: 'Баллы',
                 style: {
