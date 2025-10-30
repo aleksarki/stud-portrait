@@ -69,10 +69,20 @@ function StudentReportView() {
                 );
 
                 if (tableData.length > 0) {
+                    // ключи компетенций к данным таблицы
+                    const tableDataWithKeys = tableData.map(row => {
+                        // соответствующий field по label
+                        const field = category.fields.find(f => f.label === row.competency);
+                        return {
+                            ...row,
+                            competencyKey: field ? field.key : null
+                        };
+                    });
+
                     tables.push({
                         category: category,
                         title: category.title,
-                        tableData: tableData,
+                        tableData: tableDataWithKeys, // обновлённые данные с ключами
                         years: years
                     });
                 }

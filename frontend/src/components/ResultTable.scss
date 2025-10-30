@@ -1,4 +1,6 @@
 .ResultTable {
+    position: relative;
+
     .table-title {
         margin: 0 0 16px 0;
         color: #333;
@@ -57,6 +59,17 @@
             position: sticky;
             left: 0;
             z-index: 5;
+            cursor: help;
+            
+            .competency-name {
+                padding: 4px 8px;
+                border-radius: 4px;
+                transition: background-color 0.2s ease;
+            }
+            
+            &:hover .competency-name {
+                background: #e3f2fd;
+            }
         }
 
         .value-cell {
@@ -105,7 +118,6 @@
             }
         }
 
-        // Альтернативные строки для лучшей читаемости
         tbody tr:nth-child(even) {
             background: #fafafa;
             
@@ -126,7 +138,7 @@
 
 // Адаптивность для мобильных устройств
 @media (max-width: 768px) {
-    .result-table-container {
+    .ResultTable {
         .results-table {
             font-size: 12px;
 
@@ -154,5 +166,10 @@
                 }
             }
         }
+    }
+    
+    // На мобильных устройствах скрываем сложные подсказки
+    .CompetencyTooltip {
+        display: none;
     }
 }

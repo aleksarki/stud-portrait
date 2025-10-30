@@ -314,6 +314,7 @@ export function prepareCategoryTableData(resultsData, profileKey, categoryKey) {
 
         return {
             competency: field.label,
+            competencyKey: field.key,
             values
         };
     });
@@ -361,9 +362,6 @@ export function getLastYearCategoryData(resultsData, profileKey, categoryKey) {
 
     return { labels, data, year: lastYear };
 }
-
-// utilities.js - добавьте эту функцию
-// ... остальной код ...
 
 /** Получить все доступные годы из данных */
 export function getAvailableYears(data) {
