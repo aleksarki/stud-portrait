@@ -92,7 +92,7 @@ function BarChart({title, seriesLabel, seriesData, categories, competencyKeys, h
                     let currentLine = '';
                     
                     words.forEach(word => {
-                        if ((currentLine + ' ' + word).length > 50) {
+                        if ((currentLine + ' ' + word).length > 44) {
                             if (currentLine) lines.push(currentLine);
                             currentLine = word;
                         } else {
@@ -124,7 +124,7 @@ function BarChart({title, seriesLabel, seriesData, categories, competencyKeys, h
                     const formattedDescription = formatDescription(description);
                     tooltipHTML += (
                         `<br>
-                        <div style="margin-top: 8px; font-size: 11px; color: #666; max-width: 300px; line-height: 1.3;">
+                        <div style="margin-top: 8px; font-size: 13px; color: #666; max-width: 300px; line-height: 1.3;">
                             ${formattedDescription}
                         </div>`
                     );
