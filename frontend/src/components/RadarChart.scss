@@ -29,21 +29,71 @@
         
         // Увеличиваем отступы для многострочных labels
         .apexcharts-radar-polygon {
-            transform: scale(0.9); // Немного уменьшаем радар чтобы было место для текста
+            transform: scale(0.9);
         }
 
         .apexcharts-datalabels {
-            transform: translateY(5px); // Сдвигаем labels для лучшего отображения
-        }
-
-        .custom-tooltip {
-            padding: 10px;
-            background: white;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            font-size: 12px;
-            line-height: 1.4;
+            transform: translateY(5px);
         }
     }
 }
+
+// Стили для кастомных подсказок
+.apexcharts-tooltip {
+    &.apexcharts-theme-light {
+        border: 1px solid #e3e3e3 !important;
+        border-radius: 8px !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+        padding: 15px;
+        
+        .apexcharts-tooltip-title {
+            background: #f8f9fa !important;
+            border-bottom: 1px solid #e9ecef !important;
+            font-weight: 600 !important;
+            padding: 8px 12px !important;
+        }
+        
+        .apexcharts-tooltip-series-group {
+            padding: 12px !important;
+        }
+    }
+}
+
+/* // Специфические стили для кастомных подсказок
+.custom-tooltip {
+    padding: 0 !important;
+    min-width: 280px !important;
+    max-width: 320px !important;
+    
+    > div {
+        padding: 8px 12px;
+        
+        &:first-child {
+            font-weight: 600;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            margin: 0;
+        }
+        
+        &:not(:first-child) {
+            border-bottom: 1px solid #f1f1f1;
+            
+            &:last-child {
+                border-bottom: none;
+            }
+        }
+    }
+    
+    // Стили для блока с описанием
+    div[style*="border-top: 1px solid #eee"] {
+        background: #fafafa;
+        margin: 0 -12px -8px -12px !important;
+        padding: 12px !important;
+        
+        div {
+            max-width: none !important;
+            white-space: normal !important;
+            line-height: 1.4 !important;
+        }
+    }
+}*/

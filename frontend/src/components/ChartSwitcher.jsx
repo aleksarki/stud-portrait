@@ -1,7 +1,7 @@
 import RadarChart from "./RadarChart";
 import BarChart from "./BarChart";
 
-function ChartSwitcher({title, seriesLabel, seriesData, categories, height = 450}) {
+function ChartSwitcher({title, seriesLabel, seriesData, categories, competencyKeys, height = 450}) {
     // Автоматически выбираем тип диаграммы на основе количества категорий
     const shouldUseBarChart = categories.length <= 3;
     
@@ -13,6 +13,7 @@ function ChartSwitcher({title, seriesLabel, seriesData, categories, height = 450
                 seriesData={seriesData}
                 categories={categories}
                 height={height}
+                competencyKeys={competencyKeys}
             />
         );
     }
@@ -24,6 +25,7 @@ function ChartSwitcher({title, seriesLabel, seriesData, categories, height = 450
             seriesData={seriesData}
             categories={categories}
             height={height}
+            competencyKeys={competencyKeys}
         />
     );
 }

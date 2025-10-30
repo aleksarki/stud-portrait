@@ -96,13 +96,22 @@ function StudentMainView() {
                 const yearData = getCategoryDataForYear(studResults.results, profile.key, category.key, year);
                 
                 if (yearData.labels.length > 0) {
+                    // ключи компетенций для этой категории
+                    const competencyKeys = category.fields
+                        .filter(field => {
+                            // поле есть в отображаемых данных
+                            return yearData.labels.includes(field.label);
+                        })
+                        .map(field => field.key);
+                    
                     charts.push({
                         profile: profile,
                         category: category,
                         title: `${profile.title}: ${category.title}`,
                         year: yearData.year,
                         labels: yearData.labels,
-                        data: yearData.data
+                        data: yearData.data,
+                        competencyKeys: competencyKeys
                     });
                 }
             });
@@ -163,7 +172,7 @@ function StudentMainView() {
                                         seriesLabel={`${chart.year} год`}
                                         seriesData={chart.data}
                                         categories={chart.labels}
-                                        title={chart.title} // Добавьте title если нужно
+                                        competencyKeys={chart.competencyKeys}
                                     />
                                 </div>
                             </div>

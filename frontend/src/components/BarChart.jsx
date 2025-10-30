@@ -1,7 +1,8 @@
 import Chart from "react-apexcharts";
+import { CATEGORIES_DESCRIPTIONS } from "../utilities";
 import "./BarChart.scss";
 
-function BarChart({title, seriesLabel, seriesData, categories, height = 450}) {
+function BarChart({title, seriesLabel, seriesData, categories, competencyKeys, height = 450}) {
     const getBarColor = (value) => {
         if (value < 400) return '#e0cf30ff';
         if (value < 600) return '#c3da45ff';
@@ -27,7 +28,7 @@ function BarChart({title, seriesLabel, seriesData, categories, height = 450}) {
                 horizontal: false,
                 borderRadius: 4,
                 columnWidth: '60%',
-                distributed: true,  // распределенное окрашивание
+                distributed: true,
             }
         },
         dataLabels: {
@@ -79,27 +80,58 @@ function BarChart({title, seriesLabel, seriesData, categories, height = 450}) {
         grid: {
             borderColor: '#e7e7e7',
             strokeDashArray: 3,
-            padding: {
-                top: 0,
-                right: 0,
-                bottom: 0,
-                left: 0
-            }
         },
         tooltip: {
             custom: function({ series, seriesIndex, dataPointIndex, w }) {
+                const formatDescription = (description) => {
+                    if (!description) return '';
+                    
+                    // Разбиваем описание на строки по 50 символов
+                    const words = description.split(' ');
+                    const lines = [];
+                    let currentLine = '';
+                    
+                    words.forEach(word => {
+                        if ((currentLine + ' ' + word).length > 50) {
+                            if (currentLine) lines.push(currentLine);
+                            currentLine = word;
+                        } else {
+                            currentLine = currentLine ? currentLine + ' ' + word : word;
+                        }
+                    });
+                    if (currentLine) lines.push(currentLine);
+                    
+                    return lines.join('<br>');
+                };
+
                 const value = series[seriesIndex][dataPointIndex];
                 const category = value < 400 ? 'низкий' : value < 600 ? 'средний' : 'высокий';
                 const color = getBarColor(value);
                 const originalLabel = categories[dataPointIndex];
                 
-                return (
-                    `<div class="custom-tooltip">
+                // описание компетенции
+                const competencyKey = competencyKeys && competencyKeys[dataPointIndex];
+                const description = competencyKey ? CATEGORIES_DESCRIPTIONS[competencyKey] : null;
+                
+                let tooltipHTML = `
+                    <div class="custom-tooltip">
                         <strong>${originalLabel}</strong><br>
                         Значение: <span style="color:${color}">${value}</span> из 800<br>
                         Категория: <span style="color:${color}">${category}</span> результат
-                    </div>`
-                );
+                `;
+                
+                if (description) {
+                    const formattedDescription = formatDescription(description);
+                    tooltipHTML += (
+                        `<br>
+                        <div style="margin-top: 8px; font-size: 11px; color: #666; max-width: 300px; line-height: 1.3;">
+                            ${formattedDescription}
+                        </div>`
+                    );
+                }
+                
+                tooltipHTML += `</div>`;
+                return tooltipHTML;
             }
         },
         colors: barColors,  // массив цветов для каждого столбца
