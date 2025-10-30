@@ -35,6 +35,7 @@ CREATE TABLE Results
     res_stud  INTEGER    NOT NULL REFERENCES Students(stud_id) ON DELETE CASCADE ON UPDATE CASCADE,
     res_year  INT        NOT NULL,
     -- Универсальный личностный опросник (Индивидуальный профиль)
+    -- КОМПЕТЕНТНОСТНЫЙ
     res_uni_communication     INT, -- Коммуникативность
     res_uni_complex_thinking  INT, -- Комплексное мышление
     res_uni_command_work      INT, -- Работа в команде
@@ -43,6 +44,7 @@ CREATE TABLE Results
     res_uni_ambitousness      INT, -- Амбициозность
     res_uni_rules_compliance  INT, -- Следование правилам
     -- Мотивационно-ценностный профиль (Мотивационный профиль)
+    -- МОТИВАЦИОННЫЙ
     res_mot_purpose           INT, -- Смысл
     res_mot_cooperation       INT, -- Сотрудничество
     res_mot_creativity        INT, -- Креативность
@@ -60,20 +62,24 @@ CREATE TABLE Results
     res_mot_stability         INT, -- Стабильность
     res_mot_salary            INT, -- Заработок
     -- Компетенции
+    -- КОМПЕТЕНТНОСТНЫЙ
     res_comp_digital_analysis  INT, -- Анализ числовой информации
     res_comp_verbal_analysis   INT, -- Анализ вербальной информации
     -- Жизнестойкость
+    -- КОМПЕТЕНТНОСТНЫЙ
     res_vita_positive_self_attit  INT, -- Положительное отношение к себе
     res_vita_attit_twrd_future    INT, -- Отношение к будущему
     res_vita_organization         INT, -- Организованность
     res_vita_persistence          INT, -- Настойчивость
     -- Ценостные установки лидера
+    -- ЦЕННОСТНЫЙ
     res_lead_awareness         INT, -- Осознанность
     res_lead_proactivity       INT, -- Проактивность
     res_lead_command_work      INT, -- Работа с командой
     res_lead_control           INT, -- Контроль
     res_lead_social_responsib  INT, -- Социальная ответственность
     -- Индивидуальный профиль
+    -- КОМПЕТЕНТНОСТНЫЙ
     res_prof_information_analysis  INT, -- Анализ информации
     res_prof_result_orientation    INT, -- Ориентация на результат
     res_prof_planning              INT, -- Планирование
@@ -83,6 +89,7 @@ CREATE TABLE Results
     res_prof_self_development      INT, -- Саморазвитие
     res_prof_communication         INT, -- Коммуникация
     -- Ценностные ориентации
+    -- ЦЕННОСТНЫЙ
     res_val_honesty_justice  INT, -- Честность и справедливость
     res_val_humanism         INT, -- Гуманизм
     res_val_patriotism       INT, -- Патриотизм
