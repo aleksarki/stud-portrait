@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { CATEGORIES_DESCRIPTIONS } from "../utilities";
-import CompetencyTooltip from "./CompetencyTooltip";
+import LineCompetencyTooltip from "./LineCompetencyTooltip";
 import "./ResultTable.scss";
 
 function ResultTable({ data, years, title }) {
@@ -93,7 +93,7 @@ function ResultTable({ data, years, title }) {
         <div className="ResultTable" ref={tableRef}>
             {title && <h3 className="table-title">{title}</h3>}
             
-            <CompetencyTooltip
+            <LineCompetencyTooltip
                 competency={tooltipData.competency}
                 description={tooltipData.description}
                 years={tooltipData.years}

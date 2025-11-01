@@ -1,30 +1,21 @@
 import Chart from "react-apexcharts";
-import { CATEGORIES_DESCRIPTIONS } from "../utilities";
-import "./RadarChart.scss";
+import { CATEGORIES_DESCRIPTIONS } from "../../utilities";
+import "./BarChart.scss";
 
-function RadarChart({title, seriesLabel, seriesData, categories, competencyKeys, height = 450}) {
-    // Функция для форматирования подписей с переносами
-    const formatCategoryLabels = (categories) => {
-        return categories.map(category => {
-            const words = category.split(' ');
-            if (words.length <= 2) return category;
-            
-            // Разбиваем на две строки
-            const mid = Math.ceil(words.length / 2);
-            const line1 = words.slice(0, mid).join(' ');
-            const line2 = words.slice(mid).join(' ');
-            
-            return [line1, line2];
-        });
+function BarChart({title, seriesLabel, seriesData, categories, competencyKeys, height = 450}) {
+    const getBarColor = (value) => {
+        if (value < 400) return '#e0cf30ff';
+        if (value < 600) return '#c3da45ff';
+        return '#219b25ff';
     };
 
-    const formattedCategories = formatCategoryLabels(categories);
+    // массив цветов для каждого столбца
+    const barColors = seriesData.map(value => getBarColor(value));
 
     const chartOptions = {
         chart: {
-            type: 'radar',
+            type: 'bar',
             toolbar: { show: false },
-            dropShadow: { enabled: true, blur: 1, left: 1, top: 1 },
             width: '100%'
         },
         title: {
@@ -32,13 +23,39 @@ function RadarChart({title, seriesLabel, seriesData, categories, competencyKeys,
             align: 'center',
             style: { fontSize: '14px', fontWeight: 'bold' }
         },
+        plotOptions: {
+            bar: {
+                horizontal: false,
+                borderRadius: 4,
+                columnWidth: '60%',
+                distributed: true,
+            }
+        },
+        dataLabels: {
+            enabled: true,
+            formatter: function(val) {
+                return val;
+            },
+            style: {
+                fontSize: '12px',
+                colors: ['#333']
+            }
+        },
         xaxis: {
-            categories: formattedCategories,
+            categories: categories,
             labels: {
-                style: { 
+                style: {
                     fontSize: '12px',
                     fontWeight: 500,
                     colors: '#333'
+                },
+                formatter: function(value) {
+                    // переносы для длинных названий
+                    const words = value.split(' ');
+                    if (words.length <= 2) return value;
+                    
+                    const mid = Math.ceil(words.length / 2);
+                    return words.slice(0, mid).join(' ') + '\n' + words.slice(mid).join(' ');
                 }
             }
         },
@@ -46,6 +63,13 @@ function RadarChart({title, seriesLabel, seriesData, categories, competencyKeys,
             min: 200,
             max: 800,
             tickAmount: 3,
+            title: {
+                text: 'Баллы',
+                style: {
+                    fontSize: '12px',
+                    fontWeight: 500
+                }
+            },
             labels: {
                 formatter: function(val) { return val; },
                 style: {
@@ -53,14 +77,9 @@ function RadarChart({title, seriesLabel, seriesData, categories, competencyKeys,
                 }
             }
         },
-        plotOptions: {
-            radar: {
-                size: categories.length > 8 ? 100 : 140,
-                polygons: {
-                    connectorColors: '#BDBDBD',
-                    fill: { colors: ['#A5D6A7', '#C8E6C9', '#FFF9C4'] }
-                }
-            }
+        grid: {
+            borderColor: '#e7e7e7',
+            strokeDashArray: 3,
         },
         tooltip: {
             custom: function({ series, seriesIndex, dataPointIndex, w }) {
@@ -87,13 +106,12 @@ function RadarChart({title, seriesLabel, seriesData, categories, competencyKeys,
 
                 const value = series[seriesIndex][dataPointIndex];
                 const category = value < 400 ? 'низкий' : value < 600 ? 'средний' : 'высокий';
-                const color = value < 400 ? '#e0cf30ff' : value < 600 ? '#c3da45ff' : '#219b25ff';
+                const color = getBarColor(value);
                 const originalLabel = categories[dataPointIndex];
                 
                 // описание компетенции
                 const competencyKey = competencyKeys && competencyKeys[dataPointIndex];
                 const description = competencyKey ? CATEGORIES_DESCRIPTIONS[competencyKey] : null;
-                console.log(competencyKey)
                 
                 let tooltipHTML = `
                     <div class="custom-tooltip">
@@ -115,7 +133,8 @@ function RadarChart({title, seriesLabel, seriesData, categories, competencyKeys,
                 tooltipHTML += `</div>`;
                 return tooltipHTML;
             }
-        }
+        },
+        colors: barColors,  // массив цветов для каждого столбца
     };
 
     const chartSeries = [{
@@ -124,11 +143,11 @@ function RadarChart({title, seriesLabel, seriesData, categories, competencyKeys,
     }];
 
     return (
-        <div className="RadarChart" style={{ width: '100%' }}>
+        <div className="BarChart" style={{ width: '100%' }}>
             <Chart
                 options={chartOptions}
                 series={chartSeries}
-                type="radar"
+                type="bar"
                 height={height}
                 width="100%"
             />
@@ -136,4 +155,4 @@ function RadarChart({title, seriesLabel, seriesData, categories, competencyKeys,
     );
 }
 
-export default RadarChart;
+export default BarChart;

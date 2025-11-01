@@ -1,7 +1,7 @@
 import ReactApexChart from "react-apexcharts";
-import "./CompetencyTooltip.scss";
+import "./LineCompetencyTooltip.scss";
 
-function CompetencyTooltip({ competency, description, years, values, isVisible, position }) {
+function LineCompetencyTooltip({ competency, description, years, values, isVisible, position }) {
     if (!isVisible) return null;
 
     // определение цвета точки по значению
@@ -136,7 +136,7 @@ function CompetencyTooltip({ competency, description, years, values, isVisible, 
 
     return (
         <div 
-            className="CompetencyTooltip" 
+            className="LineCompetencyTooltip" 
             style={{
                 left: position.x,
                 top: position.y
@@ -181,4 +181,4 @@ function CompetencyTooltip({ competency, description, years, values, isVisible, 
     );
 }
 
-export default CompetencyTooltip;
+export default LineCompetencyTooltip;

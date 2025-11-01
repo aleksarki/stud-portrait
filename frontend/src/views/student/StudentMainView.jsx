@@ -8,7 +8,7 @@ import {
   getCategoryDataForYear 
 } from "../../utilities";
 
-import ChartSwitcher from "../../components/ChartSwitcher";
+import ChartSwitcher from "../../components/charts/ChartSwitcher";
 import Header from "../../components/Header"
 import SidebarLayout from "../../components/SidebarLayout";
 import Sidepanel from "../../components/Sidepanel";
