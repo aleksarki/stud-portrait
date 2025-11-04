@@ -1,6 +1,8 @@
 import { useState, useRef } from "react";
 import { CATEGORIES_DESCRIPTIONS } from "../utilities";
+
 import LineCompetencyTooltip from "./LineCompetencyTooltip";
+
 import "./ResultTable.scss";
 
 function ResultTable({ data, years, title }) {
@@ -93,14 +95,16 @@ function ResultTable({ data, years, title }) {
         <div className="ResultTable" ref={tableRef}>
             {title && <h3 className="table-title">{title}</h3>}
             
-            <LineCompetencyTooltip
-                competency={tooltipData.competency}
-                description={tooltipData.description}
-                years={tooltipData.years}
-                values={tooltipData.values}
-                isVisible={tooltipData.isVisible}
-                position={tooltipData.position}
-            />
+            {tooltipData.isVisible && (
+                <LineCompetencyTooltip
+                    name={tooltipData.competency}
+                    description={tooltipData.description}
+                    position={tooltipData.position}
+                    years={tooltipData.years}
+                    values={tooltipData.values}
+                />
+            )}
+            
             
             <div className="table-wrapper">
                 <table className="results-table">

@@ -1,66 +1,29 @@
 .LineCompetencyTooltip {
-    position: fixed;
-    z-index: 1000;
-    background: white;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    min-width: 320px;
-    max-width: 400px;
-    pointer-events: none;
-
-    .tooltip-content {
-        padding: 16px;
-
-        .tooltip-header {
-            margin-bottom: 12px;
-            
-            .competency-title {
-                margin: 0;
-                font-size: 16px;
-                font-weight: 600;
-                color: #333;
-                line-height: 1.3;
-            }
-        }
-
-        .competency-description {
-            font-size: 13px;
-            line-height: 1.4;
-            color: #666;
-            margin-bottom: 16px;
-            padding: 12px;
-            background: #f8f9fa;
-            border-radius: 6px;
-            border-left: 3px solid #1976d2;
-        }
-
         .development-chart {
-            border-top: 1px solid #f0f0f0;
-            padding-top: 12px;
-            max-height: 200px;
-        }
+        border-top: 1px solid #f0f0f0;
+        padding-top: 12px;
+        max-height: 200px;
+    }
 
-        .single-value {
-            text-align: center;
-            padding: 16px;
-            background: #f8f9fa;
-            border-radius: 6px;
+    .single-value {
+        text-align: center;
+        padding: 16px;
+        background: #f8f9fa;
+        border-radius: 6px;
+        
+        .value-display {
+            font-size: 14px;
+            margin-bottom: 8px;
             
-            .value-display {
-                font-size: 14px;
-                margin-bottom: 8px;
-                
-                strong {
-                    font-size: 18px;
-                    color: #1976d2;
-                }
+            strong {
+                font-size: 18px;
+                color: #1976d2;
             }
-            
-            .value-category {
-                font-size: 13px;
-                color: #666;
-            }
+        }
+        
+        .value-category {
+            font-size: 13px;
+            color: #666;
         }
     }
 }
