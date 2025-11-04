@@ -1,37 +1,81 @@
 .Sidepanel {
-    will-change: min-height;
-    border-radius: 10px;
-    border: 1px solid #c9c9c9;
-    padding: 25px;
-    box-sizing: border-box;
-    font-size: 16px;
-    line-height: 20px;
-    font-weight: 700;
+    .style-normal {
+        will-change: min-height;
+        border-radius: 10px;
+        border: 1px solid #c9c9c9;
+        padding: 25px;
+        box-sizing: border-box;
+        font-size: 16px;
+        line-height: 20px;
+        font-weight: 700;
 
-    .list {
-        list-style-type: none;
-        padding-inline-start: 0;
-        margin-top: -10px;
-        margin-bottom: -10px;
+        .list {
+            list-style-type: none;
+            padding-inline-start: 0;
+            margin-top: -10px;
+            margin-bottom: -10px;
 
-        .item {
-            display: list-item;
-            margin-top: 10px;
+            .item {
+                display: list-item;
+                margin-top: 10px;
 
-            &:first-child {
-                margin-top: 0;
-            }
+                &:first-child {
+                    margin-top: 0;
+                }
 
-            a {
-                text-transform: uppercase;
-                color: #14394f;
-                text-decoration: none;
-                transition: all .3s ease;
+                a {
+                    text-transform: uppercase;
+                    color: #14394f;
+                    text-decoration: none;
+                    transition: all .3s ease;
 
-                &:hover {
-                    color: #00aeef;
+                    &:hover {
+                        color: #00aeef;
+                    }
                 }
             }
+        }
+    }
+    
+    .style-admin {
+        height: 100vh;
+        z-index: 99;
+        background-color: #263238;
+        color: #fff;
+        position: relative;
+        font-size: 13px;
+        line-height: 1.5384616;
+        padding: 0 !important;
+        display: block;
+        
+        .list {
+            margin: 0;
+            padding: 10px 0;
+            list-style: none;
+            //padding-inline-start: 0;
+            position: relative;
+
+            .item {
+                margin-top: 1px;
+                position: relative;
+                display: list-item;
+                
+                a {
+                    padding: 12px 20px;
+                    font-weight: 400;
+                    font-size: 14px;
+                    text-decoration: none;
+                    color: rgba(255, 255, 255, 0.75);
+                    display: block;
+                    transition: background 0.15s linear, color 0.15s linear;
+                    cursor: pointer;
+
+                    &:hover {
+                        background-color: rgba(0, 0, 0, 0.1);
+                        color: #fff;
+                    }
+                }
+            }            
         }
     }
 }

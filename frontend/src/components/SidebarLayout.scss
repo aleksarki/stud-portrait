@@ -1,21 +1,45 @@
-.SidebarLayout {
-    margin-left: 30px;
-    margin-right: 30px;
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    gap: 30px;
+.SidebarLayout {    
+    .style-normal {
+        margin-left: 30px;
+        margin-right: 30px;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        gap: 30px;
 
-    .sidebar {
-        position: relative;
-        display: block;
-        max-width: 330px;
-        flex: 0 0 330px;
+        .sidebar {
+            position: relative;
+            display: block;
+            max-width: 330px;
+            flex: 0 0 330px;
+        }
+
+        .content {
+            position: relative;
+            flex: 1 0;
+            box-sizing: border-box;
+        }
     }
 
-    .content {
-        position: relative;
-        flex: 1 0;
-        box-sizing: border-box;
+    .style-admin {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+
+        .sidebar {
+            position: relative;
+            display: block;
+            max-width: 260px;
+            //flex: 0 0 330px;
+            flex-grow: 1;
+            height: 100vh;
+            overflow: auto;
+        }
+
+        .content {
+            position: relative;
+            flex: 1 0;
+            box-sizing: border-box;
+        }
     }
 }
