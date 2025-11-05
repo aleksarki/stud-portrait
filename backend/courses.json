@@ -1,0 +1,12 @@
+{
+  "sheets": [
+    {
+      "name": "Образовательные Курсы",
+      "type": "row",
+      "row": 3,
+      "start_col": "C",
+      "end_col": "X",
+      "field": "course_name"
+    }
+  ]
+}

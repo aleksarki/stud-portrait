@@ -1,9 +1,14 @@
+import json
+
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from openpyxl import load_workbook
 
-
-from .models import Students, Results, Institutions, Programs
+from .models import (
+    Participants, Results, Institutions, Specialties,
+    EducationLevels, StudyForms, CompetenceCenters
+)
 
 # Create your views here.
 
@@ -201,3 +206,84 @@ def programs(request):
         for program in Programs.objects.all()
     ]
     return {"programs": programs_list}
+
+@method('POST')
+@csrf_exempt
+def import_excel(request):
+    """
+    Импорт данных из Excel в БД.
+    Ожидает:
+    - file: Excel (.xlsx)
+    - structure: JSON с описанием листов и колонок
+    """
+    excel_file = request.FILES.get("file")
+    structure_json = request.POST.get("structure")
+
+    if not excel_file or not structure_json:
+        return errorResponse("File and structure config are required")
+
+    try:
+        structure = json.loads(structure_json)
+    except json.JSONDecodeError:
+        return errorResponse("Invalid JSON structure")
+
+    try:
+        wb = load_workbook(excel_file, data_only=True)
+
+        for sheet_conf in structure.get("sheets", []):
+            sheet_name = sheet_conf["name"]
+            start_row = sheet_conf.get("start_row", 3)
+            columns = sheet_conf.get("columns", {})
+
+            if sheet_name not in wb.sheetnames:
+                available_sheets = ", ".join(wb.sheetnames)
+                return errorResponse(f"Sheet '{sheet_name}' not found in Excel file. Available sheets: {available_sheets}")
+
+            ws = wb[sheet_name]
+            row = start_row
+
+            while True:
+                # Проверка конца таблицы — пустая ячейка в первой колонке (например, B)
+                first_cell = ws[f"B{row}"].value
+                if not first_cell:
+                    break
+
+                # Читаем данные по колонкам
+                data = {}
+                for model_field, col_letter in columns.items():
+                    cell_value = ws[f"{col_letter}{row}"].value
+                    data[model_field] = cell_value
+
+                # Создание участника (пример — базовые данные)
+                participant, _ = Participants.objects.get_or_create(
+                    part_name=data.get("name"),
+                    defaults={
+                        "part_gender": data.get("gender", "Не указано"),
+                        "part_enter_year": data.get("year", 2020),
+                        "part_institution": Institutions.objects.first(),
+                        "part_spec": Specialties.objects.first(),
+                        "part_edu_level": EducationLevels.objects.first(),
+                        "part_form": StudyForms.objects.first(),
+                        "part_course_num": data.get("course_num", 1)
+                    }
+                )
+
+                # Добавляем пустой результат — потом можно доработать для профилей
+                Results.objects.create(
+                    res_participant=participant,
+                    res_center=CompetenceCenters.objects.first(),
+                    res_institution=participant.part_institution,
+                    res_edu_level=participant.part_edu_level,
+                    res_form=participant.part_form,
+                    res_spec=participant.part_spec,
+                    res_course_num=participant.part_course_num,
+                    res_year=data.get("year", 2020),
+                    res_high_potential=False
+                )
+
+                row += 1
+
+        return successResponse({"message": "Data imported successfully"})
+
+    except Exception as e:
+        return exceptionResponse(e)
