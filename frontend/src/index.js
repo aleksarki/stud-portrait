@@ -2,9 +2,14 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
-import App from "./views/App";
-import ErrorView from "./views/ErrorView";
+import AdminAnalysisView from "./views/admin/AdminAnalysisView";
+import AdminCoursesView from "./views/admin/AdminCoursesView";
 import AdminMainView from "./views/admin/AdminMainView";
+import AdminResultsView from "./views/admin/AdminResultsView";
+import AdminStatsView from "./views/admin/AdminStatsView";
+import AdminUploadView from "./views/admin/AdminUploadView";
+import ErrorView from "./views/ErrorView";
+import App from "./views/App";
 import StudentMainView from "./views/student/StudentMainView";
 import StudentReportView from "./views/student/StudentReportView";
 
@@ -26,8 +31,28 @@ const router = createBrowserRouter([
     element: <StudentReportView />
   },
   {
-    path: "/admin/:adminId",
+    path: "/admin/",
     element: <AdminMainView />
+  },
+  {
+    path: "/admin/stats",
+    element: <AdminStatsView />
+  },
+  {
+    path: "/admin/results",
+    element: <AdminResultsView />
+  },
+  {
+    path: "/admin/analysis",
+    element: <AdminAnalysisView />
+  },
+  {
+    path: "/admin/courses",
+    element: <AdminCoursesView />
+  },
+  {
+    path: "/admin/upload",
+    element: <AdminUploadView />
   }
 ])
 
