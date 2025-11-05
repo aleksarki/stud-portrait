@@ -28,7 +28,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     flex-shrink: 0;
     
     h2 {
@@ -61,6 +61,59 @@
     }
   }
 
+  // Легенда цветовой маркировки
+  .color-legend {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-shrink: 0;
+    
+    .legend-title {
+      font-weight: 600;
+      color: #495057;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    
+    .legend-items {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #6c757d;
+      
+      .color-box {
+        width: 16px;
+        height: 16px;
+        border-radius: 3px;
+        border: 1px solid rgba(0,0,0,0.1);
+        
+        &.high {
+          background: linear-gradient(135deg, #4caf50, #45a049);
+        }
+        
+        &.medium {
+          background: linear-gradient(135deg, #cddc39, #c0ca33);
+        }
+        
+        &.low {
+          background: linear-gradient(135deg, #ffeb3b, #fdd835);
+        }
+      }
+    }
+  }
+
   .column-toggle-btn {
     padding: 8px 16px;
     background-color: #6f42c1;
@@ -77,10 +130,6 @@
       background-color: #5a32a3;
       transform: translateY(-1px);
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    &:active {
-      transform: translateY(0);
     }
   }
 
@@ -141,7 +190,7 @@
     background: white;
     border: 1px solid #e9ecef;
     border-radius: 8px;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     animation: slideDown 0.3s ease;
     
@@ -270,7 +319,7 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 15px;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     padding: 20px;
     background: #f8f9fa;
     border-radius: 8px;
@@ -303,11 +352,6 @@
         outline: none;
         border-color: #007bff;
         box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
-      }
-      
-      &::placeholder {
-        color: #6c757d;
-        opacity: 0.7;
       }
     }
   }
@@ -349,8 +393,9 @@
       max-width: 130px;
       overflow: hidden;
       text-overflow: ellipsis;
-      transition: background-color 0.15s ease;
+      transition: all 0.15s ease;
       line-height: 1.3;
+      position: relative;
     }
     
     th {
@@ -364,21 +409,6 @@
       
       &:hover {
         background-color: #e9ecef;
-      }
-      
-      &::after {
-        content: '';
-        position: absolute;
-        bottom: -2px;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: transparent;
-        transition: background-color 0.2s ease;
-      }
-      
-      &:hover::after {
-        background: #007bff;
       }
       
       &.hidden {
@@ -395,21 +425,52 @@
     }
     
     .competence-col {
-      background: linear-gradient(135deg, #f0fff4, #e6ffed);
-      color: #1a4731;
+      background: linear-gradient(135deg, #f8f5ff, #f3efff);
+      color: #1a365d;
       min-width: 100px;
+      font-weight: 500;
     }
     
     .motivator-col {
-      background: linear-gradient(135deg, #fffaf0, #fff2e6);
+      background: linear-gradient(135deg, #fffaf5, #fff5eb);
       color: #744210;
       min-width: 100px;
+      font-weight: 500;
     }
     
     .values-col {
-      background: linear-gradient(135deg, #faf5ff, #f3e8ff);
-      color: #4c1d95;
+      background: linear-gradient(135deg, #f5f8ff, #ebf2ff);
+      color: #1a365d;
       min-width: 100px;
+      font-weight: 500;
+    }
+    
+    // Цветовая маркировка для значений
+    .value-high {
+      background: linear-gradient(135deg, #4caf50, #45a049) !important;
+      color: white !important;
+      font-weight: 600;
+      box-shadow: inset 0 0 4px rgba(0,0,0,0.1);
+    }
+    
+    .value-medium {
+      background: linear-gradient(135deg, #cddc39, #c0ca33) !important;
+      color: #333 !important;
+      font-weight: 500;
+      box-shadow: inset 0 0 4px rgba(0,0,0,0.05);
+    }
+    
+    .value-low {
+      background: linear-gradient(135deg, #ffeb3b, #fdd835) !important;
+      color: #333 !important;
+      font-weight: 500;
+      box-shadow: inset 0 0 4px rgba(0,0,0,0.05);
+    }
+    
+    .value-no-data {
+      background: #f8f9fa !important;
+      color: #6c757d !important;
+      font-style: italic;
     }
     
     .sticky-col {
@@ -435,7 +496,8 @@
         
         &:hover {
           background-color: #f1f3f4;
-          td:not(.sticky-col) {
+          
+          td:not(.sticky-col):not(.value-high):not(.value-medium):not(.value-low) {
             background-color: #e8f0fe;
           }
         }
@@ -443,7 +505,7 @@
         &.selected {
           background-color: #e3f2fd;
           
-          td:not(.sticky-col) {
+          td:not(.sticky-col):not(.value-high):not(.value-medium):not(.value-low) {
             background-color: #bbdefb;
           }
         }
@@ -468,11 +530,6 @@
       margin: 0;
       transform: scale(1.1);
       cursor: pointer;
-      
-      &:focus {
-        outline: 2px solid #007bff;
-        outline-offset: 1px;
-      }
     }
   }
 
@@ -518,17 +575,6 @@
       height: 50px;
       animation: spin 1s linear infinite;
       margin-bottom: 20px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    
-    .loading-text {
-      text-align: center;
-      line-height: 1.5;
-      
-      .record-count {
-        font-weight: 700;
-        color: #007bff;
-      }
     }
   }
 
@@ -547,16 +593,6 @@
       font-size: 48px;
       margin-bottom: 20px;
       opacity: 0.5;
-    }
-    
-    .no-data-text {
-      text-align: center;
-      line-height: 1.5;
-      
-      strong {
-        color: #495057;
-        font-weight: 600;
-      }
     }
   }
 }
@@ -578,49 +614,6 @@
   }
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-// Анимация появления строк таблицы
-.results-table tbody tr {
-  animation: fadeIn 0.3s ease-out;
-}
-
-// Стили для полосы прокрутки
-.table-wrapper::-webkit-scrollbar {
-  height: 14px;
-  width: 14px;
-}
-
-.table-wrapper::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 8px;
-}
-
-.table-wrapper::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #c1c1c1, #a8a8a8);
-  border-radius: 8px;
-  border: 2px solid #f1f1f1;
-  
-  &:hover {
-    background: linear-gradient(135deg, #a8a8a8, #8f8f8f);
-  }
-}
-
-// Стили для indeterminate состояния чекбоксов
-input[type="checkbox"]:indeterminate {
-  background: #007bff;
-  border-color: #007bff;
-}
-
 // Адаптивность
 @media (max-width: 1200px) {
   .AdminResultsView {
@@ -628,8 +621,15 @@ input[type="checkbox"]:indeterminate {
       max-width: calc(100vw - 250px);
     }
     
-    .column-selector .group-columns {
-      grid-template-columns: 1fr;
+    .color-legend {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+      
+      .legend-items {
+        flex-wrap: wrap;
+        gap: 10px;
+      }
     }
   }
 }
@@ -642,17 +642,11 @@ input[type="checkbox"]:indeterminate {
       gap: 10px;
     }
     
-    .control-buttons {
-      flex-wrap: wrap;
-    }
-    
-    .column-selector {
-      margin-bottom: 15px;
-      
-      .column-selector-header {
+    .color-legend {
+      .legend-items {
         flex-direction: column;
-        gap: 10px;
         align-items: flex-start;
+        gap: 8px;
       }
     }
   }

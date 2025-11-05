@@ -150,6 +150,28 @@ function AdminResultsView() {
     // Видимые колонки
     const visibleColumns = columnOrder.filter(col => !hiddenColumns.has(col));
 
+    // Функция для определения категории результата
+    const getResultCategory = (value) => {
+        if (value === null || value === undefined || value === '') return 'no-data';
+        if (value >= 600) return 'high';
+        if (value >= 400) return 'medium';
+        if (value >= 200) return 'low';
+        return 'no-data';
+    };
+
+    // Функция для получения класса цвета в зависимости от значения
+    const getValueColorClass = (value, fieldKey) => {
+        // Применяем цветовую маркировку только к числовым полям компетенций, мотиваторов и ценностей
+        const isNumericField = fieldKey.startsWith('res_comp_') || 
+                              fieldKey.startsWith('res_mot_') || 
+                              fieldKey.startsWith('res_val_');
+        
+        if (!isNumericField) return '';
+        
+        const category = getResultCategory(value);
+        return `value-${category}`;
+    };
+
     useEffect(() => {
         fetchResults();
     }, []);
@@ -412,6 +434,25 @@ function AdminResultsView() {
                             </div>
                         </div>
 
+                        {/* Легенда цветовой маркировки */}
+                        <div className="color-legend">
+                            <div className="legend-title">Цветовая маркировка результатов:</div>
+                            <div className="legend-items">
+                                <div className="legend-item">
+                                    <div className="color-box high"></div>
+                                    <span>Высокий (600-800)</span>
+                                </div>
+                                <div className="legend-item">
+                                    <div className="color-box medium"></div>
+                                    <span>Средний (400-599)</span>
+                                </div>
+                                <div className="legend-item">
+                                    <div className="color-box low"></div>
+                                    <span>Низкий (200-399)</span>
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Селектор колонок */}
                         {showColumnSelector && (
                             <div className="column-selector">
@@ -570,7 +611,7 @@ function AdminResultsView() {
                                                     {visibleColumns.map(fieldKey => (
                                                         <td 
                                                             key={fieldKey}
-                                                            className={getColumnClass(fieldKey)}
+                                                            className={`${getColumnClass(fieldKey)} ${getValueColorClass(getFieldValue(result, fieldKey), fieldKey)}`}
                                                         >
                                                             {renderTableCell(result, fieldKey)}
                                                         </td>
