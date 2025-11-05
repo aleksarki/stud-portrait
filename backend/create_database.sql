@@ -1,4 +1,4 @@
-
+/*
 DROP TABLE IF EXISTS Results;
 DROP TABLE IF EXISTS Students;
 DROP TABLE IF EXISTS Programs;
@@ -96,4 +96,137 @@ CREATE TABLE Results
     res_val_family           INT, -- Семейные ценности
     res_val_health           INT, -- Здоровый образ жизни
     res_val_environment      INT  -- Сохранение природы
+);
+*/
+
+-- Удаляем старые таблицы (если они были)
+DROP TABLE IF EXISTS ParticipantCourses;
+DROP TABLE IF EXISTS Courses;
+DROP TABLE IF EXISTS Results;
+DROP TABLE IF EXISTS Participants;
+DROP TABLE IF EXISTS Specialties;
+DROP TABLE IF EXISTS Institutions;
+DROP TABLE IF EXISTS CompetenceCenters;
+DROP TABLE IF EXISTS EducationLevels;
+DROP TABLE IF EXISTS StudyForms;
+
+-- Учебное заведение
+CREATE TABLE Institutions
+(
+    inst_id    SERIAL PRIMARY KEY,
+    inst_name  VARCHAR(512)
+);
+
+-- Центр компетенций
+CREATE TABLE CompetenceCenters
+(
+    center_id   SERIAL PRIMARY KEY,
+    center_name VARCHAR(512) NOT NULL
+);
+
+-- Уровень образования
+CREATE TABLE EducationLevels
+(
+    edu_level_id   SERIAL PRIMARY KEY,
+    edu_level_name VARCHAR(256)
+);
+
+-- Форма обучения
+CREATE TABLE StudyForms
+(
+    form_id   SERIAL PRIMARY KEY,
+    form_name VARCHAR(256)
+);
+
+-- Специальность
+CREATE TABLE Specialties
+(
+    spec_id    SERIAL PRIMARY KEY,
+    spec_name  VARCHAR(512)
+);
+
+-- Участник
+CREATE TABLE Participants
+(
+    part_id           SERIAL PRIMARY KEY,
+    part_name         VARCHAR(512) NOT NULL,
+    part_gender       VARCHAR(16),
+    part_institution  INT REFERENCES Institutions(inst_id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    part_spec         INT REFERENCES Specialties(spec_id)  ON DELETE RESTRICT ON UPDATE CASCADE,
+    part_edu_level    INT REFERENCES EducationLevels(edu_level_id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    part_form         INT REFERENCES StudyForms(form_id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    part_course_num   INT
+);
+
+-- Образовательные курсы
+CREATE TABLE Courses
+(
+    course_id    SERIAL PRIMARY KEY,
+    course_name  VARCHAR(512) NOT NULL,
+);
+
+-- Результаты участников
+CREATE TABLE Results
+(
+    res_id             SERIAL PRIMARY KEY,
+    res_participant    INT NOT NULL REFERENCES Participants(part_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    res_center         INT NOT NULL REFERENCES CompetenceCenters(center_id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    res_institution    INT REFERENCES Institutions(inst_id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    res_edu_level      INT REFERENCES EducationLevels(edu_level_id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    res_form           INT REFERENCES StudyForms(form_id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    res_spec           INT REFERENCES Specialties(spec_id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    res_course_num     INT,
+    res_year           INT NOT NULL,
+    res_high_potential TEXT,
+    res_summary_report TEXT,
+
+    -- === Профиль компетенций ===
+    res_comp_info_analysis       INT,
+    res_comp_planning            INT,
+    res_comp_result_orientation  INT,
+    res_comp_stress_resistance   INT,
+    res_comp_partnership         INT,
+    res_comp_rules_compliance    INT,
+    res_comp_self_development    INT,
+    res_comp_leadership          INT,
+    res_comp_emotional_intel     INT,
+    res_comp_client_focus        INT,
+    res_comp_communication       INT,
+    res_comp_passive_vocab       INT,
+
+    -- === Мотиваторы ===
+    res_mot_autonomy             INT,
+    res_mot_altruism             INT,
+    res_mot_challenge            INT,
+    res_mot_salary               INT,
+    res_mot_career               INT,
+    res_mot_creativity           INT,
+    res_mot_relationships        INT,
+    res_mot_recognition          INT,
+    res_mot_affiliation          INT,
+    res_mot_self_development     INT,
+    res_mot_purpose              INT,
+    res_mot_cooperation          INT,
+    res_mot_stability            INT,
+    res_mot_tradition            INT,
+    res_mot_management           INT,
+    res_mot_work_conditions      INT,
+
+    -- === Ценности ===
+    res_val_honesty_justice      INT,
+    res_val_humanism             INT,
+    res_val_patriotism           INT,
+    res_val_family               INT,
+    res_val_health               INT,
+    res_val_environment          INT
+);
+
+-- Связь многие-ко-многим между участниками и курсами с фиксацией результатов
+CREATE TABLE ParticipantCourses
+(
+    pc_id           SERIAL PRIMARY KEY,
+    pc_participant  INT NOT NULL REFERENCES Participants(part_id) ON DELETE CASCADE,
+    pc_course       INT REFERENCES Courses(course_id) ON DELETE CASCADE,
+    pc_result       INT REFERENCES Results(res_id) ON DELETE SET NULL,
+    UNIQUE (pc_participant, pc_course)
 );

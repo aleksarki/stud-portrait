@@ -1,0 +1,37 @@
+{
+  "sheets": [
+    {
+      "name": "Участники",
+      "start_row": 3,
+      "columns": {
+        "name": "B",
+        "gender": "C",
+        "year": "D",
+        "course_num": "E"
+      }
+    },
+    {
+      "name": "Результаты",
+      "start_row": 3,
+      "columns": {
+        "participant_name": "B",
+        "year": "C",
+        "competence_analysis": "D",
+        "competence_communication": "E",
+        "motivation_autonomy": "F",
+        "motivation_creativity": "G",
+        "value_honesty": "H"
+      }
+    },
+    {
+      "name": "Курсы",
+      "start_row": 3,
+      "columns": {
+        "participant_name": "B",
+        "course_title": "C",
+        "grade": "D",
+        "year": "E"
+      }
+    }
+  ]
+}
