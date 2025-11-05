@@ -5,7 +5,6 @@
     line-height: 1.5384616;
     color: #333333;
     
-    // Убедимся, что контейнер не перекрывает сайдбар
     .sidebar-layout {
       display: flex;
       width: 100%;
@@ -53,6 +52,35 @@
         border: 1px solid #dee2e6;
         white-space: nowrap;
       }
+      
+      .control-buttons {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+    }
+  }
+
+  .column-toggle-btn {
+    padding: 8px 16px;
+    background-color: #6f42c1;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    
+    &:hover {
+      background-color: #5a32a3;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    &:active {
+      transform: translateY(0);
     }
   }
 
@@ -105,6 +133,136 @@
       cursor: not-allowed;
       transform: none;
       box-shadow: none;
+    }
+  }
+
+  // Селектор колонок
+  .column-selector {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    animation: slideDown 0.3s ease;
+    
+    .column-selector-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 20px;
+      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+      border-bottom: 1px solid #dee2e6;
+      border-radius: 8px 8px 0 0;
+      
+      h3 {
+        margin: 0;
+        color: #495057;
+        font-size: 16px;
+        font-weight: 600;
+      }
+      
+      .column-selector-controls {
+        display: flex;
+        gap: 8px;
+      }
+    }
+    
+    .selector-btn {
+      padding: 6px 12px;
+      background: white;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      
+      &:hover {
+        background: #007bff;
+        color: white;
+        border-color: #007bff;
+      }
+      
+      &.close-btn {
+        background: #dc3545;
+        color: white;
+        border-color: #dc3545;
+        
+        &:hover {
+          background: #c82333;
+          border-color: #bd2130;
+        }
+      }
+    }
+    
+    .column-groups {
+      padding: 15px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .column-group {
+      margin-bottom: 20px;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+      
+      .group-header {
+        margin-bottom: 10px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #e9ecef;
+        
+        .group-checkbox {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          cursor: pointer;
+          font-weight: 600;
+          color: #495057;
+          
+          input[type="checkbox"] {
+            transform: scale(1.2);
+          }
+          
+          .group-name {
+            font-size: 14px;
+          }
+        }
+      }
+      
+      .group-columns {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 8px;
+      }
+    }
+    
+    .column-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
+      background: #f8f9fa;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 12px;
+      
+      &:hover {
+        background: #e9ecef;
+      }
+      
+      input[type="checkbox"] {
+        transform: scale(1.1);
+      }
+      
+      .column-name {
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
     }
   }
 
@@ -221,6 +379,10 @@
       
       &:hover::after {
         background: #007bff;
+      }
+      
+      &.hidden {
+        display: none;
       }
     }
     
@@ -399,42 +561,20 @@
   }
 }
 
-// Стили для полосы прокрутки
-.table-wrapper::-webkit-scrollbar {
-  height: 14px;
-  width: 14px;
-}
-
-.table-wrapper::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 8px;
-}
-
-.table-wrapper::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #c1c1c1, #a8a8a8);
-  border-radius: 8px;
-  border: 2px solid #f1f1f1;
-  
-  &:hover {
-    background: linear-gradient(135deg, #a8a8a8, #8f8f8f);
-  }
-  
-  &:active {
-    background: linear-gradient(135deg, #8f8f8f, #767676);
-  }
-}
-
-.table-wrapper::-webkit-scrollbar-corner {
-  background: #f1f1f1;
-}
-
 // Анимации
 @keyframes spin {
-  0% { 
-    transform: rotate(0deg); 
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
   }
-  100% { 
-    transform: rotate(360deg); 
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -454,227 +594,66 @@
   animation: fadeIn 0.3s ease-out;
 }
 
-// Адаптивность для разных размеров экрана
-@media (max-width: 1400px) {
-  .AdminResultsView {
-    .table-scroll-container {
-      max-width: calc(100vw - 280px);
-    }
-    
-    .results-table {
-      th, td {
-        padding: 8px 6px;
-        font-size: 11px;
-        min-width: 85px;
-      }
-    }
+// Стили для полосы прокрутки
+.table-wrapper::-webkit-scrollbar {
+  height: 14px;
+  width: 14px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 8px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #c1c1c1, #a8a8a8);
+  border-radius: 8px;
+  border: 2px solid #f1f1f1;
+  
+  &:hover {
+    background: linear-gradient(135deg, #a8a8a8, #8f8f8f);
   }
 }
 
+// Стили для indeterminate состояния чекбоксов
+input[type="checkbox"]:indeterminate {
+  background: #007bff;
+  border-color: #007bff;
+}
+
+// Адаптивность
 @media (max-width: 1200px) {
   .AdminResultsView {
     .table-scroll-container {
       max-width: calc(100vw - 250px);
     }
     
-    .results-table {
-      th, td {
-        padding: 7px 5px;
-        font-size: 11px;
-        min-width: 80px;
-        max-width: 110px;
-      }
-    }
-    
-    .filters {
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 12px;
-      padding: 15px;
-    }
-  }
-}
-
-@media (max-width: 992px) {
-  .AdminResultsView {
-    .main-area {
-      .sidebar-layout {
-        .sidebar-content {
-          padding: 15px;
-        }
-      }
-    }
-    
-    .results-container {
-      height: calc(100vh - 130px);
-    }
-    
-    .results-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 15px;
-      
-      h2 {
-        font-size: 20px;
-      }
-      
-      .controls {
-        width: 100%;
-        justify-content: space-between;
-      }
-    }
-    
-    .table-scroll-container {
-      max-width: 100%;
-    }
-    
-    .filters {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-      padding: 12px;
+    .column-selector .group-columns {
+      grid-template-columns: 1fr;
     }
   }
 }
 
 @media (max-width: 768px) {
   .AdminResultsView {
-    .main-area {
-      padding-top: 40px;
+    .results-header .controls {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    
+    .control-buttons {
+      flex-wrap: wrap;
+    }
+    
+    .column-selector {
+      margin-bottom: 15px;
       
-      .sidebar-layout {
-        .sidebar-content {
-          padding: 10px;
-        }
-      }
-    }
-    
-    .results-container {
-      height: auto;
-      min-height: 500px;
-    }
-    
-    .results-header {
-      .controls {
+      .column-selector-header {
         flex-direction: column;
         gap: 10px;
         align-items: flex-start;
-        
-        .results-info {
-          order: -1;
-        }
-      }
-    }
-    
-    .filters {
-      grid-template-columns: 1fr;
-      gap: 8px;
-      padding: 10px;
-    }
-    
-    .results-table {
-      th, td {
-        padding: 6px 4px;
-        font-size: 10px;
-        min-width: 70px;
-        max-width: 100px;
-      }
-    }
-    
-    .scroll-hint {
-      flex-direction: column;
-      gap: 8px;
-      text-align: center;
-      padding: 10px;
-    }
-  }
-}
-
-@media (max-width: 576px) {
-  .AdminResultsView {
-    .main-area {
-      padding-top: 30px;
-    }
-    
-    .results-table {
-      th, td {
-        padding: 4px 3px;
-        font-size: 9px;
-        min-width: 60px;
-        max-width: 85px;
-      }
-    }
-    
-    .export-btn,
-    .refresh-btn {
-      padding: 6px 12px;
-      font-size: 12px;
-    }
-    
-    .loading,
-    .no-data {
-      padding: 40px 20px;
-      font-size: 14px;
-      
-      .spinner {
-        width: 40px;
-        height: 40px;
-      }
-      
-      .no-data-icon {
-        font-size: 36px;
       }
     }
   }
-}
-
-// Подсветка при сортировке
-.results-table th.sort-asc::after {
-  content: ' ↑';
-  font-weight: bold;
-  color: #28a745;
-}
-
-.results-table th.sort-desc::after {
-  content: ' ↓';
-  font-weight: bold;
-  color: #dc3545;
-}
-
-// Эффекты при взаимодействии
-.export-btn:active:not(:disabled),
-.refresh-btn:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-}
-
-// Плавные переходы для всех интерактивных элементов
-.AdminResultsView {
-  * {
-    transition: all 0.2s ease;
-  }
-}
-
-// Улучшенный фокус для доступности
-.export-btn:focus,
-.refresh-btn:focus,
-.filter-group input:focus,
-.results-table input[type="checkbox"]:focus {
-  outline: 2px solid #007bff;
-  outline-offset: 2px;
-}
-
-// Градиентные границы для лучшего визуального разделения
-.results-table .basic-col {
-  border-right: 1px solid #d1e0ff;
-}
-
-.results-table .competence-col {
-  border-right: 1px solid #c6f6d5;
-}
-
-.results-table .motivator-col {
-  border-right: 1px solid #fed7aa;
-}
-
-.results-table .values-col {
-  border-right: 1px solid #ddd6fe;
 }

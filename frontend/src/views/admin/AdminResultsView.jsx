@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Header from "../../components/Header";
 import SidebarLayout from "../../components/SidebarLayout";
 import Sidepanel from "../../components/Sidepanel";
@@ -18,7 +18,10 @@ function AdminResultsView() {
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
     const [loading, setLoading] = useState(false);
     const [totalCount, setTotalCount] = useState(0);
+    const [hiddenColumns, setHiddenColumns] = useState(new Set());
+    const [showColumnSelector, setShowColumnSelector] = useState(false);
 
+    // Добавляем определение linkList
     const linkList = [
         {to:'/admin/', title: "Главная"},
         {to:'/admin/stats', title: "Статистика тестирования"},
@@ -136,7 +139,18 @@ function AdminResultsView() {
         'res_val_environment'
     ];
 
-     useEffect(() => {
+    // Группы колонок для удобства управления
+    const columnGroups = {
+        'Основная информация': columnOrder.slice(0, 9),
+        'Компетенции': columnOrder.slice(9, 21),
+        'Мотиваторы': columnOrder.slice(21, 37),
+        'Ценности': columnOrder.slice(37)
+    };
+
+    // Видимые колонки
+    const visibleColumns = columnOrder.filter(col => !hiddenColumns.has(col));
+
+    useEffect(() => {
         fetchResults();
     }, []);
 
@@ -300,9 +314,49 @@ function AdminResultsView() {
         }
     };
 
+    const toggleColumn = (columnKey) => {
+        const newHidden = new Set(hiddenColumns);
+        if (newHidden.has(columnKey)) {
+            newHidden.delete(columnKey);
+        } else {
+            newHidden.add(columnKey);
+        }
+        setHiddenColumns(newHidden);
+    };
+
+    const toggleColumnGroup = (groupColumns) => {
+        const allGroupHidden = groupColumns.every(col => hiddenColumns.has(col));
+        const newHidden = new Set(hiddenColumns);
+        
+        groupColumns.forEach(col => {
+            if (allGroupHidden) {
+                newHidden.delete(col);
+            } else {
+                newHidden.add(col);
+            }
+        });
+        
+        setHiddenColumns(newHidden);
+    };
+
+    const showAllColumns = () => {
+        setHiddenColumns(new Set());
+    };
+
+    const hideAllColumns = () => {
+        setHiddenColumns(new Set(columnOrder));
+    };
+
     const getSortIcon = (key) => {
         if (sortConfig.key !== key) return '↕️';
         return sortConfig.direction === 'asc' ? '↑' : '↓';
+    };
+
+    const getColumnClass = (fieldKey) => {
+        if (fieldKey.startsWith('res_comp_')) return 'competence-col';
+        if (fieldKey.startsWith('res_mot_')) return 'motivator-col';
+        if (fieldKey.startsWith('res_val_')) return 'values-col';
+        return 'basic-col';
     };
 
     const renderTableCell = (result, fieldKey) => {
@@ -320,13 +374,6 @@ function AdminResultsView() {
         return value;
     };
 
-    const getColumnClass = (fieldKey) => {
-        if (fieldKey.startsWith('res_comp_')) return 'competence-col';
-        if (fieldKey.startsWith('res_mot_')) return 'motivator-col';
-        if (fieldKey.startsWith('res_val_')) return 'values-col';
-        return 'basic-col';
-    };
-
     return (
         <div className="AdminResultsView">
             <Header title="Админ: Результаты тестирования" name="Администратор1" style="admin" />
@@ -338,23 +385,96 @@ function AdminResultsView() {
                             <div className="controls">
                                 <div className="results-info">
                                     Показано: {filteredResults.length} из {totalCount} записей
+                                    {hiddenColumns.size > 0 && ` • Скрыто колонок: ${hiddenColumns.size}`}
                                 </div>
-                                <button 
-                                    className="export-btn"
-                                    onClick={handleExport}
-                                    disabled={selectedRows.size === 0}
-                                >
-                                    Выгрузить в Excel ({selectedRows.size})
-                                </button>
-                                <button 
-                                    className="refresh-btn"
-                                    onClick={fetchResults}
-                                    disabled={loading}
-                                >
-                                    {loading ? 'Загрузка...' : 'Обновить'}
-                                </button>
+                                <div className="control-buttons">
+                                    <button 
+                                        className="column-toggle-btn"
+                                        onClick={() => setShowColumnSelector(!showColumnSelector)}
+                                    >
+                                        📊 Колонки
+                                    </button>
+                                    <button 
+                                        className="export-btn"
+                                        onClick={handleExport}
+                                        disabled={selectedRows.size === 0}
+                                    >
+                                        📥 Выгрузить ({selectedRows.size})
+                                    </button>
+                                    <button 
+                                        className="refresh-btn"
+                                        onClick={fetchResults}
+                                        disabled={loading}
+                                    >
+                                        {loading ? '⏳ Загрузка...' : '🔄 Обновить'}
+                                    </button>
+                                </div>
                             </div>
                         </div>
+
+                        {/* Селектор колонок */}
+                        {showColumnSelector && (
+                            <div className="column-selector">
+                                <div className="column-selector-header">
+                                    <h3>Управление колонками</h3>
+                                    <div className="column-selector-controls">
+                                        <button className="selector-btn" onClick={showAllColumns}>
+                                            Показать все
+                                        </button>
+                                        <button className="selector-btn" onClick={hideAllColumns}>
+                                            Скрыть все
+                                        </button>
+                                        <button 
+                                            className="selector-btn close-btn"
+                                            onClick={() => setShowColumnSelector(false)}
+                                        >
+                                            ✕ Закрыть
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="column-groups">
+                                    {Object.entries(columnGroups).map(([groupName, groupColumns]) => {
+                                        const visibleCount = groupColumns.filter(col => !hiddenColumns.has(col)).length;
+                                        const totalCount = groupColumns.length;
+                                        return (
+                                            <div key={groupName} className="column-group">
+                                                <div className="group-header">
+                                                    <label className="group-checkbox">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={visibleCount > 0}
+                                                            onChange={() => toggleColumnGroup(groupColumns)}
+                                                            ref={(el) => {
+                                                                if (el) {
+                                                                    el.indeterminate = visibleCount > 0 && visibleCount < totalCount;
+                                                                }
+                                                            }}
+                                                        />
+                                                        <span className="group-name">
+                                                            {groupName} ({visibleCount}/{totalCount})
+                                                        </span>
+                                                    </label>
+                                                </div>
+                                                <div className="group-columns">
+                                                    {groupColumns.map(columnKey => (
+                                                        <label key={columnKey} className="column-checkbox">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={!hiddenColumns.has(columnKey)}
+                                                                onChange={() => toggleColumn(columnKey)}
+                                                            />
+                                                            <span className="column-name">
+                                                                {fieldNames[columnKey]}
+                                                            </span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
 
                         {/* Фильтры */}
                         <div className="filters">
@@ -409,7 +529,9 @@ function AdminResultsView() {
                         {loading ? (
                             <div className="loading">
                                 <div className="spinner"></div>
-                                Загрузка данных... ({totalCount} записей)
+                                <div className="loading-text">
+                                    Загрузка данных... <span className="record-count">{totalCount}</span> записей
+                                </div>
                             </div>
                         ) : (
                             <div className="table-scroll-container">
@@ -424,11 +546,11 @@ function AdminResultsView() {
                                                         onChange={handleSelectAll}
                                                     />
                                                 </th>
-                                                {columnOrder.map(fieldKey => (
+                                                {visibleColumns.map(fieldKey => (
                                                     <th 
                                                         key={fieldKey} 
                                                         onClick={() => handleSort(fieldKey)}
-                                                        className={getColumnClass(fieldKey)}
+                                                        className={`${getColumnClass(fieldKey)} ${hiddenColumns.has(fieldKey) ? 'hidden' : ''}`}
                                                     >
                                                         {fieldNames[fieldKey]} {getSortIcon(fieldKey)}
                                                     </th>
@@ -445,7 +567,7 @@ function AdminResultsView() {
                                                             onChange={() => handleRowSelect(result.res_id)}
                                                         />
                                                     </td>
-                                                    {columnOrder.map(fieldKey => (
+                                                    {visibleColumns.map(fieldKey => (
                                                         <td 
                                                             key={fieldKey}
                                                             className={getColumnClass(fieldKey)}
@@ -459,15 +581,23 @@ function AdminResultsView() {
                                     </table>
                                 </div>
                                 {filteredResults.length === 0 && !loading && (
-                                    <div className="no-data">Нет данных для отображения</div>
+                                    <div className="no-data">
+                                        <div className="no-data-icon">📊</div>
+                                        <div className="no-data-text">
+                                            <strong>Нет данных для отображения</strong><br />
+                                            Попробуйте изменить параметры фильтрации
+                                        </div>
+                                    </div>
                                 )}
                             </div>
                         )}
 
                         {/* Подсказка по прокрутке */}
                         <div className="scroll-hint">
-                            ↸ Прокрутите таблицу горизонтально для просмотра всех данных • 
-                            Загружено записей: {filteredResults.length}
+                            <span>↸ Прокрутите таблицу горизонтально для просмотра всех данных</span>
+                            <span className="record-count">
+                                Колонок: {visibleColumns.length}/{columnOrder.length} • Записей: {filteredResults.length}
+                            </span>
                         </div>
                     </div>
                 </SidebarLayout>
