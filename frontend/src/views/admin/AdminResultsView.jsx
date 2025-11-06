@@ -8,20 +8,16 @@ function AdminResultsView() {
     const [results, setResults] = useState([]);
     const [filteredResults, setFilteredResults] = useState([]);
     const [selectedRows, setSelectedRows] = useState(new Set());
-    const [filters, setFilters] = useState({
-        institution: '',
-        year: '',
-        center: '',
-        participant: '',
-        specialty: ''
-    });
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
     const [loading, setLoading] = useState(false);
     const [totalCount, setTotalCount] = useState(0);
     const [hiddenColumns, setHiddenColumns] = useState(new Set());
     const [showColumnSelector, setShowColumnSelector] = useState(false);
+    const [filters, setFilters] = useState([]);
+    const [availableValues, setAvailableValues] = useState({});
+    const [showFilters, setShowFilters] = useState(false);
+    const [pendingFilters, setPendingFilters] = useState([]);
 
-    // Добавляем определение linkList
     const linkList = [
         {to:'/admin/', title: "Главная"},
         {to:'/admin/stats', title: "Статистика тестирования"},
@@ -84,6 +80,27 @@ function AdminResultsView() {
         'res_val_health': 'Здоровье',
         'res_val_environment': 'Окружающая среда'
     };
+
+    // Базовые поля для фильтрации
+    const basicFields = [
+        'res_year',
+        'part_gender',
+        'center',
+        'institution',
+        'edu_level',
+        'res_course_num',
+        'study_form',
+        'specialty'
+    ];
+
+    // Числовые поля для фильтрации по диапазону
+    const numericFields = [
+        ...Object.keys(fieldNames).filter(key => 
+            key.startsWith('res_comp_') || 
+            key.startsWith('res_mot_') || 
+            key.startsWith('res_val_')
+        )
+    ];
 
     // Порядок колонок в таблице
     const columnOrder = [
@@ -161,7 +178,6 @@ function AdminResultsView() {
 
     // Функция для получения класса цвета в зависимости от значения
     const getValueColorClass = (value, fieldKey) => {
-        // Применяем цветовую маркировку только к числовым полям компетенций, мотиваторов и ценностей
         const isNumericField = fieldKey.startsWith('res_comp_') || 
                               fieldKey.startsWith('res_mot_') || 
                               fieldKey.startsWith('res_val_');
@@ -175,6 +191,12 @@ function AdminResultsView() {
     useEffect(() => {
         fetchResults();
     }, []);
+
+    useEffect(() => {
+        if (results.length > 0) {
+            extractAvailableValues();
+        }
+    }, [results]);
 
     useEffect(() => {
         applyFiltersAndSort();
@@ -196,35 +218,44 @@ function AdminResultsView() {
         }
     };
 
+    // Извлечение доступных значений для фильтрации
+    const extractAvailableValues = () => {
+        const values = {};
+        
+        basicFields.forEach(field => {
+            const uniqueValues = new Set();
+            results.forEach(result => {
+                const value = getFieldValue(result, field);
+                if (value !== '' && value !== null && value !== undefined) {
+                    uniqueValues.add(value);
+                }
+            });
+            values[field] = Array.from(uniqueValues).sort();
+        });
+
+        setAvailableValues(values);
+    };
+
     const applyFiltersAndSort = useCallback(() => {
         let filtered = [...results];
 
-        // Применяем фильтры
-        if (filters.institution) {
-            filtered = filtered.filter(result => 
-                result.institution?.toLowerCase().includes(filters.institution.toLowerCase())
-            );
-        }
-        if (filters.year) {
-            filtered = filtered.filter(result => 
-                result.res_year.toString().includes(filters.year)
-            );
-        }
-        if (filters.center) {
-            filtered = filtered.filter(result => 
-                result.center?.toLowerCase().includes(filters.center.toLowerCase())
-            );
-        }
-        if (filters.participant) {
-            filtered = filtered.filter(result => 
-                result.participant?.part_name?.toLowerCase().includes(filters.participant.toLowerCase())
-            );
-        }
-        if (filters.specialty) {
-            filtered = filtered.filter(result => 
-                result.specialty?.toLowerCase().includes(filters.specialty.toLowerCase())
-            );
-        }
+        // Применяем все активные фильтры
+        filters.forEach(filter => {
+            if (filter.type === 'basic' && filter.selectedValues.length > 0) {
+                filtered = filtered.filter(result => {
+                    const value = getFieldValue(result, filter.field);
+                    // Преобразуем значение в строку для сравнения с selectedValues
+                    const stringValue = value !== null && value !== undefined ? value.toString() : '';
+                    return filter.selectedValues.includes(stringValue);
+                });
+            } else if (filter.type === 'numeric') {
+                filtered = filtered.filter(result => {
+                    const value = getFieldValue(result, filter.field);
+                    if (typeof value !== 'number') return false;
+                    return value >= filter.min && value <= filter.max;
+                });
+            }
+        });
 
         // Применяем сортировку
         if (sortConfig.key) {
@@ -245,25 +276,39 @@ function AdminResultsView() {
         setFilteredResults(filtered);
     }, [results, filters, sortConfig]);
 
+    // Исправленная функция getFieldValue
     const getFieldValue = (result, fieldKey) => {
-        if (fieldKey === 'participant') {
-            return result.participant?.part_name || '';
-        }
-        if (fieldKey === 'part_gender') {
-            return result.participant?.part_gender || '';
-        }
-        if (result[fieldKey] !== undefined) {
-            return result[fieldKey];
-        }
+        // Обработка основных полей
+        if (fieldKey === 'res_year') return result.res_year;
+        if (fieldKey === 'part_gender') return result.participant?.part_gender || '';
+        if (fieldKey === 'center') return result.center || '';
+        if (fieldKey === 'institution') return result.institution || '';
+        if (fieldKey === 'edu_level') return result.edu_level || '';
+        if (fieldKey === 'res_course_num') return result.res_course_num;
+        if (fieldKey === 'study_form') return result.study_form || '';
+        if (fieldKey === 'specialty') return result.specialty || '';
+        if (fieldKey === 'participant') return result.participant?.part_name || '';
+        
+        // Обработка компетенций
         if (result.competences && result.competences[fieldKey] !== undefined) {
             return result.competences[fieldKey];
         }
+        
+        // Обработка мотиваторов
         if (result.motivators && result.motivators[fieldKey] !== undefined) {
             return result.motivators[fieldKey];
         }
+        
+        // Обработка ценностей
         if (result.values && result.values[fieldKey] !== undefined) {
             return result.values[fieldKey];
         }
+        
+        // Прямой доступ к полям результата
+        if (result[fieldKey] !== undefined) {
+            return result[fieldKey];
+        }
+        
         return '';
     };
 
@@ -273,13 +318,6 @@ function AdminResultsView() {
             direction = 'desc';
         }
         setSortConfig({ key, direction });
-    };
-
-    const handleFilterChange = (filterName, value) => {
-        setFilters(prev => ({
-            ...prev,
-            [filterName]: value
-        }));
     };
 
     const handleRowSelect = (resultId) => {
@@ -336,6 +374,53 @@ function AdminResultsView() {
         }
     };
 
+    // Функции для работы с фильтрами
+    const addBasicFilter = (field) => {
+        const newFilter = {
+            id: Date.now(),
+            type: 'basic',
+            field: field,
+            selectedValues: []
+        };
+        setPendingFilters(prev => [...prev, newFilter]);
+    };
+
+    const addNumericFilter = (field) => {
+        const newFilter = {
+            id: Date.now(),
+            type: 'numeric',
+            field: field,
+            min: 200,
+            max: 800
+        };
+        setPendingFilters(prev => [...prev, newFilter]);
+    };
+
+    const removePendingFilter = (filterId) => {
+        setPendingFilters(prev => prev.filter(f => f.id !== filterId));
+    };
+
+    const updatePendingBasicFilter = (filterId, selectedValues) => {
+        setPendingFilters(prev => prev.map(f => 
+            f.id === filterId ? { ...f, selectedValues } : f
+        ));
+    };
+
+    const updatePendingNumericFilter = (filterId, min, max) => {
+        setPendingFilters(prev => prev.map(f => 
+            f.id === filterId ? { ...f, min, max } : f
+        ));
+    };
+
+    const applyFilters = () => {
+        setFilters([...pendingFilters]);
+    };
+
+    const clearAllFilters = () => {
+        setPendingFilters([]);
+        setFilters([]);
+    };
+
     const toggleColumn = (columnKey) => {
         const newHidden = new Set(hiddenColumns);
         if (newHidden.has(columnKey)) {
@@ -388,7 +473,6 @@ function AdminResultsView() {
             return '-';
         }
         
-        // Для числовых значений показываем как есть
         if (typeof value === 'number') {
             return value;
         }
@@ -407,9 +491,16 @@ function AdminResultsView() {
                             <div className="controls">
                                 <div className="results-info">
                                     Показано: {filteredResults.length} из {totalCount} записей
+                                    {filters.length > 0 && ` • Активных фильтров: ${filters.length}`}
                                     {hiddenColumns.size > 0 && ` • Скрыто колонок: ${hiddenColumns.size}`}
                                 </div>
                                 <div className="control-buttons">
+                                    <button 
+                                        className="filters-toggle-btn"
+                                        onClick={() => setShowFilters(!showFilters)}
+                                    >
+                                        {showFilters ? '👁️ Скрыть фильтры' : '👁️ Показать фильтры'}
+                                    </button>
                                     <button 
                                         className="column-toggle-btn"
                                         onClick={() => setShowColumnSelector(!showColumnSelector)}
@@ -452,6 +543,175 @@ function AdminResultsView() {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Система фильтров */}
+                        {showFilters && (
+                            <div className="filters-system">
+                                <div className="filters-header">
+                                    <h3>Система фильтров</h3>
+                                    <div className="filters-controls">
+                                        <div className="add-filter-dropdown">
+                                            <select 
+                                                className="filter-select"
+                                                onChange={(e) => {
+                                                    const value = e.target.value;
+                                                    if (value.startsWith('basic:')) {
+                                                        addBasicFilter(value.replace('basic:', ''));
+                                                    } else if (value.startsWith('numeric:')) {
+                                                        addNumericFilter(value.replace('numeric:', ''));
+                                                    }
+                                                    e.target.value = '';
+                                                }}
+                                            >
+                                                <option value="">+ Добавить фильтр</option>
+                                                <optgroup label="Базовые сведения">
+                                                    {basicFields.map(field => (
+                                                        <option key={field} value={`basic:${field}`}>
+                                                            {fieldNames[field]}
+                                                        </option>
+                                                    ))}
+                                                </optgroup>
+                                                <optgroup label="Компетенции, мотиваторы, ценности">
+                                                    {numericFields.map(field => (
+                                                        <option key={field} value={`numeric:${field}`}>
+                                                            {fieldNames[field]}
+                                                        </option>
+                                                    ))}
+                                                </optgroup>
+                                            </select>
+                                        </div>
+                                        <div className="filters-action-buttons">
+                                            {(pendingFilters.length > 0 || filters.length > 0) && (
+                                                <>
+                                                    <button 
+                                                        className="apply-filters-btn"
+                                                        onClick={applyFilters}
+                                                        disabled={pendingFilters.length === 0}
+                                                    >
+                                                        ✅ Применить фильтры
+                                                    </button>
+                                                    <button 
+                                                        className="clear-filters-btn"
+                                                        onClick={clearAllFilters}
+                                                    >
+                                                        🗑️ Очистить все
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Ожидающие применения фильтры */}
+                                <div className="pending-filters">
+                                    {pendingFilters.map(filter => (
+                                        <div key={filter.id} className="filter-item pending">
+                                            <div className="filter-header">
+                                                <span className="filter-name">
+                                                    {fieldNames[filter.field]}
+                                                </span>
+                                                <button 
+                                                    className="remove-filter-btn"
+                                                    onClick={() => removePendingFilter(filter.id)}
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                            
+                                            {filter.type === 'basic' && (
+                                                <div className="filter-content">
+                                                    <select 
+                                                        multiple
+                                                        className="multi-select"
+                                                        value={filter.selectedValues}
+                                                        onChange={(e) => {
+                                                            const selected = Array.from(e.target.selectedOptions, option => option.value);
+                                                            updatePendingBasicFilter(filter.id, selected);
+                                                        }}
+                                                    >
+                                                        {availableValues[filter.field]?.map(value => (
+                                                            <option key={value} value={value}>
+                                                                {value}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    <div className="filter-hint">
+                                                        Выберите значения (удерживайте Ctrl для множественного выбора)
+                                                    </div>
+                                                </div>
+                                            )}
+                                            
+                                            {filter.type === 'numeric' && (
+                                                <div className="filter-content">
+                                                    <div className="range-inputs">
+                                                        <div className="range-input">
+                                                            <label>От:</label>
+                                                            <input
+                                                                type="number"
+                                                                min="200"
+                                                                max="800"
+                                                                value={filter.min}
+                                                                onChange={(e) => updatePendingNumericFilter(filter.id, parseInt(e.target.value), filter.max)}
+                                                            />
+                                                        </div>
+                                                        <div className="range-input">
+                                                            <label>До:</label>
+                                                            <input
+                                                                type="number"
+                                                                min="200"
+                                                                max="800"
+                                                                value={filter.max}
+                                                                onChange={(e) => updatePendingNumericFilter(filter.id, filter.min, parseInt(e.target.value))}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="range-display">
+                                                        Диапазон: {filter.min} - {filter.max}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Активные фильтры */}
+                                {filters.length > 0 && (
+                                    <div className="active-filters-section">
+                                        <div className="active-filters-header">
+                                            <h4>Активные фильтры:</h4>
+                                        </div>
+                                        <div className="active-filters">
+                                            {filters.map(filter => (
+                                                <div key={filter.id} className="filter-item active">
+                                                    <div className="filter-header">
+                                                        <span className="filter-name">
+                                                            {fieldNames[filter.field]}
+                                                        </span>
+                                                        <span className="filter-status">✓ Применен</span>
+                                                    </div>
+                                                    
+                                                    {filter.type === 'basic' && (
+                                                        <div className="filter-content">
+                                                            <div className="selected-values">
+                                                                Выбрано значений: {filter.selectedValues.length}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {filter.type === 'numeric' && (
+                                                        <div className="filter-content">
+                                                            <div className="range-display">
+                                                                Диапазон: {filter.min} - {filter.max}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* Селектор колонок */}
                         {showColumnSelector && (
@@ -517,55 +777,6 @@ function AdminResultsView() {
                             </div>
                         )}
 
-                        {/* Фильтры */}
-                        <div className="filters">
-                            <div className="filter-group">
-                                <label>Участник:</label>
-                                <input
-                                    type="text"
-                                    value={filters.participant}
-                                    onChange={(e) => handleFilterChange('participant', e.target.value)}
-                                    placeholder="Фильтр по ФИО"
-                                />
-                            </div>
-                            <div className="filter-group">
-                                <label>Учебное заведение:</label>
-                                <input
-                                    type="text"
-                                    value={filters.institution}
-                                    onChange={(e) => handleFilterChange('institution', e.target.value)}
-                                    placeholder="Фильтр по учебному заведению"
-                                />
-                            </div>
-                            <div className="filter-group">
-                                <label>Год:</label>
-                                <input
-                                    type="text"
-                                    value={filters.year}
-                                    onChange={(e) => handleFilterChange('year', e.target.value)}
-                                    placeholder="Фильтр по году"
-                                />
-                            </div>
-                            <div className="filter-group">
-                                <label>Центр компетенций:</label>
-                                <input
-                                    type="text"
-                                    value={filters.center}
-                                    onChange={(e) => handleFilterChange('center', e.target.value)}
-                                    placeholder="Фильтр по центру"
-                                />
-                            </div>
-                            <div className="filter-group">
-                                <label>Специальность:</label>
-                                <input
-                                    type="text"
-                                    value={filters.specialty}
-                                    onChange={(e) => handleFilterChange('specialty', e.target.value)}
-                                    placeholder="Фильтр по специальности"
-                                />
-                            </div>
-                        </div>
-
                         {/* Таблица с горизонтальной прокруткой */}
                         {loading ? (
                             <div className="loading">
@@ -626,7 +837,7 @@ function AdminResultsView() {
                                         <div className="no-data-icon">📊</div>
                                         <div className="no-data-text">
                                             <strong>Нет данных для отображения</strong><br />
-                                            Попробуйте изменить параметры фильтрации
+                                            {filters.length > 0 ? 'Попробуйте изменить параметры фильтрации' : 'Загрузите данные или создайте фильтры'}
                                         </div>
                                     </div>
                                 )}
