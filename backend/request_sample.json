@@ -26,7 +26,7 @@
         "res_course_num": "M",
         "res_year": "B",
         "res_high_potential": "D",
-        "res_summary_report": "",
+        "res_summary_report": "P",
 
         "res_comp_info_analysis": "Q",
         "res_comp_planning": "R",
@@ -50,6 +50,7 @@
       "name": "Мотивационный профиль",
       "start_row": 4,
       "columns": {
+        "part_name": "B",
         "res_year": "C",
         
         "res_mot_autonomy": "D",
@@ -74,6 +75,7 @@
       "name": "Образовательные курсы",
       "start_row": 4,
       "columns":{
+        "part_name": "B",
         "course_an_dec": "C",
         "course_client_focus": "D",
         "course_communication": "E",

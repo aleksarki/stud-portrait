@@ -113,42 +113,42 @@ DROP TABLE IF EXISTS StudyForms CASCADE;
 -- Учебное заведение
 CREATE TABLE Institutions
 (
-    inst_id    SERIAL PRIMARY KEY,
+    inst_id    INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     inst_name  VARCHAR(512) NOT NULL
 );
 
 -- Центр компетенций
 CREATE TABLE CompetenceCenters
 (
-    center_id   SERIAL PRIMARY KEY,
+    center_id   INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     center_name VARCHAR(512) NOT NULL
 );
 
 -- Уровень образования
 CREATE TABLE EducationLevels
 (
-    edu_level_id   SERIAL PRIMARY KEY,
+    edu_level_id   INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     edu_level_name VARCHAR(256) NOT NULL  -- Бакалавриат, Магистратура, Аспирантура и т.д.
 );
 
 -- Форма обучения
 CREATE TABLE StudyForms
 (
-    form_id   SERIAL PRIMARY KEY,
+    form_id   INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     form_name VARCHAR(256) NOT NULL       -- Очная, Заочная, Очно-заочная
 );
 
 -- Специальность
 CREATE TABLE Specialties
 (
-    spec_id    SERIAL PRIMARY KEY,
+    spec_id    INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     spec_name  VARCHAR(512) NOT NULL
 );
 
 -- Участник
 CREATE TABLE Participants
 (
-    part_id           SERIAL PRIMARY KEY,
+    part_id           INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     part_name         VARCHAR(512) NOT NULL,
     part_gender       VARCHAR(16),
     part_institution  INT REFERENCES Institutions(inst_id) ON DELETE RESTRICT ON UPDATE CASCADE,
@@ -161,7 +161,7 @@ CREATE TABLE Participants
 -- Результаты участников
 CREATE TABLE Results
 (
-    res_id             SERIAL PRIMARY KEY,
+    res_id             INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     res_participant    INT NOT NULL REFERENCES Participants(part_id) ON DELETE CASCADE ON UPDATE CASCADE,
     res_center         INT REFERENCES CompetenceCenters(center_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     res_institution    INT REFERENCES Institutions(inst_id) ON DELETE RESTRICT ON UPDATE CASCADE,
@@ -188,22 +188,22 @@ CREATE TABLE Results
     res_comp_passive_vocab       INT,
 
     -- === Мотиваторы ===
-    res_mot_autonomy             INT,
-    res_mot_altruism             INT,
-    res_mot_challenge            INT,
-    res_mot_salary               INT,
-    res_mot_career               INT,
-    res_mot_creativity           INT,
-    res_mot_relationships        INT,
-    res_mot_recognition          INT,
-    res_mot_affiliation          INT,
-    res_mot_self_development     INT,
-    res_mot_purpose              INT,
-    res_mot_cooperation          INT,
-    res_mot_stability            INT,
-    res_mot_tradition            INT,
-    res_mot_management           INT,
-    res_mot_work_conditions      INT,
+    res_mot_autonomy             DECIMAL(5,2),
+    res_mot_altruism             DECIMAL(5,2),
+    res_mot_challenge            DECIMAL(5,2),
+    res_mot_salary               DECIMAL(5,2),
+    res_mot_career               DECIMAL(5,2),
+    res_mot_creativity           DECIMAL(5,2),
+    res_mot_relationships        DECIMAL(5,2),
+    res_mot_recognition          DECIMAL(5,2),
+    res_mot_affiliation          DECIMAL(5,2),
+    res_mot_self_development     DECIMAL(5,2),
+    res_mot_purpose              DECIMAL(5,2),
+    res_mot_cooperation          DECIMAL(5,2),
+    res_mot_stability            DECIMAL(5,2),
+    res_mot_tradition            DECIMAL(5,2),
+    res_mot_management           DECIMAL(5,2),
+    res_mot_work_conditions      DECIMAL(5,2),
 
     -- === Ценности ===
     res_val_honesty_justice      INT,
@@ -217,7 +217,7 @@ CREATE TABLE Results
 -- Результаты участников по курсам
 CREATE TABLE Course
 (
-    course_id             SERIAL PRIMARY KEY,
+    course_id             INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     course_participant    INT NOT NULL REFERENCES Participants(part_id) ON DELETE CASCADE ON UPDATE CASCADE,
 
     -- === Курсы (оценки по каждому курсу, от 0.00 до 1.00) ===
