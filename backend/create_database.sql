@@ -100,55 +100,55 @@ CREATE TABLE Results
 */
 
 -- Удаляем старые таблицы (если они были)
-DROP TABLE IF EXISTS ParticipantCourses;
-DROP TABLE IF EXISTS Courses;
-DROP TABLE IF EXISTS Results;
-DROP TABLE IF EXISTS Participants;
-DROP TABLE IF EXISTS Specialties;
-DROP TABLE IF EXISTS Institutions;
-DROP TABLE IF EXISTS CompetenceCenters;
-DROP TABLE IF EXISTS EducationLevels;
-DROP TABLE IF EXISTS StudyForms;
+DROP TABLE IF EXISTS ParticipantCourses CASCADE;
+DROP TABLE IF EXISTS Course CASCADE;
+DROP TABLE IF EXISTS Results CASCADE;
+DROP TABLE IF EXISTS Participants CASCADE;
+DROP TABLE IF EXISTS Specialties CASCADE;
+DROP TABLE IF EXISTS Institutions CASCADE;
+DROP TABLE IF EXISTS CompetenceCenters CASCADE;
+DROP TABLE IF EXISTS EducationLevels CASCADE;
+DROP TABLE IF EXISTS StudyForms CASCADE;
 
 -- Учебное заведение
 CREATE TABLE Institutions
 (
-    inst_id    SERIAL PRIMARY KEY,
-    inst_name  VARCHAR(512)
+    inst_id    INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    inst_name  VARCHAR(512) NOT NULL
 );
 
 -- Центр компетенций
 CREATE TABLE CompetenceCenters
 (
-    center_id   SERIAL PRIMARY KEY,
+    center_id   INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     center_name VARCHAR(512) NOT NULL
 );
 
 -- Уровень образования
 CREATE TABLE EducationLevels
 (
-    edu_level_id   SERIAL PRIMARY KEY,
-    edu_level_name VARCHAR(256)
+    edu_level_id   INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    edu_level_name VARCHAR(256) NOT NULL  -- Бакалавриат, Магистратура, Аспирантура и т.д.
 );
 
 -- Форма обучения
 CREATE TABLE StudyForms
 (
-    form_id   SERIAL PRIMARY KEY,
-    form_name VARCHAR(256)
+    form_id   INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    form_name VARCHAR(256) NOT NULL       -- Очная, Заочная, Очно-заочная
 );
 
 -- Специальность
 CREATE TABLE Specialties
 (
-    spec_id    SERIAL PRIMARY KEY,
-    spec_name  VARCHAR(512)
+    spec_id    INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    spec_name  VARCHAR(512) NOT NULL
 );
 
 -- Участник
 CREATE TABLE Participants
 (
-    part_id           SERIAL PRIMARY KEY,
+    part_id           INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     part_name         VARCHAR(512) NOT NULL,
     part_gender       VARCHAR(16),
     part_institution  INT REFERENCES Institutions(inst_id) ON DELETE RESTRICT ON UPDATE CASCADE,
@@ -158,25 +158,18 @@ CREATE TABLE Participants
     part_course_num   INT
 );
 
--- Образовательные курсы
-CREATE TABLE Courses
-(
-    course_id    SERIAL PRIMARY KEY,
-    course_name  VARCHAR(512) NOT NULL,
-);
-
 -- Результаты участников
 CREATE TABLE Results
 (
-    res_id             SERIAL PRIMARY KEY,
+    res_id             INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     res_participant    INT NOT NULL REFERENCES Participants(part_id) ON DELETE CASCADE ON UPDATE CASCADE,
-    res_center         INT NOT NULL REFERENCES CompetenceCenters(center_id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    res_center         INT REFERENCES CompetenceCenters(center_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     res_institution    INT REFERENCES Institutions(inst_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     res_edu_level      INT REFERENCES EducationLevels(edu_level_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     res_form           INT REFERENCES StudyForms(form_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     res_spec           INT REFERENCES Specialties(spec_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     res_course_num     INT,
-    res_year           INT NOT NULL,
+    res_year           TEXT,
     res_high_potential TEXT,
     res_summary_report TEXT,
 
@@ -195,22 +188,22 @@ CREATE TABLE Results
     res_comp_passive_vocab       INT,
 
     -- === Мотиваторы ===
-    res_mot_autonomy             INT,
-    res_mot_altruism             INT,
-    res_mot_challenge            INT,
-    res_mot_salary               INT,
-    res_mot_career               INT,
-    res_mot_creativity           INT,
-    res_mot_relationships        INT,
-    res_mot_recognition          INT,
-    res_mot_affiliation          INT,
-    res_mot_self_development     INT,
-    res_mot_purpose              INT,
-    res_mot_cooperation          INT,
-    res_mot_stability            INT,
-    res_mot_tradition            INT,
-    res_mot_management           INT,
-    res_mot_work_conditions      INT,
+    res_mot_autonomy             DECIMAL(5,2),
+    res_mot_altruism             DECIMAL(5,2),
+    res_mot_challenge            DECIMAL(5,2),
+    res_mot_salary               DECIMAL(5,2),
+    res_mot_career               DECIMAL(5,2),
+    res_mot_creativity           DECIMAL(5,2),
+    res_mot_relationships        DECIMAL(5,2),
+    res_mot_recognition          DECIMAL(5,2),
+    res_mot_affiliation          DECIMAL(5,2),
+    res_mot_self_development     DECIMAL(5,2),
+    res_mot_purpose              DECIMAL(5,2),
+    res_mot_cooperation          DECIMAL(5,2),
+    res_mot_stability            DECIMAL(5,2),
+    res_mot_tradition            DECIMAL(5,2),
+    res_mot_management           DECIMAL(5,2),
+    res_mot_work_conditions      DECIMAL(5,2),
 
     -- === Ценности ===
     res_val_honesty_justice      INT,
@@ -221,12 +214,33 @@ CREATE TABLE Results
     res_val_environment          INT
 );
 
--- Связь многие-ко-многим между участниками и курсами с фиксацией результатов
-CREATE TABLE ParticipantCourses
+-- Результаты участников по курсам
+CREATE TABLE Course
 (
-    pc_id           SERIAL PRIMARY KEY,
-    pc_participant  INT NOT NULL REFERENCES Participants(part_id) ON DELETE CASCADE,
-    pc_course       INT REFERENCES Courses(course_id) ON DELETE CASCADE,
-    pc_result       INT REFERENCES Results(res_id) ON DELETE SET NULL,
-    UNIQUE (pc_participant, pc_course)
+    course_id             INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    course_participant    INT NOT NULL REFERENCES Participants(part_id) ON DELETE CASCADE ON UPDATE CASCADE,
+
+    -- === Курсы (оценки по каждому курсу, от 0.00 до 1.00) ===
+    course_an_dec                      DECIMAL(5,2),  -- Анализ информации для принятия решений
+    course_client_focus                DECIMAL(5,2),  -- Клиентоориентированность
+    course_communication               DECIMAL(5,2),  -- Коммуникативная грамотность
+    course_leadership                  DECIMAL(5,2),  -- Лидерство: основы
+    course_result_orientation          DECIMAL(5,2),  -- Ориентация на результат
+    course_planning_org                DECIMAL(5,2),  -- Планирование и организация
+    course_rules_culture               DECIMAL(5,2),  -- Роль культуры правил...
+    course_self_dev                    DECIMAL(5,2),  -- Саморазвитие
+    course_collaboration               DECIMAL(5,2),  -- Сотрудничество
+    course_stress_resistance           DECIMAL(5,2),  -- Стрессоустойчивость
+    course_emotions_communication      DECIMAL(5,2),  -- Эмоции и коммуникация
+    course_negotiations                DECIMAL(5,2),  -- Искусство деловых переговоров
+    course_digital_comm                DECIMAL(5,2),  -- Коммуникация в цифровой среде
+    course_effective_learning          DECIMAL(5,2),  -- Навыки эффективного обучения
+    course_entrepreneurship            DECIMAL(5,2),  -- Предпринимательское мышление
+    course_creativity_tech             DECIMAL(5,2),  -- Технологии креативности
+    course_trendwatching               DECIMAL(5,2),  -- Трендвотчинг
+    course_conflict_management         DECIMAL(5,2),  -- Управление конфликтами
+    course_career_management           DECIMAL(5,2),  -- Управляй своей карьерой
+    course_burnout                     DECIMAL(5,2),  -- Эмоциональное выгорание
+    course_cross_cultural_comm         DECIMAL(5,2),  -- Межкультурные коммуникации
+    course_mentoring                   DECIMAL(5,2)   -- Я — наставник
 );

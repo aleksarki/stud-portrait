@@ -8,7 +8,7 @@
 from django.db import models
 
 
-class CompetenceCenters(models.Model):
+class Competencecenters(models.Model):
     center_id = models.AutoField(primary_key=True)
     center_name = models.CharField(max_length=512)
 
@@ -17,18 +17,40 @@ class CompetenceCenters(models.Model):
         db_table = 'competencecenters'
 
 
-class Courses(models.Model):
+class Course(models.Model):
     course_id = models.AutoField(primary_key=True)
-    course_name = models.CharField(max_length=512)
+    course_participant = models.ForeignKey('Participants', models.DO_NOTHING, db_column='course_participant')
+    course_an_dec = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    course_client_focus = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    course_communication = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    course_leadership = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    course_result_orientation = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    course_planning_org = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    course_rules_culture = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    course_self_dev = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    course_collaboration = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    course_stress_resistance = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    course_emotions_communication = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    course_negotiations = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    course_digital_comm = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    course_effective_learning = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    course_entrepreneurship = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    course_creativity_tech = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    course_trendwatching = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    course_conflict_management = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    course_career_management = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    course_burnout = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    course_cross_cultural_comm = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    course_mentoring = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
 
     class Meta:
         managed = False
-        db_table = 'courses'
+        db_table = 'course'
 
 
-class EducationLevels(models.Model):
+class Educationlevels(models.Model):
     edu_level_id = models.AutoField(primary_key=True)
-    edu_level_name = models.CharField(max_length=256, blank=True, null=True)
+    edu_level_name = models.CharField(max_length=256)
 
     class Meta:
         managed = False
@@ -37,23 +59,11 @@ class EducationLevels(models.Model):
 
 class Institutions(models.Model):
     inst_id = models.AutoField(primary_key=True)
-    inst_name = models.CharField(max_length=512, blank=True, null=True)
+    inst_name = models.CharField(max_length=512)
 
     class Meta:
         managed = False
         db_table = 'institutions'
-
-
-class ParticipantCourses(models.Model):
-    pc_id = models.AutoField(primary_key=True)
-    pc_participant = models.ForeignKey('Participants', models.DO_NOTHING, db_column='pc_participant')
-    pc_course = models.ForeignKey(Courses, models.DO_NOTHING, db_column='pc_course', blank=True, null=True)
-    pc_result = models.ForeignKey('Results', models.DO_NOTHING, db_column='pc_result', blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = 'participantcourses'
-        unique_together = (('pc_participant', 'pc_course'),)
 
 
 class Participants(models.Model):
@@ -62,7 +72,7 @@ class Participants(models.Model):
     part_gender = models.CharField(max_length=16, blank=True, null=True)
     part_institution = models.ForeignKey(Institutions, models.DO_NOTHING, db_column='part_institution', blank=True, null=True)
     part_spec = models.ForeignKey('Specialties', models.DO_NOTHING, db_column='part_spec', blank=True, null=True)
-    part_edu_level = models.ForeignKey(EducationLevels, models.DO_NOTHING, db_column='part_edu_level', blank=True, null=True)
+    part_edu_level = models.ForeignKey(Educationlevels, models.DO_NOTHING, db_column='part_edu_level', blank=True, null=True)
     part_form = models.ForeignKey('Studyforms', models.DO_NOTHING, db_column='part_form', blank=True, null=True)
     part_course_num = models.IntegerField(blank=True, null=True)
 
@@ -74,13 +84,13 @@ class Participants(models.Model):
 class Results(models.Model):
     res_id = models.AutoField(primary_key=True)
     res_participant = models.ForeignKey(Participants, models.DO_NOTHING, db_column='res_participant')
-    res_center = models.ForeignKey(CompetenceCenters, models.DO_NOTHING, db_column='res_center')
+    res_center = models.ForeignKey(Competencecenters, models.DO_NOTHING, db_column='res_center', blank=True, null=True)
     res_institution = models.ForeignKey(Institutions, models.DO_NOTHING, db_column='res_institution', blank=True, null=True)
-    res_edu_level = models.ForeignKey(EducationLevels, models.DO_NOTHING, db_column='res_edu_level', blank=True, null=True)
+    res_edu_level = models.ForeignKey(Educationlevels, models.DO_NOTHING, db_column='res_edu_level', blank=True, null=True)
     res_form = models.ForeignKey('Studyforms', models.DO_NOTHING, db_column='res_form', blank=True, null=True)
     res_spec = models.ForeignKey('Specialties', models.DO_NOTHING, db_column='res_spec', blank=True, null=True)
     res_course_num = models.IntegerField(blank=True, null=True)
-    res_year = models.IntegerField()
+    res_year = models.TextField(blank=True, null=True)
     res_high_potential = models.TextField(blank=True, null=True)
     res_summary_report = models.TextField(blank=True, null=True)
     res_comp_info_analysis = models.IntegerField(blank=True, null=True)
@@ -95,22 +105,22 @@ class Results(models.Model):
     res_comp_client_focus = models.IntegerField(blank=True, null=True)
     res_comp_communication = models.IntegerField(blank=True, null=True)
     res_comp_passive_vocab = models.IntegerField(blank=True, null=True)
-    res_mot_autonomy = models.IntegerField(blank=True, null=True)
-    res_mot_altruism = models.IntegerField(blank=True, null=True)
-    res_mot_challenge = models.IntegerField(blank=True, null=True)
-    res_mot_salary = models.IntegerField(blank=True, null=True)
-    res_mot_career = models.IntegerField(blank=True, null=True)
-    res_mot_creativity = models.IntegerField(blank=True, null=True)
-    res_mot_relationships = models.IntegerField(blank=True, null=True)
-    res_mot_recognition = models.IntegerField(blank=True, null=True)
-    res_mot_affiliation = models.IntegerField(blank=True, null=True)
-    res_mot_self_development = models.IntegerField(blank=True, null=True)
-    res_mot_purpose = models.IntegerField(blank=True, null=True)
-    res_mot_cooperation = models.IntegerField(blank=True, null=True)
-    res_mot_stability = models.IntegerField(blank=True, null=True)
-    res_mot_tradition = models.IntegerField(blank=True, null=True)
-    res_mot_management = models.IntegerField(blank=True, null=True)
-    res_mot_work_conditions = models.IntegerField(blank=True, null=True)
+    res_mot_autonomy = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    res_mot_altruism = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    res_mot_challenge = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    res_mot_salary = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    res_mot_career = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    res_mot_creativity = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    res_mot_relationships = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    res_mot_recognition = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    res_mot_affiliation = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    res_mot_self_development = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    res_mot_purpose = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    res_mot_cooperation = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    res_mot_stability = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    res_mot_tradition = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    res_mot_management = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    res_mot_work_conditions = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
     res_val_honesty_justice = models.IntegerField(blank=True, null=True)
     res_val_humanism = models.IntegerField(blank=True, null=True)
     res_val_patriotism = models.IntegerField(blank=True, null=True)
@@ -125,16 +135,16 @@ class Results(models.Model):
 
 class Specialties(models.Model):
     spec_id = models.AutoField(primary_key=True)
-    spec_name = models.CharField(max_length=512, blank=True, null=True)
+    spec_name = models.CharField(max_length=512)
 
     class Meta:
         managed = False
         db_table = 'specialties'
 
 
-class StudyForms(models.Model):
+class Studyforms(models.Model):
     form_id = models.AutoField(primary_key=True)
-    form_name = models.CharField(max_length=256, blank=True, null=True)
+    form_name = models.CharField(max_length=256)
 
     class Meta:
         managed = False
