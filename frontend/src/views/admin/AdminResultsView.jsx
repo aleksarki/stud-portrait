@@ -1,8 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+
 import Header from "../../components/Header";
 import SidebarLayout from "../../components/SidebarLayout";
 import Sidepanel from "../../components/Sidepanel";
+import { FIELD_NAMES } from "../../utilities.js";
+
 import "./AdminResultsView.scss";
+import Button from '../../components/ui/Button.jsx';
 
 function AdminResultsView() {
     const [sessionId, setSessionId] = useState(null);
@@ -29,60 +33,6 @@ function AdminResultsView() {
         {to:'/admin/upload', title: "Загрузка данных"},
     ];
 
-    // Маппинг названий полей на читаемые названия
-    const fieldNames = {
-        // Основные поля
-        'res_year': 'Учебный год',
-        'participant': 'Имя участника',
-        'part_gender': 'Пол',
-        'center': 'Название ЦК',
-        'institution': 'Учебное заведение',
-        'edu_level': 'Уровень образования',
-        'res_course_num': 'Номер курса',
-        'study_form': 'Форма обучения',
-        'specialty': 'Специальность',
-        
-        // Компетенции
-        'res_comp_info_analysis': 'Анализ информации',
-        'res_comp_planning': 'Планирование',
-        'res_comp_result_orientation': 'Ориентация на результат',
-        'res_comp_stress_resistance': 'Стрессоустойчивость',
-        'res_comp_partnership': 'Партнерство',
-        'res_comp_rules_compliance': 'Соблюдение правил',
-        'res_comp_self_development': 'Саморазвитие',
-        'res_comp_leadership': 'Лидерство',
-        'res_comp_emotional_intel': 'Эмоциональный интеллект',
-        'res_comp_client_focus': 'Клиентоориентированность',
-        'res_comp_communication': 'Коммуникация',
-        'res_comp_passive_vocab': 'Пассивный словарь',
-        
-        // Мотиваторы
-        'res_mot_autonomy': 'Автономия',
-        'res_mot_altruism': 'Альтруизм',
-        'res_mot_challenge': 'Вызов',
-        'res_mot_salary': 'Зарплата',
-        'res_mot_career': 'Карьера',
-        'res_mot_creativity': 'Креативность',
-        'res_mot_relationships': 'Отношения',
-        'res_mot_recognition': 'Признание',
-        'res_mot_affiliation': 'Принадлежность',
-        'res_mot_self_development': 'Саморазвитие (мотиватор)',
-        'res_mot_purpose': 'Цель',
-        'res_mot_cooperation': 'Сотрудничество',
-        'res_mot_stability': 'Стабильность',
-        'res_mot_tradition': 'Традиции',
-        'res_mot_management': 'Управление',
-        'res_mot_work_conditions': 'Условия работы',
-        
-        // Ценности
-        'res_val_honesty_justice': 'Честность и справедливость',
-        'res_val_humanism': 'Гуманизм',
-        'res_val_patriotism': 'Патриотизм',
-        'res_val_family': 'Семья',
-        'res_val_health': 'Здоровье',
-        'res_val_environment': 'Окружающая среда'
-    };
-
     // Базовые поля для фильтрации
     const basicFields = [
         'res_year',
@@ -97,9 +47,9 @@ function AdminResultsView() {
 
     // Числовые поля для фильтрации по диапазону
     const numericFields = [
-        ...Object.keys(fieldNames).filter(key => 
+        ...Object.keys(FIELD_NAMES).filter(key => 
             key.startsWith('res_comp_') || 
-            key.startsWith('res_mot_') || 
+            key.startsWith('res_mot_')  || 
             key.startsWith('res_val_')
         )
     ];
@@ -169,7 +119,7 @@ function AdminResultsView() {
     // Видимые колонки
     const visibleColumns = columnOrder.filter(col => !hiddenColumns.has(col));
 
-    // Функция для определения категории результата
+    // Определение категории результата
     const getResultCategory = (value) => {
         if (value === null || value === undefined || value === '') return 'no-data';
         if (value >= 600) return 'high';
@@ -178,11 +128,13 @@ function AdminResultsView() {
         return 'no-data';
     };
 
-    // Функция для получения класса цвета в зависимости от значения
+    // Получение класса цвета в зависимости от значения
     const getValueColorClass = (value, fieldKey) => {
-        const isNumericField = fieldKey.startsWith('res_comp_') || 
-                              fieldKey.startsWith('res_mot_') || 
-                              fieldKey.startsWith('res_val_');
+        const isNumericField = (
+            fieldKey.startsWith('res_comp_') ||
+            fieldKey.startsWith('res_mot_')  ||
+            fieldKey.startsWith('res_val_')
+        );
         
         if (!isNumericField) return '';
         
@@ -657,64 +609,48 @@ function AdminResultsView() {
                                     )}
                                 </div>
                                 <div className="control-buttons">
-                                    <button 
-                                        className="filters-toggle-btn"
+                                    <Button
+                                        text={showFilters ? 'Скрыть фильтры' : 'Показать фильтры'}
                                         onClick={() => setShowFilters(!showFilters)}
-                                        disabled={!sessionId}
-                                    >
-                                        {showFilters ? '👁️ Скрыть фильтры' : '👁️ Показать фильтры'}
-                                    </button>
-                                    <button 
-                                        className="column-toggle-btn"
+                                        fg="#212529"
+                                        bg="#ffc107"
+                                        hoverBg="#e0a800"
+                                    />
+                                    <Button
+                                        text="Колонки"
                                         onClick={() => setShowColumnSelector(!showColumnSelector)}
                                         disabled={!sessionId}
-                                    >
-                                        📊 Колонки
-                                    </button>
-                                    <div className="export-buttons">
-                                        <button 
-                                            className="export-btn export-selected"
-                                            onClick={handleExportSelected}
-                                            disabled={!sessionId || exportLoading || selectedRows.size === 0}
-                                            title="Выгрузить выделенные записи"
-                                        >
-                                            {exportLoading ? '⏳' : '📥'} Выгрузить выделенные ({selectedRows.size})
-                                        </button>
-                                        <button 
-                                            className="export-btn export-all"
-                                            onClick={handleExportAll}
-                                            disabled={!sessionId || exportLoading}
-                                            title="Выгрузить все отфильтрованные записи"
-                                        >
-                                            {exportLoading ? '⏳' : '📋'} Выгрузить все
-                                        </button>
-                                    </div>
-                                    <button 
-                                        className="refresh-btn"
+                                        fg="white"
+                                        bg="#6f42c1"
+                                        hoverBg="#5a32a3"
+                                    />
+                                    <Button
+                                        text={`${exportLoading ? '⏳' : '📥'} Выгрузить выделенные (${selectedRows.size})`}
+                                        onClick={handleExportSelected}
+                                        disabled={!sessionId || exportLoading || selectedRows.size === 0}
+                                        fg="white"
+                                        bg="#28a745"
+                                        hoverBg="#218838"
+                                        disabledBg="#6c757d"
+                                    />
+                                    <Button
+                                        text={`${exportLoading ? '⏳' : '📋'} Выгрузить все`}
+                                        onClick={handleExportAll}
+                                        disabled={!sessionId || exportLoading}
+                                        fg="white"
+                                        bg="#17a2b8"
+                                        hoverBg="#138496"
+                                        disabledBg="#6c757d"
+                                    />
+                                    <Button
+                                        text={`${loading ? '⏳' : '🔄'} Обновить`}
                                         onClick={() => loadSessionData()}
                                         disabled={!sessionId || loading}
-                                    >
-                                        {loading ? '⏳' : '🔄'} Обновить
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Легенда цветовой маркировки */}
-                        <div className="color-legend">
-                            <div className="legend-title">Цветовая маркировка результатов:</div>
-                            <div className="legend-items">
-                                <div className="legend-item">
-                                    <div className="color-box high"></div>
-                                    <span>Высокий (600-800)</span>
-                                </div>
-                                <div className="legend-item">
-                                    <div className="color-box medium"></div>
-                                    <span>Средний (400-599)</span>
-                                </div>
-                                <div className="legend-item">
-                                    <div className="color-box low"></div>
-                                    <span>Низкий (200-399)</span>
+                                        fg="white"
+                                        bg="#17a2b8"
+                                        hoverBg="#138496"
+                                        disabledBg="#6c757d"
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -723,7 +659,7 @@ function AdminResultsView() {
                         {showFilters && (
                             <div className="filters-system">
                                 <div className="filters-header">
-                                    <h3>Система фильтров</h3>
+                                    <h3>Фильтры</h3>
                                     <div className="filters-controls">
                                         <div className="add-filter-dropdown">
                                             <select 
@@ -743,14 +679,14 @@ function AdminResultsView() {
                                                 <optgroup label="Базовые сведения">
                                                     {basicFields.map(field => (
                                                         <option key={field} value={`basic:${field}`}>
-                                                            {fieldNames[field]}
+                                                            {FIELD_NAMES[field]}
                                                         </option>
                                                     ))}
                                                 </optgroup>
                                                 <optgroup label="Компетенции, мотиваторы, ценности">
                                                     {numericFields.map(field => (
                                                         <option key={field} value={`numeric:${field}`}>
-                                                            {fieldNames[field]}
+                                                            {FIELD_NAMES[field]}
                                                         </option>
                                                     ))}
                                                 </optgroup>
@@ -759,20 +695,23 @@ function AdminResultsView() {
                                         <div className="filters-action-buttons">
                                             {(pendingFilters.length > 0 || filters.length > 0) && (
                                                 <>
-                                                    <button 
-                                                        className="apply-filters-btn"
+                                                    <Button
+                                                        text={`${loading ? '⏳' : '✅'} Применить фильтры`}
                                                         onClick={applyFilters}
                                                         disabled={pendingFilters.length === 0 || !sessionId || loading}
-                                                    >
-                                                        {loading ? '⏳' : '✅'} Применить фильтры
-                                                    </button>
-                                                    <button 
-                                                        className="clear-filters-btn"
+                                                        fg="white"
+                                                        bg="#28a745"
+                                                        hoverBg="#218838"
+                                                        disabledBg="#6c757d"
+                                                    />
+                                                    <Button
+                                                        text="Очистить все"
                                                         onClick={clearAllFilters}
                                                         disabled={!sessionId || loading}
-                                                    >
-                                                        🗑️ Очистить все
-                                                    </button>
+                                                        fg="white"
+                                                        bg="#dc3545"
+                                                        hoverBg="#c82333"
+                                                    />
                                                 </>
                                             )}
                                         </div>
@@ -785,9 +724,17 @@ function AdminResultsView() {
                                         <div key={filter.id} className="filter-item pending">
                                             <div className="filter-header">
                                                 <span className="filter-name">
-                                                    {fieldNames[filter.field]}
+                                                    {FIELD_NAMES[filter.field]}
                                                 </span>
-                                                <button 
+                                                { /*<Button
+                                                    text="✕"
+                                                    onClick={() => removePendingFilter(filter.id)}
+                                                    fg="#dc3545"
+                                                    bg="none"
+                                                    hoverFg="white"
+                                                    hoverBg="#dc3545"
+                                                />*/ }
+                                                <button
                                                     className="remove-filter-btn"
                                                     onClick={() => removePendingFilter(filter.id)}
                                                 >
@@ -862,7 +809,7 @@ function AdminResultsView() {
                                                 <div key={filter.id} className="filter-item active">
                                                     <div className="filter-header">
                                                         <span className="filter-name">
-                                                            {fieldNames[filter.field]}
+                                                            {FIELD_NAMES[filter.field]}
                                                         </span>
                                                         <span className="filter-status">✓ Применен</span>
                                                     </div>
@@ -896,26 +843,38 @@ function AdminResultsView() {
                                 <div className="column-selector-header">
                                     <h3>Управление колонками</h3>
                                     <div className="column-selector-controls">
-                                        <button 
-                                            className="selector-btn" 
+                                        <Button
+                                            text="Показать все"
                                             onClick={showAllColumns}
                                             disabled={!sessionId || loading}
-                                        >
-                                            Показать все
-                                        </button>
-                                        <button 
-                                            className="selector-btn" 
+                                            bg="white"
+                                            border="1px solid #ced4da"
+                                            hoverFg="white"
+                                            hoverBg="#007bff"
+                                            hoverBorder="1px solid #007bff"
+                                            hoverTransform="none"
+                                        />
+                                        <Button
+                                            text="Скрыть все"
                                             onClick={hideAllColumns}
                                             disabled={!sessionId || loading}
-                                        >
-                                            Скрыть все
-                                        </button>
-                                        <button 
-                                            className="selector-btn close-btn"
+                                            bg="white"
+                                            border="1px solid #ced4da"
+                                            hoverFg="white"
+                                            hoverBg="#007bff"
+                                            hoverBorder="1px solid #007bff"
+                                            hoverTransform="none"
+                                        />
+                                        <Button
+                                            text="✕ Закрыть"
                                             onClick={() => setShowColumnSelector(false)}
-                                        >
-                                            ✕ Закрыть
-                                        </button>
+                                            fg="white"
+                                            bg="#dc3545"
+                                            border="1px solid #dc3545"
+                                            hoverBg="#c82333"
+                                            hoverBorder="1px solid #bd2130"
+                                            hoverTransform="none"
+                                        />
                                     </div>
                                 </div>
                                 <div className="column-groups">
@@ -952,7 +911,7 @@ function AdminResultsView() {
                                                                 disabled={!sessionId || loading}
                                                             />
                                                             <span className="column-name">
-                                                                {fieldNames[columnKey]}
+                                                                {FIELD_NAMES[columnKey]}
                                                             </span>
                                                         </label>
                                                     ))}
@@ -993,7 +952,7 @@ function AdminResultsView() {
                                                         onClick={() => handleSort(fieldKey)}
                                                         className={`${getColumnClass(fieldKey)} ${hiddenColumns.has(fieldKey) ? 'hidden' : ''}`}
                                                     >
-                                                        {fieldNames[fieldKey]} {getSortIcon(fieldKey)}
+                                                        {FIELD_NAMES[fieldKey]} {getSortIcon(fieldKey)}
                                                     </th>
                                                 ))}
                                             </tr>
@@ -1013,6 +972,7 @@ function AdminResultsView() {
                                                         <td 
                                                             key={fieldKey}
                                                             className={`${getColumnClass(fieldKey)} ${getValueColorClass(getFieldValue(result, fieldKey), fieldKey)}`}
+                                                            title={renderTableCell(result, fieldKey)}
                                                         >
                                                             {renderTableCell(result, fieldKey)}
                                                         </td>
@@ -1031,29 +991,46 @@ function AdminResultsView() {
                                         </div>
                                     </div>
                                 )}
-                                
-                                {/* Кнопка загрузки дополнительных данных */}
-                                {hasMore && (
-                                    <div className="load-more-container">
-                                        <button 
-                                            className="load-more-btn"
-                                            onClick={loadMoreData}
-                                            disabled={loading}
-                                        >
-                                            {loading ? '⏳ Загрузка...' : `📥 Загрузить еще (показано ${results.length} из ${totalCount})`}
-                                        </button>
-                                    </div>
-                                )}
                             </div>
                         )}
 
-                        {/* Подсказка по прокрутке */}
+                        {/* Подсказка снизу */}
                         <div className="scroll-hint">
-                            <span>↸ Прокрутите таблицу горизонтально для просмотра всех данных</span>
+                            <span className="color-legend">
+                                <span className="legend-title">↸ Категории результатов:</span>
+                                <span className="legend-items">
+                                    <span className="legend-item">
+                                        <span className="color-box high"></span>
+                                        <span>Высокий (600-800)</span>
+                                    </span>
+                                    <span className="legend-item">
+                                        <span className="color-box medium"></span>
+                                        <span>Средний (400-599)</span>
+                                    </span>
+                                    <span className="legend-item">
+                                        <span className="color-box low"></span>
+                                        <span>Низкий (200-399)</span>
+                                    </span>
+                                </span>
+                            </span>
+
+                            {/* Кнопка загрузки дополнительных данных */}
+                            {hasMore && (
+                                <Button
+                                    text={loading ? 'Загрузка...' : "Загрузить ещё"}
+                                    onClick={loadMoreData}
+                                    disabled={loading}
+                                    fg="white"
+                                    bg="#007bff"
+                                    hoverBg="#0056b3"
+                                    disabledBg="#6c757d"
+                                />
+                            )}
+
                             <span className="record-count">
                                 Колонок: {visibleColumns.length}/{columnOrder.length} • 
-                                Записей: {results.length}
-                                {hasMore && '+'} • Выбрано: {selectedRows.size}
+                                Записей: {results.length}{hasMore && '+'} •
+                                Выбрано: {selectedRows.size}
                             </span>
                         </div>
                     </div>
