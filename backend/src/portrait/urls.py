@@ -3,8 +3,15 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path("students/", views.participants, name="students"),
-    path("results/", views.results, name="results"),
     path('import_excel/', views.import_excel, name="import_excel"),
-    path("stats/", views.stats, name="stats")
+    path("stats/", views.stats, name="stats"),
+    #path("results/", views.results, name="results"),
+
+    path("create-data-session/",     views.create_data_session,     name="create_data_session"),
+    path("get-session-data/",        views.get_session_data,        name="get_session_data"),
+    path("update-session-filters/",  views.update_session_filters,  name="update_session_filters"),
+    path("update-session-columns/",  views.update_session_columns,  name="update_session_columns"),
+    path("load-more-data/",          views.load_more_data,          name="load_more_data"),
+    path("export-session-data/",     views.export_session_data,     name="export_session_data"),
+    path("export-selected-results/", views.export_selected_results, name="export_session_data"),
 ]

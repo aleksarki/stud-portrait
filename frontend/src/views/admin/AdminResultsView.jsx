@@ -5,18 +5,20 @@ import Sidepanel from "../../components/Sidepanel";
 import "./AdminResultsView.scss";
 
 function AdminResultsView() {
+    const [sessionId, setSessionId] = useState(null);
     const [results, setResults] = useState([]);
-    const [filteredResults, setFilteredResults] = useState([]);
+    const [totalCount, setTotalCount] = useState(0);
     const [selectedRows, setSelectedRows] = useState(new Set());
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
     const [loading, setLoading] = useState(false);
-    const [totalCount, setTotalCount] = useState(0);
     const [hiddenColumns, setHiddenColumns] = useState(new Set());
     const [showColumnSelector, setShowColumnSelector] = useState(false);
     const [filters, setFilters] = useState([]);
     const [availableValues, setAvailableValues] = useState({});
     const [showFilters, setShowFilters] = useState(false);
     const [pendingFilters, setPendingFilters] = useState([]);
+    const [hasMore, setHasMore] = useState(false);
+    const [exportLoading, setExportLoading] = useState(false);
 
     const linkList = [
         {to:'/admin/', title: "Главная"},
@@ -188,43 +190,168 @@ function AdminResultsView() {
         return `value-${category}`;
     };
 
+    // Инициализация сессии
     useEffect(() => {
-        fetchResults();
+        initializeSession();
     }, []);
 
-    useEffect(() => {
-        if (results.length > 0) {
-            extractAvailableValues();
-        }
-    }, [results]);
-
-    useEffect(() => {
-        applyFiltersAndSort();
-    }, [results, filters, sortConfig]);
-
-    const fetchResults = async () => {
+    // Инициализация сессии
+    const initializeSession = async () => {
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:8000/portrait/results/');
+            const response = await fetch('http://localhost:8000/portrait/create-data-session/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
             const data = await response.json();
+            
             if (data.status === 'success') {
-                setResults(data.results);
-                setTotalCount(data.total_count || data.results.length);
+                setSessionId(data.session_id);
+                // Загружаем начальные данные
+                await loadSessionData(data.session_id);
+            } else {
+                console.error('Failed to create session:', data.message);
             }
         } catch (error) {
-            console.error('Error fetching results:', error);
+            console.error('Error initializing session:', error);
         } finally {
             setLoading(false);
         }
     };
 
+    // Загрузка данных сессии
+    const loadSessionData = async (sessionIdToLoad = sessionId) => {
+        if (!sessionIdToLoad) return;
+        
+        setLoading(true);
+        try {
+            const response = await fetch('http://localhost:8000/portrait/get-session-data/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    session_id: sessionIdToLoad
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                setResults(data.results || []);
+                setTotalCount(data.total_count || 0);
+                // Проверяем, есть ли еще данные для загрузки (лимит 1000 записей)
+                setHasMore(data.results?.length > 0 && data.total_count > data.results.length);
+                
+                // Извлекаем доступные значения для фильтрации
+                if (data.results && data.results.length > 0) {
+                    extractAvailableValues(data.results);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading session data:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Загрузка дополнительных данных
+    const loadMoreData = async () => {
+        if (!sessionId || !hasMore) return;
+        
+        setLoading(true);
+        try {
+            const response = await fetch('http://localhost:8000/portrait/load-more-data/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    session_id: sessionId
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                setResults(prev => [...prev, ...(data.results || [])]);
+                setHasMore(data.results?.length > 0 && data.total_count > results.length + data.results.length);
+            }
+        } catch (error) {
+            console.error('Error loading more data:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Обновление фильтров сессии
+    const updateSessionFilters = async (newFilters) => {
+        if (!sessionId) return;
+        
+        try {
+            const response = await fetch('http://localhost:8000/portrait/update-session-filters/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    session_id: sessionId,
+                    filters: newFilters
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                // Перезагружаем данные с новыми фильтрами
+                await loadSessionData();
+                // Сбрасываем выделение при изменении фильтров
+                setSelectedRows(new Set());
+            }
+        } catch (error) {
+            console.error('Error updating session filters:', error);
+        }
+    };
+
+    // Обновление видимых колонок сессии
+    const updateSessionColumns = async (newHiddenColumns) => {
+        if (!sessionId) return;
+        
+        const visibleColumns = columnOrder.filter(col => !newHiddenColumns.has(col));
+        
+        try {
+            const response = await fetch('http://localhost:8000/portrait/update-session-columns/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    session_id: sessionId,
+                    visible_columns: visibleColumns
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                // Обновляем локальное состояние
+                setHiddenColumns(newHiddenColumns);
+            }
+        } catch (error) {
+            console.error('Error updating session columns:', error);
+        }
+    };
+
     // Извлечение доступных значений для фильтрации
-    const extractAvailableValues = () => {
+    const extractAvailableValues = (resultsData) => {
         const values = {};
         
         basicFields.forEach(field => {
             const uniqueValues = new Set();
-            results.forEach(result => {
+            resultsData.forEach(result => {
                 const value = getFieldValue(result, field);
                 if (value !== '' && value !== null && value !== undefined) {
                     uniqueValues.add(value);
@@ -235,46 +362,6 @@ function AdminResultsView() {
 
         setAvailableValues(values);
     };
-
-    const applyFiltersAndSort = useCallback(() => {
-        let filtered = [...results];
-
-        // Применяем все активные фильтры
-        filters.forEach(filter => {
-            if (filter.type === 'basic' && filter.selectedValues.length > 0) {
-                filtered = filtered.filter(result => {
-                    const value = getFieldValue(result, filter.field);
-                    // Преобразуем значение в строку для сравнения с selectedValues
-                    const stringValue = value !== null && value !== undefined ? value.toString() : '';
-                    return filter.selectedValues.includes(stringValue);
-                });
-            } else if (filter.type === 'numeric') {
-                filtered = filtered.filter(result => {
-                    const value = getFieldValue(result, filter.field);
-                    if (typeof value !== 'number') return false;
-                    return value >= filter.min && value <= filter.max;
-                });
-            }
-        });
-
-        // Применяем сортировку
-        if (sortConfig.key) {
-            filtered.sort((a, b) => {
-                let aValue = getFieldValue(a, sortConfig.key);
-                let bValue = getFieldValue(b, sortConfig.key);
-
-                if (aValue < bValue) {
-                    return sortConfig.direction === 'asc' ? -1 : 1;
-                }
-                if (aValue > bValue) {
-                    return sortConfig.direction === 'asc' ? 1 : -1;
-                }
-                return 0;
-            });
-        }
-
-        setFilteredResults(filtered);
-    }, [results, filters, sortConfig]);
 
     // Исправленная функция getFieldValue
     const getFieldValue = (result, fieldKey) => {
@@ -318,6 +405,22 @@ function AdminResultsView() {
             direction = 'desc';
         }
         setSortConfig({ key, direction });
+        
+        // Временная сортировка на клиенте
+        const sortedResults = [...results].sort((a, b) => {
+            let aValue = getFieldValue(a, key);
+            let bValue = getFieldValue(b, key);
+
+            if (aValue < bValue) {
+                return direction === 'asc' ? -1 : 1;
+            }
+            if (aValue > bValue) {
+                return direction === 'asc' ? 1 : -1;
+            }
+            return 0;
+        });
+        
+        setResults(sortedResults);
     };
 
     const handleRowSelect = (resultId) => {
@@ -331,27 +434,34 @@ function AdminResultsView() {
     };
 
     const handleSelectAll = () => {
-        if (selectedRows.size === filteredResults.length) {
+        if (selectedRows.size === results.length) {
             setSelectedRows(new Set());
         } else {
-            setSelectedRows(new Set(filteredResults.map(r => r.res_id)));
+            setSelectedRows(new Set(results.map(r => r.res_id)));
         }
     };
 
-    const handleExport = async () => {
-        if (selectedRows.size === 0) {
-            alert('Выберите записи для выгрузки');
+    const handleExportSelected = async () => {
+        if (!sessionId) {
+            alert('Сессия не инициализирована');
             return;
         }
 
+        if (selectedRows.size === 0) {
+            alert('Выберите записи для выгрузки (флажки в первом столбце)');
+            return;
+        }
+
+        setExportLoading(true);
         try {
-            const response = await fetch('http://localhost:8000/portrait/export-results/', {
+            const response = await fetch('http://localhost:8000/portrait/export-selected-results/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    result_ids: Array.from(selectedRows)
+                    session_id: sessionId,
+                    selected_ids: Array.from(selectedRows)
                 })
             });
 
@@ -360,17 +470,60 @@ function AdminResultsView() {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'results_export.xlsx';
+                a.download = `selected_results_${new Date().toISOString().split('T')[0]}.xlsx`;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
             } else {
-                alert('Ошибка при выгрузке данных');
+                const errorData = await response.json();
+                alert(`Ошибка при выгрузке данных: ${errorData.message}`);
             }
         } catch (error) {
             console.error('Export error:', error);
             alert('Ошибка при выгрузке данных');
+        } finally {
+            setExportLoading(false);
+        }
+    };
+
+    const handleExportAll = async () => {
+        if (!sessionId) {
+            alert('Сессия не инициализирована');
+            return;
+        }
+
+        setExportLoading(true);
+        try {
+            const response = await fetch('http://localhost:8000/portrait/export-session-data/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    session_id: sessionId
+                })
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `all_results_${new Date().toISOString().split('T')[0]}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } else {
+                const errorData = await response.json();
+                alert(`Ошибка при выгрузке данных: ${errorData.message}`);
+            }
+        } catch (error) {
+            console.error('Export error:', error);
+            alert('Ошибка при выгрузке данных');
+        } finally {
+            setExportLoading(false);
         }
     };
 
@@ -412,12 +565,14 @@ function AdminResultsView() {
         ));
     };
 
-    const applyFilters = () => {
+    const applyFilters = async () => {
+        await updateSessionFilters(pendingFilters);
         setFilters([...pendingFilters]);
     };
 
-    const clearAllFilters = () => {
+    const clearAllFilters = async () => {
         setPendingFilters([]);
+        await updateSessionFilters([]);
         setFilters([]);
     };
 
@@ -428,7 +583,7 @@ function AdminResultsView() {
         } else {
             newHidden.add(columnKey);
         }
-        setHiddenColumns(newHidden);
+        updateSessionColumns(newHidden);
     };
 
     const toggleColumnGroup = (groupColumns) => {
@@ -443,15 +598,15 @@ function AdminResultsView() {
             }
         });
         
-        setHiddenColumns(newHidden);
+        updateSessionColumns(newHidden);
     };
 
     const showAllColumns = () => {
-        setHiddenColumns(new Set());
+        updateSessionColumns(new Set());
     };
 
     const hideAllColumns = () => {
-        setHiddenColumns(new Set(columnOrder));
+        updateSessionColumns(new Set(columnOrder));
     };
 
     const getSortIcon = (key) => {
@@ -490,36 +645,56 @@ function AdminResultsView() {
                             <h2>Результаты тестирования</h2>
                             <div className="controls">
                                 <div className="results-info">
-                                    Показано: {filteredResults.length} из {totalCount} записей
-                                    {filters.length > 0 && ` • Активных фильтров: ${filters.length}`}
-                                    {hiddenColumns.size > 0 && ` • Скрыто колонок: ${hiddenColumns.size}`}
+                                    {sessionId ? (
+                                        <>
+                                            Показано: {results.length} из {totalCount} записей
+                                            {filters.length > 0 && ` • Активных фильтров: ${filters.length}`}
+                                            {hiddenColumns.size > 0 && ` • Скрыто колонок: ${hiddenColumns.size}`}
+                                            {selectedRows.size > 0 && ` • Выбрано: ${selectedRows.size}`}
+                                        </>
+                                    ) : (
+                                        'Инициализация сессии...'
+                                    )}
                                 </div>
                                 <div className="control-buttons">
                                     <button 
                                         className="filters-toggle-btn"
                                         onClick={() => setShowFilters(!showFilters)}
+                                        disabled={!sessionId}
                                     >
                                         {showFilters ? '👁️ Скрыть фильтры' : '👁️ Показать фильтры'}
                                     </button>
                                     <button 
                                         className="column-toggle-btn"
                                         onClick={() => setShowColumnSelector(!showColumnSelector)}
+                                        disabled={!sessionId}
                                     >
                                         📊 Колонки
                                     </button>
-                                    <button 
-                                        className="export-btn"
-                                        onClick={handleExport}
-                                        disabled={selectedRows.size === 0}
-                                    >
-                                        📥 Выгрузить ({selectedRows.size})
-                                    </button>
+                                    <div className="export-buttons">
+                                        <button 
+                                            className="export-btn export-selected"
+                                            onClick={handleExportSelected}
+                                            disabled={!sessionId || exportLoading || selectedRows.size === 0}
+                                            title="Выгрузить выделенные записи"
+                                        >
+                                            {exportLoading ? '⏳' : '📥'} Выгрузить выделенные ({selectedRows.size})
+                                        </button>
+                                        <button 
+                                            className="export-btn export-all"
+                                            onClick={handleExportAll}
+                                            disabled={!sessionId || exportLoading}
+                                            title="Выгрузить все отфильтрованные записи"
+                                        >
+                                            {exportLoading ? '⏳' : '📋'} Выгрузить все
+                                        </button>
+                                    </div>
                                     <button 
                                         className="refresh-btn"
-                                        onClick={fetchResults}
-                                        disabled={loading}
+                                        onClick={() => loadSessionData()}
+                                        disabled={!sessionId || loading}
                                     >
-                                        {loading ? '⏳ Загрузка...' : '🔄 Обновить'}
+                                        {loading ? '⏳' : '🔄'} Обновить
                                     </button>
                                 </div>
                             </div>
@@ -562,6 +737,7 @@ function AdminResultsView() {
                                                     }
                                                     e.target.value = '';
                                                 }}
+                                                disabled={!sessionId}
                                             >
                                                 <option value="">+ Добавить фильтр</option>
                                                 <optgroup label="Базовые сведения">
@@ -586,13 +762,14 @@ function AdminResultsView() {
                                                     <button 
                                                         className="apply-filters-btn"
                                                         onClick={applyFilters}
-                                                        disabled={pendingFilters.length === 0}
+                                                        disabled={pendingFilters.length === 0 || !sessionId || loading}
                                                     >
-                                                        ✅ Применить фильтры
+                                                        {loading ? '⏳' : '✅'} Применить фильтры
                                                     </button>
                                                     <button 
                                                         className="clear-filters-btn"
                                                         onClick={clearAllFilters}
+                                                        disabled={!sessionId || loading}
                                                     >
                                                         🗑️ Очистить все
                                                     </button>
@@ -719,10 +896,18 @@ function AdminResultsView() {
                                 <div className="column-selector-header">
                                     <h3>Управление колонками</h3>
                                     <div className="column-selector-controls">
-                                        <button className="selector-btn" onClick={showAllColumns}>
+                                        <button 
+                                            className="selector-btn" 
+                                            onClick={showAllColumns}
+                                            disabled={!sessionId || loading}
+                                        >
                                             Показать все
                                         </button>
-                                        <button className="selector-btn" onClick={hideAllColumns}>
+                                        <button 
+                                            className="selector-btn" 
+                                            onClick={hideAllColumns}
+                                            disabled={!sessionId || loading}
+                                        >
                                             Скрыть все
                                         </button>
                                         <button 
@@ -745,6 +930,7 @@ function AdminResultsView() {
                                                             type="checkbox"
                                                             checked={visibleCount > 0}
                                                             onChange={() => toggleColumnGroup(groupColumns)}
+                                                            disabled={!sessionId || loading}
                                                             ref={(el) => {
                                                                 if (el) {
                                                                     el.indeterminate = visibleCount > 0 && visibleCount < totalCount;
@@ -763,6 +949,7 @@ function AdminResultsView() {
                                                                 type="checkbox"
                                                                 checked={!hiddenColumns.has(columnKey)}
                                                                 onChange={() => toggleColumn(columnKey)}
+                                                                disabled={!sessionId || loading}
                                                             />
                                                             <span className="column-name">
                                                                 {fieldNames[columnKey]}
@@ -778,11 +965,12 @@ function AdminResultsView() {
                         )}
 
                         {/* Таблица с горизонтальной прокруткой */}
-                        {loading ? (
+                        {loading && results.length === 0 ? (
                             <div className="loading">
                                 <div className="spinner"></div>
                                 <div className="loading-text">
-                                    Загрузка данных... <span className="record-count">{totalCount}</span> записей
+                                    {sessionId ? 'Загрузка данных...' : 'Инициализация сессии...'} 
+                                    <span className="record-count">{totalCount}</span> записей
                                 </div>
                             </div>
                         ) : (
@@ -794,8 +982,9 @@ function AdminResultsView() {
                                                 <th className="sticky-col">
                                                     <input
                                                         type="checkbox"
-                                                        checked={selectedRows.size === filteredResults.length && filteredResults.length > 0}
+                                                        checked={selectedRows.size === results.length && results.length > 0}
                                                         onChange={handleSelectAll}
+                                                        disabled={!sessionId}
                                                     />
                                                 </th>
                                                 {visibleColumns.map(fieldKey => (
@@ -810,13 +999,14 @@ function AdminResultsView() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {filteredResults.map((result) => (
+                                            {results.map((result) => (
                                                 <tr key={result.res_id} className={selectedRows.has(result.res_id) ? 'selected' : ''}>
                                                     <td className="sticky-col">
                                                         <input
                                                             type="checkbox"
                                                             checked={selectedRows.has(result.res_id)}
                                                             onChange={() => handleRowSelect(result.res_id)}
+                                                            disabled={!sessionId}
                                                         />
                                                     </td>
                                                     {visibleColumns.map(fieldKey => (
@@ -832,13 +1022,26 @@ function AdminResultsView() {
                                         </tbody>
                                     </table>
                                 </div>
-                                {filteredResults.length === 0 && !loading && (
+                                {results.length === 0 && !loading && sessionId && (
                                     <div className="no-data">
                                         <div className="no-data-icon">📊</div>
                                         <div className="no-data-text">
                                             <strong>Нет данных для отображения</strong><br />
                                             {filters.length > 0 ? 'Попробуйте изменить параметры фильтрации' : 'Загрузите данные или создайте фильтры'}
                                         </div>
+                                    </div>
+                                )}
+                                
+                                {/* Кнопка загрузки дополнительных данных */}
+                                {hasMore && (
+                                    <div className="load-more-container">
+                                        <button 
+                                            className="load-more-btn"
+                                            onClick={loadMoreData}
+                                            disabled={loading}
+                                        >
+                                            {loading ? '⏳ Загрузка...' : `📥 Загрузить еще (показано ${results.length} из ${totalCount})`}
+                                        </button>
                                     </div>
                                 )}
                             </div>
@@ -848,7 +1051,9 @@ function AdminResultsView() {
                         <div className="scroll-hint">
                             <span>↸ Прокрутите таблицу горизонтально для просмотра всех данных</span>
                             <span className="record-count">
-                                Колонок: {visibleColumns.length}/{columnOrder.length} • Записей: {filteredResults.length}
+                                Колонок: {visibleColumns.length}/{columnOrder.length} • 
+                                Записей: {results.length}
+                                {hasMore && '+'} • Выбрано: {selectedRows.size}
                             </span>
                         </div>
                     </div>

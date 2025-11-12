@@ -2,10 +2,13 @@ import json
 import openpyxl
 
 from django.shortcuts import render
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Count, Avg, Min
 from django.db import transaction
+from django.utils import timezone
+import uuid
+import pandas as pd
 
 
 
@@ -44,6 +47,7 @@ def response(func):
             return exceptionResponse(e)
     return wrapper
 
+
 def clean_value(value, value_type="str"):
     """
     Преобразует данные из Excel к нормальному виду:
@@ -78,28 +82,6 @@ def clean_value(value, value_type="str"):
 
     # Строка
     return s or None
-
-@method('GET')
-@response
-@csrf_exempt
-def participants(request):
-    participants_list = [
-        {
-            "stud_id": participant.part_id,
-            "stud_name": participant.part_name,
-            "stud_enter_year": participant.part_enter_year,
-            "stud_program": {
-                "prog_id": participant.part_program.prog_id,
-                "prog_name": participant.part_program.prog_name
-            },
-            "stud_institution": {
-                "inst_id": participant.part_institution.inst_id,
-                "inst_name": participant.part_institution.inst_name
-            }
-        }
-        for participant in Participants.objects.all().select_related('stud_program', 'stud_institution')
-    ]
-    return {"participants": participants_list}
 
 
 @method('GET')
@@ -300,33 +282,6 @@ def results(request):
     except Exception as e:
         return exceptionResponse(e)
 
-
-@method('GET')
-@response
-@csrf_exempt
-def institutions(request):
-    institutions_list = [
-        {
-            "inst_id": institution.inst_id,
-            "inst_name": institution.inst_name
-        }
-        for institution in Institutions.objects.all()
-    ]
-    return {"institutions": institutions_list}
-
-
-@method('GET')
-@response
-@csrf_exempt
-def programs(request):
-    programs_list = [
-        {
-            "prog_id": program.prog_id,
-            "prog_name": program.prog_name
-        }
-        for program in Programs.objects.all()
-    ]
-    return {"programs": programs_list}
 
 @method('POST')
 @csrf_exempt
@@ -723,3 +678,529 @@ def stats(request):
         
     except Exception as e:
         return exceptionResponse(e)
+
+
+
+######################## DATA VIEW SESSIONS ########################
+
+data_view_sessions = {}  # ffs
+
+class DataViewSession:
+    def __init__(self):
+        self.session_id = str(uuid.uuid4())
+        self.created_at = timezone.now()
+        self.last_activity = timezone.now()
+        self.filters = []
+        self.visible_columns = None  # None = все колонки
+        self.limit = 1000
+        self.offset = 0
+        
+    def to_dict(self):
+        return {
+            'session_id': self.session_id,
+            'filters': self.filters,
+            'visible_columns': self.visible_columns,
+            'limit': self.limit,
+            'offset': self.offset
+        }
+    
+    def update_activity(self):
+        self.last_activity = timezone.now()
+
+
+def cleanup_old_sessions():
+    now = timezone.now()
+    expired_sessions = []
+    for session_id, session in data_view_sessions.items():
+        if (now - session.last_activity).total_seconds() > 3600:  # 1 час
+            expired_sessions.append(session_id)
+    
+    for session_id in expired_sessions:
+        del data_view_sessions[session_id]
+
+
+@method('POST')
+@csrf_exempt
+def create_data_session(request):
+    try:
+        cleanup_old_sessions()  # Очищаем старые сессии
+        
+        session = DataViewSession()
+        data_view_sessions[session.session_id] = session
+        
+        return successResponse({
+            "session_id": session.session_id,
+            "filters": session.filters,
+            "visible_columns": session.visible_columns,
+            "limit": session.limit
+        })
+        
+    except Exception as e:
+        return exceptionResponse(e)
+
+
+@method('POST')
+@csrf_exempt
+def get_session_data(request):
+    try:
+        data = json.loads(request.body)
+        session_id = data.get('session_id')
+        
+        if not session_id or session_id not in data_view_sessions:
+            return errorResponse("Invalid session ID")
+        
+        session = data_view_sessions[session_id]
+        session.update_activity()
+        
+        # Получаем данные с учетом фильтров и видимых колонок
+        results_query = Results.objects.all().select_related(
+            'res_participant', 'res_center', 'res_institution',
+            'res_edu_level', 'res_form', 'res_spec'
+        )
+        
+        # Применяем фильтры сессии
+        for filter_obj in session.filters:
+            if filter_obj['type'] == 'basic' and filter_obj['selectedValues']:
+                field = filter_obj['field']
+                if field == 'part_gender':
+                    results_query = results_query.filter(
+                        res_participant__part_gender__in=filter_obj['selectedValues']
+                    )
+                elif field == 'center':
+                    results_query = results_query.filter(
+                        res_center__center_name__in=filter_obj['selectedValues']
+                    )
+                elif field == 'institution':
+                    results_query = results_query.filter(
+                        res_institution__inst_name__in=filter_obj['selectedValues']
+                    )
+                elif field == 'edu_level':
+                    results_query = results_query.filter(
+                        res_edu_level__edu_level_name__in=filter_obj['selectedValues']
+                    )
+                elif field == 'study_form':
+                    results_query = results_query.filter(
+                        res_form__form_name__in=filter_obj['selectedValues']
+                    )
+                elif field == 'specialty':
+                    results_query = results_query.filter(
+                        res_spec__spec_name__in=filter_obj['selectedValues']
+                    )
+                elif field == 'res_year':
+                    results_query = results_query.filter(
+                        res_year__in=filter_obj['selectedValues']
+                    )
+                elif field == 'res_course_num':
+                    results_query = results_query.filter(
+                        res_course_num__in=filter_obj['selectedValues']
+                    )
+                    
+            elif filter_obj['type'] == 'numeric':
+                field = filter_obj['field']
+                min_val = filter_obj['min']
+                max_val = filter_obj['max']
+                
+                # Компетенции
+                if field.startswith('res_comp_'):
+                    results_query = results_query.filter(
+                        **{f'{field}__gte': min_val, f'{field}__lte': max_val}
+                    )
+                # Мотиваторы
+                elif field.startswith('res_mot_'):
+                    results_query = results_query.filter(
+                        **{f'{field}__gte': min_val, f'{field}__lte': max_val}
+                    )
+                # Ценности
+                elif field.startswith('res_val_'):
+                    results_query = results_query.filter(
+                        **{f'{field}__gte': min_val, f'{field}__lte': max_val}
+                    )
+        
+        total_count = results_query.count()
+        
+        # Применяем лимит и оффсет
+        results_list = results_query[session.offset:session.offset + session.limit]
+        
+        # Формируем данные
+        results_data = []
+        for result in results_list:
+            result_data = format_result_data(result, session.visible_columns)
+            results_data.append(result_data)
+        
+        return successResponse({
+            "results": results_data,
+            "total_count": total_count,
+            "session": session.to_dict()
+        })
+        
+    except Exception as e:
+        return exceptionResponse(e)
+
+
+@method('POST')
+@csrf_exempt
+def update_session_filters(request):
+    try:
+        data = json.loads(request.body)
+        session_id = data.get('session_id')
+        filters = data.get('filters', [])
+        
+        if not session_id or session_id not in data_view_sessions:
+            return errorResponse("Invalid session ID")
+        
+        session = data_view_sessions[session_id]
+        session.update_activity()
+        session.filters = filters
+        session.offset = 0  # Сбрасываем оффсет при изменении фильтров
+        
+        return successResponse({
+            "session_id": session.session_id,
+            "filters": session.filters,
+            "message": "Filters updated successfully"
+        })
+        
+    except Exception as e:
+        return exceptionResponse(e)
+
+
+@method('POST')
+@csrf_exempt
+def update_session_columns(request):
+    try:
+        data = json.loads(request.body)
+        session_id = data.get('session_id')
+        visible_columns = data.get('visible_columns')
+        
+        if not session_id or session_id not in data_view_sessions:
+            return errorResponse("Invalid session ID")
+        
+        session = data_view_sessions[session_id]
+        session.update_activity()
+        session.visible_columns = visible_columns
+        
+        return successResponse({
+            "session_id": session.session_id,
+            "visible_columns": session.visible_columns,
+            "message": "Visible columns updated successfully"
+        })
+        
+    except Exception as e:
+        return exceptionResponse(e)
+
+
+@method('POST')
+@csrf_exempt
+def load_more_data(request):
+    try:
+        data = json.loads(request.body)
+        session_id = data.get('session_id')
+        
+        if not session_id or session_id not in data_view_sessions:
+            return errorResponse("Invalid session ID")
+        
+        session = data_view_sessions[session_id]
+        session.update_activity()
+        session.offset += session.limit
+        
+        # Повторно используем логику get_session_data
+        return get_session_data(request)
+        
+    except Exception as e:
+        return exceptionResponse(e)
+
+
+@method('POST')
+@csrf_exempt
+def export_session_data(request):
+    try:
+        data = json.loads(request.body)
+        session_id = data.get('session_id')
+        
+        if not session_id or session_id not in data_view_sessions:
+            return errorResponse("Invalid session ID")
+        
+        session = data_view_sessions[session_id]
+        session.update_activity()
+        
+        # Получаем ВСЕ данные с текущими фильтрами (без лимита)
+        results_query = Results.objects.all().select_related(
+            'res_participant', 'res_center', 'res_institution',
+            'res_edu_level', 'res_form', 'res_spec'
+        )
+        
+        # Применяем фильтры сессии
+        for filter_obj in session.filters:
+            if filter_obj['type'] == 'basic' and filter_obj['selectedValues']:
+                field = filter_obj['field']
+                if field == 'part_gender':
+                    results_query = results_query.filter(
+                        res_participant__part_gender__in=filter_obj['selectedValues']
+                    )
+                elif field == 'center':
+                    results_query = results_query.filter(
+                        res_center__center_name__in=filter_obj['selectedValues']
+                    )
+                elif field == 'institution':
+                    results_query = results_query.filter(
+                        res_institution__inst_name__in=filter_obj['selectedValues']
+                    )
+                elif field == 'edu_level':
+                    results_query = results_query.filter(
+                        res_edu_level__edu_level_name__in=filter_obj['selectedValues']
+                    )
+                elif field == 'study_form':
+                    results_query = results_query.filter(
+                        res_form__form_name__in=filter_obj['selectedValues']
+                    )
+                elif field == 'specialty':
+                    results_query = results_query.filter(
+                        res_spec__spec_name__in=filter_obj['selectedValues']
+                    )
+                elif field == 'res_year':
+                    results_query = results_query.filter(
+                        res_year__in=filter_obj['selectedValues']
+                    )
+                elif field == 'res_course_num':
+                    results_query = results_query.filter(
+                        res_course_num__in=filter_obj['selectedValues']
+                    )
+                    
+            elif filter_obj['type'] == 'numeric':
+                field = filter_obj['field']
+                min_val = filter_obj['min']
+                max_val = filter_obj['max']
+                
+                # Компетенции
+                if field.startswith('res_comp_'):
+                    results_query = results_query.filter(
+                        **{f'{field}__gte': min_val, f'{field}__lte': max_val}
+                    )
+                # Мотиваторы
+                elif field.startswith('res_mot_'):
+                    results_query = results_query.filter(
+                        **{f'{field}__gte': min_val, f'{field}__lte': max_val}
+                    )
+                # Ценности
+                elif field.startswith('res_val_'):
+                    results_query = results_query.filter(
+                        **{f'{field}__gte': min_val, f'{field}__lte': max_val}
+                    )
+        
+        results_list = results_query
+        
+        # Создаем DataFrame для экспорта
+        export_data = []
+        for result in results_list:
+            row = format_result_for_export(result, session.visible_columns)
+            export_data.append(row)
+        
+        df = pd.DataFrame(export_data)
+        
+        # Создаем HTTP response с Excel файлом
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename="results_export.xlsx"'
+        
+        with pd.ExcelWriter(response, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Результаты тестирования')
+        
+        return response
+        
+    except Exception as e:
+        return exceptionResponse(e)
+
+
+@method('POST')
+@csrf_exempt
+def export_selected_results(request):
+    try:
+        data = json.loads(request.body)
+        session_id = data.get('session_id')
+        selected_ids = data.get('selected_ids', [])
+        
+        if not session_id or session_id not in data_view_sessions:
+            return errorResponse("Invalid session ID")
+        
+        if not selected_ids:
+            return errorResponse("No records selected for export")
+        
+        session = data_view_sessions[session_id]
+        session.update_activity()
+        
+        # Получаем выбранные записи
+        results_query = Results.objects.filter(
+            res_id__in=selected_ids
+        ).select_related(
+            'res_participant', 'res_center', 'res_institution',
+            'res_edu_level', 'res_form', 'res_spec'
+        )
+        
+        # Создаем DataFrame для экспорта
+        export_data = []
+        for result in results_query:
+            row = format_result_for_export(result, session.visible_columns)
+            export_data.append(row)
+        
+        df = pd.DataFrame(export_data)
+        
+        # Создаем HTTP response с Excel файлом
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename="selected_results_export.xlsx"'
+        
+        with pd.ExcelWriter(response, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Выбранные результаты')
+        
+        return response
+        
+    except Exception as e:
+        return exceptionResponse(e)
+
+
+def format_result_data(result, visible_columns=None):
+    """Форматирует данные результата для отправки на фронтенд"""
+    base_data = {
+        'res_id': result.res_id,
+        'participant': {
+            'part_id': result.res_participant.part_id,
+            'part_name': result.res_participant.part_name,
+            'part_gender': result.res_participant.part_gender,
+        },
+        'center': result.res_center.center_name if result.res_center else None,
+        'institution': result.res_institution.inst_name if result.res_institution else None,
+        'edu_level': result.res_edu_level.edu_level_name if result.res_edu_level else None,
+        'study_form': result.res_form.form_name if result.res_form else None,
+        'specialty': result.res_spec.spec_name if result.res_spec else None,
+        'res_year': result.res_year,
+        'res_course_num': result.res_course_num,
+        'res_high_potential': result.res_high_potential,
+        'res_summary_report': result.res_summary_report,
+    }
+    
+    # Добавляем компетенции, мотиваторы и ценности
+    competence_fields = ['res_comp_info_analysis', 'res_comp_planning', 'res_comp_result_orientation',
+                        'res_comp_stress_resistance', 'res_comp_partnership', 'res_comp_rules_compliance',
+                        'res_comp_self_development', 'res_comp_leadership', 'res_comp_emotional_intel',
+                        'res_comp_client_focus', 'res_comp_communication', 'res_comp_passive_vocab']
+    
+    motivator_fields = ['res_mot_autonomy', 'res_mot_altruism', 'res_mot_challenge', 'res_mot_salary',
+                       'res_mot_career', 'res_mot_creativity', 'res_mot_relationships', 'res_mot_recognition',
+                       'res_mot_affiliation', 'res_mot_self_development', 'res_mot_purpose', 'res_mot_cooperation',
+                       'res_mot_stability', 'res_mot_tradition', 'res_mot_management', 'res_mot_work_conditions']
+    
+    value_fields = ['res_val_honesty_justice', 'res_val_humanism', 'res_val_patriotism',
+                   'res_val_family', 'res_val_health', 'res_val_environment']
+    
+    # Если указаны видимые колонки, фильтруем данные
+    if visible_columns:
+        filtered_data = {}
+        for field in visible_columns:
+            if field in base_data:
+                filtered_data[field] = base_data[field]
+            elif field in competence_fields:
+                if 'competences' not in filtered_data:
+                    filtered_data['competences'] = {}
+                filtered_data['competences'][field] = getattr(result, field)
+            elif field in motivator_fields:
+                if 'motivators' not in filtered_data:
+                    filtered_data['motivators'] = {}
+                filtered_data['motivators'][field] = getattr(result, field)
+            elif field in value_fields:
+                if 'values' not in filtered_data:
+                    filtered_data['values'] = {}
+                filtered_data['values'][field] = getattr(result, field)
+        return filtered_data
+    else:
+        # Возвращаем все данные
+        base_data['competences'] = {field: getattr(result, field) for field in competence_fields}
+        base_data['motivators'] = {field: getattr(result, field) for field in motivator_fields}
+        base_data['values'] = {field: getattr(result, field) for field in value_fields}
+        return base_data
+
+
+def format_result_for_export(result, visible_columns=None):
+    """Форматирует данные для экспорта в Excel"""
+    # Аналогичная логика format_result_data, но в плоском формате для Excel
+    row = {
+        'ID результата': result.res_id,
+        'ФИО участника': result.res_participant.part_name,
+        'Пол': result.res_participant.part_gender,
+        'Центр компетенций': result.res_center.center_name if result.res_center else '',
+        'Учебное заведение': result.res_institution.inst_name if result.res_institution else '',
+        'Уровень образования': result.res_edu_level.edu_level_name if result.res_edu_level else '',
+        'Форма обучения': result.res_form.form_name if result.res_form else '',
+        'Специальность': result.res_spec.spec_name if result.res_spec else '',
+        'Учебный год': result.res_year,
+        'Номер курса': result.res_course_num,
+        'Высокий потенциал': result.res_high_potential or '',
+        'Сводный отчет': result.res_summary_report or '',
+    }
+    
+    # Добавляем все поля компетенций, мотиваторов и ценностей
+    competence_fields = ['res_comp_info_analysis', 'res_comp_planning', 'res_comp_result_orientation',
+                        'res_comp_stress_resistance', 'res_comp_partnership', 'res_comp_rules_compliance',
+                        'res_comp_self_development', 'res_comp_leadership', 'res_comp_emotional_intel',
+                        'res_comp_client_focus', 'res_comp_communication', 'res_comp_passive_vocab']
+    
+    motivator_fields = ['res_mot_autonomy', 'res_mot_altruism', 'res_mot_challenge', 'res_mot_salary',
+                       'res_mot_career', 'res_mot_creativity', 'res_mot_relationships', 'res_mot_recognition',
+                       'res_mot_affiliation', 'res_mot_self_development', 'res_mot_purpose', 'res_mot_cooperation',
+                       'res_mot_stability', 'res_mot_tradition', 'res_mot_management', 'res_mot_work_conditions']
+    
+    value_fields = ['res_val_honesty_justice', 'res_val_humanism', 'res_val_patriotism',
+                   'res_val_family', 'res_val_health', 'res_val_environment']
+    
+    field_names = {
+        # Компетенции
+        'res_comp_info_analysis': 'Анализ информации',
+        'res_comp_planning': 'Планирование',
+        'res_comp_result_orientation': 'Ориентация на результат',
+        'res_comp_stress_resistance': 'Стрессоустойчивость',
+        'res_comp_partnership': 'Партнерство',
+        'res_comp_rules_compliance': 'Соблюдение правил',
+        'res_comp_self_development': 'Саморазвитие',
+        'res_comp_leadership': 'Лидерство',
+        'res_comp_emotional_intel': 'Эмоциональный интеллект',
+        'res_comp_client_focus': 'Клиентоориентированность',
+        'res_comp_communication': 'Коммуникация',
+        'res_comp_passive_vocab': 'Пассивный словарь',
+        
+        # Мотиваторы
+        'res_mot_autonomy': 'Автономия',
+        'res_mot_altruism': 'Альтруизм',
+        'res_mot_challenge': 'Вызов',
+        'res_mot_salary': 'Зарплата',
+        'res_mot_career': 'Карьера',
+        'res_mot_creativity': 'Креативность',
+        'res_mot_relationships': 'Отношения',
+        'res_mot_recognition': 'Признание',
+        'res_mot_affiliation': 'Принадлежность',
+        'res_mot_self_development': 'Саморазвитие (мотиватор)',
+        'res_mot_purpose': 'Цель',
+        'res_mot_cooperation': 'Сотрудничество',
+        'res_mot_stability': 'Стабильность',
+        'res_mot_tradition': 'Традиции',
+        'res_mot_management': 'Управление',
+        'res_mot_work_conditions': 'Условия работы',
+        
+        # Ценности
+        'res_val_honesty_justice': 'Честность и справедливость',
+        'res_val_humanism': 'Гуманизм',
+        'res_val_patriotism': 'Патриотизм',
+        'res_val_family': 'Семья',
+        'res_val_health': 'Здоровье',
+        'res_val_environment': 'Окружающая среда'
+    }
+    
+    # Добавляем поля в row
+    all_fields = competence_fields + motivator_fields + value_fields
+    for field in all_fields:
+        if not visible_columns or field in visible_columns:
+            value = getattr(result, field)
+            row[field_names[field]] = value if value is not None else ''
+    
+    return row
+
+
