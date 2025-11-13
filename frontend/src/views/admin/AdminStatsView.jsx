@@ -251,6 +251,7 @@ function AdminStatsView() {
             height: 350
         },
         labels: [],
+        legend: { show: false },
         responsive: [{
             breakpoint: 480,
             options: {
