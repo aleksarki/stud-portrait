@@ -1059,6 +1059,313 @@ def export_selected_results(request):
         return exceptionResponse(e)
 
 
+@method('POST')
+@csrf_exempt
+def stats_with_filters(request):
+    try:
+        data = json.loads(request.body)
+        session_id = data.get('session_id')
+        
+        # Если есть session_id, используем фильтры из сессии
+        filters = []
+        if session_id and session_id in data_view_sessions:
+            session = data_view_sessions[session_id]
+            session.update_activity()
+            filters = session.filters
+        
+        # Общая статистика
+        total_participants = Participants.objects.count()
+        total_tests = Results.objects.count()
+        unique_institutions = Institutions.objects.count()
+        unique_centers = CompetenceCenters.objects.count()
+
+        # Участники по году получения первой оценки
+        first_year_stats = Results.objects.values('res_participant').annotate(
+            first_year=Min('res_year')
+        ).values('first_year').annotate(
+            count=Count('res_participant')
+        ).order_by('first_year')
+        
+        participants_by_first_year = {
+            'years': [str(stat['first_year']) for stat in first_year_stats if stat['first_year']],
+            'counts': [stat['count'] for stat in first_year_stats if stat['first_year']]
+        }
+
+        # Участники по центрам компетенций (топ-15)
+        centers_stats = Results.objects.filter(
+            res_center__isnull=False
+        ).values('res_center__center_name').annotate(
+            count=Count('res_participant', distinct=True)
+        ).order_by('-count')[:15]
+        
+        participants_by_center = {
+            'centers': [stat['res_center__center_name'] for stat in centers_stats if stat['res_center__center_name']],
+            'counts': [stat['count'] for stat in centers_stats if stat['res_center__center_name']]
+        }
+
+        # Участники по учебным заведениям (топ-15)
+        institutions_stats = Results.objects.filter(
+            res_institution__isnull=False
+        ).values('res_institution__inst_name').annotate(
+            count=Count('res_participant', distinct=True)
+        ).order_by('-count')[:15]
+        
+        participants_by_institution = {
+            'institutions': [stat['res_institution__inst_name'] for stat in institutions_stats if stat['res_institution__inst_name']],
+            'counts': [stat['count'] for stat in institutions_stats if stat['res_institution__inst_name']]
+        }
+
+        # Специальности участников
+        specialties_stats = Results.objects.filter(
+            res_spec__isnull=False
+        ).values('res_spec__spec_name').annotate(
+            count=Count('res_participant', distinct=True)
+        ).order_by('-count')
+        
+        specialties_distribution = {
+            'specialties': [stat['res_spec__spec_name'] for stat in specialties_stats if stat['res_spec__spec_name']],
+            'counts': [stat['count'] for stat in specialties_stats if stat['res_spec__spec_name']]
+        }
+
+        # Динамика тестирований по годам
+        tests_by_year = Results.objects.filter(
+            res_year__isnull=False
+        ).values('res_year').annotate(
+            count=Count('res_id')
+        ).order_by('res_year')
+        
+        tests_by_year_data = {
+            'years': [str(stat['res_year']) for stat in tests_by_year if stat['res_year']],
+            'counts': [stat['count'] for stat in tests_by_year if stat['res_year']]
+        }
+
+        # Средние оценки по компетенциям по годам
+        competences_fields = [
+            'res_comp_info_analysis', 'res_comp_planning', 'res_comp_result_orientation',
+            'res_comp_stress_resistance', 'res_comp_partnership', 'res_comp_rules_compliance',
+            'res_comp_self_development', 'res_comp_leadership', 'res_comp_emotional_intel',
+            'res_comp_client_focus', 'res_comp_communication', 'res_comp_passive_vocab'
+        ]
+        
+        competence_names = {
+            'res_comp_info_analysis': 'Анализ информации',
+            'res_comp_planning': 'Планирование',
+            'res_comp_result_orientation': 'Ориентация на результат',
+            'res_comp_stress_resistance': 'Стрессоустойчивость',
+            'res_comp_partnership': 'Партнерство',
+            'res_comp_rules_compliance': 'Соблюдение правил',
+            'res_comp_self_development': 'Саморазвитие',
+            'res_comp_leadership': 'Лидерство',
+            'res_comp_emotional_intel': 'Эмоциональный интеллект',
+            'res_comp_client_focus': 'Клиентоориентированность',
+            'res_comp_communication': 'Коммуникация',
+            'res_comp_passive_vocab': 'Пассивный словарь'
+        }
+        
+        competences_by_year = []
+        for field in competences_fields:
+            yearly_stats = Results.objects.filter(
+                **{f'{field}__isnull': False},
+                res_year__isnull=False
+            ).values('res_year').annotate(
+                avg_value=Avg(field)
+            ).order_by('res_year')
+            
+            if yearly_stats:
+                competences_by_year.append({
+                    'name': competence_names[field],
+                    'years': [str(stat['res_year']) for stat in yearly_stats if stat['res_year']],
+                    'values': [round(float(stat['avg_value']), 1) for stat in yearly_stats if stat['res_year']]
+                })
+
+        # Средние оценки по мотиваторам по годам
+        motivators_fields = [
+            'res_mot_autonomy', 'res_mot_altruism', 'res_mot_challenge', 'res_mot_salary',
+            'res_mot_career', 'res_mot_creativity', 'res_mot_relationships', 'res_mot_recognition',
+            'res_mot_affiliation', 'res_mot_self_development', 'res_mot_purpose', 'res_mot_cooperation',
+            'res_mot_stability', 'res_mot_tradition', 'res_mot_management', 'res_mot_work_conditions'
+        ]
+        
+        motivator_names = {
+            'res_mot_autonomy': 'Автономия',
+            'res_mot_altruism': 'Альтруизм',
+            'res_mot_challenge': 'Вызов',
+            'res_mot_salary': 'Зарплата',
+            'res_mot_career': 'Карьера',
+            'res_mot_creativity': 'Креативность',
+            'res_mot_relationships': 'Отношения',
+            'res_mot_recognition': 'Признание',
+            'res_mot_affiliation': 'Принадлежность',
+            'res_mot_self_development': 'Саморазвитие',
+            'res_mot_purpose': 'Цель',
+            'res_mot_cooperation': 'Сотрудничество',
+            'res_mot_stability': 'Стабильность',
+            'res_mot_tradition': 'Традиции',
+            'res_mot_management': 'Управление',
+            'res_mot_work_conditions': 'Условия работы'
+        }
+        
+        motivators_by_year = []
+        for field in motivators_fields:
+            yearly_stats = Results.objects.filter(
+                **{f'{field}__isnull': False},
+                res_year__isnull=False
+            ).values('res_year').annotate(
+                avg_value=Avg(field)
+            ).order_by('res_year')
+            
+            if yearly_stats:
+                motivators_by_year.append({
+                    'name': motivator_names[field],
+                    'years': [str(stat['res_year']) for stat in yearly_stats if stat['res_year']],
+                    'values': [round(float(stat['avg_value']), 1) for stat in yearly_stats if stat['res_year']]
+                })
+
+        # Средние оценки по ценностям по годам
+        values_fields = [
+            'res_val_honesty_justice', 'res_val_humanism', 'res_val_patriotism',
+            'res_val_family', 'res_val_health', 'res_val_environment'
+        ]
+        
+        value_names = {
+            'res_val_honesty_justice': 'Честность и справедливость',
+            'res_val_humanism': 'Гуманизм',
+            'res_val_patriotism': 'Патриотизм',
+            'res_val_family': 'Семья',
+            'res_val_health': 'Здоровье',
+            'res_val_environment': 'Окружающая среда'
+        }
+        
+        values_by_year = []
+        for field in values_fields:
+            yearly_stats = Results.objects.filter(
+                **{f'{field}__isnull': False},
+                res_year__isnull=False
+            ).values('res_year').annotate(
+                avg_value=Avg(field)
+            ).order_by('res_year')
+            
+            if yearly_stats:
+                values_by_year.append({
+                    'name': value_names[field],
+                    'years': [str(stat['res_year']) for stat in yearly_stats if stat['res_year']],
+                    'values': [round(float(stat['avg_value']), 1) for stat in yearly_stats if stat['res_year']]
+                })
+        
+        # Добавляем available_values для фильтрации
+        stats_data = {
+            'totalParticipants': total_participants,
+            'totalTests': total_tests,
+            'uniqueInstitutions': unique_institutions,
+            'uniqueCenters': unique_centers,
+            'participantsByFirstYear': participants_by_first_year,
+            'participantsByCenter': participants_by_center,
+            'participantsByInstitution': participants_by_institution,
+            'specialtiesDistribution': specialties_distribution,
+            'testsByYear': tests_by_year_data,
+            'competencesByYear': competences_by_year,
+            'motivatorsByYear': motivators_by_year,
+            'valuesByYear': values_by_year,
+            'available_values': extract_available_values_for_filters(filters)
+        }
+        
+        return successResponse({"stats": stats_data})
+        
+    except Exception as e:
+        return exceptionResponse(e)
+
+
+def extract_available_values_for_filters(current_filters):
+    """Извлекает доступные значения для фильтрации с учетом текущих фильтров"""
+    values = {}
+    
+    # Базовые поля для фильтрации
+    basic_fields = [
+        'res_year', 'part_gender', 'center', 'institution', 
+        'edu_level', 'res_course_num', 'study_form', 'specialty'
+    ]
+    
+    # Создаем базовый запрос
+    results_query = Results.objects.all()
+    
+    # Применяем текущие фильтры (кроме того, для которого извлекаем значения)
+    for filter_obj in current_filters:
+        if filter_obj['type'] == 'basic' and filter_obj['selectedValues']:
+            field = filter_obj['field']
+            if field == 'part_gender':
+                results_query = results_query.filter(
+                    res_participant__part_gender__in=filter_obj['selectedValues']
+                )
+            elif field == 'center':
+                results_query = results_query.filter(
+                    res_center__center_name__in=filter_obj['selectedValues']
+                )
+            elif field == 'institution':
+                results_query = results_query.filter(
+                    res_institution__inst_name__in=filter_obj['selectedValues']
+                )
+            elif field == 'edu_level':
+                results_query = results_query.filter(
+                    res_edu_level__edu_level_name__in=filter_obj['selectedValues']
+                )
+            elif field == 'study_form':
+                results_query = results_query.filter(
+                    res_form__form_name__in=filter_obj['selectedValues']
+                )
+            elif field == 'specialty':
+                results_query = results_query.filter(
+                    res_spec__spec_name__in=filter_obj['selectedValues']
+                )
+            elif field == 'res_year':
+                results_query = results_query.filter(
+                    res_year__in=filter_obj['selectedValues']
+                )
+            elif field == 'res_course_num':
+                results_query = results_query.filter(
+                    res_course_num__in=filter_obj['selectedValues']
+                )
+    
+    # Извлекаем уникальные значения для каждого поля
+    for field in basic_fields:
+        if field == 'part_gender':
+            unique_values = results_query.filter(
+                res_participant__part_gender__isnull=False
+            ).values_list('res_participant__part_gender', flat=True).distinct().order_by('res_participant__part_gender')
+        elif field == 'center':
+            unique_values = results_query.filter(
+                res_center__isnull=False
+            ).values_list('res_center__center_name', flat=True).distinct().order_by('res_center__center_name')
+        elif field == 'institution':
+            unique_values = results_query.filter(
+                res_institution__isnull=False
+            ).values_list('res_institution__inst_name', flat=True).distinct().order_by('res_institution__inst_name')
+        elif field == 'edu_level':
+            unique_values = results_query.filter(
+                res_edu_level__isnull=False
+            ).values_list('res_edu_level__edu_level_name', flat=True).distinct().order_by('res_edu_level__edu_level_name')
+        elif field == 'study_form':
+            unique_values = results_query.filter(
+                res_form__isnull=False
+            ).values_list('res_form__form_name', flat=True).distinct().order_by('res_form__form_name')
+        elif field == 'specialty':
+            unique_values = results_query.filter(
+                res_spec__isnull=False
+            ).values_list('res_spec__spec_name', flat=True).distinct().order_by('res_spec__spec_name')
+        elif field == 'res_year':
+            unique_values = results_query.filter(
+                res_year__isnull=False
+            ).values_list('res_year', flat=True).distinct().order_by('res_year')
+        elif field == 'res_course_num':
+            unique_values = results_query.filter(
+                res_course_num__isnull=False
+            ).values_list('res_course_num', flat=True).distinct().order_by('res_course_num')
+        
+        # Преобразуем в список строк и фильтруем пустые значения
+        values[field] = [str(val) for val in unique_values if val is not None and str(val).strip() != '']
+    
+    return values
+
+
 def format_result_data(result, visible_columns=None):
     """Форматирует данные результата для отправки на фронтенд"""
     base_data = {
