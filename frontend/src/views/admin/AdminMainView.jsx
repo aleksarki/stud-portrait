@@ -15,9 +15,9 @@ function AdminMainView() {
     ];
     return (
         <div className="AdminMainView">
-            <Header title="Админ: Главная" name="Администратор1" style="admin" />
+            <Header title="Админ: Главная" name="Администратор1" style="modeus" />
             <div className="main-area">
-                <SidebarLayout sidebar={<Sidepanel links={linkList} style="admin" />} style="admin">
+                <SidebarLayout sidebar={<Sidepanel links={linkList} style="modeus" />} style="modeus">
                     content
                 </SidebarLayout>
             </div>

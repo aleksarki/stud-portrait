@@ -123,9 +123,9 @@ function AdminStatsView() {
     if (loading) {
         return (
             <div className="AdminStatsView">
-                <Header title="Админ: Статистика тестирования" name="Администратор1" style="admin" />
+                <Header title="Админ: Статистика тестирования" name="Администратор1" style="modeus" />
                 <div className="main-area">
-                    <SidebarLayout sidebar={<Sidepanel links={linkList} style="admin" />} style="admin">
+                    <SidebarLayout sidebar={<Sidepanel links={linkList} style="modeus" />} style="modeus">
                         <div className="loading">Загрузка статистики...</div>
                     </SidebarLayout>
                 </div>
@@ -135,9 +135,9 @@ function AdminStatsView() {
 
     return (
         <div className="AdminStatsView">
-            <Header title="Админ: Статистика тестирования" name="Администратор1" style="admin" />
+            <Header title="Админ: Статистика тестирования" name="Администратор1" style="modeus" />
             <div className="main-area">
-                <SidebarLayout sidebar={<Sidepanel links={linkList} style="admin" />} style="admin">
+                <SidebarLayout sidebar={<Sidepanel links={linkList} style="modeus" />} style="modeus">
                     <div className="stats-container">
                         <div className="stats-header">
                             <h1>Статистика тестирования</h1>

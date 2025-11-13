@@ -589,21 +589,21 @@ function AdminResultsView() {
 
     return (
         <div className="AdminResultsView">
-            <Header title="Админ: Результаты тестирования" name="Администратор1" style="admin" />
+            <Header title="Админ: Результаты тестирования" name="Администратор1" style="modeus" />
             <div className="main-area">
-                <SidebarLayout sidebar={<Sidepanel links={linkList} style="admin" />} style="admin">
+                <SidebarLayout sidebar={<Sidepanel links={linkList} style="modeus" />} style="modeus">
                     <div className="results-container">
                         <div className="results-header">
                             <h2>Результаты тестирования</h2>
                             <div className="controls">
                                 <div className="results-info">
                                     {sessionId ? (
-                                        <>
+                                        <span>
                                             Показано: {results.length} из {totalCount} записей
                                             {filters.length > 0 && ` • Активных фильтров: ${filters.length}`}
                                             {hiddenColumns.size > 0 && ` • Скрыто колонок: ${hiddenColumns.size}`}
                                             {selectedRows.size > 0 && ` • Выбрано: ${selectedRows.size}`}
-                                        </>
+                                        </span>
                                     ) : (
                                         'Инициализация сессии...'
                                     )}

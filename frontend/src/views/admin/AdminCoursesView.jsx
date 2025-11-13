@@ -15,9 +15,9 @@ function AdminCoursesView() {
     ];
     return (
         <div className="AdminCoursesView">
-            <Header title="Админ: Образовательные курсы" name="Администратор1" style="admin" />
+            <Header title="Админ: Образовательные курсы" name="Администратор1" style="modeus" />
             <div className="main-area">
-                <SidebarLayout sidebar={<Sidepanel links={linkList} style="admin" />} style="admin">
+                <SidebarLayout sidebar={<Sidepanel links={linkList} style="modeus" />} style="modeus">
                     content
                 </SidebarLayout>
             </div>

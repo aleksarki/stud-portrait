@@ -22,9 +22,9 @@ function AdminUploadView() {
 
     return (
         <div className="AdminUploadView">
-            <Header title="Админ: Загрузка данных" name="Администратор1" style="admin" />
+            <Header title="Админ: Загрузка данных" name="Администратор1" style="modeus" />
             <div className="main-area">
-                <SidebarLayout sidebar={<Sidepanel links={linkList} style="admin" />} style="admin">
+                <SidebarLayout sidebar={<Sidepanel links={linkList} style="modeus" />} style="modeus">
                     <div className="upload-form-container">
                         <h2 className="upload-form-title">
                             Загрузка данных результатов тестирования "Россия - страна возможностей"
