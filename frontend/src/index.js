@@ -4,6 +4,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
 import AdminAnalysisView from "./views/admin/AdminAnalysisView";
 import AdminCoursesView from "./views/admin/AdminCoursesView";
+import AdminGroupingView from "./views/admin/AdminGroupingView";
 import AdminMainView from "./views/admin/AdminMainView";
 import AdminResultsView from "./views/admin/AdminResultsView";
 import AdminStatsView from "./views/admin/AdminStatsView";
@@ -53,6 +54,10 @@ const router = createBrowserRouter([
   {
     path: "/admin/upload",
     element: <AdminUploadView />
+  },
+  {
+    path: "/admin/grouping",
+    element: <AdminGroupingView />
   }
 ])
 

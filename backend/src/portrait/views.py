@@ -1275,6 +1275,129 @@ def stats_with_filters(request):
         return exceptionResponse(e)
 
 
+@method('POST')
+@csrf_exempt
+def group_data(request):
+    try:
+        data = json.loads(request.body)
+        selected_ids = data.get('selected_ids', [])
+        grouping_column = data.get('grouping_column')
+        
+        if not selected_ids:
+            return errorResponse("No records selected for grouping")
+        if not grouping_column:
+            return errorResponse("Grouping column not specified")
+        
+        # Получаем выбранные записи
+        results_query = Results.objects.filter(
+            res_id__in=selected_ids
+        ).select_related(
+            'res_participant', 'res_center', 'res_institution',
+            'res_edu_level', 'res_form', 'res_spec'
+        )
+        
+        # Группируем данные
+        grouped_data = {
+            'competences': {},
+            'motivators': {},
+            'values': {}
+        }
+        
+        # Получаем уникальные группы
+        groups = set()
+        for result in results_query:
+            group_value = get_group_value(result, grouping_column)
+            if group_value:
+                groups.add(group_value)
+        
+        groups = sorted(list(groups))
+        
+        # Компетенции
+        competence_fields = ['res_comp_info_analysis', 'res_comp_planning', 'res_comp_result_orientation',
+                            'res_comp_stress_resistance', 'res_comp_partnership', 'res_comp_rules_compliance',
+                            'res_comp_self_development', 'res_comp_leadership', 'res_comp_emotional_intel',
+                            'res_comp_client_focus', 'res_comp_communication', 'res_comp_passive_vocab']
+        
+        for field in competence_fields:
+            values_by_group = []
+            for group in groups:
+                group_results = [r for r in results_query if get_group_value(r, grouping_column) == group]
+                field_values = [getattr(r, field) for r in group_results if getattr(r, field) is not None]
+                avg_value = sum(field_values) / len(field_values) if field_values else 0
+                values_by_group.append(round(avg_value, 1))
+            
+            grouped_data['competences'][field] = {
+                'groups': groups,
+                'values': values_by_group
+            }
+        
+        # Мотиваторы
+        motivator_fields = ['res_mot_autonomy', 'res_mot_altruism', 'res_mot_challenge', 'res_mot_salary',
+                           'res_mot_career', 'res_mot_creativity', 'res_mot_relationships', 'res_mot_recognition',
+                           'res_mot_affiliation', 'res_mot_self_development', 'res_mot_purpose', 'res_mot_cooperation',
+                           'res_mot_stability', 'res_mot_tradition', 'res_mot_management', 'res_mot_work_conditions']
+        
+        for field in motivator_fields:
+            values_by_group = []
+            for group in groups:
+                group_results = [r for r in results_query if get_group_value(r, grouping_column) == group]
+                field_values = [getattr(r, field) for r in group_results if getattr(r, field) is not None]
+                avg_value = sum(field_values) / len(field_values) if field_values else 0
+                values_by_group.append(round(avg_value, 1))
+            
+            grouped_data['motivators'][field] = {
+                'groups': groups,
+                'values': values_by_group
+            }
+        
+        # Ценности
+        value_fields = ['res_val_honesty_justice', 'res_val_humanism', 'res_val_patriotism',
+                       'res_val_family', 'res_val_health', 'res_val_environment']
+        
+        for field in value_fields:
+            values_by_group = []
+            for group in groups:
+                group_results = [r for r in results_query if get_group_value(r, grouping_column) == group]
+                field_values = [getattr(r, field) for r in group_results if getattr(r, field) is not None]
+                avg_value = sum(field_values) / len(field_values) if field_values else 0
+                values_by_group.append(round(avg_value, 1))
+            
+            grouped_data['values'][field] = {
+                'groups': groups,
+                'values': values_by_group
+            }
+        
+        return successResponse({
+            "grouped_data": grouped_data,
+            "groups": groups,
+            "total_records": len(selected_ids)
+        })
+        
+    except Exception as e:
+        return exceptionResponse(e)
+
+
+def get_group_value(result, grouping_column):
+    """Получает значение для группировки из результата"""
+    if grouping_column == 'part_gender':
+        return result.res_participant.part_gender if result.res_participant else None
+    elif grouping_column == 'center':
+        return result.res_center.center_name if result.res_center else None
+    elif grouping_column == 'institution':
+        return result.res_institution.inst_name if result.res_institution else None
+    elif grouping_column == 'edu_level':
+        return result.res_edu_level.edu_level_name if result.res_edu_level else None
+    elif grouping_column == 'study_form':
+        return result.res_form.form_name if result.res_form else None
+    elif grouping_column == 'specialty':
+        return result.res_spec.spec_name if result.res_spec else None
+    elif grouping_column == 'res_year':
+        return result.res_year
+    elif grouping_column == 'res_course_num':
+        return result.res_course_num
+    return None
+
+
 def extract_available_values_for_filters(current_filters):
     """Извлекает доступные значения для фильтрации с учетом текущих фильтров"""
     values = {}

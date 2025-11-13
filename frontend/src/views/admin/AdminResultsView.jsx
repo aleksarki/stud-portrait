@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import Header from "../../components/Header";
 import SidebarLayout from "../../components/SidebarLayout";
@@ -23,6 +24,9 @@ function AdminResultsView() {
     const [pendingFilters, setPendingFilters] = useState([]);
     const [hasMore, setHasMore] = useState(false);
     const [exportLoading, setExportLoading] = useState(false);
+    const [showGroupingModal, setShowGroupingModal] = useState(false);
+    const [groupingColumn, setGroupingColumn] = useState('');
+    const navigate = useNavigate();
 
     const linkList = [
         {to:'/admin/', title: "Главная"},
@@ -587,6 +591,34 @@ function AdminResultsView() {
         return value;
     };
 
+    // Функция для перехода к группировке
+    const handleGrouping = () => {
+        if (selectedRows.size === 0) {
+            alert('Выберите записи для группировки (флажки в первом столбце)');
+            return;
+        }
+        setShowGroupingModal(true);
+    };
+
+    const handleConfirmGrouping = () => {
+        if (!groupingColumn) {
+            alert('Выберите столбец для группировки');
+            return;
+        }
+
+        // Сохраняем данные для группировки в sessionStorage или передаем через state
+        const groupingData = {
+            selectedIds: Array.from(selectedRows),
+            groupingColumn: groupingColumn,
+            filters: filters,
+            visibleColumns: visibleColumns,
+            sessionId: sessionId
+        };
+
+        // Переходим на страницу группировки
+        navigate('/admin/grouping', { state: groupingData });
+    };
+
     return (
         <div className="AdminResultsView">
             <Header title="Админ: Результаты тестирования" name="Администратор1" style="modeus" />
@@ -625,6 +657,15 @@ function AdminResultsView() {
                                         hoverBg="#5a32a3"
                                     />
                                     <Button
+                                        text="Группировка"
+                                        onClick={handleGrouping}
+                                        disabled={!sessionId || selectedRows.size === 0}
+                                        fg="white"
+                                        bg="#6f42c1"
+                                        hoverBg="#5a32a3"
+                                        disabledBg="#6c757d"
+                                    />
+                                    <Button
                                         text={`${exportLoading ? '⏳' : '📥'} Выгрузить выделенные (${selectedRows.size})`}
                                         onClick={handleExportSelected}
                                         disabled={!sessionId || exportLoading || selectedRows.size === 0}
@@ -633,7 +674,7 @@ function AdminResultsView() {
                                         hoverBg="#218838"
                                         disabledBg="#6c757d"
                                     />
-                                    <Button
+                                    {/*<Button
                                         text={`${exportLoading ? '⏳' : '📋'} Выгрузить все`}
                                         onClick={handleExportAll}
                                         disabled={!sessionId || exportLoading}
@@ -641,7 +682,7 @@ function AdminResultsView() {
                                         bg="#17a2b8"
                                         hoverBg="#138496"
                                         disabledBg="#6c757d"
-                                    />
+                                    />*/}
                                     <Button
                                         text={`${loading ? '⏳' : '🔄'} Обновить`}
                                         onClick={() => loadSessionData()}
@@ -1033,6 +1074,65 @@ function AdminResultsView() {
                                 Выбрано: {selectedRows.size}
                             </span>
                         </div>
+
+                        {/* Модальное окно выбора столбца для группировки */}
+                        {showGroupingModal && (
+                            <div className="modal-overlay">
+                                <div className="modal-content">
+                                    <div className="modal-header">
+                                        <h3>Выбор группировки</h3>
+                                        <button 
+                                            className="close-btn"
+                                            onClick={() => setShowGroupingModal(false)}
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                    <div className="modal-body">
+                                        <div className="form-group">
+                                            <label>Столбец для группировки:</label>
+                                            <select 
+                                                value={groupingColumn}
+                                                onChange={(e) => setGroupingColumn(e.target.value)}
+                                                className="grouping-select"
+                                            >
+                                                <option value="">Выберите столбец...</option>
+                                                <optgroup label="Базовые сведения">
+                                                    {basicFields.map(field => (
+                                                        <option key={field} value={field}>
+                                                            {FIELD_NAMES[field]}
+                                                        </option>
+                                                    ))}
+                                                </optgroup>
+                                            </select>
+                                        </div>
+                                        <div className="selected-info">
+                                            <p>Выбрано записей: <strong>{selectedRows.size}</strong></p>
+                                            <p>Будет выполнена группировка по выбранному столбцу с визуализацией данных.</p>
+                                        </div>
+                                    </div>
+                                    <div className="modal-footer">
+                                        <Button
+                                            text="Отмена"
+                                            onClick={() => setShowGroupingModal(false)}
+                                            fg="#6c757d"
+                                            bg="white"
+                                            border="1px solid #6c757d"
+                                            hoverBg="#6c757d"
+                                            hoverFg="white"
+                                        />
+                                        <Button
+                                            text="Перейти к группировке"
+                                            onClick={handleConfirmGrouping}
+                                            disabled={!groupingColumn}
+                                            fg="white"
+                                            bg="#007bff"
+                                            hoverBg="#0056b3"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </SidebarLayout>
             </div>

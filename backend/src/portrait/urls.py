@@ -12,5 +12,6 @@ urlpatterns = [
     path("load-more-data/",          views.load_more_data,          name="load_more_data"),
     path("export-session-data/",     views.export_session_data,     name="export_session_data"),
     path("export-selected-results/", views.export_selected_results, name="export_session_data"),
+    path("group-data/",              views.group_data,              name="group_data"),
     path("stats/",                   views.stats_with_filters,      name="stats")
 ]
