@@ -1377,6 +1377,65 @@ def group_data(request):
         return exceptionResponse(e)
 
 
+@method('GET')
+@response
+@csrf_exempt
+def courses(request):
+    try:
+        # Получаем данные по курсам с информацией об участниках
+        courses_query = Course.objects.all().select_related(
+            'course_participant',
+            'course_participant__part_institution',
+            'course_participant__part_spec',
+            'course_participant__part_edu_level',
+            'course_participant__part_form'
+        )
+        
+        courses_data = []
+        for course in courses_query:
+            course_data = {
+                'course_id': course.course_id,
+                'participant': {
+                    'part_id': course.course_participant.part_id,
+                    'part_name': course.course_participant.part_name,
+                    'part_gender': course.course_participant.part_gender,
+                    'institution': course.course_participant.part_institution.inst_name if course.course_participant.part_institution else None,
+                    'specialty': course.course_participant.part_spec.spec_name if course.course_participant.part_spec else None,
+                    'edu_level': course.course_participant.part_edu_level.edu_level_name if course.course_participant.part_edu_level else None,
+                    'study_form': course.course_participant.part_form.form_name if course.course_participant.part_form else None,
+                },
+                # Данные по курсам
+                'course_an_dec': float(course.course_an_dec) if course.course_an_dec is not None else 0,
+                'course_client_focus': float(course.course_client_focus) if course.course_client_focus is not None else 0,
+                'course_communication': float(course.course_communication) if course.course_communication is not None else 0,
+                'course_leadership': float(course.course_leadership) if course.course_leadership is not None else 0,
+                'course_result_orientation': float(course.course_result_orientation) if course.course_result_orientation is not None else 0,
+                'course_planning_org': float(course.course_planning_org) if course.course_planning_org is not None else 0,
+                'course_rules_culture': float(course.course_rules_culture) if course.course_rules_culture is not None else 0,
+                'course_self_dev': float(course.course_self_dev) if course.course_self_dev is not None else 0,
+                'course_collaboration': float(course.course_collaboration) if course.course_collaboration is not None else 0,
+                'course_stress_resistance': float(course.course_stress_resistance) if course.course_stress_resistance is not None else 0,
+                'course_emotions_communication': float(course.course_emotions_communication) if course.course_emotions_communication is not None else 0,
+                'course_negotiations': float(course.course_negotiations) if course.course_negotiations is not None else 0,
+                'course_digital_comm': float(course.course_digital_comm) if course.course_digital_comm is not None else 0,
+                'course_effective_learning': float(course.course_effective_learning) if course.course_effective_learning is not None else 0,
+                'course_entrepreneurship': float(course.course_entrepreneurship) if course.course_entrepreneurship is not None else 0,
+                'course_creativity_tech': float(course.course_creativity_tech) if course.course_creativity_tech is not None else 0,
+                'course_trendwatching': float(course.course_trendwatching) if course.course_trendwatching is not None else 0,
+                'course_conflict_management': float(course.course_conflict_management) if course.course_conflict_management is not None else 0,
+                'course_career_management': float(course.course_career_management) if course.course_career_management is not None else 0,
+                'course_burnout': float(course.course_burnout) if course.course_burnout is not None else 0,
+                'course_cross_cultural_comm': float(course.course_cross_cultural_comm) if course.course_cross_cultural_comm is not None else 0,
+                'course_mentoring': float(course.course_mentoring) if course.course_mentoring is not None else 0,
+            }
+            courses_data.append(course_data)
+        
+        return {"courses": courses_data}
+        
+    except Exception as e:
+        return exceptionResponse(e)
+
+
 def get_group_value(result, grouping_column):
     """Получает значение для группировки из результата"""
     if grouping_column == 'part_gender':
