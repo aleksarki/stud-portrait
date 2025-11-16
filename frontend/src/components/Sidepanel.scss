@@ -78,4 +78,46 @@
             }            
         }
     }
+
+    .style-modeus {
+        height: 100vh;
+        z-index: 99;
+        background-color: #238BC8;
+        color: #fff;
+        position: relative;
+        font-size: 13px;
+        line-height: 1.5384616;
+        padding: 0 !important;
+        display: block;
+
+        .list {
+            margin: 0;
+            padding: 10px 0;
+            list-style: none;
+            //padding-inline-start: 0;
+            position: relative;
+
+            .item {
+                margin-top: 1px;
+                position: relative;
+                display: list-item;
+                
+                a {
+                    padding: 12px 20px;
+                    font-weight: 500;
+                    font-size: 14px;
+                    text-decoration: none;
+                    color: white;
+                    display: block;
+                    transition: background 0.15s linear, color 0.15s linear;
+                    cursor: pointer;
+
+                    &:hover {
+                        background-color: #f98941;
+                        color: #fff;
+                    }
+                }
+            }            
+        }
+    }
 }

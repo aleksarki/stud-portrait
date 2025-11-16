@@ -1,0 +1,27 @@
+.Button {
+    padding: 8px 16px !important;
+    background: var(--bg);
+    color: var(--fg);
+    border: var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease;
+    
+    &:hover:not(:disabled) {
+        color: var(--hoverFg);
+        background: var(--hoverBg);
+        border: var(--hoverBorder);
+        transform: var(--hoverTransform);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    &:disabled {
+        background: var(--disabledBg);
+        cursor: not-allowed;
+        transform: none;
+        opacity: 0.6;
+    }
+}

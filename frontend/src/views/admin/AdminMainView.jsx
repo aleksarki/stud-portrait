@@ -6,18 +6,18 @@ import "./AdminMainView.scss";
 
 function AdminMainView() {
     const linkList = [
-        {to:'/admin/1', title: "Главная"},
-        {to:'/admin/1', title: "Статистика тестирования"},
-        {to:'/admin/1', title: "Участники"},
-        {to:'/admin/1', title: "Образовательные курсы"},
-        {to:'/admin/1', title: "Выгрузка результатов"},
-        {to:'/admin/1', title: "Загрузка данных"},
+        {to:'/admin/', title: "Главная"},
+        {to:'/admin/stats', title: "Статистика тестирования"},
+        {to:'/admin/results', title: "Результаты тестирования"},
+        {to:'/admin/analysis', title: "Анализ данных"},
+        {to:'/admin/courses', title: "Образовательные курсы"},
+        {to:'/admin/upload', title: "Загрузка данных"},
     ];
     return (
         <div className="AdminMainView">
-            <Header title="Админ: Главная" name="Администратор1" style="admin" />
+            <Header title="Админ: Главная" name="Администратор1" style="modeus" />
             <div className="main-area">
-                <SidebarLayout sidebar={<Sidepanel links={linkList} style="admin" />} style="admin">
+                <SidebarLayout sidebar={<Sidepanel links={linkList} style="modeus" />} style="modeus">
                     content
                 </SidebarLayout>
             </div>
