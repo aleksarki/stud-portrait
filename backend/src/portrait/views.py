@@ -283,7 +283,7 @@ def import_excel(request):
                 # Проверка на "Итог"
                 b_value = row[1].value
                 if b_value and str(b_value).strip().lower() == "итог":
-                    print(f"⛔ Достигнут итоговый ряд — стоп для {sheet_name}")
+                    print(f"Достигнут итоговый ряд — стоп для {sheet_name}")
                     break
 
                 def get_col(col_letter):
@@ -372,7 +372,7 @@ def import_excel(request):
                     try:
                         participant = Participants.objects.get(part_name=participant_name)
                     except Participants.DoesNotExist:
-                        print(f"❌ Не найден участник '{participant_name}', пропуск")
+                        print(f"Не найден участник '{participant_name}', пропуск")
                         continue
 
                     Results.objects.filter(res_participant=participant).update(
