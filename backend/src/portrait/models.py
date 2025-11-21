@@ -8,6 +8,23 @@
 from django.db import models
 
 
+class Academicperformance(models.Model):
+    perf_id = models.AutoField(primary_key=True)
+    perf_part = models.ForeignKey('Participants', models.DO_NOTHING)
+    perf_year = models.CharField(max_length=9)
+    perf_current_avg = models.DecimalField(max_digits=4, decimal_places=1, blank=True, null=True)
+    perf_digital_culture = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    perf_main_attestation = models.CharField(max_length=16, blank=True, null=True)
+    perf_first_retake = models.CharField(max_length=16, blank=True, null=True)
+    perf_second_retake = models.CharField(max_length=16, blank=True, null=True)
+    perf_high_grade_retake = models.CharField(max_length=16, blank=True, null=True)
+    perf_final_grade = models.CharField(max_length=16, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'academicperformance'
+
+
 class Competencecenters(models.Model):
     center_id = models.AutoField(primary_key=True)
     center_name = models.CharField(max_length=512)

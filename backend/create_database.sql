@@ -165,18 +165,18 @@ CREATE TABLE AcademicPerformance
 
     -- Ограничение допустимых значений аттестаций
     CONSTRAINT chk_attestation_values CHECK (
-        perf_main_attestation IN ('отл.', 'хор.', 'удовл.', 'неудовл', 'не явился') OR perf_main_attestation IS NULL
+        perf_main_attestation IN ('отл.', 'хор.', 'удовл.', 'неудовл.', 'не явился') OR perf_main_attestation IS NULL
     ),
     CONSTRAINT chk_first_retake CHECK (
-        perf_first_retake IN ('отл.', 'хор.', 'удовл.', 'неудовл', 'не явился') OR perf_first_retake IS NULL
+        perf_first_retake IN ('отл.', 'хор.', 'удовл.', 'неудовл.', 'не явился') OR perf_first_retake IS NULL
     ),
     CONSTRAINT chk_second_retake CHECK (
-        perf_second_retake IN ('отл.', 'хор.', 'удовл.', 'неудовл', 'не явился') OR perf_second_retake IS NULL
+        perf_second_retake IN ('отл.', 'хор.', 'удовл.', 'неудовл.', 'не явился') OR perf_second_retake IS NULL
     ),
     CONSTRAINT chk_high_grade_retake CHECK (
-        perf_high_grade_retake IN ('отл.', 'хор.', 'удовл.', 'неудовл', 'не явился') OR perf_high_grade_retake IS NULL
+        perf_high_grade_retake IN ('отл.', 'хор.', 'удовл.', 'неудовл.', 'не явился') OR perf_high_grade_retake IS NULL
     ),
     CONSTRAINT chk_final_grade CHECK (
-        perf_final_grade IN ('отл.', 'хор.', 'удовл.', 'неудовл', 'не явился') OR perf_final_grade IS NULL
+        perf_final_grade IN ('отл.', 'хор.', 'удовл.', 'неудовл.', 'не явился') OR perf_final_grade IS NULL
     )
 );

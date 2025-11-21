@@ -2,7 +2,7 @@ from openpyxl import Workbook
 import random
 
 # --- Настройки ---
-ROWS = 100  # сколько строк случайных данных
+ROWS = 10  # сколько строк случайных данных
 
 # Возможные учебные годы
 years = [
@@ -33,7 +33,7 @@ def grade_from_culture(score):
 # --- Создаём Excel ---
 wb = Workbook()
 ws = wb.active
-ws.title = "Успеваемость студентов"
+ws.title = "Итоги успеваемости участников"   # <<< НАЗВАНИЕ ЛИСТА
 
 headers = [
     "Учебный год",
@@ -51,12 +51,9 @@ ws.append(headers)
 # --- Генерация данных ---
 for _ in range(ROWS):
 
-    # год
     year = random.choice(years)
+    fio = ""
 
-    fio = ""  # пользователь заполнит сам
-
-    # нормальное распределение
     итог = round(clamp(random.gauss(7.5, 3), 0, 15), 1)
     культура = round(clamp(random.gauss(70, 15), 0, 100), 2)
 
@@ -69,24 +66,20 @@ for _ in range(ROWS):
         final_grade = "не явился"
 
     else:
-        # основная аттестация зависит от цифровой культуры
         main = grade_from_culture(культура)
 
-        # если удовл. или хор → финальная та же, повторные пустые
         if main in ("удовл.", "хор."):
             rep1 = ""
             rep2 = ""
             higher = ""
             final_grade = main
 
-        # если неудовл. → "удовл." на 1-й пересдаче
         elif main == "неудовл.":
             rep1 = "удовл."
             rep2 = ""
             higher = ""
             final_grade = "удовл."
 
-        # если отл. → итоговая = отл., пересдачи не нужны
         elif main == "отл.":
             rep1 = ""
             rep2 = ""
