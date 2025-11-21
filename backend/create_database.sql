@@ -144,3 +144,39 @@ CREATE TABLE Course
     course_cross_cultural_comm         DECIMAL(5,2),  -- Межкультурные коммуникации
     course_mentoring                   DECIMAL(5,2)   -- Я — наставник
 );
+
+-- Итоги успеваемости участников
+CREATE TABLE AcademicPerformance
+(
+    perf_id      INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    perf_part_id INT NOT NULL REFERENCES Participants(part_id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+
+    perf_year    VARCHAR(9) NOT NULL,   -- формат "2023/2024"
+
+    perf_current_avg     DECIMAL(4,1),  -- итог текущей успеваемости (одна цифра после запятой)
+    perf_digital_culture DECIMAL(5,2),  -- цифровая культура (две цифры после запятой)
+
+    perf_main_attestation        VARCHAR(16),
+    perf_first_retake            VARCHAR(16),
+    perf_second_retake           VARCHAR(16),
+    perf_high_grade_retake       VARCHAR(16),
+    perf_final_grade             VARCHAR(16),
+
+    -- Ограничение допустимых значений аттестаций
+    CONSTRAINT chk_attestation_values CHECK (
+        perf_main_attestation IN ('отл.', 'хор.', 'удовл.', 'неудовл', 'не явился') OR perf_main_attestation IS NULL
+    ),
+    CONSTRAINT chk_first_retake CHECK (
+        perf_first_retake IN ('отл.', 'хор.', 'удовл.', 'неудовл', 'не явился') OR perf_first_retake IS NULL
+    ),
+    CONSTRAINT chk_second_retake CHECK (
+        perf_second_retake IN ('отл.', 'хор.', 'удовл.', 'неудовл', 'не явился') OR perf_second_retake IS NULL
+    ),
+    CONSTRAINT chk_high_grade_retake CHECK (
+        perf_high_grade_retake IN ('отл.', 'хор.', 'удовл.', 'неудовл', 'не явился') OR perf_high_grade_retake IS NULL
+    ),
+    CONSTRAINT chk_final_grade CHECK (
+        perf_final_grade IN ('отл.', 'хор.', 'удовл.', 'неудовл', 'не явился') OR perf_final_grade IS NULL
+    )
+);

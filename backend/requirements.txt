@@ -16,3 +16,4 @@ pytest-django==4.11.1
 sqlparse==0.5.3
 typing_extensions==4.15.0
 tzdata==2025.2
+pandas==2.3.3
