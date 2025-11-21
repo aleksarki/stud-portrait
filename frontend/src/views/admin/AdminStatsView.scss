@@ -364,6 +364,108 @@
             text-align: center;
         }
     }
+
+    .list-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        
+        h3 {
+            margin: 0;
+            color: #495057;
+            font-size: 16px;
+            font-weight: 600;
+        }
+    }
+
+    .centers-list,
+    .institutions-list {
+        .centers-grid,
+        .institutions-grid {
+            display: grid;
+            gap: 8px;
+            
+            &.collapsed {
+                max-height: 300px;
+                overflow-y: auto;
+            }
+            
+            &.expanded {
+                max-height: 600px;
+                overflow-y: auto;
+            }
+        }
+        
+        .center-item,
+        .institution-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            
+            &:hover {
+                background: #e9ecef;
+                border-color: #dee2e6;
+            }
+            
+            .center-name,
+            .institution-name {
+                font-size: 13px;
+                color: #495057;
+                font-weight: 500;
+                flex: 1;
+            }
+            
+            .center-count,
+            .institution-count {
+                background: #007bff;
+                color: white;
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 11px;
+                font-weight: 600;
+                min-width: 40px;
+                text-align: center;
+            }
+        }
+    }
+
+    .no-data {
+        text-align: center;
+        padding: 40px 20px;
+        color: #6c757d;
+        font-style: italic;
+        background: #f8f9fa;
+        border-radius: 6px;
+        border: 1px dashed #dee2e6;
+    }
+
+    // Стили для скроллбара
+    .centers-grid,
+    .institutions-grid {
+        &::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        &::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        &::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+            
+            &:hover {
+                background: #a8a8a8;
+            }
+        }
+    }
 }
 
 @keyframes fadeIn {

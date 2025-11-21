@@ -17,6 +17,8 @@ function AdminStatsView() {
     const [pendingFilters, setPendingFilters] = useState([]);
     const [showFilters, setShowFilters] = useState(false);
     const [availableValues, setAvailableValues] = useState({});
+    const [showAllCenters, setShowAllCenters] = useState(false);
+    const [showAllInstitutions, setShowAllInstitutions] = useState(false);
 
     const linkList = [
         {to:'/admin/', title: "Главная"},
@@ -86,6 +88,7 @@ function AdminStatsView() {
             const data = await response.json();
             if (data.status === 'success') {
                 setStats(data.stats);
+                console.log(data.stats)
                 // Извлекаем доступные значения для фильтрации
                 if (data.stats.available_values) {
                     console.log('Available values:', data.stats.available_values);
@@ -483,7 +486,7 @@ function AdminStatsView() {
                                 <div className="stats-cards">
                                     <div className="stat-card">
                                         <div className="stat-value">{stats?.totalParticipants || 0}</div>
-                                        <div className="stat-label">Всего участников</div>
+                                        <div className="stat-label">Всего участников (с 2021 г.)</div>
                                     </div>
                                     <div className="stat-card">
                                         <div className="stat-value">{stats?.totalTests || 0}</div>
@@ -522,7 +525,7 @@ function AdminStatsView() {
                                             options={{
                                                 ...lineChartOptions,
                                                 xaxis: { categories: stats?.testsByYear?.years || [] },
-                                                yaxis: { title: { text: 'Количество тестирований' } }
+                                                yaxis: { title: { text: 'Количество студентов' } }
                                             }}
                                             series={[{
                                                 name: 'Тестирования',
@@ -578,6 +581,65 @@ function AdminStatsView() {
                                     </div>
                                 </div>
 
+                                {/* Списки всех центров и учебных заведений */}
+                                <div className="charts-row">
+                                    <div className="chart-container">
+                                        <div className="list-header">
+                                            <h3>Все центры компетенций ({stats?.uniqueCenters || 0})</h3>
+                                            <Button
+                                                text={showAllCenters ? 'Скрыть' : 'Показать все'}
+                                                onClick={() => setShowAllCenters(!showAllCenters)}
+                                                fg="white"
+                                                bg="#17a2b8"
+                                                hoverBg="#138496"
+                                            />
+                                        </div>
+                                        <div className="centers-list">
+                                            {stats?.available_values?.center && stats.available_values.center.length > 0 ? (
+                                                <div className={`centers-grid ${showAllCenters ? 'expanded' : 'collapsed'}`}>
+                                                    {stats.available_values.center.map((center, index) => (
+                                                        <div key={index} className="center-item">
+                                                            <span className="center-name">{center}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="no-data">
+                                                    Нет данных о центрах компетенций
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="chart-container">
+                                        <div className="list-header">
+                                            <h3>Все учебные заведения ({stats?.uniqueInstitutions || 0})</h3>
+                                            <Button
+                                                text={showAllInstitutions ? 'Скрыть' : 'Показать все'}
+                                                onClick={() => setShowAllInstitutions(!showAllInstitutions)}
+                                                fg="white"
+                                                bg="#17a2b8"
+                                                hoverBg="#138496"
+                                            />
+                                        </div>
+                                        <div className="institutions-list">
+                                            {stats?.available_values?.institution && stats.available_values.institution.length > 0 ? (
+                                                <div className={`institutions-grid ${showAllInstitutions ? 'expanded' : 'collapsed'}`}>
+                                                    {stats.available_values.institution.map((institution, index) => (
+                                                        <div key={index} className="institution-item">
+                                                            <span className="institution-name">{institution}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="no-data">
+                                                    Нет данных об учебных заведениях
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
                                 {/* Третий ряд диаграмм */}
                                 <div className="charts-row">
                                     <div className="chart-container">
@@ -601,7 +663,7 @@ function AdminStatsView() {
                                 <h2>Статистика по компетенциям</h2>
                                 {filters.length > 0 && (
                                     <div className="filtered-data-notice">
-                                        📊 Данные отображаются с примененными фильтрами
+                                        Данные отображаются с примененными фильтрами
                                     </div>
                                 )}
                                 <div className="charts-grid">
@@ -611,7 +673,12 @@ function AdminStatsView() {
                                             <Chart
                                                 options={{
                                                     ...lineChartOptions,
-                                                    xaxis: { categories: competence.years }
+                                                    xaxis: { 
+                                                        categories: competence.years,
+                                                        title: {
+                                                            text: 'Учебный год'
+                                                        }
+                                                    }
                                                 }}
                                                 series={[{
                                                     name: competence.name,
@@ -631,7 +698,7 @@ function AdminStatsView() {
                                 <h2>Статистика по мотиваторам</h2>
                                 {filters.length > 0 && (
                                     <div className="filtered-data-notice">
-                                        📊 Данные отображаются с примененными фильтрами
+                                        Данные отображаются с примененными фильтрами
                                     </div>
                                 )}
                                 <div className="charts-grid">
@@ -641,7 +708,12 @@ function AdminStatsView() {
                                             <Chart
                                                 options={{
                                                     ...lineChartOptions,
-                                                    xaxis: { categories: motivator.years }
+                                                    xaxis: { 
+                                                        categories: motivator.years,
+                                                        title: {
+                                                            text: 'Учебный год'
+                                                        }
+                                                    }
                                                 }}
                                                 series={[{
                                                     name: motivator.name,
@@ -661,7 +733,7 @@ function AdminStatsView() {
                                 <h2>Статистика по ценностям</h2>
                                 {filters.length > 0 && (
                                     <div className="filtered-data-notice">
-                                        📊 Данные отображаются с примененными фильтрами
+                                        Данные отображаются с примененными фильтрами
                                     </div>
                                 )}
                                 <div className="charts-grid">
@@ -671,7 +743,12 @@ function AdminStatsView() {
                                             <Chart
                                                 options={{
                                                     ...lineChartOptions,
-                                                    xaxis: { categories: value.years }
+                                                    xaxis: { 
+                                                        categories: value.years,
+                                                        title: {
+                                                            text: 'Учебный год'
+                                                        }
+                                                    }
                                                 }}
                                                 series={[{
                                                     name: value.name,
