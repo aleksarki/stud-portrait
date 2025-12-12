@@ -1,6 +1,5 @@
 
 -- Удаляем старые таблицы (если они были)
-DROP TABLE IF EXISTS ParticipantCourses CASCADE;
 DROP TABLE IF EXISTS Course CASCADE;
 DROP TABLE IF EXISTS Results CASCADE;
 DROP TABLE IF EXISTS Participants CASCADE;
@@ -9,6 +8,7 @@ DROP TABLE IF EXISTS Institutions CASCADE;
 DROP TABLE IF EXISTS CompetenceCenters CASCADE;
 DROP TABLE IF EXISTS EducationLevels CASCADE;
 DROP TABLE IF EXISTS StudyForms CASCADE;
+DROP TABLE IF EXISTS AcademicPerformance CASCADE;
 
 -- Учебное заведение
 CREATE TABLE Institutions
