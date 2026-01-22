@@ -1,109 +1,71 @@
 // utilities.js
 export const RESULT_PROFILES = {
-    competencies: {
-        key: 'competencies',
-        title: "Компетентностный профиль",
+    competences: {
+        key: 'competences',
+        title: "Компетенции",
         categories: {
-            universal: {
-                key: 'universal',
-                title: "Универсальный личностный опросник",
+            all_competences: {
+                key: 'all_competences',
+                title: "Все компетенции",
                 fields: [
-                    { key: 'res_uni_communication', label: 'Коммуникативность' },
-                    { key: 'res_uni_complex_thinking', label: 'Комплексное мышление' },
-                    { key: 'res_uni_command_work', label: 'Работа в команде' },
-                    { key: 'res_uni_methodicalness', label: 'Методичность' },
-                    { key: 'res_uni_stress_susceptib', label: 'Подверженность стрессу' },
-                    { key: 'res_uni_ambitousness', label: 'Амбициозность' },
-                    { key: 'res_uni_rules_compliance', label: 'Следование правилам' }
-                ]
-            },
-            competence: {
-                key: 'competence',
-                title: "Компетенции",
-                fields: [
-                    { key: 'res_comp_digital_analysis', label: 'Анализ числовой информации' },
-                    { key: 'res_comp_verbal_analysis', label: 'Анализ вербальной информации' }
-                ]
-            },
-            vitality: {
-                key: 'vitality',
-                title: "Жизнестойкость",
-                fields: [
-                    { key: 'res_vita_positive_self_attit', label: 'Положительное отношение к себе' },
-                    { key: 'res_vita_attit_twrd_future', label: 'Отношение к будущему' },
-                    { key: 'res_vita_organization', label: 'Организованность' },
-                    { key: 'res_vita_persistence', label: 'Настойчивость' }
-                ]
-            },
-            profile: {
-                key: 'profile',
-                title: "Индивидуальный профиль",
-                fields: [
-                    { key: 'res_prof_information_analysis', label: 'Анализ информации' },
-                    { key: 'res_prof_result_orientation', label: 'Ориентация на результат' },
-                    { key: 'res_prof_planning', label: 'Планирование' },
-                    { key: 'res_prof_stress_resistance', label: 'Стрессоустойчивость' },
-                    { key: 'res_prof_partnership', label: 'Партнёрство' },
-                    { key: 'res_prof_rules_compliance', label: 'Следование правилам' },
-                    { key: 'res_prof_self_development', label: 'Саморазвитие' },
-                    { key: 'res_prof_communication', label: 'Коммуникация' }
+                    { key: 'res_comp_info_analysis', label: 'Анализ информации' },
+                    { key: 'res_comp_planning', label: 'Планирование' },
+                    { key: 'res_comp_result_orientation', label: 'Ориентация на результат' },
+                    { key: 'res_comp_stress_resistance', label: 'Стрессоустойчивость' },
+                    { key: 'res_comp_partnership', label: 'Партнерство' },
+                    { key: 'res_comp_rules_compliance', label: 'Соблюдение правил' },
+                    { key: 'res_comp_self_development', label: 'Саморазвитие' },
+                    { key: 'res_comp_leadership', label: 'Лидерство' },
+                    { key: 'res_comp_emotional_intel', label: 'Эмоциональный интеллект' },
+                    { key: 'res_comp_client_focus', label: 'Клиентоориентированность' },
+                    { key: 'res_comp_communication', label: 'Коммуникация' },
+                    { key: 'res_comp_passive_vocab', label: 'Пассивный словарь' }
                 ]
             }
         }
     },
-    motivation: {
-        key: 'motivation',
-        title: "Мотивационный профиль",
+    motivators: {
+        key: 'motivators',
+        title: "Мотиваторы",
         categories: {
-            motivation: {
-                key: 'motivation',
-                title: "Мотивационно-ценностный профиль",
+            all_motivators: {
+                key: 'all_motivators',
+                title: "Все мотиваторы",
                 fields: [
-                    { key: 'res_mot_purpose', label: 'Смысл' },
-                    { key: 'res_mot_cooperation', label: 'Сотрудничество' },
-                    { key: 'res_mot_creativity', label: 'Креативность' },
-                    { key: 'res_mot_challenge', label: 'Вызов' },
                     { key: 'res_mot_autonomy', label: 'Автономия' },
-                    { key: 'res_mot_self_development', label: 'Саморазвитие' },
-                    { key: 'res_mot_recognition', label: 'Признание' },
-                    { key: 'res_mot_career', label: 'Карьера' },
-                    { key: 'res_mot_management', label: 'Управление' },
                     { key: 'res_mot_altruism', label: 'Альтруизм' },
+                    { key: 'res_mot_challenge', label: 'Вызов' },
+                    { key: 'res_mot_salary', label: 'Зарплата' },
+                    { key: 'res_mot_career', label: 'Карьера' },
+                    { key: 'res_mot_creativity', label: 'Креативность' },
                     { key: 'res_mot_relationships', label: 'Отношения' },
+                    { key: 'res_mot_recognition', label: 'Признание' },
                     { key: 'res_mot_affiliation', label: 'Принадлежность' },
-                    { key: 'res_mot_tradition', label: 'Традиция' },
-                    { key: 'res_mot_health', label: 'Здоровье' },
+                    { key: 'res_mot_self_development', label: 'Саморазвитие' },
+                    { key: 'res_mot_purpose', label: 'Цель' },
+                    { key: 'res_mot_cooperation', label: 'Сотрудничество' },
                     { key: 'res_mot_stability', label: 'Стабильность' },
-                    { key: 'res_mot_salary', label: 'Заработок' }
+                    { key: 'res_mot_tradition', label: 'Традиции' },
+                    { key: 'res_mot_management', label: 'Управление' },
+                    { key: 'res_mot_work_conditions', label: 'Условия работы' }
                 ]
             }
         }
     },
     values: {
         key: 'values',
-        title: "Ценностный профиль",
+        title: "Ценности",
         categories: {
-            leadership: {
-                key: 'leadership',
-                title: "Ценностные установки лидера",
-                fields: [
-                    { key: 'res_lead_awareness', label: 'Осознанность' },
-                    { key: 'res_lead_proactivity', label: 'Проактивность' },
-                    { key: 'res_lead_command_work', label: 'Работа с командой' },
-                    { key: 'res_lead_control', label: 'Контроль' },
-                    { key: 'res_lead_social_responsib', label: 'Социальная ответственность' }
-                ]
-            },
-            values: {
-                key: 'values',
-                title: "Ценностные ориентации",
+            all_values: {
+                key: 'all_values',
+                title: "Все ценности",
                 fields: [
                     { key: 'res_val_honesty_justice', label: 'Честность и справедливость' },
                     { key: 'res_val_humanism', label: 'Гуманизм' },
                     { key: 'res_val_patriotism', label: 'Патриотизм' },
-                    { key: 'res_val_family', label: 'Семейные ценности' },
-                    { key: 'res_val_health', label: 'Здоровый образ жизни' },
-                    { key: 'res_val_environment', label: 'Сохранение природы' }
+                    { key: 'res_val_family', label: 'Семья' },
+                    { key: 'res_val_health', label: 'Здоровье' },
+                    { key: 'res_val_environment', label: 'Окружающая среда' }
                 ]
             }
         }
@@ -164,67 +126,45 @@ export const FIELD_NAMES = {
 };
 
 export const CATEGORIES_DESCRIPTIONS = {
-  // Универсальный личностный опросник
-  res_uni_communication: "Стремление к общению и возможность вступать в контакт с разными категориями людей.",
-  res_uni_complex_thinking: "Склонность к генерации новых идей и обсуждению сложных концептуальных вопросов.",
-  res_uni_command_work: "Предрасположенность помогать другим людям и включаться в решение их проблем.",
-  res_uni_methodicalness: "Склонность погружаться в детали работы и следовать заданным срокам.",
-  res_uni_stress_susceptib: "Склонность к тревожным переживаниям и способность отключаться от имеющихся трудностей в работе. Низкие и высокие значения по данной шкале могут как положительно, так и отрицательно сказываться на деятельности.",
-  res_uni_ambitousness: "Стремление к амбициозным целям, достижению превосходства и первых позиций.",
-  res_uni_rules_compliance: "Склонность к действию в соответствии с существующими нормами, регламентами, процедурами и политикой.",
-  
-  // Мотивационно-ценностный профиль
-  res_mot_purpose: "Чувство того, что выполняемая работа важна и ценна для мира и общества.",
-  res_mot_cooperation: "Работа в команде, выгодное и комфортное сотрудничество, дополнительная ответственность.",
-  res_mot_creativity: "Возможность проявлять креативность.",
-  res_mot_challenge: "Задачи, связанные с высоким уровнем сложности, риска и неопределённости, стремление к поиску вызовов.",
-  res_mot_autonomy: "Возможность автономии в профессиональной деятельности.",
-  res_mot_self_development: "Возможность развиваться.",
-  res_mot_recognition: "Высокий статус, профессиональное достижение.",
-  res_mot_career: "Перспектива карьерного роста.",
-  res_mot_management: "Взятие на себя управленческих функций.",
-  res_mot_altruism: "Стремление заботиться о других людях и помогать им расти.",
-  res_mot_relationships: "Отношения в коллективе, тёплые отношения с коллегами.",
-  res_mot_affiliation: "Возможность разделять групповые ценности и миссию организации.",
-  res_mot_tradition: "Принятые в компании нормы и правила.",
-  res_mot_health: "Здоровье.",
-  res_mot_stability: "Восприятие профессиональных обязанностей как скучной, одинаковой рутины.",
-  res_mot_salary: "Материальное благополучие.",
-  
-  // Компетенции
-  res_comp_digital_analysis: "Способность корректно интерпретировать числовую информацию, осуществлять преобразования и расчёты.",
-  res_comp_verbal_analysis: "Способность корректно интерпретировать текстовую информацию и анализировать правильность различных утверждений.",
-  
-  // Жизнестойкость
-  res_vita_positive_self_attit: "Положительное восприятие себя помогает справляться с трудностями и контролировать свою жизнь. Жизнестойкие люди воспринимают себя самих позитивно, уверены в себе и своих возможностях.",
-  res_vita_attit_twrd_future: "Жизнестойкие люди высказывают более позитивные взгляды на жизнь и демонстрируют ориентацию на достижения, позитивные ожидания относительно своих роста и развития в будущем.",
-  res_vita_organization: "Умение планировать им организовывать свои действия связано с психологической адаптивностью и гибкостью. Жизнестойкие люди склонны к системному мышлению, владеют навыками организации, планирования, поддержания установленных (в том числе ими самими) правил.",
-  res_vita_persistence: "Нацеленность на достижение результата, доведение дел до конца, выполнение действий, способствующих приближению цели, несмотря на препятствия, трудности и разочарования, — основные условия жизнестойкого развития. Жизнестойкие люди склонны к настойчивости или даже упрямству в достижении поставленных целей.",
-  
-  // Ценностные установки лидера
-  res_lead_awareness: "Осознание собственных ценностей, убеждений и эмоций, которые побуждают к действию. Приверженность своим убеждениям и последовательное действие в соответствии с ними.",
-  res_lead_proactivity: "Инвестирование в собственные проекты. Осознание важности своих идей и готовность вкладывать в них силы.",
-  res_lead_command_work: "Разделение ответственности и полномочий в команде. Принятие предпочтений сотрудников при распределении задач. Готовность взять на себя ответственность за деятельность группы. Баланс использования различных точек зрения и работа с критикой.",
-  res_lead_control: "Готовность направлять действия других, брать на себя ответственность за деятельность группы и контролировать ход событий.",
-  res_lead_social_responsib: "Осознание того, что человек ответственно связан с обществом. Участие в общественной деятельности. Вера в важность изменений для создания лучшего мира, а также в то, что у коллектива или у одного человека есть силы для изменения общественного сознания. Поиск путей оптимизации и инициирование изменений.",
-  
-  // Индивидуальный профиль
-  res_prof_information_analysis: null,
-  res_prof_result_orientation: null,
-  res_prof_planning: null,
-  res_prof_stress_resistance: null,
-  res_prof_partnership: null,
-  res_prof_rules_compliance: null,
-  res_prof_self_development: null,
-  res_prof_communication: null,
-  
-  // Ценностные ориентации
-  res_val_honesty_justice: "Высокие нравственные идеалы, приоритет духовного над материальным, справедливость.",
-  res_val_humanism: "Взаимопомощь и взаимоуважение между людьми, высокая ценность человеческой жизни и милосердие, поддержание достоинства, прав и свобод всех людей.",
-  res_val_patriotism: "Служение Отечеству, гражданское участие в жизни своей страны и поддержание единства народов России.",
-  res_val_family: "Поддержание крепкой и устойчивой семьи как коллектива, преемственность поколений внутри семьи.",
-  res_val_health: "Забота о своём здоровье, в разрезе психического и физического (физиологического) благополучия и развитие человеческого потенциала.",
-  res_val_environment: "Бережное отношение к окружающей среде и принятие ответственности за сохранение природы."
+    // Компетенции
+    res_comp_info_analysis: "Способность анализировать и обрабатывать информацию",
+    res_comp_planning: "Умение планировать и организовывать работу",
+    res_comp_result_orientation: "Ориентация на достижение результатов",
+    res_comp_stress_resistance: "Способность работать в стрессовых ситуациях",
+    res_comp_partnership: "Умение выстраивать партнерские отношения",
+    res_comp_rules_compliance: "Следование установленным правилам и процедурам",
+    res_comp_self_development: "Стремление к саморазвитию и обучению",
+    res_comp_leadership: "Лидерские качества и способность вести за собой",
+    res_comp_emotional_intel: "Эмоциональный интеллект и понимание эмоций",
+    res_comp_client_focus: "Ориентация на потребности клиента",
+    res_comp_communication: "Коммуникативные навыки",
+    res_comp_passive_vocab: "Пассивный словарный запас",
+    
+    // Мотиваторы
+    res_mot_autonomy: "Стремление к самостоятельности и независимости в работе",
+    res_mot_altruism: "Желание помогать другим и приносить пользу обществу",
+    res_mot_challenge: "Стремление к сложным задачам и вызовам",
+    res_mot_salary: "Материальное вознаграждение как основной мотиватор",
+    res_mot_career: "Карьерный рост и профессиональное развитие",
+    res_mot_creativity: "Возможность проявлять креативность и творчество",
+    res_mot_relationships: "Важность хороших отношений в коллективе",
+    res_mot_recognition: "Признание достижений и заслуг",
+    res_mot_affiliation: "Чувство принадлежности к группе или организации",
+    res_mot_self_development: "Возможность для саморазвития и обучения",
+    res_mot_purpose: "Осмысленность работы и ее социальная значимость",
+    res_mot_cooperation: "Сотрудничество и командная работа",
+    res_mot_stability: "Стабильность и предсказуемость работы",
+    res_mot_tradition: "Следование традициям и устоявшимся нормам",
+    res_mot_management: "Стремление к управленческой деятельности",
+    res_mot_work_conditions: "Комфортные условия труда",
+    
+    // Ценности
+    res_val_honesty_justice: "Честность и справедливость как основные жизненные принципы",
+    res_val_humanism: "Гуманизм и уважение к человеческому достоинству",
+    res_val_patriotism: "Патриотизм и любовь к Родине",
+    res_val_family: "Семейные ценности и традиции",
+    res_val_health: "Здоровый образ жизни и забота о здоровье",
+    res_val_environment: "Забота об окружающей среде и экологии"
 };
 
 // Получение описания по ключу компетенции
@@ -346,30 +286,18 @@ export function prepareCategoryTableData(resultsData, profileKey, categoryKey) {
     const years = [...new Set(resultsData.map(item => item.res_year))].sort();
     
     const tableData = category.fields.map(field => {
-        const values = years.map((year, index) => {
+        const row = { 
+            competency: field.label, 
+            competencyKey: field.key 
+        };
+        
+        years.forEach(year => {
             const yearData = resultsData.find(item => item.res_year === year);
             const value = yearData?.[field.key] ?? null;
-            
-            let change = null;
-            let changePercent = null;
-            
-            if (value !== null && index > 0) {
-                const prevYearData = resultsData.find(item => item.res_year === years[index - 1]);
-                const prevValue = prevYearData?.[field.key];
-                if (prevValue !== null && prevValue !== undefined) {
-                    change = value - prevValue;
-                    changePercent = ((change / prevValue) * 100).toFixed(1);
-                }
-            }
-
-            return { year, value, change, changePercent };
+            row[year] = value !== null ? value : '-';
         });
 
-        return {
-            competency: field.label,
-            competencyKey: field.key,
-            values
-        };
+        return row;
     });
 
     return { tableData, years };
@@ -442,8 +370,8 @@ export function getCategoryDataForYear(resultsData, profileKey, categoryKey, yea
     category.fields.forEach(field => {
         const value = yearData[field.key];
         if (value !== null && value !== undefined) {
-        labels.push(field.label);
-        data.push(value);
+            labels.push(field.label);
+            data.push(value);
         }
     });
 

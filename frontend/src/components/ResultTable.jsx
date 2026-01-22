@@ -37,10 +37,10 @@ function ResultTable({ data, years, title }) {
     const handleCompetencyHover = (event, row) => {
         if (!tableRef.current) return;
 
-        // значения за все годы для этой компетенции
-        const values = row.values.map(valueData => valueData.value);
+        // Получаем значения за все годы для этой компетенции
+        const values = years.map(year => row[year] !== '-' ? row[year] : null);
         
-        // описание компетенции по ключу
+        // Описание компетенции по ключу
         const description = row.competencyKey ? CATEGORIES_DESCRIPTIONS[row.competencyKey] : null;
 
         const rect = event.target.getBoundingClientRect();
@@ -59,30 +59,38 @@ function ResultTable({ data, years, title }) {
         });
     };
 
-    // скрытие подсказки
+    // Скрытие подсказки
     const handleCompetencyLeave = () => {
         setTooltipData(prev => ({ ...prev, isVisible: false }));
     };
 
-    const renderValueWithChange = (valueData, yearIndex) => {
-        if (valueData.value === null) {
+    const renderValue = (value, yearIndex, row, year) => {
+        // Проверяем на null, undefined, '-', NaN и пустые строки
+        if (value === null || 
+            value === undefined || 
+            value === '-' || 
+            value === '' ||
+            (typeof value === 'number' && isNaN(value)) ||
+            (typeof value === 'string' && value.trim() === '')) {
             return <span className="no-data">—</span>;
         }
 
+        // Для числовых значений округляем до 1 знака после запятой
+        const displayValue = typeof value === 'number' ? 
+            Number.isInteger(value) ? value : value.toFixed(1) : 
+            value;
+
         return (
             <div className="value-with-change">
-                <div className="value">{valueData.value}</div>
-                {yearIndex > 0 && valueData.change !== null && (
-                    <div className={`change ${valueData.change > 0 ? 'positive' : valueData.change < 0 ? 'negative' : 'neutral'}`}>
-                        {valueData.change > 0 ? '↑' : valueData.change < 0 ? '↓' : '→'}
-                        {Math.abs(valueData.change)} ({valueData.changePercent}%)
-                    </div>
-                )}
+                <div className="value">{displayValue}</div>
             </div>
         );
     };
 
-    if (!data || data.length === 0) {
+    // Проверяем данные и преобразуем их если нужно
+    const normalizedData = Array.isArray(data) ? data : [];
+    
+    if (!normalizedData || normalizedData.length === 0) {
         return (
             <div className="result-table-container">
                 {title && <h3 className="table-title">{title}</h3>}
@@ -105,13 +113,12 @@ function ResultTable({ data, years, title }) {
                 />
             )}
             
-            
             <div className="table-wrapper">
                 <table className="results-table">
                     <thead>
                         <tr>
                             <th className="competency-header">Компетенция</th>
-                            {years.map(year => (
+                            {years && years.map(year => (
                                 <th key={year} className="year-header">
                                     {year}
                                 </th>
@@ -119,7 +126,7 @@ function ResultTable({ data, years, title }) {
                         </tr>
                     </thead>
                     <tbody>
-                        {data.map((row, rowIndex) => (
+                        {normalizedData.map((row, rowIndex) => (
                             <tr key={rowIndex}>
                                 <td 
                                     className="competency-cell"
@@ -127,21 +134,15 @@ function ResultTable({ data, years, title }) {
                                     onMouseLeave={handleCompetencyLeave}
                                 >
                                     <span className="competency-name">
-                                        {row.competency}
+                                        {row.competency || row.competencyName || 'Неизвестная компетенция'}
                                     </span>
                                 </td>
-                                {row.values.map((valueData, yearIndex) => (
+                                {years && years.map((year, yearIndex) => (
                                     <td 
                                         key={yearIndex}
                                         className="value-cell"
-                                        style={{
-                                            backgroundColor: getCellColorSmooth(
-                                                valueData.change, 
-                                                valueData.changePercent
-                                            )
-                                        }}
                                     >
-                                        {renderValueWithChange(valueData, yearIndex)}
+                                        {renderValue(row[year], yearIndex, row, year)}
                                     </td>
                                 ))}
                             </tr>

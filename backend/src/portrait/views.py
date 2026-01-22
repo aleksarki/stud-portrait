@@ -1693,3 +1693,134 @@ def format_result_for_export(result, visible_columns=None):
     return row
 
 
+@method('GET')
+@csrf_exempt
+def students(request):
+    """Получить список всех студентов"""
+    try:
+        students_list = Participants.objects.all().select_related(
+            'part_institution', 'part_spec', 'part_edu_level', 'part_form'
+        )
+        
+        students_data = []
+        for student in students_list:
+            student_data = {
+                'stud_id': student.part_id,
+                'stud_name': student.part_name,
+                'stud_gender': student.part_gender,
+                'institution': student.part_institution.inst_name if student.part_institution else None,
+                'specialty': student.part_spec.spec_name if student.part_spec else None,
+                'edu_level': student.part_edu_level.edu_level_name if student.part_edu_level else None,
+                'study_form': student.part_form.form_name if student.part_form else None,
+                'course_num': student.part_course_num
+            }
+            students_data.append(student_data)
+            
+        return successResponse({
+            "students": students_data,
+            "total_count": len(students_data)
+        })
+        
+    except Exception as e:
+        return exceptionResponse(e)
+
+
+@method('GET')
+@csrf_exempt
+def student_results(request):
+    """Получить результаты конкретного студента"""
+    stud_id = request.GET.get('stud_id')
+    
+    if not stud_id:
+        return errorResponse("stud_id parameter is required")
+    
+    try:
+        stud_id = int(stud_id)
+        
+        try:
+            # Ищем участника по part_id
+            participant = Participants.objects.select_related(
+                'part_institution', 'part_spec', 'part_edu_level', 'part_form'
+            ).get(part_id=stud_id)
+        except Participants.DoesNotExist:
+            return notFoundResponse("Student not found")
+        
+        results_list = []
+        for result in Results.objects.filter(res_participant=stud_id).select_related(
+            'res_center', 'res_institution', 'res_edu_level', 'res_form', 'res_spec'
+        ):
+            # Создаем плоскую структуру
+            result_data = {
+                'res_id': result.res_id,
+                'res_year': result.res_year,
+                'res_course_num': result.res_course_num,
+                'res_high_potential': result.res_high_potential,
+                'res_summary_report': result.res_summary_report,
+                
+                # Базовые данные
+                'center': result.res_center.center_name if result.res_center else None,
+                'institution': result.res_institution.inst_name if result.res_institution else None,
+                'edu_level': result.res_edu_level.edu_level_name if result.res_edu_level else None,
+                'study_form': result.res_form.form_name if result.res_form else None,
+                'specialty': result.res_spec.spec_name if result.res_spec else None,
+                
+                # Компетенции (разворачиваем из объекта competences)
+                'res_comp_info_analysis': result.res_comp_info_analysis,
+                'res_comp_planning': result.res_comp_planning,
+                'res_comp_result_orientation': result.res_comp_result_orientation,
+                'res_comp_stress_resistance': result.res_comp_stress_resistance,
+                'res_comp_partnership': result.res_comp_partnership,
+                'res_comp_rules_compliance': result.res_comp_rules_compliance,
+                'res_comp_self_development': result.res_comp_self_development,
+                'res_comp_leadership': result.res_comp_leadership,
+                'res_comp_emotional_intel': result.res_comp_emotional_intel,
+                'res_comp_client_focus': result.res_comp_client_focus,
+                'res_comp_communication': result.res_comp_communication,
+                'res_comp_passive_vocab': result.res_comp_passive_vocab,
+                
+                # Мотиваторы (разворачиваем из объекта motivators)
+                'res_mot_autonomy': float(result.res_mot_autonomy) if result.res_mot_autonomy else None,
+                'res_mot_altruism': float(result.res_mot_altruism) if result.res_mot_altruism else None,
+                'res_mot_challenge': float(result.res_mot_challenge) if result.res_mot_challenge else None,
+                'res_mot_salary': float(result.res_mot_salary) if result.res_mot_salary else None,
+                'res_mot_career': float(result.res_mot_career) if result.res_mot_career else None,
+                'res_mot_creativity': float(result.res_mot_creativity) if result.res_mot_creativity else None,
+                'res_mot_relationships': float(result.res_mot_relationships) if result.res_mot_relationships else None,
+                'res_mot_recognition': float(result.res_mot_recognition) if result.res_mot_recognition else None,
+                'res_mot_affiliation': float(result.res_mot_affiliation) if result.res_mot_affiliation else None,
+                'res_mot_self_development': float(result.res_mot_self_development) if result.res_mot_self_development else None,
+                'res_mot_purpose': float(result.res_mot_purpose) if result.res_mot_purpose else None,
+                'res_mot_cooperation': float(result.res_mot_cooperation) if result.res_mot_cooperation else None,
+                'res_mot_stability': float(result.res_mot_stability) if result.res_mot_stability else None,
+                'res_mot_tradition': float(result.res_mot_tradition) if result.res_mot_tradition else None,
+                'res_mot_management': float(result.res_mot_management) if result.res_mot_management else None,
+                'res_mot_work_conditions': float(result.res_mot_work_conditions) if result.res_mot_work_conditions else None,
+                
+                # Ценности (разворачиваем из объекта values)
+                'res_val_honesty_justice': result.res_val_honesty_justice,
+                'res_val_humanism': result.res_val_humanism,
+                'res_val_patriotism': result.res_val_patriotism,
+                'res_val_family': result.res_val_family,
+                'res_val_health': result.res_val_health,
+                'res_val_environment': result.res_val_environment,
+            }
+            results_list.append(result_data)
+            
+        return successResponse({
+            "student": {
+                "stud_id": participant.part_id,
+                "stud_name": participant.part_name,
+                "stud_gender": participant.part_gender,
+                "institution": participant.part_institution.inst_name if participant.part_institution else None,
+                "specialty": participant.part_spec.spec_name if participant.part_spec else None,
+                "edu_level": participant.part_edu_level.edu_level_name if participant.part_edu_level else None,
+                "study_form": participant.part_form.form_name if participant.part_form else None,
+                "course_num": participant.part_course_num
+            },
+            "results": results_list
+        })
+        
+    except ValueError:
+        return errorResponse("stud_id must be an integer")
+    except Exception as e:
+        return exceptionResponse(e)

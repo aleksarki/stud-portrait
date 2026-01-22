@@ -15,5 +15,8 @@ urlpatterns = [
     path("group-data/",              views.group_data,              name="group_data"),
 
     path("stats/",   views.stats_with_filters, name="stats"),
-    path("courses/", views.courses,            name="courses")
+    path("courses/", views.courses,            name="courses"),
+
+    path("students/", views.students, name="students"),
+    path("student-results/", views.student_results, name="student_results")
 ]

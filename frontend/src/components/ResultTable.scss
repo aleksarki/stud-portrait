@@ -10,12 +10,9 @@
 
     .no-data-message {
         text-align: center;
-        padding: 40px;
+        // padding: 40px;
         color: #666;
         font-size: 1.1rem;
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     .table-wrapper {
@@ -79,9 +76,12 @@
                 filter: brightness(0.95);
             }
 
+            // Исправленные стили для no-data
             .no-data {
-                color: #999;
-                font-style: italic;
+                color: #999 !important;
+                font-style: italic !important;
+                font-size: 14px;
+                padding: 0px 10px;
             }
 
             .value-with-change {
@@ -155,6 +155,10 @@
             }
 
             .value-cell {
+                .no-data {
+                    font-size: 12px !important;
+                }
+
                 .value-with-change {
                     .value {
                         font-size: 14px;

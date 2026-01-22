@@ -68,26 +68,20 @@ function StudentReportView() {
                     category.key
                 );
 
-                if (tableData.length > 0) {
-                    // ключи компетенций к данным таблицы
-                    const tableDataWithKeys = tableData.map(row => {
-                        // соответствующий field по label
-                        const field = category.fields.find(f => f.label === row.competency);
-                        return {
-                            ...row,
-                            competencyKey: field ? field.key : null
-                        };
-                    });
+                console.log('Table data for', category.key, tableData); // Для отладки
+                console.log('Years for', category.key, years); // Для отладки
 
+                if (tableData && tableData.length > 0) {
                     tables.push({
                         category: category,
                         title: category.title,
-                        tableData: tableDataWithKeys, // обновлённые данные с ключами
+                        tableData: tableData,
                         years: years
                     });
                 }
             });
 
+            console.log('All tables data:', tables); // Для отладки
             setTablesData(tables);
         };
 
