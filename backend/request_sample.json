@@ -99,6 +99,21 @@
         "course_cross_cultural_comm": "W",
         "course_mentoring": "X"
       }
+    },
+    {
+    "name": "Итоги успеваемости участников",
+    "start_row": 2,
+    "columns": {
+        "part_name": "B",
+        "perf_year": "A",
+        "perf_current_avg": "C",
+        "perf_digital_culture": "D",
+        "perf_main_attestation": "E",
+        "perf_first_retake": "F",
+        "perf_second_retake": "G",
+        "perf_high_grade_retake": "H",
+        "perf_final_grade": "I"
+        }
     }
   ]
 }

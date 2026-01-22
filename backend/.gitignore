@@ -9,3 +9,4 @@ __pycache__/
 .Python
 
 synthetic_fill_database.sql
+Dockerfile

@@ -15,7 +15,7 @@ import pandas as pd
 from .models import (
     Participants, Competencecenters as CompetenceCenters, Institutions,
     Educationlevels, Studyforms, Specialties,
-    Results, Course
+    Results, Course, Academicperformance
 )
 
 # Create your views here.
@@ -285,7 +285,6 @@ def results(request):
 
 @method('POST')
 @csrf_exempt
-@csrf_exempt
 def import_excel(request):
     if request.method != "POST":
         return JsonResponse({"error": "Use POST"}, status=405)
@@ -313,6 +312,11 @@ def import_excel(request):
             sheet_name = sheet_info["name"]
             start_row = sheet_info["start_row"]
             columns = sheet_info["columns"]
+
+            if sheet_name not in wb.sheetnames:
+                print(f"Лист '{sheet_name}' отсутствует — пропуск")
+                continue
+
             ws = wb[sheet_name]
 
             print(f"\n=== Обработка листа: {sheet_name} ===")
@@ -321,7 +325,7 @@ def import_excel(request):
                 # Проверка на "Итог"
                 b_value = row[1].value
                 if b_value and str(b_value).strip().lower() == "итог":
-                    print(f"⛔ Достигнут итоговый ряд — стоп для {sheet_name}")
+                    print(f"Достигнут итоговый ряд — стоп для {sheet_name}")
                     break
 
                 def get_col(col_letter):
@@ -410,7 +414,7 @@ def import_excel(request):
                     try:
                         participant = Participants.objects.get(part_name=participant_name)
                     except Participants.DoesNotExist:
-                        print(f"❌ Не найден участник '{participant_name}', пропуск")
+                        print(f"Не найден участник '{participant_name}', пропуск")
                         continue
 
                     Results.objects.filter(res_participant=participant).update(
@@ -470,6 +474,49 @@ def import_excel(request):
                             "course_mentoring": clean_value(row_data.get("course_mentoring"), "float"),
                         },
                     )
+                    updated_count += 1
+
+                # === Итоги успеваемости участников ===
+                elif sheet_name == "Итоги успеваемости участников":
+
+                    participant_name = clean_value(row_data.get("part_name"))
+                    if not participant_name:
+                        continue
+
+                    try:
+                        participant = Participants.objects.get(part_name=participant_name)
+                    except Participants.DoesNotExist:
+                        print(f"Не найден участник '{participant_name}', пропуск")
+                        continue
+
+                    # Год
+                    perf_year = clean_value(row_data.get("perf_year"))
+
+                    # Средние значения
+                    perf_current_avg = clean_value(row_data.get("perf_current_avg"), "float")
+                    perf_digital_culture = clean_value(row_data.get("perf_digital_culture"), "float")
+
+                    # Аттестации (строки)
+                    perf_main_attestation = clean_value(row_data.get("perf_main_attestation"))
+                    perf_first_retake = clean_value(row_data.get("perf_first_retake"))
+                    perf_second_retake = clean_value(row_data.get("perf_second_retake"))
+                    perf_high_grade_retake = clean_value(row_data.get("perf_high_grade_retake"))
+                    perf_final_grade = clean_value(row_data.get("perf_final_grade"))
+
+                    Academicperformance.objects.update_or_create(
+                        perf_part_id=participant.part_id,
+                        perf_year=perf_year,
+                        defaults={
+                            "perf_current_avg": perf_current_avg,
+                            "perf_digital_culture": perf_digital_culture,
+                            "perf_main_attestation": perf_main_attestation,
+                            "perf_first_retake": perf_first_retake,
+                            "perf_second_retake": perf_second_retake,
+                            "perf_high_grade_retake": perf_high_grade_retake,
+                            "perf_final_grade": perf_final_grade,
+                        }
+                    )
+
                     updated_count += 1
 
     return JsonResponse({"status": "success", "created": created_count, "updated": updated_count})
