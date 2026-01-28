@@ -8,18 +8,18 @@
 
         "edu_level_name": "L",
 
-        "inst_name": "K",
+        "inst_name": "I",
 
         "part_name": "C",
         "part_gender": "E",
-        "part_institution": "K",
+        "part_institution": "I",
         "part_spec": "O",
         "part_edu_level": "L",
         "part_form": "N",
         "part_course_num": "M",
 
         "res_center": "H",
-        "res_institution": "K",
+        "res_institution": "I",
         "res_edu_level": "L",
         "res_form": "N",
         "res_spec": "O",
