@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-$8wbe#x&7-o8$0-3bd&th8)+y=23h1p8%g&=6_uv4iulzn#ien
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -58,6 +58,9 @@ ROOT_URLCONF = 'studportrait.urls'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    # "http://26.239.72.204:3000"
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
 ]
 
 TEMPLATES = [
