@@ -49,13 +49,13 @@
         flex-wrap: nowrap;
 
         .sidebar {
-            position: relative;
+            position: sticky;
+            top: 50px;
             display: block;
             max-width: 260px;
-            //flex: 0 0 330px;
             flex-grow: 1;
-            height: 100vh;
-            overflow: auto;
+            height: calc(100vh - 50px);
+            overflow: hidden;
         }
 
         .content {
