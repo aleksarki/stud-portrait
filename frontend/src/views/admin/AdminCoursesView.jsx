@@ -166,6 +166,55 @@ function AdminCoursesView() {
         };
     };
 
+    const calculateActualCompletedCoursesNumber_ = course => {
+        let total = 0;
+        if (course.course_an_dec != 0 )
+            ++total;
+        if (course.course_burnout != 0 )
+            ++total;
+        if (course.course_career_management != 0 )
+            ++total;
+        if (course.course_client_focus != 0 )
+            ++total;
+        if (course.course_collaboration != 0 )
+            ++total;
+        if (course.course_communication != 0 )
+            ++total;
+        if (course.course_conflict_management != 0 )
+            ++total;
+        if (course.course_creativity_tech != 0 )
+            ++total;
+        if (course.course_cross_cultural_comm != 0 )
+            ++total;
+        if (course.course_digital_comm != 0 )
+            ++total;
+        if (course.course_effective_learning != 0 )
+            ++total;
+        if (course.course_emotions_communication != 0 )
+            ++total;
+        if (course.course_entrepreneurship != 0 )
+            ++total;
+        if (course.course_leadership != 0 )
+            ++total;
+        if (course.course_mentoring != 0 )
+            ++total;
+        if (course.course_negotiations != 0 )
+            ++total;
+        if (course.course_planning_org != 0 )
+            ++total;
+        if (course.course_result_orientation != 0 )
+            ++total;
+        if (course.course_rules_culture != 0 )
+            ++total;
+        if (course.course_self_dev != 0 )
+            ++total;
+        if (course.course_stress_resistance != 0 )
+            ++total;
+        if (course.course_trendwatching != 0 )
+            ++total;
+        return total;
+    };
+
     if (loading) {
         return (
             <div className="AdminCoursesView">
@@ -285,7 +334,7 @@ function AdminCoursesView() {
                                                             {course.participant?.part_name}
                                                         </div>
                                                         <div className="participant-stats">
-                                                            Пройдено: {calculateParticipantStats(course.participant?.part_id).completed}/
+                                                            Пройдено: {calculateActualCompletedCoursesNumber_(course)}/
                                                             {calculateParticipantStats(course.participant?.part_id).total} курсов
                                                         </div>
                                                     </div>
