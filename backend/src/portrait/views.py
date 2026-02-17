@@ -9,8 +9,8 @@ from django.db import transaction
 from django.utils import timezone
 import uuid
 import pandas as pd
-
-
+import numpy as np
+from collections import defaultdict
 
 from .models import (
     Participants, Competencecenters as CompetenceCenters, Institutions,
@@ -94,6 +94,11 @@ def results(request):
         results_query = Results.objects.all().select_related(
             'res_participant', 'res_center', 'res_institution',
             'res_edu_level', 'res_form', 'res_spec'
+        ).exclude(
+            res_course_num__isnull=True
+        ).order_by(
+            "res_participant_id",
+            "res_course_num"
         )
         
         # Фильтры (оставляем для поиска)
@@ -375,6 +380,7 @@ def import_excel(request):
                     # Создаём или обновляем результат
                     result, created_res = Results.objects.get_or_create(
                         res_participant=participant,
+                        res_year=clean_value(row_data.get("res_year")),
                         defaults={
                             "res_center": center,
                             "res_institution": institution,
@@ -382,7 +388,6 @@ def import_excel(request):
                             "res_form": form,
                             "res_spec": spec,
                             "res_course_num": clean_value(row_data.get("res_course_num"), "int"),
-                            "res_year": clean_value(row_data.get("res_year")),
                             "res_high_potential": clean_value(row_data.get("res_high_potential")),
                             "res_summary_report": clean_value(row_data.get("res_summary_report")),
                         },
@@ -417,7 +422,10 @@ def import_excel(request):
                         print(f"Не найден участник '{participant_name}', пропуск")
                         continue
 
-                    Results.objects.filter(res_participant=participant).update(
+                    Results.objects.filter(
+                        res_participant=participant,
+                        res_year=clean_value(row_data.get("res_year"))
+                        ).update(
                         res_mot_autonomy=clean_value(row_data.get("res_mot_autonomy"), "float"),
                         res_mot_altruism=clean_value(row_data.get("res_mot_altruism"), "float"),
                         res_mot_challenge=clean_value(row_data.get("res_mot_challenge"), "float"),
@@ -1870,4 +1878,512 @@ def student_results(request):
     except ValueError:
         return errorResponse("stud_id must be an integer")
     except Exception as e:
+        return exceptionResponse(e)
+
+@csrf_exempt
+def value_added_improved(request):
+    """
+    Улучшенная модель Value-Added для анализа развития компетенций.
+    
+    Поддерживает два подхода:
+    1. Cross-sectional VAM - для всех студентов (сравнение с нормой курса)
+    2. Longitudinal VAM - для студентов с повторными замерами (личный прогресс)
+    """
+    
+    session_id = request.GET.get("session_id")
+    institution_id = request.GET.get("institution")
+    direction_name = request.GET.get("direction")
+    course_filter = request.GET.get("course")
+    analysis_type = request.GET.get("type", "cross_sectional")  # или "longitudinal"
+
+    # Компетенции
+    competencies = [
+        "res_comp_leadership",
+        "res_comp_communication", 
+        "res_comp_self_development",
+        "res_comp_result_orientation",
+        "res_comp_stress_resistance",
+        "res_comp_client_focus",
+        "res_comp_planning",
+        "res_comp_info_analysis",
+        "res_comp_partnership",
+        "res_comp_rules_compliance",
+        "res_comp_emotional_intel",
+        "res_comp_passive_vocab"
+    ]
+
+    # Загрузка данных
+    results = Results.objects.select_related(
+        "res_participant",
+        "res_participant__part_institution",
+        "res_participant__part_spec"
+    ).exclude(
+        res_course_num__isnull=True
+    ).order_by(
+        "res_participant_id",
+        "res_year",
+        "res_course_num"
+    )
+
+    # Фильтрация
+    if institution_id:
+        results = results.filter(
+            res_participant__part_institution__inst_id=institution_id
+        )
+    if direction_name:
+        results = results.filter(
+            res_participant__part_spec__spec_name=direction_name
+        )
+    if course_filter:
+        results = results.filter(res_course_num=course_filter)
+
+    results_list = list(results)
+
+    # ========================================
+    # CROSS-SECTIONAL VAM (для всех студентов)
+    # ========================================
+    if analysis_type == "cross_sectional":
+        return calculate_cross_sectional_vam(results_list, competencies)
+    
+    # ========================================
+    # LONGITUDINAL VAM (только повторные замеры)
+    # ========================================
+    elif analysis_type == "longitudinal":
+        return calculate_longitudinal_vam(results_list, competencies)
+    
+    # ========================================
+    # COMPARISON (сравнение групп)
+    # ========================================
+    elif analysis_type == "comparison":
+        return calculate_comparison_vam(results_list, competencies)
+
+    return JsonResponse({"status": "error", "message": "Invalid analysis type"})
+
+
+def calculate_cross_sectional_vam(results_list, competencies):
+    """
+    Cross-Sectional VAM: Сравнение каждого студента с нормой его курса.
+    Работает для ВСЕХ студентов, даже с одним замером.
+    """
+    
+    # 1. Вычисляем средние значения по курсам (эталон)
+    course_means = defaultdict(lambda: {comp: [] for comp in competencies})
+    
+    for row in results_list:
+        course = row.res_course_num
+        for comp in competencies:
+            value = getattr(row, comp)
+            if value is not None:
+                course_means[course][comp].append(float(value))
+    
+    # Средние по курсам
+    course_baselines = {}
+    for course, comp_data in course_means.items():
+        course_baselines[course] = {}
+        for comp, values in comp_data.items():
+            if values:
+                course_baselines[course][comp] = np.mean(values)
+    
+    # 2. Вычисляем VAM для каждого студента
+    data = []
+    
+    for row in results_list:
+        course = row.res_course_num
+        participant = row.res_participant
+        
+        if course not in course_baselines:
+            continue
+        
+        vam_by_competency = {}
+        vam_values = []
+        
+        for comp in competencies:
+            actual = getattr(row, comp)
+            
+            if actual is None or comp not in course_baselines[course]:
+                continue
+            
+            expected = course_baselines[course][comp]
+            vam = float(actual) - expected
+            
+            vam_by_competency[comp] = round(vam, 3)
+            vam_values.append(vam)
+        
+        if not vam_values:
+            continue
+        
+        mean_vam = np.mean(vam_values)
+        
+        data.append({
+            "participant_id": row.res_participant_id,
+            "participant_name": participant.part_name if participant else "Unknown",
+            "year": row.res_year,
+            "course": course,
+            "mean_vam": round(mean_vam, 3),
+            "vam_by_competency": vam_by_competency,
+            "institution_id": (
+                participant.part_institution.inst_id
+                if participant and participant.part_institution else None
+            ),
+            "institution_name": (
+                participant.part_institution.inst_name
+                if participant and participant.part_institution else None
+            ),
+            "direction": (
+                participant.part_spec.spec_name
+                if participant and participant.part_spec else None
+            ),
+            "analysis_type": "cross_sectional"
+        })
+    
+    return JsonResponse({
+        "status": "success",
+        "data": data,
+        "total_students": len(data),
+        "course_baselines": {
+            course: {comp: round(val, 3) for comp, val in baselines.items()}
+            for course, baselines in course_baselines.items()
+        }
+    })
+
+
+def calculate_longitudinal_vam(results_list, competencies):
+    """
+    Longitudinal VAM: Отслеживание личного прогресса студентов.
+    Работает только для студентов с несколькими замерами.
+    """
+    
+    # Группировка по студентам
+    grouped = defaultdict(list)
+    for row in results_list:
+        grouped[row.res_participant_id].append(row)
+    
+    # Фильтруем только студентов с 2+ замерами
+    grouped = {k: v for k, v in grouped.items() if len(v) >= 2}
+    
+    # Строим регрессионные модели
+    regression_data = {comp: {"x": [], "y": []} for comp in competencies}
+    
+    for rows in grouped.values():
+        for i in range(1, len(rows)):
+            prev_row = rows[i - 1]
+            curr_row = rows[i]
+            
+            for comp in competencies:
+                prev_score = getattr(prev_row, comp)
+                curr_score = getattr(curr_row, comp)
+                
+                if prev_score is not None and curr_score is not None:
+                    regression_data[comp]["x"].append(float(prev_score))
+                    regression_data[comp]["y"].append(float(curr_score))
+    
+    # Вычисляем коэффициенты регрессии
+    regression_models = {}
+    
+    for comp in competencies:
+        X = regression_data[comp]["x"]
+        Y = regression_data[comp]["y"]
+        
+        if len(X) < 5:
+            continue
+        
+        n = len(X)
+        mean_x = np.mean(X)
+        mean_y = np.mean(Y)
+        
+        numerator = sum((X[i] - mean_x) * (Y[i] - mean_y) for i in range(n))
+        denominator = sum((X[i] - mean_x) ** 2 for i in range(n))
+        
+        if denominator == 0:
+            continue
+        
+        a = numerator / denominator
+        b = mean_y - a * mean_x
+        
+        regression_models[comp] = (a, b)
+    
+    # Вычисляем VAM для каждого студента
+    data = []
+    
+    for participant_id, rows in grouped.items():
+        participant = rows[0].res_participant
+        
+        for i in range(1, len(rows)):
+            prev_row = rows[i - 1]
+            curr_row = rows[i]
+            
+            vam_by_competency = {}
+            vam_values = []
+            
+            for comp in competencies:
+                if comp not in regression_models:
+                    continue
+                
+                prev_score = getattr(prev_row, comp)
+                curr_score = getattr(curr_row, comp)
+                
+                if prev_score is None or curr_score is None:
+                    continue
+                
+                a, b = regression_models[comp]
+                predicted = a * float(prev_score) + b
+                vam = float(curr_score) - predicted
+                
+                vam_by_competency[comp] = round(vam, 3)
+                vam_values.append(vam)
+            
+            if not vam_values:
+                continue
+            
+            mean_vam = np.mean(vam_values)
+            
+            data.append({
+                "participant_id": participant_id,
+                "participant_name": participant.part_name if participant else "Unknown",
+                "from_year": prev_row.res_year,
+                "to_year": curr_row.res_year,
+                "from_course": prev_row.res_course_num,
+                "to_course": curr_row.res_course_num,
+                "mean_vam": round(mean_vam, 3),
+                "vam_by_competency": vam_by_competency,
+                "institution_id": (
+                    participant.part_institution.inst_id
+                    if participant and participant.part_institution else None
+                ),
+                "institution_name": (
+                    participant.part_institution.inst_name
+                    if participant and participant.part_institution else None
+                ),
+                "direction": (
+                    participant.part_spec.spec_name
+                    if participant and participant.part_spec else None
+                ),
+                "analysis_type": "longitudinal"
+            })
+    
+    return JsonResponse({
+        "status": "success",
+        "data": data,
+        "total_students": len(grouped),
+        "total_transitions": len(data),
+        "regression_models": {
+            comp: {"a": round(a, 4), "b": round(b, 4)}
+            for comp, (a, b) in regression_models.items()
+        }
+    })
+
+
+def calculate_comparison_vam(results_list, competencies):
+    """
+    Сравнительный анализ: Группировка по ВУЗам/направлениям для проверки гипотезы.
+    """
+    
+    # Группировка по институтам и направлениям
+    groups = defaultdict(lambda: {comp: [] for comp in competencies})
+    
+    for row in results_list:
+        participant = row.res_participant
+        
+        if not participant:
+            continue
+        
+        # Ключ группы: (institution, direction, course)
+        group_key = (
+            participant.part_institution.inst_name if participant.part_institution else "Unknown",
+            participant.part_spec.spec_name if participant.part_spec else "Unknown",
+            row.res_course_num
+        )
+        
+        for comp in competencies:
+            value = getattr(row, comp)
+            if value is not None:
+                groups[group_key][comp].append(float(value))
+    
+    # Вычисляем статистику по группам
+    data = []
+    
+    for (institution, direction, course), comp_data in groups.items():
+        group_stats = {
+            "institution": institution,
+            "direction": direction,
+            "course": course,
+            "student_count": len(comp_data[competencies[0]]) if comp_data[competencies[0]] else 0
+        }
+        
+        # Средние по компетенциям
+        competency_means = {}
+        all_means = []
+        
+        for comp in competencies:
+            values = comp_data[comp]
+            if values:
+                mean = np.mean(values)
+                competency_means[comp] = round(mean, 3)
+                all_means.append(mean)
+        
+        if all_means:
+            group_stats["mean_all_competencies"] = round(np.mean(all_means), 3)
+            group_stats["competency_means"] = competency_means
+            data.append(group_stats)
+    
+    return JsonResponse({
+        "status": "success",
+        "data": data,
+        "total_groups": len(data)
+    })
+
+
+# ========================================
+# Дополнительная функция для сводной статистики
+# ========================================
+
+@csrf_exempt
+def vam_summary_statistics(request):
+    """
+    Сводная статистика для понимания данных и выбора подхода к анализу.
+    """
+    
+    results = Results.objects.select_related(
+        "res_participant"
+    ).exclude(
+        res_course_num__isnull=True
+    ).order_by(
+        "res_participant_id",
+        "res_year"
+    )
+    
+    # Подсчёт замеров по студентам
+    student_measurements = defaultdict(int)
+    
+    for row in results:
+        student_measurements[row.res_participant_id] += 1
+    
+    # Распределение по количеству замеров
+    distribution = defaultdict(int)
+    for count in student_measurements.values():
+        distribution[count] += 1
+    
+    # Распределение по курсам
+    course_distribution = defaultdict(int)
+    for row in results:
+        course_distribution[row.res_course_num] += 1
+    
+    # Распределение по годам
+    year_distribution = defaultdict(int)
+    for row in results:
+        year_distribution[row.res_year] += 1
+    
+    return JsonResponse({
+        "status": "success",
+        "total_students": len(student_measurements),
+        "total_measurements": sum(student_measurements.values()),
+        "measurements_distribution": dict(distribution),
+        "longitudinal_eligible": sum(1 for c in student_measurements.values() if c >= 2),
+        "course_distribution": dict(course_distribution),
+        "year_distribution": dict(year_distribution),
+        "recommendation": (
+            "Рекомендуем использовать Cross-Sectional VAM, так как только "
+            f"{sum(1 for c in student_measurements.values() if c >= 2)} студентов "
+            f"({round(100 * sum(1 for c in student_measurements.values() if c >= 2) / len(student_measurements), 1)}%) "
+            "имеют повторные замеры для Longitudinal VAM."
+        )
+    })
+
+@method('GET')
+@csrf_exempt
+def get_filter_options(request):
+    """
+    Возвращает доступные опции для фильтров (ВУЗы, направления, курсы)
+    """
+    try:
+        session_id = request.GET.get('session_id')
+        
+        print(f"=== get_filter_options called ===")
+        print(f"session_id: {session_id}")
+        print(f"Available sessions: {list(data_view_sessions.keys())}")
+        
+        # Проверка сессии НЕ обязательна для этого endpoint
+        # Можем вернуть данные и без сессии
+        if session_id and session_id in data_view_sessions:
+            session = data_view_sessions[session_id]
+            session.update_activity()
+            print("Session found and updated")
+        else:
+            print("No valid session, but continuing anyway")
+        
+        # Получаем уникальные значения для фильтров
+        
+        # Институты
+        print("Fetching institutions...")
+        institutions = Institutions.objects.all().values('inst_id', 'inst_name').order_by('inst_name')
+        institutions_list = [
+            {'id': inst['inst_id'], 'name': inst['inst_name']} 
+            for inst in institutions
+        ]
+        print(f"Found {len(institutions_list)} institutions")
+        if institutions_list:
+            print(f"First institution: {institutions_list[0]}")
+        
+        # Направления (специальности)
+        print("Fetching directions...")
+        directions = Specialties.objects.all().values_list('spec_name', flat=True).distinct().order_by('spec_name')
+        directions_list = list(directions)
+        print(f"Found {len(directions_list)} directions")
+        if directions_list:
+            print(f"First direction: {directions_list[0]}")
+        
+        # Курсы (обычно 1-6)
+        print("Fetching courses...")
+        courses = Results.objects.filter(
+            res_course_num__isnull=False
+        ).values_list('res_course_num', flat=True).distinct().order_by('res_course_num')
+        courses_list = list(courses)
+        print(f"Found {len(courses_list)} courses: {courses_list}")
+        
+        # Годы
+        print("Fetching years...")
+        years = Results.objects.filter(
+            res_year__isnull=False
+        ).values_list('res_year', flat=True).distinct().order_by('res_year')
+        years_list = list(years)
+        print(f"Found {len(years_list)} years")
+        
+        # Центры компетенций
+        print("Fetching centers...")
+        centers = CompetenceCenters.objects.all().values_list('center_name', flat=True).distinct().order_by('center_name')
+        centers_list = list(centers)
+        print(f"Found {len(centers_list)} centers")
+        
+        # Уровни образования
+        print("Fetching edu_levels...")
+        edu_levels = Educationlevels.objects.all().values_list('edu_level_name', flat=True).distinct().order_by('edu_level_name')
+        edu_levels_list = list(edu_levels)
+        print(f"Found {len(edu_levels_list)} edu_levels")
+        
+        # Формы обучения
+        print("Fetching study_forms...")
+        study_forms = Studyforms.objects.all().values_list('form_name', flat=True).distinct().order_by('form_name')
+        study_forms_list = list(study_forms)
+        print(f"Found {len(study_forms_list)} study_forms")
+        
+        response_data = {
+            "data": {
+                "institutions": institutions_list,
+                "directions": directions_list,
+                "courses": courses_list,
+                "years": years_list,
+                "centers": centers_list,
+                "edu_levels": edu_levels_list,
+                "study_forms": study_forms_list
+            }
+        }
+        
+        print(f"Returning response with {len(institutions_list)} institutions, {len(directions_list)} directions, {len(courses_list)} courses")
+        
+        return successResponse(response_data)
+        
+    except Exception as e:
+        print(f"ERROR in get_filter_options: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return exceptionResponse(e)
