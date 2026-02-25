@@ -53,6 +53,7 @@
             top: 50px;
             display: block;
             max-width: 260px;
+            min-width: 200px;
             flex-grow: 1;
             height: calc(100vh - 50px);
             overflow: hidden;

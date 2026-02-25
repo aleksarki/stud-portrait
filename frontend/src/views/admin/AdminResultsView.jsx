@@ -975,54 +975,53 @@ function AdminResultsView() {
                             </div>
                         ) : (
                             <div className="table-scroll-container">
-                                <div className="table-wrapper">
-                                    <table className="results-table">
-                                        <thead>
-                                            <tr>
-                                                <th className="sticky-col">
+                                <table className="results-table">
+                                    <thead>
+                                        <tr>
+                                            <th className="sticky-col">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedRows.size === results.length && results.length > 0}
+                                                    onChange={handleSelectAll}
+                                                    disabled={!sessionId}
+                                                />
+                                            </th>
+                                            {visibleColumns.map(fieldKey => (
+                                                <th 
+                                                    key={fieldKey} 
+                                                    onClick={() => handleSort(fieldKey)}
+                                                    className={`${getColumnClass(fieldKey)} ${hiddenColumns.has(fieldKey) ? 'hidden' : ''}`}
+                                                >
+                                                    {FIELD_NAMES[fieldKey]} {getSortIcon(fieldKey)}
+                                                </th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {results.map((result) => (
+                                            <tr key={result.res_id} className={selectedRows.has(result.res_id) ? 'selected' : ''}>
+                                                <td className="sticky-col">
                                                     <input
                                                         type="checkbox"
-                                                        checked={selectedRows.size === results.length && results.length > 0}
-                                                        onChange={handleSelectAll}
+                                                        checked={selectedRows.has(result.res_id)}
+                                                        onChange={() => handleRowSelect(result.res_id)}
                                                         disabled={!sessionId}
                                                     />
-                                                </th>
+                                                </td>
                                                 {visibleColumns.map(fieldKey => (
-                                                    <th 
-                                                        key={fieldKey} 
-                                                        onClick={() => handleSort(fieldKey)}
-                                                        className={`${getColumnClass(fieldKey)} ${hiddenColumns.has(fieldKey) ? 'hidden' : ''}`}
+                                                    <td 
+                                                        key={fieldKey}
+                                                        className={`${getColumnClass(fieldKey)} ${getValueColorClass(getFieldValue(result, fieldKey), fieldKey)}`}
+                                                        title={renderTableCell(result, fieldKey)}
                                                     >
-                                                        {FIELD_NAMES[fieldKey]} {getSortIcon(fieldKey)}
-                                                    </th>
+                                                        {renderTableCell(result, fieldKey)}
+                                                    </td>
                                                 ))}
                                             </tr>
-                                        </thead>
-                                        <tbody>
-                                            {results.map((result) => (
-                                                <tr key={result.res_id} className={selectedRows.has(result.res_id) ? 'selected' : ''}>
-                                                    <td className="sticky-col">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={selectedRows.has(result.res_id)}
-                                                            onChange={() => handleRowSelect(result.res_id)}
-                                                            disabled={!sessionId}
-                                                        />
-                                                    </td>
-                                                    {visibleColumns.map(fieldKey => (
-                                                        <td 
-                                                            key={fieldKey}
-                                                            className={`${getColumnClass(fieldKey)} ${getValueColorClass(getFieldValue(result, fieldKey), fieldKey)}`}
-                                                            title={renderTableCell(result, fieldKey)}
-                                                        >
-                                                            {renderTableCell(result, fieldKey)}
-                                                        </td>
-                                                    ))}
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                
                                 {results.length === 0 && !loading && sessionId && (
                                     <div className="no-data">
                                         <div className="no-data-icon">📊</div>
