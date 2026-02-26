@@ -10,6 +10,12 @@ urlpatterns = [
 
     path("get-filter-options/", views.get_filter_options, name="get_filter_options"),
 
+    path("get-institution-directions/", views.get_institution_directions, name="get_institution_directions"),
+    path("get-vam-comparison/", views.get_vam_comparison, name="get_vam_comparison"),
+
+    path("get-filter-options-with-counts/", views.get_filter_options_with_counts, name="get_filter_options_with_counts"),
+    path("get-vam-unified/", views.get_vam_unified, name="get_vam_unified"),
+
     path("create-data-session/",     views.create_data_session,     name="create_data_session"),
     path("get-session-data/",        views.get_session_data,        name="get_session_data"),
     path("update-session-filters/",  views.update_session_filters,  name="update_session_filters"),

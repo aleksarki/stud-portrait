@@ -4,11 +4,6 @@ import {
     Bar,
     LineChart,
     Line,
-    RadarChart,
-    Radar,
-    PolarGrid,
-    PolarAngleAxis,
-    PolarRadiusAxis,
     XAxis,
     YAxis,
     CartesianGrid,
@@ -21,8 +16,14 @@ import Header from "../../components/Header";
 import SidebarLayout from "../../components/SidebarLayout";
 import Sidepanel from "../../components/Sidepanel";
 import Button from '../../components/ui/Button.jsx';
+import MultiSelect from '../../components/MultiSelect';
 
 import "./AdminAnalysisView.scss";
+
+const COLORS = [
+    '#1976d2', '#d32f2f', '#388e3c', '#f57c00', '#7b1fa2',
+    '#0288d1', '#c2185b', '#5d4037', '#00796b', '#fbc02d',
+];
 
 function AdminAnalysisView() {
 
@@ -30,56 +31,26 @@ function AdminAnalysisView() {
 
     const [sessionId, setSessionId] = useState(null);
     const [rawData, setRawData] = useState([]);
+    const [groupedData, setGroupedData] = useState(null);
     const [chartData, setChartData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [summaryStats, setSummaryStats] = useState(null);
 
-    // Тип анализа
-    const [analysisType, setAnalysisType] = useState("cross_sectional"); // cross_sectional, longitudinal, comparison
-    
-    // Тип визуализации
-    const [visualizationType, setVisualizationType] = useState("bar"); // bar, line, radar, comparison
+    const [visualizationType, setVisualizationType] = useState("bar");
 
-    // Фильтры
-    const [selectedInstitution, setSelectedInstitution] = useState("");
-    const [selectedDirection, setSelectedDirection] = useState("");
-    const [selectedCourse, setSelectedCourse] = useState("");
+    // Multi-select фильтры
+    const [selectedInstitutions, setSelectedInstitutions] = useState([]);
+    const [selectedDirections, setSelectedDirections] = useState([]);
+    const [selectedCourses, setSelectedCourses] = useState([]);
+    const [selectedTestAttempts, setSelectedTestAttempts] = useState([]);
 
     const [filterOptions, setFilterOptions] = useState({
         institutions: [],
         directions: [],
-        courses: []
+        allDirections: [],
+        courses: [],
+        testAttempts: []
     });
-
-    const competencies = [
-        "res_comp_info_analysis",
-        "res_comp_planning",
-        "res_comp_result_orientation",
-        "res_comp_stress_resistance",
-        "res_comp_partnership",
-        "res_comp_rules_compliance",
-        "res_comp_self_development",
-        "res_comp_leadership",
-        "res_comp_emotional_intel",
-        "res_comp_client_focus",
-        "res_comp_communication",
-        "res_comp_passive_vocab"
-    ];
-
-    const competencyLabels = {
-        "res_comp_info_analysis": "Анализ информации",
-        "res_comp_planning": "Планирование",
-        "res_comp_result_orientation": "Ориентация на результат",
-        "res_comp_stress_resistance": "Стрессоустойчивость",
-        "res_comp_partnership": "Партнёрство",
-        "res_comp_rules_compliance": "Соблюдение правил",
-        "res_comp_self_development": "Саморазвитие",
-        "res_comp_leadership": "Лидерство",
-        "res_comp_emotional_intel": "Эмоц. интеллект",
-        "res_comp_client_focus": "Клиентоориентир.",
-        "res_comp_communication": "Коммуникация",
-        "res_comp_passive_vocab": "Пассивный словарь"
-    };
 
     const linkList = [
         {to:'/admin/', title: "Главная"},
@@ -108,7 +79,7 @@ function AdminAnalysisView() {
 
                 if (json.status === "success") {
                     setSessionId(json.session_id);
-                    await loadFilterOptions(json.session_id);
+                    await loadFilterOptions(json.session_id, false);  // Первая загрузка БЕЗ фильтров
                     await loadVAMData(json.session_id);
                 }
 
@@ -123,32 +94,6 @@ function AdminAnalysisView() {
         loadSummaryStats();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
-
-    const createSession = async () => {
-        setLoading(true);
-        try {
-            const response = await fetch(
-                "http://localhost:8000/portrait/create-data-session/",
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" }
-                }
-            );
-
-            const json = await response.json();
-
-            if (json.status === "success") {
-                setSessionId(json.session_id);
-                await loadFilterOptions(json.session_id);
-                await loadVAMData(json.session_id);
-            }
-
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     // -------------------- LOAD SUMMARY STATS --------------------
 
@@ -174,23 +119,24 @@ function AdminAnalysisView() {
         setLoading(true);
         try {
             const params = new URLSearchParams({
-                session_id: sid,
-                type: analysisType
+                session_id: sid
             });
 
-            if (selectedInstitution) params.append("institution", selectedInstitution);
-            if (selectedDirection) params.append("direction", selectedDirection);
-            if (selectedCourse) params.append("course", selectedCourse);
+            selectedInstitutions.forEach(id => params.append('institution_ids[]', id));
+            selectedDirections.forEach(dir => params.append('directions[]', dir));
+            selectedCourses.forEach(course => params.append('courses[]', course));
+            selectedTestAttempts.forEach(attempts => params.append('test_attempts[]', attempts));
 
             const response = await fetch(
-                `http://localhost:8000/portrait/value-added-improved/?${params}`
+                `http://localhost:8000/portrait/get-vam-unified/?${params}`
             );
 
             const json = await response.json();
 
             if (json.status === "success") {
                 setRawData(json.data);
-                prepareChartData(json.data);
+                setGroupedData(json.grouped || null);
+                prepareChartData(json.data, json.grouped);
             }
 
         } catch (err) {
@@ -200,62 +146,110 @@ function AdminAnalysisView() {
         }
     };
 
-    // -------------------- LOAD FILTER OPTIONS --------------------
+    // -------------------- LOAD FILTER OPTIONS WITH CROSS-FILTERING --------------------
 
-    const loadFilterOptions = async (sid = sessionId) => {
-        if (!sid) {
-            console.log("⚠️ loadFilterOptions: No session ID provided");
-            return;
-        }
-
-        console.log("📡 Loading filter options for session:", sid);
+    const loadFilterOptions = async (sid = sessionId, updateCounts = false) => {
+        if (!sid) return;
         
         try {
-            const url = `http://localhost:8000/portrait/get-filter-options/?session_id=${sid}`;
-            console.log("🔗 Request URL:", url);
+            const params = new URLSearchParams({
+                session_id: sid
+            });
+            
+            // Добавляем текущие выбранные фильтры для cross-filtering
+            if (updateCounts) {
+                selectedInstitutions.forEach(id => params.append('institution_ids[]', id));
+                selectedDirections.forEach(dir => params.append('directions[]', dir));
+                selectedCourses.forEach(course => params.append('courses[]', course));
+                selectedTestAttempts.forEach(attempts => params.append('test_attempts[]', attempts));
+            }
+
+            const url = `http://localhost:8000/portrait/get-filter-options-with-counts/?${params}`;
+            console.log("🔄 Загрузка фильтров с cross-filtering:", url);
             
             const response = await fetch(url);
-            console.log("📥 Response status:", response.status);
-            
             const json = await response.json();
-            console.log("📦 Response data:", json);
 
             if (json.status === "success") {
-                console.log("✅ Filter options loaded successfully");
-                console.log("   - Institutions:", json.data?.institutions?.length || 0);
-                console.log("   - Directions:", json.data?.directions?.length || 0);
-                console.log("   - Courses:", json.data?.courses?.length || 0);
-                
-                // Проверяем структуру данных
-                if (json.data?.institutions) {
-                    console.log("   - First institution:", json.data.institutions[0]);
-                }
-                if (json.data?.directions) {
-                    console.log("   - First direction:", json.data.directions[0]);
-                }
-                if (json.data?.courses) {
-                    console.log("   - Courses list:", json.data.courses);
-                }
+                console.log("✅ Filter options loaded with counts");
+                console.log("   Institutions:", json.data.institutions?.length);
+                console.log("   Directions:", json.data.directions?.length);
+                console.log("   Courses:", json.data.courses?.length);
+                console.log("   Test attempts:", json.data.test_attempts?.length, "(max:", json.data.max_attempts, ")");
                 
                 setFilterOptions({
                     institutions: json.data?.institutions || [],
                     directions: json.data?.directions || [],
-                    courses: json.data?.courses || [1, 2, 3, 4, 5, 6] // Fallback
+                    allDirections: json.data?.directions || [],
+                    courses: json.data?.courses || [],
+                    testAttempts: json.data?.test_attempts || []
                 });
-                
-                console.log("✅ Filter options state updated");
-            } else {
-                console.error("❌ Failed to load filter options:", json.message);
             }
 
         } catch (err) {
-            console.error("💥 Error loading filter options:", err);
+            console.error("❌ Ошибка загрузки фильтров:", err);
         }
     };
 
+    // -------------------- UPDATE DIRECTIONS WHEN INSTITUTIONS CHANGE --------------------
+
+    useEffect(() => {
+        const updateDirections = async () => {
+            if (selectedInstitutions.length === 0) {
+                setFilterOptions(prev => ({
+                    ...prev,
+                    directions: prev.allDirections
+                }));
+                return;
+            }
+
+            try {
+                const params = new URLSearchParams();
+                selectedInstitutions.forEach(id => params.append('institution_ids[]', id));
+
+                const response = await fetch(
+                    `http://localhost:8000/portrait/get-institution-directions/?${params}`
+                );
+                const json = await response.json();
+
+                if (json.status === "success") {
+                    // Преобразуем в формат с count (используем из allDirections)
+                    const directionsWithCounts = json.directions.map(dirName => {
+                        const found = filterOptions.allDirections.find(d => d.name === dirName);
+                        return found || { name: dirName, count: 0 };
+                    });
+                    
+                    setFilterOptions(prev => ({
+                        ...prev,
+                        directions: directionsWithCounts
+                    }));
+
+                    setSelectedDirections(prev =>
+                        prev.filter(dir => json.directions.includes(dir))
+                    );
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        };
+
+        updateDirections();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedInstitutions]);
+
+    // -------------------- RELOAD FILTER COUNTS ON ANY FILTER CHANGE --------------------
+
+    useEffect(() => {
+        if (sessionId) {
+            console.log("🔄 Фильтры изменились, обновляем счётчики всех фильтров...");
+            loadFilterOptions(sessionId, true);  // updateCounts = true → cross-filtering!
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedInstitutions, selectedDirections, selectedCourses, selectedTestAttempts, sessionId]);
+
     // -------------------- PREPARE CHART DATA --------------------
 
-    const prepareChartData = (data) => {
+    const prepareChartData = (data, grouped = null) => {
         if (!data || data.length === 0) {
             setChartData([]);
             return;
@@ -266,10 +260,7 @@ function AdminAnalysisView() {
                 prepareBarData(data);
                 break;
             case "line":
-                prepareLineData(data);
-                break;
-            case "radar":
-                prepareRadarData(data);
+                prepareLineData(data, grouped);
                 break;
             case "comparison":
                 prepareComparisonData(data);
@@ -279,10 +270,7 @@ function AdminAnalysisView() {
         }
     };
 
-    // -------------------- BAR CHART (распределение VAM) --------------------
-
     const prepareBarData = (data) => {
-        // Распределение студентов по диапазонам VAM
         const ranges = {
             "< -100": 0,
             "-100 до -50": 0,
@@ -310,96 +298,130 @@ function AdminAnalysisView() {
         setChartData(chartData);
     };
 
-    // -------------------- LINE CHART (динамика по курсам) --------------------
-
-    const prepareLineData = (data) => {
-        // Группировка по курсам
-        const byCourse = {};
-
-        data.forEach(item => {
-            const course = item.course || item.to_course || 1;
-            if (!byCourse[course]) {
-                byCourse[course] = [];
-            }
-            byCourse[course].push(item.mean_vam || 0);
-        });
-
-        const chartData = Object.entries(byCourse)
-            .map(([course, values]) => ({
-                course: `${course} курс`,
-                mean: (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2),
-                count: values.length
-            }))
-            .sort((a, b) => parseInt(a.course) - parseInt(b.course));
-
-        setChartData(chartData);
-    };
-
-    // -------------------- RADAR CHART (профиль компетенций) --------------------
-
-    const prepareRadarData = (data) => {
-        // Средние значения по каждой компетенции
-        const competencyAverages = {};
-
-        competencies.forEach(comp => {
-            const values = data
-                .filter(item => item.vam_by_competency && item.vam_by_competency[comp] !== undefined)
-                .map(item => item.vam_by_competency[comp]);
-
-            if (values.length > 0) {
-                competencyAverages[comp] = values.reduce((a, b) => a + b, 0) / values.length;
-            }
-        });
-
-        const chartData = Object.entries(competencyAverages).map(([comp, value]) => ({
-            competency: competencyLabels[comp] || comp,
-            value: parseFloat(value.toFixed(2))
-        }));
-
-        setChartData(chartData);
-    };
-
-    // -------------------- COMPARISON CHART (сравнение групп) --------------------
-
-    const prepareComparisonData = (data) => {
-        if (analysisType !== "comparison") {
-            // Группируем по ВУЗам или направлениям
-            const groups = {};
+    const prepareLineData = (data, grouped = null) => {
+        if (!grouped) {
+            const byCourse = {};
 
             data.forEach(item => {
-                const key = selectedInstitution ? 
-                    (item.direction || "Неизвестно") : 
-                    (item.institution_name || "Неизвестно");
-
-                if (!groups[key]) {
-                    groups[key] = [];
+                const course = item.course || item.to_course || 1;
+                if (!byCourse[course]) {
+                    byCourse[course] = [];
                 }
-                groups[key].push(item.mean_vam || 0);
+                byCourse[course].push(item.mean_vam || 0);
             });
 
-            const chartData = Object.entries(groups)
-                .map(([group, values]) => ({
-                    group,
-                    mean: (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2),
-                    count: values.length
+            const chartData = Object.entries(byCourse)
+                .map(([course, values]) => ({
+                    course: `${course} курс`,
+                    mean: parseFloat((values.reduce((a, b) => a + b, 0) / values.length).toFixed(2))
                 }))
-                .sort((a, b) => b.mean - a.mean)
-                .slice(0, 10); // Топ-10
+                .sort((a, b) => parseInt(a.course) - parseInt(b.course));
 
             setChartData(chartData);
-        } else {
-            // Данные уже агрегированы на бэкенде
-            const chartData = data
-                .map(item => ({
-                    group: `${item.institution} - ${item.direction}`,
-                    mean: item.mean_all_competencies,
-                    count: item.student_count
-                }))
-                .sort((a, b) => b.mean - a.mean)
-                .slice(0, 10);
-
-            setChartData(chartData);
+            return;
         }
+
+        const groupBy = selectedInstitutions.length > 0 && selectedDirections.length === 0
+            ? 'by_institution'
+            : selectedDirections.length > 0 && selectedInstitutions.length === 0
+            ? 'by_direction'
+            : selectedInstitutions.length > 0 && selectedDirections.length > 0
+            ? 'by_institution_direction'
+            : 'overall';
+
+        if (groupBy === 'overall') {
+            const byCourse = {};
+
+            data.forEach(item => {
+                const course = item.course || item.to_course || 1;
+                if (!byCourse[course]) {
+                    byCourse[course] = [];
+                }
+                byCourse[course].push(item.mean_vam || 0);
+            });
+
+            const chartData = Object.entries(byCourse)
+                .map(([course, values]) => ({
+                    course: `${course} курс`,
+                    mean: parseFloat((values.reduce((a, b) => a + b, 0) / values.length).toFixed(2))
+                }))
+                .sort((a, b) => parseInt(a.course) - parseInt(b.course));
+
+            setChartData(chartData);
+            return;
+        }
+
+        const groupData = grouped[groupBy] || {};
+        const groups = Object.keys(groupData);
+
+        if (groups.length === 0) {
+            const byCourse = {};
+
+            data.forEach(item => {
+                const course = item.course || item.to_course || 1;
+                if (!byCourse[course]) {
+                    byCourse[course] = [];
+                }
+                byCourse[course].push(item.mean_vam || 0);
+            });
+
+            const chartData = Object.entries(byCourse)
+                .map(([course, values]) => ({
+                    course: `${course} курс`,
+                    mean: parseFloat((values.reduce((a, b) => a + b, 0) / values.length).toFixed(2))
+                }))
+                .sort((a, b) => parseInt(a.course) - parseInt(b.course));
+
+            setChartData(chartData);
+            return;
+        }
+
+        const allCourses = new Set();
+        Object.values(groupData).forEach(courseData => {
+            Object.keys(courseData).forEach(course => allCourses.add(parseInt(course)));
+        });
+
+        const sortedCourses = Array.from(allCourses).sort((a, b) => a - b);
+
+        const chartData = sortedCourses.map(course => {
+            const dataPoint = {
+                course: `${course} курс`
+            };
+
+            groups.forEach(group => {
+                dataPoint[group] = groupData[group][course] || 0;
+            });
+
+            return dataPoint;
+        });
+
+        setChartData(chartData);
+    };
+
+    const prepareComparisonData = (data) => {
+        const groups = {};
+
+        data.forEach(item => {
+            const key = selectedInstitutions.length > 0 ? 
+                (item.direction || "Неизвестно") : 
+                (item.institution_name || "Неизвестно");
+
+            if (!groups[key]) {
+                groups[key] = [];
+            }
+            groups[key].push(item.mean_vam || 0);
+        });
+
+        const chartData = Object.entries(groups)
+            .map(([group, values]) => ({
+                group,
+                mean: parseFloat((values.reduce((a, b) => a + b, 0) / values.length).toFixed(2)),
+                count: values.length
+            }))
+            .sort((a, b) => b.mean - a.mean)
+            .slice(0, 10);
+
+        setChartData(chartData);
     };
 
     // -------------------- EFFECTS --------------------
@@ -409,23 +431,23 @@ function AdminAnalysisView() {
             loadVAMData();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [analysisType, selectedInstitution, selectedDirection, selectedCourse, sessionId]);
+    }, [selectedInstitutions, selectedDirections, selectedCourses, selectedTestAttempts, sessionId]);
 
     useEffect(() => {
         if (rawData.length > 0) {
-            prepareChartData(rawData);
+            prepareChartData(rawData, groupedData);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [visualizationType, rawData]);
+    }, [visualizationType]);
 
-    // -------------------- RENDER --------------------
+    // -------------------- RENDER HELPERS --------------------
 
     const renderChart = () => {
         if (chartData.length === 0) {
             return (
                 <div className="no-data">
                     <p>Нет данных для отображения</p>
-                    <p>Попробуйте изменить фильтры или тип анализа</p>
+                    <p>Попробуйте изменить фильтры</p>
                 </div>
             );
         }
@@ -446,44 +468,7 @@ function AdminAnalysisView() {
                 );
 
             case "line":
-                return (
-                    <ResponsiveContainer width="100%" height={400}>
-                        <LineChart data={chartData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="course" />
-                            <YAxis />
-                            <Tooltip />
-                            <Legend />
-                            <Line 
-                                type="monotone" 
-                                dataKey="mean" 
-                                stroke="#1976d2" 
-                                strokeWidth={2}
-                                name="Средний VAM"
-                            />
-                        </LineChart>
-                    </ResponsiveContainer>
-                );
-
-            case "radar":
-                return (
-                    <ResponsiveContainer width="100%" height={500}>
-                        <RadarChart data={chartData}>
-                            <PolarGrid />
-                            <PolarAngleAxis dataKey="competency" />
-                            <PolarRadiusAxis />
-                            <Tooltip />
-                            <Legend />
-                            <Radar 
-                                name="VAM" 
-                                dataKey="value" 
-                                stroke="#1976d2" 
-                                fill="#1976d2" 
-                                fillOpacity={0.6} 
-                            />
-                        </RadarChart>
-                    </ResponsiveContainer>
-                );
+                return renderMultiLineChart();
 
             case "comparison":
                 return (
@@ -504,17 +489,49 @@ function AdminAnalysisView() {
         }
     };
 
-    const getAnalysisDescription = () => {
-        switch (analysisType) {
-            case "cross_sectional":
-                return "Сравнение студентов с нормой их курса. Показывает, насколько студент отличается от среднего уровня группы.";
-            case "longitudinal":
-                return "Отслеживание личного прогресса студентов с повторными замерами. Показывает, как развиваются компетенции во времени.";
-            case "comparison":
-                return "Сравнение средних показателей между ВУЗами и направлениями для проверки гипотезы о влиянии программы.";
-            default:
-                return "";
+    const renderMultiLineChart = () => {
+        if (!chartData || chartData.length === 0) return null;
+
+        const groups = Object.keys(chartData[0]).filter(key => key !== 'course');
+
+        return (
+            <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="course" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    {groups.map((group, index) => (
+                        <Line
+                            key={group}
+                            type="monotone"
+                            dataKey={group}
+                            stroke={COLORS[index % COLORS.length]}
+                            strokeWidth={2}
+                            name={group}
+                        />
+                    ))}
+                </LineChart>
+            </ResponsiveContainer>
+        );
+    };
+
+    const renderDataQualityWarning = () => {
+        if (selectedTestAttempts.length === 0) return null;
+
+        const minAttempts = Math.min(...selectedTestAttempts.map(a => parseInt(a)));
+
+        if (rawData.length < 100) {
+            return (
+                <div className="data-warning low-data">
+                    📊 <strong>Малая выборка:</strong> В текущей выборке {rawData.length} записей. 
+                    Для более точных выводов рекомендуется минимум 100 записей.
+                </div>
+            );
         }
+
+        return null;
     };
 
     return (
@@ -551,40 +568,18 @@ function AdminAnalysisView() {
                         </div>
                     )}
 
-                    {/* Описание текущего анализа */}
+                    {/* Описание анализа */}
                     <div className="analysis-description">
-                        <strong>Тип анализа:</strong> {getAnalysisDescription()}
+                        <strong>Value-Added Model (VAM)</strong> - метод оценки развития компетенций, 
+                        который показывает отклонение результата студента от ожидаемого уровня. 
+                        Автоматически адаптируется под выбранные фильтры.
                     </div>
+
+                    {/* Data Quality Warning */}
+                    {renderDataQualityWarning()}
 
                     {/* Контролы */}
                     <div className="controls">
-                        <div className="control-section">
-                            <h3>Тип анализа</h3>
-                            <div className="button-group">
-                                <Button
-                                    text="Cross-Sectional (все студенты)"
-                                    onClick={() => setAnalysisType("cross_sectional")}
-                                    fg={analysisType === "cross_sectional" ? "white" : "#1976d2"}
-                                    bg={analysisType === "cross_sectional" ? "#1976d2" : "white"}
-                                    border="1px solid #1976d2"
-                                />
-                                <Button
-                                    text="Longitudinal (прогресс)"
-                                    onClick={() => setAnalysisType("longitudinal")}
-                                    fg={analysisType === "longitudinal" ? "white" : "#1976d2"}
-                                    bg={analysisType === "longitudinal" ? "#1976d2" : "white"}
-                                    border="1px solid #1976d2"
-                                />
-                                <Button
-                                    text="Comparison (сравнение)"
-                                    onClick={() => setAnalysisType("comparison")}
-                                    fg={analysisType === "comparison" ? "white" : "#1976d2"}
-                                    bg={analysisType === "comparison" ? "#1976d2" : "white"}
-                                    border="1px solid #1976d2"
-                                />
-                            </div>
-                        </div>
-
                         <div className="control-section">
                             <h3>Тип визуализации</h3>
                             <div className="button-group">
@@ -603,13 +598,6 @@ function AdminAnalysisView() {
                                     border="1px solid #28a745"
                                 />
                                 <Button
-                                    text="🎯 Компетенции"
-                                    onClick={() => setVisualizationType("radar")}
-                                    fg={visualizationType === "radar" ? "white" : "#666"}
-                                    bg={visualizationType === "radar" ? "#28a745" : "white"}
-                                    border="1px solid #28a745"
-                                />
-                                <Button
                                     text="⚖️ Сравнение групп"
                                     onClick={() => setVisualizationType("comparison")}
                                     fg={visualizationType === "comparison" ? "white" : "#666"}
@@ -621,84 +609,61 @@ function AdminAnalysisView() {
 
                         <div className="control-section">
                             <h3>Фильтры</h3>
-                            <div className="filters-row" style={{
-                                display: 'flex',
-                                gap: '12px',
-                                flexWrap: 'wrap',
-                                alignItems: 'center'
-                            }}>
-                                <select
-                                    value={selectedInstitution}
-                                    onChange={(e) => setSelectedInstitution(e.target.value)}
-                                    style={{
-                                        minWidth: '180px',
-                                        maxWidth: '250px',
-                                        padding: '10px 12px',
-                                        border: '1px solid #ced4da',
-                                        borderRadius: '6px',
-                                        fontSize: '14px',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    <option value="">Все ВУЗы</option>
-                                    {filterOptions.institutions?.map(inst => (
-                                        <option key={inst.id} value={inst.id}>
-                                            {inst.name}
-                                        </option>
-                                    ))}
-                                </select>
 
-                                <select
-                                    value={selectedDirection}
-                                    onChange={(e) => setSelectedDirection(e.target.value)}
-                                    style={{
-                                        minWidth: '180px',
-                                        maxWidth: '250px',
-                                        padding: '10px 12px',
-                                        border: '1px solid #ced4da',
-                                        borderRadius: '6px',
-                                        fontSize: '14px',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    <option value="">Все направления</option>
-                                    {filterOptions.directions?.map(dir => (
-                                        <option key={dir} value={dir}>
-                                            {dir}
-                                        </option>
-                                    ))}
-                                </select>
-
-                                <select
-                                    value={selectedCourse}
-                                    onChange={(e) => setSelectedCourse(e.target.value)}
-                                    style={{
-                                        minWidth: '150px',
-                                        maxWidth: '180px',
-                                        padding: '10px 12px',
-                                        border: '1px solid #ced4da',
-                                        borderRadius: '6px',
-                                        fontSize: '14px',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    <option value="">Все курсы</option>
-                                    {filterOptions.courses?.map(course => (
-                                        <option key={course} value={course}>
-                                            {course} курс
-                                        </option>
-                                    ))}
-                                </select>
-
-                                <Button
-                                    text={`${loading ? '⏳' : '🔄'} Обновить`}
-                                    onClick={() => loadVAMData()}
-                                    disabled={!sessionId || loading}
-                                    fg="white"
-                                    bg="#17a2b8"
-                                    hoverBg="#138496"
-                                    disabledBg="#6c757d"
+                            <div className="filters-grid">
+                                <MultiSelect
+                                    options={filterOptions.institutions}
+                                    value={selectedInstitutions}
+                                    onChange={setSelectedInstitutions}
+                                    placeholder="Все ВУЗы"
+                                    searchPlaceholder="Поиск ВУЗов..."
+                                    label="Учебные заведения"
+                                    withSearch={true}
+                                    showCounts={true}
                                 />
+
+                                <MultiSelect
+                                    options={filterOptions.directions}
+                                    value={selectedDirections}
+                                    onChange={setSelectedDirections}
+                                    placeholder="Все направления"
+                                    searchPlaceholder="Поиск направлений..."
+                                    label="Направления подготовки"
+                                    withSearch={true}
+                                    showCounts={true}
+                                />
+
+                                <MultiSelect
+                                    options={filterOptions.courses}
+                                    value={selectedCourses}
+                                    onChange={setSelectedCourses}
+                                    placeholder="Все курсы"
+                                    label="Курсы"
+                                    withSearch={false}
+                                    showCounts={true}
+                                />
+
+                                <MultiSelect
+                                    options={filterOptions.testAttempts}
+                                    value={selectedTestAttempts}
+                                    onChange={setSelectedTestAttempts}
+                                    placeholder="Все прохождения"
+                                    label="Количество прохождений"
+                                    withSearch={false}
+                                    showCounts={true}
+                                />
+
+                                <div className="filter-actions">
+                                    <Button
+                                        text={`${loading ? '⏳' : '🔄'} Обновить`}
+                                        onClick={() => loadVAMData()}
+                                        disabled={!sessionId || loading}
+                                        fg="white"
+                                        bg="#17a2b8"
+                                        hoverBg="#138496"
+                                        disabledBg="#6c757d"
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -718,7 +683,7 @@ function AdminAnalysisView() {
                         )}
                     </div>
 
-                    {/* Интерпретация результатов */}
+                    {/* Интерпретация */}
                     <div className="interpretation">
                         <h3>💡 Интерпретация результатов</h3>
                         <div className="interpretation-content">
@@ -728,12 +693,6 @@ function AdminAnalysisView() {
                                 <li><strong>Ноль (0)</strong> - развитие соответствует ожиданиям</li>
                                 <li><strong>Отрицательное значение (-)</strong> - развитие медленнее ожидаемого</li>
                             </ul>
-                            {analysisType === "comparison" && (
-                                <p className="hypothesis-note">
-                                    <strong>Проверка гипотезы:</strong> Если средние VAM значительно различаются между 
-                                    ВУЗами/направлениями, это подтверждает влияние программы обучения на развитие компетенций.
-                                </p>
-                            )}
                         </div>
                     </div>
 
