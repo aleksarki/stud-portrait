@@ -5,6 +5,7 @@ from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Count, Avg, Min
+from django.db.models import Q
 from django.db import transaction
 from django.utils import timezone
 import uuid
@@ -2656,6 +2657,7 @@ def get_filter_options_with_counts(request):
     try:
         session_id = request.GET.get('session_id')
         
+
         # Получаем текущие выбранные фильтры
         selected_institution_ids = request.GET.getlist('institution_ids[]')
         selected_directions = request.GET.getlist('directions[]')
@@ -2896,13 +2898,67 @@ def get_filter_options_with_counts(request):
         
         print(f"✅ Прохождений: {len(test_attempts_list)} (от 1 до {max_attempts})")
         
+        # Компетенции с русскими названиями
+        competencies_data = [
+            {"id": "res_comp_info_analysis", "name": "Анализ информации"},
+            {"id": "res_comp_planning", "name": "Планирование"},
+            {"id": "res_comp_result_orientation", "name": "Ориентация на результат"},
+            {"id": "res_comp_stress_resistance", "name": "Стрессоустойчивость"},
+            {"id": "res_comp_partnership", "name": "Партнёрство"},
+            {"id": "res_comp_rules_compliance", "name": "Соблюдение правил"},
+            {"id": "res_comp_self_development", "name": "Саморазвитие"},
+            {"id": "res_comp_leadership", "name": "Лидерство"},
+            {"id": "res_comp_emotional_intel", "name": "Эмоциональный интеллект"},
+            {"id": "res_comp_client_focus", "name": "Клиентоориентированность"},
+            {"id": "res_comp_communication", "name": "Коммуникация"},
+            {"id": "res_comp_passive_vocab", "name": "Пассивный словарь"},
+        ]
+
+        competencies_list = []
+
+        for comp_info in competencies_data:
+            comp_field = comp_info["id"]
+            
+            # Подсчитываем ненулевые значения
+            count = Results.objects.exclude(
+                Q(**{f"{comp_field}__isnull": True}) | Q(**{comp_field: 0})
+            ).count()
+            
+            competencies_list.append({
+                "id": comp_field,
+                "name": comp_info["name"],
+                "count": count
+            })
+
+        print(f"✅ Компетенции: {len(competencies_list)}")
+
+
+        students_query = Participants.objects.annotate(
+            results_count=Count('results')
+        ).filter(
+            results_count__gt=0
+        ).order_by('part_name')[:1000]  # Ограничиваем 1000 для производительности
+
+        students_list = [
+            {
+                'id': student.part_id,
+                'name': f"{student.part_name} (ID: {student.part_id})",
+                'count': student.results_count
+            }
+            for student in students_query
+        ]
+
+        print(f"✅ Студенты: {len(students_list)}")
+
         return successResponse({
             "data": {
                 "institutions": institutions_list,
                 "directions": directions_list,
                 "courses": courses_list,
                 "test_attempts": test_attempts_list,
-                "max_attempts": max_attempts  # Для информации
+                "competencies": competencies_list,  # ← С count!
+                "students": students_list,  # ← ДОБАВЛЕНО!
+                "max_attempts": max_attempts
             }
         })
         
@@ -2936,6 +2992,8 @@ def get_vam_unified(request):
         directions = request.GET.getlist('directions[]')
         courses = request.GET.getlist('courses[]')
         test_attempts = request.GET.getlist('test_attempts[]')
+        selected_competencies = request.GET.getlist('competencies[]')
+        student_ids = request.GET.getlist('student_ids[]')
         
         print(f"\n{'='*60}")
         print(f"📊 get_vam_unified вызван")
@@ -2943,6 +3001,7 @@ def get_vam_unified(request):
         print(f"   Направления: {directions}")
         print(f"   Курсы: {courses}")
         print(f"   Прохождений: {test_attempts}")
+        print(f"   Студенты: {student_ids}")
         print(f"{'='*60}\n")
 
         competencies = [
@@ -3006,6 +3065,16 @@ def get_vam_unified(request):
             
             results = results.filter(res_participant__in=valid_students)
 
+        if selected_competencies:
+            # Фильтруем список компетенций
+            competencies = [c for c in competencies if c in selected_competencies]
+
+        if student_ids and len(student_ids) > 0:
+            # Конвертируем в int, так как part_id это число
+            student_ids_int = [int(sid) for sid in student_ids if sid.isdigit()]
+            results = results.filter(res_participant__part_id__in=student_ids_int)
+            print(f"   → Фильтр: {len(student_ids_int)} студентов")
+
         results_list = list(results)
         
         print(f"🔍 Найдено {len(results_list)} записей после всех фильтров")
@@ -3051,7 +3120,8 @@ def get_vam_unified(request):
             "grouped": grouped_data,
             "total_students": response_data.get("total_students", len(response_data["data"])),
             "analysis_method": analysis_method,  # Для информации на фронте
-            "selected_attempts": test_attempts
+            "selected_attempts": test_attempts,
+            "selected_competencies": selected_competencies
         })
         
     except Exception as e:
@@ -3060,6 +3130,295 @@ def get_vam_unified(request):
         traceback.print_exc()
         return exceptionResponse(e)
 
+@method('GET')
+@csrf_exempt
+def get_latent_growth(request):
+    """
+    Получает данные Latent Growth Model (LGM) с фильтрацией.
+    ОБНОВЛЕНО: Теперь поддерживает группировку по институтам/направлениям!
+    """
+    try:
+        # Получаем фильтры
+        institution_ids = request.GET.getlist('institution_ids[]')
+        directions = request.GET.getlist('directions[]')
+        courses = request.GET.getlist('courses[]')
+        test_attempts = request.GET.getlist('test_attempts[]')
+        selected_competencies = request.GET.getlist('competencies[]')
 
+        print(f"\n{'='*60}")
+        print(f"📊 get_latent_growth вызван")
+        print(f"   Институты: {institution_ids}")
+        print(f"   Направления: {directions}")
+        print(f"{'='*60}\n")
 
+        # Список всех компетенций
+        all_competencies = [
+            "res_comp_leadership", "res_comp_communication",
+            "res_comp_self_development", "res_comp_result_orientation",
+            "res_comp_stress_resistance", "res_comp_client_focus",
+            "res_comp_planning", "res_comp_info_analysis",
+            "res_comp_partnership", "res_comp_rules_compliance",
+            "res_comp_emotional_intel", "res_comp_passive_vocab"
+        ]
 
+        # Фильтруем компетенции
+        if selected_competencies:
+            competencies = [c for c in all_competencies if c in selected_competencies]
+        else:
+            competencies = all_competencies
+
+        # Базовый запрос
+        results = Results.objects.select_related(
+            "res_participant",
+            "res_participant__part_institution",
+            "res_participant__part_spec"
+        ).exclude(res_course_num__isnull=True)
+
+        # Применяем фильтры
+        if institution_ids:
+            results = results.filter(
+                res_participant__part_institution__inst_id__in=institution_ids
+            )
+
+        if directions:
+            results = results.filter(
+                res_participant__part_spec__spec_name__in=directions
+            )
+
+        if courses:
+            results = results.filter(res_course_num__in=courses)
+
+        # Фильтр по количеству прохождений
+        if test_attempts:
+            from django.db.models import Count
+            
+            student_attempts = Results.objects.values('res_participant').annotate(
+                attempt_count=Count('res_id')
+            )
+            
+            attempts_dict = {
+                item['res_participant']: item['attempt_count'] 
+                for item in student_attempts
+            }
+            
+            valid_students = [
+                student_id 
+                for student_id, count in attempts_dict.items()
+                if str(count) in test_attempts
+            ]
+            
+            results = results.filter(res_participant__in=valid_students)
+
+        results_list = list(results)
+        
+        print(f"🔍 Итого записей: {len(results_list)}")
+
+        # ============================================================
+        # ОПРЕДЕЛЯЕМ ТИП ГРУППИРОВКИ (как в VAM!)
+        # ============================================================
+        
+        group_by = None
+        
+        if len(institution_ids) > 0 and len(directions) == 0:
+            group_by = 'by_institution'
+            print(f"   Группировка: по институтам ({len(institution_ids)})")
+        elif len(directions) > 0 and len(institution_ids) == 0:
+            group_by = 'by_direction'
+            print(f"   Группировка: по направлениям ({len(directions)})")
+        elif len(institution_ids) > 0 and len(directions) > 0:
+            group_by = 'by_institution_direction'
+            print(f"   Группировка: институт + направление")
+        else:
+            group_by = 'overall'
+            print(f"   Группировка: общая")
+
+        # ============================================================
+        # ВЫЧИСЛЯЕМ ТРАЕКТОРИИ С ГРУППИРОВКОЙ
+        # ============================================================
+        
+        if group_by == 'overall':
+            # Без группировки - как раньше
+            growth_data = calculate_population_growth(results_list, competencies)
+        else:
+            # С группировкой - новая функция!
+            growth_data = calculate_grouped_growth(
+                results_list, 
+                competencies,
+                group_by
+            )
+
+        # Добавляем метаданные
+        if growth_data.get("status") == "success":
+            growth_data["group_by"] = group_by
+            growth_data["filters_applied"] = {
+                "institutions": len(institution_ids),
+                "directions": len(directions),
+                "courses": len(courses),
+                "test_attempts": len(test_attempts),
+                "competencies": len(competencies)
+            }
+
+        return JsonResponse(growth_data)
+
+    except Exception as e:
+        print(f"❌ Ошибка в get_latent_growth: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return exceptionResponse(e)
+
+def calculate_population_growth(results_list, competencies):
+    """
+    Latent Growth Model (LGM) - модель скрытого роста.
+    Вычисляет средние траектории развития компетенций на уровне популяции.
+    
+    Возвращает среднее значение каждой компетенции по курсам.
+    """
+    try:
+        from collections import defaultdict
+        
+        print(f"\n{'='*60}")
+        print(f"📊 calculate_population_growth вызван")
+        print(f"   Записей: {len(results_list)}")
+        print(f"   Компетенций: {len(competencies)}")
+        print(f"{'='*60}\n")
+        
+        # Группируем по курсам
+        by_course = defaultdict(lambda: defaultdict(list))
+        
+        for result in results_list:
+            course = result.res_course_num
+            if not course:
+                continue
+            
+            for comp in competencies:
+                value = getattr(result, comp, None)
+                if value is not None:
+                    by_course[course][comp].append(value)
+        
+        # Вычисляем средние для каждого курса
+        growth_trajectory = {}
+        
+        for comp in competencies:
+            trajectory = []
+            
+            for course in sorted(by_course.keys()):
+                if comp in by_course[course] and len(by_course[course][comp]) > 0:
+                    values = by_course[course][comp]
+                    avg = sum(values) / len(values)
+                    trajectory.append({
+                        "course": course,
+                        "mean": round(avg, 2),
+                        "count": len(values)
+                    })
+            
+            if trajectory:  # Только если есть данные
+                growth_trajectory[comp] = trajectory
+                print(f"   ✅ {comp}: {len(trajectory)} точек данных")
+        
+        print(f"\n✅ Построены траектории для {len(growth_trajectory)} компетенций")
+        
+        return {
+            "status": "success",
+            "data": growth_trajectory,
+            "model": "latent_growth",
+            "total_records": len(results_list),
+            "competencies_count": len(growth_trajectory)
+        }
+    
+    except Exception as e:
+        print(f"❌ Ошибка в calculate_population_growth: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+    
+def calculate_grouped_growth(results_list, competencies, group_by):
+    """
+    Вычисляет траектории роста с группировкой по институтам/направлениям.
+    Возвращает данные в формате для multi-line графиков.
+    """
+    try:
+        from collections import defaultdict
+        
+        print(f"\n📊 calculate_grouped_growth: {group_by}")
+        
+        # Группируем результаты
+        groups = defaultdict(list)
+        
+        for result in results_list:
+            # Определяем группу
+            if group_by == 'by_institution':
+                group_name = result.res_participant.part_institution.inst_name if result.res_participant.part_institution else "Неизвестно"
+            elif group_by == 'by_direction':
+                group_name = result.res_participant.part_spec.spec_name if result.res_participant.part_spec else "Неизвестно"
+            elif group_by == 'by_institution_direction':
+                inst = result.res_participant.part_institution.inst_name if result.res_participant.part_institution else "Неизвестно"
+                spec = result.res_participant.part_spec.spec_name if result.res_participant.part_spec else "Неизвестно"
+                group_name = f"{inst} - {spec}"
+            else:
+                group_name = "Все"
+            
+            groups[group_name].append(result)
+        
+        print(f"   Найдено групп: {len(groups)}")
+        for group_name, group_results in list(groups.items())[:3]:
+            print(f"   - {group_name}: {len(group_results)} записей")
+        
+        # Вычисляем траектории для каждой компетенции
+        growth_trajectory = {}
+        
+        for comp in competencies:
+            comp_data = {}
+            
+            # Для каждой группы вычисляем траекторию
+            for group_name, group_results in groups.items():
+                by_course = defaultdict(list)
+                
+                for result in group_results:
+                    course = result.res_course_num
+                    if not course:
+                        continue
+                    
+                    value = getattr(result, comp, None)
+                    if value is not None:
+                        by_course[course].append(value)
+                
+                # Вычисляем средние по курсам
+                trajectory = []
+                for course in sorted(by_course.keys()):
+                    if by_course[course]:
+                        values = by_course[course]
+                        avg = sum(values) / len(values)
+                        trajectory.append({
+                            "course": course,
+                            "mean": round(avg, 2),
+                            "count": len(values)
+                        })
+                
+                if trajectory:
+                    comp_data[group_name] = trajectory
+            
+            if comp_data:
+                growth_trajectory[comp] = comp_data
+        
+        print(f"✅ Построены траектории для {len(growth_trajectory)} компетенций")
+        
+        return {
+            "status": "success",
+            "data": growth_trajectory,
+            "model": "latent_growth",
+            "group_by": group_by,
+            "total_records": len(results_list),
+            "groups_count": len(groups)
+        }
+    
+    except Exception as e:
+        print(f"❌ Ошибка в calculate_grouped_growth: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "status": "error",
+            "message": str(e)
+        }

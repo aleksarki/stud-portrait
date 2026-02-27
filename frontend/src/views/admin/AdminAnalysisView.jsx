@@ -31,10 +31,12 @@ function AdminAnalysisView() {
 
     const [sessionId, setSessionId] = useState(null);
     const [rawData, setRawData] = useState([]);
+    const [lgmData, setLgmData] = useState(null); // ← ДОБАВЛЕНО
     const [groupedData, setGroupedData] = useState(null);
     const [chartData, setChartData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [summaryStats, setSummaryStats] = useState(null);
+    const [selectedStudents, setSelectedStudents] = useState([]);
 
     const [visualizationType, setVisualizationType] = useState("bar");
 
@@ -44,12 +46,33 @@ function AdminAnalysisView() {
     const [selectedCourses, setSelectedCourses] = useState([]);
     const [selectedTestAttempts, setSelectedTestAttempts] = useState([]);
 
+    const [selectedCompetencies, setSelectedCompetencies] = useState([]);
+    const [analysisMethod, setAnalysisMethod] = useState("vam"); // "vam" или "lgm"
+
+    // ← ДОБАВЛЕНО: Словарь названий компетенций
+    const competencyLabels = {
+        "res_comp_info_analysis": "Анализ информации",
+        "res_comp_planning": "Планирование",
+        "res_comp_result_orientation": "Ориентация на результат",
+        "res_comp_stress_resistance": "Стрессоустойчивость",
+        "res_comp_partnership": "Партнёрство",
+        "res_comp_rules_compliance": "Соблюдение правил",
+        "res_comp_self_development": "Саморазвитие",
+        "res_comp_leadership": "Лидерство",
+        "res_comp_emotional_intel": "Эмоциональный интеллект",
+        "res_comp_client_focus": "Клиентоориентированность",
+        "res_comp_communication": "Коммуникация",
+        "res_comp_passive_vocab": "Пассивный словарь"
+    };
+
     const [filterOptions, setFilterOptions] = useState({
         institutions: [],
         directions: [],
         allDirections: [],
         courses: [],
-        testAttempts: []
+        testAttempts: [],
+        competencies: [],
+        students: []
     });
 
     const linkList = [
@@ -79,7 +102,7 @@ function AdminAnalysisView() {
 
                 if (json.status === "success") {
                     setSessionId(json.session_id);
-                    await loadFilterOptions(json.session_id, false);  // Первая загрузка БЕЗ фильтров
+                    await loadFilterOptions(json.session_id, false);
                     await loadVAMData(json.session_id);
                 }
 
@@ -126,6 +149,8 @@ function AdminAnalysisView() {
             selectedDirections.forEach(dir => params.append('directions[]', dir));
             selectedCourses.forEach(course => params.append('courses[]', course));
             selectedTestAttempts.forEach(attempts => params.append('test_attempts[]', attempts));
+            selectedCompetencies.forEach(comp => params.append('competencies[]', comp));
+            selectedStudents.forEach(id => params.append('student_ids[]', id));
 
             const response = await fetch(
                 `http://localhost:8000/portrait/get-vam-unified/?${params}`
@@ -146,6 +171,143 @@ function AdminAnalysisView() {
         }
     };
 
+    // -------------------- LOAD LGM DATA (НОВОЕ!) --------------------
+
+    const loadLGMData = async (sid = sessionId) => {
+        if (!sid) return;
+
+        setLoading(true);
+        try {
+            const params = new URLSearchParams({
+                session_id: sid
+            });
+
+            selectedInstitutions.forEach(id => params.append('institution_ids[]', id));
+            selectedDirections.forEach(dir => params.append('directions[]', dir));
+            selectedCourses.forEach(course => params.append('courses[]', course));
+            selectedTestAttempts.forEach(attempts => params.append('test_attempts[]', attempts));
+            selectedCompetencies.forEach(comp => params.append('competencies[]', comp));
+            selectedStudents.forEach(id => params.append('student_ids[]', id));
+
+            const response = await fetch(
+                `http://localhost:8000/portrait/get-latent-growth/?${params}`
+            );
+
+            const json = await response.json();
+
+            if (json.status === "success") {
+                setLgmData(json.data);
+                prepareLGMChartData(json.data);
+            }
+
+        } catch (err) {
+            console.error("❌ Ошибка загрузки LGM:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // -------------------- PREPARE LGM CHART DATA (НОВОЕ!) --------------------
+
+    const prepareLGMChartData = (data) => {
+        if (!data) {
+            setChartData([]);
+            return;
+        }
+
+        // data может быть:
+        // 1. Без группировки: { "res_comp_leadership": [{course: 1, mean: 450}, ...], ... }
+        // 2. С группировкой: { "res_comp_leadership": { "МГУ": [{course: 1, mean: 450}, ...], "СПбГУ": [...] }, ... }
+
+        if (selectedCompetencies.length === 0) {
+            // Один общий график - проверяем структуру данных
+            const firstComp = Object.keys(data)[0];
+            const firstCompData = data[firstComp];
+            
+            // Проверяем: массив (без группировки) или объект (с группировкой)
+            if (Array.isArray(firstCompData)) {
+                // БЕЗ группировки - среднее по всем компетенциям
+                const allCourses = new Set();
+                const byCourse = {};
+
+                Object.values(data).forEach(trajectory => {
+                    trajectory.forEach(point => {
+                        allCourses.add(point.course);
+                        if (!byCourse[point.course]) {
+                            byCourse[point.course] = [];
+                        }
+                        byCourse[point.course].push(point.mean);
+                    });
+                });
+
+                const chartData = Array.from(allCourses)
+                    .sort((a, b) => a - b)
+                    .map(course => ({
+                        course: `${course} курс`,
+                        mean: parseFloat((
+                            byCourse[course].reduce((a, b) => a + b, 0) / byCourse[course].length
+                        ).toFixed(2))
+                    }));
+
+                setChartData(chartData);
+            } else {
+                // С ГРУППИРОВКОЙ - среднее по группам
+                const groups = {};
+                
+                // Извлекаем группы из первой компетенции
+                Object.keys(firstCompData).forEach(groupName => {
+                    groups[groupName] = {};
+                });
+                
+                // Для каждой группы вычисляем среднее по всем компетенциям
+                Object.keys(groups).forEach(groupName => {
+                    const byCourse = {};
+                    
+                    Object.values(data).forEach(compData => {
+                        if (compData[groupName]) {
+                            compData[groupName].forEach(point => {
+                                if (!byCourse[point.course]) {
+                                    byCourse[point.course] = [];
+                                }
+                                byCourse[point.course].push(point.mean);
+                            });
+                        }
+                    });
+                    
+                    // Средние по курсам для этой группы
+                    Object.keys(byCourse).forEach(course => {
+                        const values = byCourse[course];
+                        const avg = values.reduce((a, b) => a + b, 0) / values.length;
+                        if (!groups[groupName][course]) {
+                            groups[groupName][course] = avg;
+                        }
+                    });
+                });
+                
+                // Преобразуем в формат для multi-line графика
+                const allCourses = new Set();
+                Object.values(groups).forEach(courseData => {
+                    Object.keys(courseData).forEach(course => allCourses.add(parseInt(course)));
+                });
+                
+                const chartData = Array.from(allCourses)
+                    .sort((a, b) => a - b)
+                    .map(course => {
+                        const point = { course: `${course} курс` };
+                        Object.keys(groups).forEach(groupName => {
+                            point[groupName] = groups[groupName][course] || 0;
+                        });
+                        return point;
+                    });
+                
+                setChartData(chartData);
+            }
+        } else {
+            // Для сетки графиков - данные уже в нужном формате
+            setChartData(data);
+        }
+    };
+
     // -------------------- LOAD FILTER OPTIONS WITH CROSS-FILTERING --------------------
 
     const loadFilterOptions = async (sid = sessionId, updateCounts = false) => {
@@ -156,39 +318,258 @@ function AdminAnalysisView() {
                 session_id: sid
             });
             
-            // Добавляем текущие выбранные фильтры для cross-filtering
             if (updateCounts) {
                 selectedInstitutions.forEach(id => params.append('institution_ids[]', id));
                 selectedDirections.forEach(dir => params.append('directions[]', dir));
                 selectedCourses.forEach(course => params.append('courses[]', course));
                 selectedTestAttempts.forEach(attempts => params.append('test_attempts[]', attempts));
+                selectedCompetencies.forEach(comp => params.append('competencies[]', comp));
             }
 
             const url = `http://localhost:8000/portrait/get-filter-options-with-counts/?${params}`;
-            console.log("🔄 Загрузка фильтров с cross-filtering:", url);
             
             const response = await fetch(url);
             const json = await response.json();
 
             if (json.status === "success") {
-                console.log("✅ Filter options loaded with counts");
-                console.log("   Institutions:", json.data.institutions?.length);
-                console.log("   Directions:", json.data.directions?.length);
-                console.log("   Courses:", json.data.courses?.length);
-                console.log("   Test attempts:", json.data.test_attempts?.length, "(max:", json.data.max_attempts, ")");
-                
                 setFilterOptions({
                     institutions: json.data?.institutions || [],
                     directions: json.data?.directions || [],
                     allDirections: json.data?.directions || [],
                     courses: json.data?.courses || [],
-                    testAttempts: json.data?.test_attempts || []
+                    testAttempts: json.data?.test_attempts || [],
+                    competencies: json.data?.competencies || [],
+                    students: json.data?.students || []  // ← ДОБАВЛЕНО!
                 });
             }
 
         } catch (err) {
             console.error("❌ Ошибка загрузки фильтров:", err);
         }
+    };
+
+    // -------------------- GET VAM DATA FOR COMPETENCY (НОВОЕ!) --------------------
+
+    const getVAMDataForCompetency = (comp) => {
+        // Проверяем структуру rawData
+        if (!rawData || rawData.length === 0) return [];
+        
+        // Проверяем есть ли данные по компетенции в каждой записи
+        const firstItem = rawData[0];
+        
+        // Если есть vam_by_competency - используем его
+        if (firstItem.vam_by_competency && firstItem.vam_by_competency[comp] !== undefined) {
+            // Группируем по курсам
+            const byCourse = {};
+
+            rawData.forEach(item => {
+                if (item.vam_by_competency && item.vam_by_competency[comp] !== undefined) {
+                    const course = item.course || item.to_course || 1;
+                    if (!byCourse[course]) {
+                        byCourse[course] = [];
+                    }
+                    byCourse[course].push(item.vam_by_competency[comp]);
+                }
+            });
+
+            return Object.entries(byCourse)
+                .map(([course, values]) => ({
+                    course: `${course} курс`,
+                    mean: parseFloat((values.reduce((a, b) => a + b, 0) / values.length).toFixed(2))
+                }))
+                .sort((a, b) => parseInt(a.course) - parseInt(b.course));
+        }
+        
+        // Иначе - вычисляем из основного mean_vam (общий VAM без разбивки по компетенциям)
+        // Для простоты возвращаем общий VAM
+        const byCourse = {};
+
+        rawData.forEach(item => {
+            const course = item.course || item.to_course || 1;
+            if (!byCourse[course]) {
+                byCourse[course] = [];
+            }
+            byCourse[course].push(item.mean_vam || 0);
+        });
+
+        return Object.entries(byCourse)
+            .map(([course, values]) => ({
+                course: `${course} курс`,
+                mean: parseFloat((values.reduce((a, b) => a + b, 0) / values.length).toFixed(2))
+            }))
+            .sort((a, b) => parseInt(a.course) - parseInt(b.course));
+    };
+
+    // -------------------- RENDER CHARTS GRID (ОБНОВЛЕНО!) --------------------
+
+    const renderChartsGrid = () => {
+        if (selectedCompetencies.length === 0) {
+            // Один общий график
+            return (
+                <div className="chart-container">
+                    <div className="chart-info">
+                        <span>Записей: {rawData.length}</span>
+                    </div>
+                    {loading ? (
+                        <div className="loading">
+                            <div className="spinner"></div>
+                            <div className="loading-text">Загрузка данных...</div>
+                        </div>
+                    ) : (
+                        analysisMethod === "vam" ? renderChart() : renderLGMChart()
+                    )}
+                </div>
+            );
+        }
+        
+        // Сетка графиков (2 в ряд)
+        return (
+            <div className="charts-grid">
+                {selectedCompetencies.map((comp, index) => {
+                    let compData;
+                    
+                    if (analysisMethod === "vam") {
+                        compData = getVAMDataForCompetency(comp);
+                    } else {
+                        // LGM данные
+                        const lgmCompData = lgmData?.[comp];
+                        
+                        if (!lgmCompData) {
+                            compData = [];
+                        } else if (Array.isArray(lgmCompData)) {
+                            // БЕЗ группировки - просто массив
+                            compData = lgmCompData;
+                        } else {
+                            // С ГРУППИРОВКОЙ - объект с группами
+                            // Преобразуем в формат для multi-line
+                            const groups = Object.keys(lgmCompData);
+                            const allCourses = new Set();
+                            
+                            groups.forEach(groupName => {
+                                lgmCompData[groupName].forEach(point => {
+                                    allCourses.add(point.course);
+                                });
+                            });
+                            
+                            compData = Array.from(allCourses)
+                                .sort((a, b) => a - b)
+                                .map(course => {
+                                    const point = { course: `${course} курс` };
+                                    groups.forEach(groupName => {
+                                        const coursePoint = lgmCompData[groupName].find(p => p.course === course);
+                                        point[groupName] = coursePoint ? coursePoint.mean : null;
+                                    });
+                                    return point;
+                                });
+                        }
+                    }
+
+                    if (!compData || compData.length === 0) {
+                        return (
+                            <div key={comp} className="chart-grid-item">
+                                <h4>{competencyLabels[comp]}</h4>
+                                <div className="no-data">Нет данных</div>
+                            </div>
+                        );
+                    }
+
+                    // Проверяем: один график или multi-line
+                    const isMultiLine = compData.length > 0 && Object.keys(compData[0]).length > 2; // course + минимум 2 группы
+
+                    return (
+                        <div key={comp} className="chart-grid-item">
+                            <h4>{competencyLabels[comp]}</h4>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <LineChart data={compData}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="course" />
+                                    <YAxis />
+                                    <Tooltip />
+                                    {isMultiLine && <Legend />}
+                                    
+                                    {isMultiLine ? (
+                                        // Multi-line график
+                                        Object.keys(compData[0])
+                                            .filter(key => key !== 'course')
+                                            .map((groupName, i) => (
+                                                <Line
+                                                    key={groupName}
+                                                    type="monotone"
+                                                    dataKey={groupName}
+                                                    stroke={COLORS[i % COLORS.length]}
+                                                    strokeWidth={2}
+                                                    name={groupName}
+                                                />
+                                            ))
+                                    ) : (
+                                        // Одна линия
+                                        <Line
+                                            type="monotone"
+                                            dataKey="mean"
+                                            stroke={COLORS[index % COLORS.length]}
+                                            strokeWidth={2}
+                                            name={competencyLabels[comp]}
+                                        />
+                                    )}
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    };
+
+    // -------------------- RENDER LGM CHART (НОВОЕ!) --------------------
+
+    const renderLGMChart = () => {
+        if (!chartData || chartData.length === 0) {
+            return (
+                <div className="no-data">
+                    <p>Нет данных для отображения</p>
+                </div>
+            );
+        }
+
+        // Проверяем: один график или multi-line
+        const isMultiLine = Object.keys(chartData[0]).length > 2; // course + минимум 2 группы
+
+        return (
+            <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="course" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    
+                    {isMultiLine ? (
+                        // Multi-line график
+                        Object.keys(chartData[0])
+                            .filter(key => key !== 'course')
+                            .map((groupName, index) => (
+                                <Line
+                                    key={groupName}
+                                    type="monotone"
+                                    dataKey={groupName}
+                                    stroke={COLORS[index % COLORS.length]}
+                                    strokeWidth={2}
+                                    name={groupName}
+                                />
+                            ))
+                    ) : (
+                        // Одна линия
+                        <Line
+                            type="monotone"
+                            dataKey="mean"
+                            stroke="#1976d2"
+                            strokeWidth={2}
+                            name="Средняя траектория роста"
+                        />
+                    )}
+                </LineChart>
+            </ResponsiveContainer>
+        );
     };
 
     // -------------------- UPDATE DIRECTIONS WHEN INSTITUTIONS CHANGE --------------------
@@ -213,7 +594,6 @@ function AdminAnalysisView() {
                 const json = await response.json();
 
                 if (json.status === "success") {
-                    // Преобразуем в формат с count (используем из allDirections)
                     const directionsWithCounts = json.directions.map(dirName => {
                         const found = filterOptions.allDirections.find(d => d.name === dirName);
                         return found || { name: dirName, count: 0 };
@@ -241,8 +621,7 @@ function AdminAnalysisView() {
 
     useEffect(() => {
         if (sessionId) {
-            console.log("🔄 Фильтры изменились, обновляем счётчики всех фильтров...");
-            loadFilterOptions(sessionId, true);  // updateCounts = true → cross-filtering!
+            loadFilterOptions(sessionId, true);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedInstitutions, selectedDirections, selectedCourses, selectedTestAttempts, sessionId]);
@@ -424,14 +803,19 @@ function AdminAnalysisView() {
         setChartData(chartData);
     };
 
-    // -------------------- EFFECTS --------------------
+    // -------------------- EFFECTS (ОБНОВЛЕНО!) --------------------
 
     useEffect(() => {
         if (sessionId) {
-            loadVAMData();
+            if (analysisMethod === "vam") {
+                loadVAMData();
+            } else {
+                loadLGMData();
+            }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedInstitutions, selectedDirections, selectedCourses, selectedTestAttempts, sessionId]);
+    }, [analysisMethod, selectedInstitutions, selectedDirections, selectedCourses, 
+        selectedTestAttempts, selectedCompetencies, selectedStudents, sessionId]);
 
     useEffect(() => {
         if (rawData.length > 0) {
@@ -534,6 +918,17 @@ function AdminAnalysisView() {
         return null;
     };
 
+    const clearAllFilters = () => {
+        setSelectedInstitutions([]);
+        setSelectedDirections([]);
+        setSelectedCourses([]);
+        setSelectedTestAttempts([]);
+        setSelectedCompetencies([]);
+        setSelectedStudents([]);
+        
+        console.log("🗑️ Все фильтры очищены");
+    };
+
     return (
         <div className="AdminAnalysisView">
             <Header
@@ -548,7 +943,7 @@ function AdminAnalysisView() {
                     style="modeus"
                 >
 
-                    <h2>Анализ развития компетенций (Value-Added Model)</h2>
+                    <h2>Анализ развития компетенций</h2>
 
                     {/* Сводная статистика */}
                     {summaryStats && (
@@ -568,11 +963,30 @@ function AdminAnalysisView() {
                         </div>
                     )}
 
-                    {/* Описание анализа */}
-                    <div className="analysis-description">
-                        <strong>Value-Added Model (VAM)</strong> - метод оценки развития компетенций, 
-                        который показывает отклонение результата студента от ожидаемого уровня. 
-                        Автоматически адаптируется под выбранные фильтры.
+                    {/* КНОПКИ VAM/LGM (ДОБАВЛЕНО!) */}
+                    <div className="analysis-method-section">
+                        <h3>Метод анализа</h3>
+                        <div className="analysis-method-buttons">
+                            <Button
+                                text="Value-Added Model (VAM)"
+                                onClick={() => setAnalysisMethod("vam")}
+                                fg={analysisMethod === "vam" ? "white" : "#1976d2"}
+                                bg={analysisMethod === "vam" ? "#1976d2" : "white"}
+                                border="1px solid #1976d2"
+                            />
+                            <Button
+                                text="Latent Growth Model (LGM)"
+                                onClick={() => setAnalysisMethod("lgm")}
+                                fg={analysisMethod === "lgm" ? "white" : "#1976d2"}
+                                bg={analysisMethod === "lgm" ? "#1976d2" : "white"}
+                                border="1px solid #1976d2"
+                            />
+                        </div>
+                        <p className="method-description">
+                            {analysisMethod === "vam" 
+                                ? "VAM показывает отклонение результата студента от ожидаемого уровня."
+                                : "LGM показывает средние траектории развития компетенций на уровне популяции."}
+                        </p>
                     </div>
 
                     {/* Data Quality Warning */}
@@ -653,46 +1067,81 @@ function AdminAnalysisView() {
                                     showCounts={true}
                                 />
 
+                                {/* ФИЛЬТР КОМПЕТЕНЦИЙ (ДОБАВЛЕНО!) */}
+                                <MultiSelect
+                                    options={filterOptions.competencies}
+                                    value={selectedCompetencies}
+                                    onChange={setSelectedCompetencies}
+                                    placeholder="Все компетенции"
+                                    searchPlaceholder="Поиск компетенций..."
+                                    label="Компетенции"
+                                    withSearch={true}
+                                    showCounts={true}  // ← ИЗМЕНИТЕ С false НА true!
+                                />
+
+                                <MultiSelect
+                                    options={filterOptions.students}
+                                    value={selectedStudents}
+                                    onChange={setSelectedStudents}
+                                    placeholder="Все студенты"
+                                    searchPlaceholder="Поиск по имени или ID..."
+                                    label="Студенты (индивидуальный анализ)"
+                                    withSearch={true}
+                                    showCounts={true}
+                                    maxHeight="400px"
+                                />
+
                                 <div className="filter-actions">
                                     <Button
                                         text={`${loading ? '⏳' : '🔄'} Обновить`}
-                                        onClick={() => loadVAMData()}
+                                        onClick={() => analysisMethod === "vam" ? loadVAMData() : loadLGMData()}
                                         disabled={!sessionId || loading}
                                         fg="white"
                                         bg="#17a2b8"
                                         hoverBg="#138496"
                                         disabledBg="#6c757d"
                                     />
+                                    
+                                    {/* НОВАЯ КНОПКА ОЧИСТКИ! */}
+                                    <Button
+                                        text="🗑️ Очистить фильтры"
+                                        onClick={clearAllFilters}
+                                        fg="#666"
+                                        bg="white"
+                                        border="1px solid #ddd"
+                                        hoverBg="#f5f5f5"
+                                    />
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* График */}
-                    <div className="chart-container">
-                        <div className="chart-info">
-                            <span>Записей: {rawData.length}</span>
-                        </div>
-                        {loading ? (
-                            <div className="loading">
-                                <div className="spinner"></div>
-                                <div className="loading-text">Загрузка данных...</div>
-                            </div>
-                        ) : (
-                            renderChart()
-                        )}
-                    </div>
+                    {/* СЕТКА ГРАФИКОВ (ОБНОВЛЕНО!) */}
+                    {renderChartsGrid()}
 
-                    {/* Интерпретация */}
+                    {/* Интерпретация (ОБНОВЛЕНО!) */}
                     <div className="interpretation">
                         <h3>💡 Интерпретация результатов</h3>
                         <div className="interpretation-content">
-                            <p><strong>VAM (Value-Added Measure)</strong> показывает:</p>
-                            <ul>
-                                <li><strong>Положительное значение (+)</strong> - студент развивается быстрее ожидаемого</li>
-                                <li><strong>Ноль (0)</strong> - развитие соответствует ожиданиям</li>
-                                <li><strong>Отрицательное значение (-)</strong> - развитие медленнее ожидаемого</li>
-                            </ul>
+                            {analysisMethod === "vam" ? (
+                                <>
+                                    <p><strong>VAM (Value-Added Measure)</strong> показывает:</p>
+                                    <ul>
+                                        <li><strong>Положительное значение (+)</strong> - студент развивается быстрее ожидаемого</li>
+                                        <li><strong>Ноль (0)</strong> - развитие соответствует ожиданиям</li>
+                                        <li><strong>Отрицательное значение (-)</strong> - развитие медленнее ожидаемого</li>
+                                    </ul>
+                                </>
+                            ) : (
+                                <>
+                                    <p><strong>LGM (Latent Growth Model)</strong> показывает:</p>
+                                    <ul>
+                                        <li>Средние траектории развития компетенций на уровне популяции</li>
+                                        <li>Общую динамику изменения компетенций от курса к курсу</li>
+                                        <li>Тенденции роста или снижения показателей</li>
+                                    </ul>
+                                </>
+                            )}
                         </div>
                     </div>
 

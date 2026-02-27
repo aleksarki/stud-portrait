@@ -297,3 +297,73 @@
     }
   }
 }
+
+// ═══════════════════════════════════════════════════════════
+// ANALYSIS METHOD SECTION (НОВОЕ!)
+// ═══════════════════════════════════════════════════════════
+
+.analysis-method-section {
+  margin: 20px 0;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+
+  h3 {
+    margin: 0 0 15px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+  }
+
+  .analysis-method-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+
+  .method-description {
+    margin: 10px 0 0 0;
+    font-size: 14px;
+    color: #666;
+    line-height: 1.5;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// CHARTS GRID - Сетка графиков 2 в ряд (НОВОЕ!)
+// ═══════════════════════════════════════════════════════════
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-top: 20px;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: 1fr;
+  }
+
+  .chart-grid-item {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+
+    h4 {
+      margin: 0 0 15px 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      text-align: center;
+    }
+
+    .no-data {
+      padding: 40px 20px;
+      text-align: center;
+      color: #999;
+      font-size: 14px;
+    }
+  }
+}

@@ -16,6 +16,8 @@ urlpatterns = [
     path("get-filter-options-with-counts/", views.get_filter_options_with_counts, name="get_filter_options_with_counts"),
     path("get-vam-unified/", views.get_vam_unified, name="get_vam_unified"),
 
+    path('get-latent-growth/', views.get_latent_growth, name='get_latent_growth'),
+
     path("create-data-session/",     views.create_data_session,     name="create_data_session"),
     path("get-session-data/",        views.get_session_data,        name="get_session_data"),
     path("update-session-filters/",  views.update_session_filters,  name="update_session_filters"),
