@@ -965,3 +965,102 @@ def get_group_value(result, grouping_column):
         return result.res_course_num
     return None
 
+
+@method('GET')
+@csrf_exempt
+def get_filter_options(request):
+    """
+    Возвращает доступные опции для фильтров (ВУЗы, направления, курсы)
+    """
+    try:
+        session_id = request.GET.get('session_id')
+        
+        print(f"=== get_filter_options called ===")
+        print(f"session_id: {session_id}")
+        print(f"Available sessions: {list(data_view_sessions.keys())}")
+        
+        # Проверка сессии НЕ обязательна для этого endpoint
+        # Можем вернуть данные и без сессии
+        if session_id and session_id in data_view_sessions:
+            session = data_view_sessions[session_id]
+            session.update_activity()
+            print("Session found and updated")
+        else:
+            print("No valid session, but continuing anyway")
+        
+        # Получаем уникальные значения для фильтров
+        
+        # Институты
+        print("Fetching institutions...")
+        institutions = Institutions.objects.all().values('inst_id', 'inst_name').order_by('inst_name')
+        institutions_list = [
+            {'id': inst['inst_id'], 'name': inst['inst_name']} 
+            for inst in institutions
+        ]
+        print(f"Found {len(institutions_list)} institutions")
+        if institutions_list:
+            print(f"First institution: {institutions_list[0]}")
+        
+        # Направления (специальности)
+        print("Fetching directions...")
+        directions = Specialties.objects.all().values_list('spec_name', flat=True).distinct().order_by('spec_name')
+        directions_list = list(directions)
+        print(f"Found {len(directions_list)} directions")
+        if directions_list:
+            print(f"First direction: {directions_list[0]}")
+        
+        # Курсы (обычно 1-6)
+        print("Fetching courses...")
+        courses = Results.objects.filter(
+            res_course_num__isnull=False
+        ).values_list('res_course_num', flat=True).distinct().order_by('res_course_num')
+        courses_list = list(courses)
+        print(f"Found {len(courses_list)} courses: {courses_list}")
+        
+        # Годы
+        print("Fetching years...")
+        years = Results.objects.filter(
+            res_year__isnull=False
+        ).values_list('res_year', flat=True).distinct().order_by('res_year')
+        years_list = list(years)
+        print(f"Found {len(years_list)} years")
+        
+        # Центры компетенций
+        print("Fetching centers...")
+        centers = CompetenceCenters.objects.all().values_list('center_name', flat=True).distinct().order_by('center_name')
+        centers_list = list(centers)
+        print(f"Found {len(centers_list)} centers")
+        
+        # Уровни образования
+        print("Fetching edu_levels...")
+        edu_levels = Educationlevels.objects.all().values_list('edu_level_name', flat=True).distinct().order_by('edu_level_name')
+        edu_levels_list = list(edu_levels)
+        print(f"Found {len(edu_levels_list)} edu_levels")
+        
+        # Формы обучения
+        print("Fetching study_forms...")
+        study_forms = Studyforms.objects.all().values_list('form_name', flat=True).distinct().order_by('form_name')
+        study_forms_list = list(study_forms)
+        print(f"Found {len(study_forms_list)} study_forms")
+        
+        response_data = {
+            "data": {
+                "institutions": institutions_list,
+                "directions": directions_list,
+                "courses": courses_list,
+                "years": years_list,
+                "centers": centers_list,
+                "edu_levels": edu_levels_list,
+                "study_forms": study_forms_list
+            }
+        }
+        
+        print(f"Returning response with {len(institutions_list)} institutions, {len(directions_list)} directions, {len(courses_list)} courses")
+        
+        return successResponse(response_data)
+        
+    except Exception as e:
+        print(f"ERROR in get_filter_options: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return exceptionResponse(e)

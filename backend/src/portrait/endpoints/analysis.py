@@ -1,45 +1,12 @@
+# Модуль анализа данных.
 
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Q
-import numpy as np
 from collections import defaultdict
+import numpy as np
 
-from .models import (
-    Participants, Competencecenters as CompetenceCenters, Institutions,
-    Educationlevels, Studyforms, Specialties,
-    Results, Course, Academicperformance
-)
-
-# Create your views here.
-
-successResponse = lambda d: JsonResponse({**{"status": "success"}, **d})
-errorResponse = lambda m: JsonResponse({"status": "error", "message": m}, status=400)
-notFoundResponse = lambda m: JsonResponse({"status": "error", "message": m}, status=404)
-notAllowedResponse = lambda: JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
-exceptionResponse = lambda e: JsonResponse({"status": "error", "message": str(e)}, status=500)
+from .common import *
 
 
-def method(method):
-    def inner(func):
-        @csrf_exempt
-        def wrapper(request):
-            if request.method != method:
-                return notAllowedResponse()
-            return func(request)
-        return wrapper
-    return inner
-
-
-def response(func):
-    @csrf_exempt
-    def wrapper(request):
-        try:
-            return successResponse(func(request))
-        except Exception as e:
-            return exceptionResponse(e)
-    return wrapper
-
+# ====== ENDPOINTS ====== #
 
 @csrf_exempt
 def value_added_improved(request):
@@ -394,736 +361,6 @@ def calculate_comparison_vam(results_list, competencies):
     })
 
 
-# ========================================
-# Дополнительная функция для сводной статистики
-# ========================================
-
-@csrf_exempt
-def vam_summary_statistics(request):
-    """
-    Сводная статистика для понимания данных и выбора подхода к анализу.
-    """
-    
-    results = Results.objects.select_related(
-        "res_participant"
-    ).exclude(
-        res_course_num__isnull=True
-    ).order_by(
-        "res_participant_id",
-        "res_year"
-    )
-    
-    # Подсчёт замеров по студентам
-    student_measurements = defaultdict(int)
-    
-    for row in results:
-        student_measurements[row.res_participant_id] += 1
-    
-    # Распределение по количеству замеров
-    distribution = defaultdict(int)
-    for count in student_measurements.values():
-        distribution[count] += 1
-    
-    # Распределение по курсам
-    course_distribution = defaultdict(int)
-    for row in results:
-        course_distribution[row.res_course_num] += 1
-    
-    # Распределение по годам
-    year_distribution = defaultdict(int)
-    for row in results:
-        year_distribution[row.res_year] += 1
-    
-    return JsonResponse({
-        "status": "success",
-        "total_students": len(student_measurements),
-        "total_measurements": sum(student_measurements.values()),
-        "measurements_distribution": dict(distribution),
-        "longitudinal_eligible": sum(1 for c in student_measurements.values() if c >= 2),
-        "course_distribution": dict(course_distribution),
-        "year_distribution": dict(year_distribution),
-        "recommendation": (
-            "Рекомендуем использовать Cross-Sectional VAM, так как только "
-            f"{sum(1 for c in student_measurements.values() if c >= 2)} студентов "
-            f"({round(100 * sum(1 for c in student_measurements.values() if c >= 2) / len(student_measurements), 1)}%) "
-            "имеют повторные замеры для Longitudinal VAM."
-        )
-    })
-
-@method('GET')
-@csrf_exempt
-def get_filter_options(request):
-    """
-    Возвращает доступные опции для фильтров (ВУЗы, направления, курсы)
-    """
-    try:
-        session_id = request.GET.get('session_id')
-        
-        print(f"=== get_filter_options called ===")
-        print(f"session_id: {session_id}")
-        print(f"Available sessions: {list(data_view_sessions.keys())}")
-        
-        # Проверка сессии НЕ обязательна для этого endpoint
-        # Можем вернуть данные и без сессии
-        if session_id and session_id in data_view_sessions:
-            session = data_view_sessions[session_id]
-            session.update_activity()
-            print("Session found and updated")
-        else:
-            print("No valid session, but continuing anyway")
-        
-        # Получаем уникальные значения для фильтров
-        
-        # Институты
-        print("Fetching institutions...")
-        institutions = Institutions.objects.all().values('inst_id', 'inst_name').order_by('inst_name')
-        institutions_list = [
-            {'id': inst['inst_id'], 'name': inst['inst_name']} 
-            for inst in institutions
-        ]
-        print(f"Found {len(institutions_list)} institutions")
-        if institutions_list:
-            print(f"First institution: {institutions_list[0]}")
-        
-        # Направления (специальности)
-        print("Fetching directions...")
-        directions = Specialties.objects.all().values_list('spec_name', flat=True).distinct().order_by('spec_name')
-        directions_list = list(directions)
-        print(f"Found {len(directions_list)} directions")
-        if directions_list:
-            print(f"First direction: {directions_list[0]}")
-        
-        # Курсы (обычно 1-6)
-        print("Fetching courses...")
-        courses = Results.objects.filter(
-            res_course_num__isnull=False
-        ).values_list('res_course_num', flat=True).distinct().order_by('res_course_num')
-        courses_list = list(courses)
-        print(f"Found {len(courses_list)} courses: {courses_list}")
-        
-        # Годы
-        print("Fetching years...")
-        years = Results.objects.filter(
-            res_year__isnull=False
-        ).values_list('res_year', flat=True).distinct().order_by('res_year')
-        years_list = list(years)
-        print(f"Found {len(years_list)} years")
-        
-        # Центры компетенций
-        print("Fetching centers...")
-        centers = CompetenceCenters.objects.all().values_list('center_name', flat=True).distinct().order_by('center_name')
-        centers_list = list(centers)
-        print(f"Found {len(centers_list)} centers")
-        
-        # Уровни образования
-        print("Fetching edu_levels...")
-        edu_levels = Educationlevels.objects.all().values_list('edu_level_name', flat=True).distinct().order_by('edu_level_name')
-        edu_levels_list = list(edu_levels)
-        print(f"Found {len(edu_levels_list)} edu_levels")
-        
-        # Формы обучения
-        print("Fetching study_forms...")
-        study_forms = Studyforms.objects.all().values_list('form_name', flat=True).distinct().order_by('form_name')
-        study_forms_list = list(study_forms)
-        print(f"Found {len(study_forms_list)} study_forms")
-        
-        response_data = {
-            "data": {
-                "institutions": institutions_list,
-                "directions": directions_list,
-                "courses": courses_list,
-                "years": years_list,
-                "centers": centers_list,
-                "edu_levels": edu_levels_list,
-                "study_forms": study_forms_list
-            }
-        }
-        
-        print(f"Returning response with {len(institutions_list)} institutions, {len(directions_list)} directions, {len(courses_list)} courses")
-        
-        return successResponse(response_data)
-        
-    except Exception as e:
-        print(f"ERROR in get_filter_options: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return exceptionResponse(e)
-
-
-@method('GET')
-@csrf_exempt
-def get_institution_directions(request):
-    """
-    Возвращает направления, которые есть в выбранных институтах.
-    Извлекает уникальные пары (institution, direction) из таблицы Results.
-    """
-    try:
-        institution_ids = request.GET.getlist('institution_ids[]')
-        
-        print(f"📊 get_institution_directions called with institutions: {institution_ids}")
-        
-        # Если институты не выбраны, возвращаем ВСЕ направления
-        if not institution_ids or len(institution_ids) == 0:
-            directions = Results.objects.filter(
-                res_spec__isnull=False
-            ).values_list(
-                'res_spec__spec_name', flat=True
-            ).distinct().order_by('res_spec__spec_name')
-            
-            directions_list = list(directions)
-            print(f"✅ Нет фильтра по ВУЗам, вернули {len(directions_list)} направлений")
-            
-            return successResponse({
-                "directions": directions_list
-            })
-        
-        # Фильтруем направления по выбранным институтам
-        directions = Results.objects.filter(
-            res_institution__inst_id__in=institution_ids,
-            res_spec__isnull=False
-        ).values_list(
-            'res_spec__spec_name', flat=True
-        ).distinct().order_by('res_spec__spec_name')
-        
-        directions_list = list(directions)
-        print(f"✅ Для ВУЗов {institution_ids} нашли {len(directions_list)} направлений")
-        
-        return successResponse({
-            "directions": directions_list
-        })
-        
-    except Exception as e:
-        print(f"❌ Ошибка в get_institution_directions: {str(e)}")
-        return exceptionResponse(e)
-
-
-@method('GET')
-@csrf_exempt  
-def get_vam_comparison(request):
-    """
-    Получает VAM данные для нескольких институтов/направлений для сравнения.
-    Добавлен фильтр по количеству прохождений тестирования.
-    """
-    try:
-        session_id = request.GET.get("session_id")
-        analysis_type = request.GET.get("type", "cross_sectional")
-        
-        # Multi-select параметры
-        institution_ids = request.GET.getlist('institution_ids[]')
-        directions = request.GET.getlist('directions[]')
-        courses = request.GET.getlist('courses[]')
-        test_attempts = request.GET.getlist('test_attempts[]')  # Новый параметр!
-        
-        print(f"\n{'='*60}")
-        print(f"📊 get_vam_comparison вызван")
-        print(f"   Институты: {institution_ids}")
-        print(f"   Направления: {directions}")
-        print(f"   Курсы: {courses}")
-        print(f"   Прохождений: {test_attempts}")
-        print(f"{'='*60}\n")
-
-        competencies = [
-            "res_comp_leadership", "res_comp_communication", 
-            "res_comp_self_development", "res_comp_result_orientation",
-            "res_comp_stress_resistance", "res_comp_client_focus",
-            "res_comp_planning", "res_comp_info_analysis",
-            "res_comp_partnership", "res_comp_rules_compliance",
-            "res_comp_emotional_intel", "res_comp_passive_vocab"
-        ]
-
-        # Базовый запрос
-        results = Results.objects.select_related(
-            "res_participant",
-            "res_participant__part_institution",
-            "res_participant__part_spec"
-        ).exclude(
-            res_course_num__isnull=True
-        ).order_by(
-            "res_participant_id",
-            "res_year",
-            "res_course_num"
-        )
-
-        # Применяем фильтры
-        if institution_ids and len(institution_ids) > 0:
-            results = results.filter(
-                res_participant__part_institution__inst_id__in=institution_ids
-            )
-        
-        if directions and len(directions) > 0:
-            results = results.filter(
-                res_participant__part_spec__spec_name__in=directions
-            )
-        
-        if courses and len(courses) > 0:
-            results = results.filter(res_course_num__in=courses)
-
-        # ============================================================
-        # НОВЫЙ ФИЛЬТР: По количеству прохождений тестирования
-        # ============================================================
-        
-        if test_attempts and len(test_attempts) > 0:
-            print(f"🔍 Фильтрация по количеству прохождений: {test_attempts}")
-            
-            # Группируем по студентам и считаем количество замеров
-            from django.db.models import Count
-            
-            # Подсчитываем количество замеров для каждого студента
-            student_attempts = Results.objects.values('res_participant').annotate(
-                attempt_count=Count('res_id')
-            )
-            
-            # Создаём словарь {student_id: attempt_count}
-            attempts_dict = {
-                item['res_participant']: item['attempt_count'] 
-                for item in student_attempts
-            }
-            
-            # Фильтруем студентов по заданному количеству прохождений
-            valid_students = [
-                student_id 
-                for student_id, count in attempts_dict.items()
-                if str(count) in test_attempts
-            ]
-            
-            print(f"✅ Найдено {len(valid_students)} студентов с нужным количеством прохождений")
-            
-            # Применяем фильтр
-            results = results.filter(res_participant__in=valid_students)
-
-        results_list = list(results)
-        
-        print(f"🔍 Найдено {len(results_list)} записей после всех фильтров")
-
-        # Вычисляем VAM
-        if analysis_type == "cross_sectional":
-            vam_data = calculate_cross_sectional_vam(results_list, competencies)
-        elif analysis_type == "longitudinal":
-            vam_data = calculate_longitudinal_vam(results_list, competencies)
-        else:
-            return JsonResponse({"status": "error", "message": "Invalid analysis type"})
-        
-        import json
-        response_data = json.loads(vam_data.content)
-        
-        if response_data.get("status") != "success":
-            return vam_data
-        
-        # Группируем данные для графика
-        grouped_data = group_vam_for_comparison(
-            response_data["data"],
-            institution_ids,
-            directions
-        )
-        
-        return JsonResponse({
-            "status": "success",
-            "data": response_data["data"],
-            "grouped": grouped_data,
-            "total_students": response_data.get("total_students", len(response_data["data"])),
-            "filtered_by_attempts": len(test_attempts) > 0,  # Флаг для фронта
-            "selected_attempts": test_attempts  # Для отладки
-        })
-        
-    except Exception as e:
-        print(f"❌ Ошибка в get_vam_comparison: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return exceptionResponse(e)
-
-
-def group_vam_for_comparison(data, institution_ids, directions):
-    """
-    Группирует VAM данные для построения нескольких линий на графике.
-    
-    Возвращает:
-    {
-        "by_institution": {
-            "МГУ": {1: [vam1, vam2, ...], 2: [vam3, vam4, ...], ...},
-            "СПбГУ": {1: [...], 2: [...], ...}
-        },
-        "by_direction": {
-            "Информатика": {1: [...], 2: [...], ...},
-            "Математика": {1: [...], 2: [...], ...}
-        }
-    }
-    """
-    
-    grouped = {
-        "by_institution": defaultdict(lambda: defaultdict(list)),
-        "by_direction": defaultdict(lambda: defaultdict(list)),
-        "by_institution_direction": defaultdict(lambda: defaultdict(list))
-    }
-    
-    for item in data:
-        course = item.get("course") or item.get("to_course")
-        vam = item.get("mean_vam", 0)
-        institution = item.get("institution_name", "Неизвестно")
-        direction = item.get("direction", "Неизвестно")
-        
-        if course:
-            # Группируем по институту
-            grouped["by_institution"][institution][course].append(vam)
-            
-            # Группируем по направлению
-            grouped["by_direction"][direction][course].append(vam)
-            
-            # Группируем по комбинации институт+направление
-            key = f"{institution} - {direction}"
-            grouped["by_institution_direction"][key][course].append(vam)
-    
-    # Вычисляем средние значения
-    result = {
-        "by_institution": {},
-        "by_direction": {},
-        "by_institution_direction": {}
-    }
-    
-    for inst, courses_data in grouped["by_institution"].items():
-        result["by_institution"][inst] = {
-            course: round(sum(vams) / len(vams), 2) if vams else 0
-            for course, vams in courses_data.items()
-        }
-    
-    for dir, courses_data in grouped["by_direction"].items():
-        result["by_direction"][dir] = {
-            course: round(sum(vams) / len(vams), 2) if vams else 0
-            for course, vams in courses_data.items()
-        }
-    
-    for key, courses_data in grouped["by_institution_direction"].items():
-        result["by_institution_direction"][key] = {
-            course: round(sum(vams) / len(vams), 2) if vams else 0
-            for course, vams in courses_data.items()
-        }
-    
-    return result
-
-
-@method('GET')
-@csrf_exempt
-def get_filter_options_with_counts(request):
-    """
-    Возвращает опции фильтров с количеством записей для каждой.
-    С учётом уже выбранных фильтров (cross-filtering).
-    
-    ВАЖНО: Динамически подсчитывает максимальное количество прохождений!
-    """
-    try:
-        session_id = request.GET.get('session_id')
-        
-
-        # Получаем текущие выбранные фильтры
-        selected_institution_ids = request.GET.getlist('institution_ids[]')
-        selected_directions = request.GET.getlist('directions[]')
-        selected_courses = request.GET.getlist('courses[]')
-        selected_test_attempts = request.GET.getlist('test_attempts[]')
-        
-        print(f"\n{'='*60}")
-        print(f"📊 get_filter_options_with_counts вызван")
-        print(f"   Текущие фильтры:")
-        print(f"   - Институты: {selected_institution_ids}")
-        print(f"   - Направления: {selected_directions}")
-        print(f"   - Курсы: {selected_courses}")
-        print(f"   - Прохождения: {selected_test_attempts}")
-        print(f"{'='*60}\n")
-        
-        from django.db.models import Count
-        
-        # Базовый запрос (применяем все фильтры кроме текущего)
-        base_results = Results.objects.select_related(
-            'res_participant__part_institution',
-            'res_participant__part_spec'
-        )
-        
-        # ============================================================
-        # ИНСТИТУТЫ с количеством (с учётом других фильтров)
-        # ============================================================
-        
-        institutions_query = base_results
-        
-        # Применяем фильтры КРОМЕ институтов
-        if selected_directions:
-            institutions_query = institutions_query.filter(
-                res_participant__part_spec__spec_name__in=selected_directions
-            )
-        
-        if selected_courses:
-            institutions_query = institutions_query.filter(
-                res_course_num__in=selected_courses
-            )
-        
-        if selected_test_attempts:
-            # Фильтр по количеству прохождений
-            student_attempts = Results.objects.values('res_participant').annotate(
-                attempt_count=Count('res_id')
-            )
-            
-            attempts_dict = {
-                item['res_participant']: item['attempt_count'] 
-                for item in student_attempts
-            }
-            
-            valid_students = [
-                student_id 
-                for student_id, count in attempts_dict.items()
-                if str(count) in selected_test_attempts
-            ]
-            
-            institutions_query = institutions_query.filter(
-                res_participant__in=valid_students
-            )
-        
-        institutions_counts = institutions_query.values(
-            'res_participant__part_institution__inst_id',
-            'res_participant__part_institution__inst_name'
-        ).annotate(
-            count=Count('res_id')
-        ).order_by('-count')  # Сортировка по количеству (больше → меньше)
-        
-        institutions_list = [
-            {
-                'id': item['res_participant__part_institution__inst_id'],
-                'name': item['res_participant__part_institution__inst_name'],
-                'count': item['count']
-            }
-            for item in institutions_counts
-            if item['res_participant__part_institution__inst_name']
-        ]
-        
-        print(f"✅ Институты: {len(institutions_list)} (отсортировано по количеству)")
-        
-        # ============================================================
-        # НАПРАВЛЕНИЯ с количеством (с учётом других фильтров)
-        # ============================================================
-        
-        directions_query = base_results
-        
-        # Применяем фильтры КРОМЕ направлений
-        if selected_institution_ids:
-            directions_query = directions_query.filter(
-                res_participant__part_institution__inst_id__in=selected_institution_ids
-            )
-        
-        if selected_courses:
-            directions_query = directions_query.filter(
-                res_course_num__in=selected_courses
-            )
-        
-        if selected_test_attempts:
-            student_attempts = Results.objects.values('res_participant').annotate(
-                attempt_count=Count('res_id')
-            )
-            
-            attempts_dict = {
-                item['res_participant']: item['attempt_count'] 
-                for item in student_attempts
-            }
-            
-            valid_students = [
-                student_id 
-                for student_id, count in attempts_dict.items()
-                if str(count) in selected_test_attempts
-            ]
-            
-            directions_query = directions_query.filter(
-                res_participant__in=valid_students
-            )
-        
-        directions_counts = directions_query.values(
-            'res_participant__part_spec__spec_name'
-        ).annotate(
-            count=Count('res_id')
-        ).order_by('-count')
-        
-        directions_list = [
-            {
-                'id': item['res_participant__part_spec__spec_name'],  # id = name для строк
-                'name': item['res_participant__part_spec__spec_name'],
-                'count': item['count']
-            }
-            for item in directions_counts
-            if item['res_participant__part_spec__spec_name']
-        ]
-        
-        print(f"✅ Направления: {len(directions_list)} (отсортировано по количеству)")
-        
-        # ============================================================
-        # КУРСЫ с количеством (с учётом других фильтров)
-        # ============================================================
-        
-        courses_query = base_results
-        
-        # Применяем фильтры КРОМЕ курсов
-        if selected_institution_ids:
-            courses_query = courses_query.filter(
-                res_participant__part_institution__inst_id__in=selected_institution_ids
-            )
-        
-        if selected_directions:
-            courses_query = courses_query.filter(
-                res_participant__part_spec__spec_name__in=selected_directions
-            )
-        
-        if selected_test_attempts:
-            student_attempts = Results.objects.values('res_participant').annotate(
-                attempt_count=Count('res_id')
-            )
-            
-            attempts_dict = {
-                item['res_participant']: item['attempt_count'] 
-                for item in student_attempts
-            }
-            
-            valid_students = [
-                student_id 
-                for student_id, count in attempts_dict.items()
-                if str(count) in selected_test_attempts
-            ]
-            
-            courses_query = courses_query.filter(
-                res_participant__in=valid_students
-            )
-        
-        courses_counts = courses_query.values('res_course_num').annotate(
-            count=Count('res_id')
-        ).order_by('res_course_num')
-        
-        courses_list = [
-            {
-                'id': item['res_course_num'],
-                'name': f"{item['res_course_num']} курс",
-                'count': item['count']
-            }
-            for item in courses_counts
-            if item['res_course_num']
-        ]
-        
-        print(f"✅ Курсы: {len(courses_list)}")
-        
-        # ============================================================
-        # КОЛИЧЕСТВО ПРОХОЖДЕНИЙ (ДИНАМИЧЕСКИЙ ПОДСЧЁТ!)
-        # ============================================================
-        
-        attempts_query = base_results
-        
-        # Применяем фильтры КРОМЕ прохождений
-        if selected_institution_ids:
-            attempts_query = attempts_query.filter(
-                res_participant__part_institution__inst_id__in=selected_institution_ids
-            )
-        
-        if selected_directions:
-            attempts_query = attempts_query.filter(
-                res_participant__part_spec__spec_name__in=selected_directions
-            )
-        
-        if selected_courses:
-            attempts_query = attempts_query.filter(
-                res_course_num__in=selected_courses
-            )
-        
-        # Подсчитываем количество замеров для каждого студента
-        student_attempts = attempts_query.values('res_participant').annotate(
-            attempt_count=Count('res_id')
-        )
-        
-        # Группируем по количеству прохождений
-        from collections import defaultdict
-        attempts_distribution = defaultdict(int)
-        
-        for item in student_attempts:
-            attempts_distribution[item['attempt_count']] += 1
-        
-        # ДИНАМИЧЕСКИ определяем максимум
-        max_attempts = max(attempts_distribution.keys()) if attempts_distribution else 6
-        
-        print(f"🔍 Максимальное количество прохождений: {max_attempts}")
-        print(f"   Распределение: {dict(attempts_distribution)}")
-        
-        # Формируем список (сортировка по количеству прохождений)
-        test_attempts_list = [
-            {
-                'id': attempts,
-                'name': f"{attempts} прохождение" if attempts == 1 else f"{attempts} прохождения",
-                'count': students_count
-            }
-            for attempts, students_count in sorted(attempts_distribution.items())
-        ]
-        
-        print(f"✅ Прохождений: {len(test_attempts_list)} (от 1 до {max_attempts})")
-        
-        # Компетенции с русскими названиями
-        competencies_data = [
-            {"id": "res_comp_info_analysis", "name": "Анализ информации"},
-            {"id": "res_comp_planning", "name": "Планирование"},
-            {"id": "res_comp_result_orientation", "name": "Ориентация на результат"},
-            {"id": "res_comp_stress_resistance", "name": "Стрессоустойчивость"},
-            {"id": "res_comp_partnership", "name": "Партнёрство"},
-            {"id": "res_comp_rules_compliance", "name": "Соблюдение правил"},
-            {"id": "res_comp_self_development", "name": "Саморазвитие"},
-            {"id": "res_comp_leadership", "name": "Лидерство"},
-            {"id": "res_comp_emotional_intel", "name": "Эмоциональный интеллект"},
-            {"id": "res_comp_client_focus", "name": "Клиентоориентированность"},
-            {"id": "res_comp_communication", "name": "Коммуникация"},
-            {"id": "res_comp_passive_vocab", "name": "Пассивный словарь"},
-        ]
-
-        competencies_list = []
-
-        for comp_info in competencies_data:
-            comp_field = comp_info["id"]
-            
-            # Подсчитываем ненулевые значения
-            count = Results.objects.exclude(
-                Q(**{f"{comp_field}__isnull": True}) | Q(**{comp_field: 0})
-            ).count()
-            
-            competencies_list.append({
-                "id": comp_field,
-                "name": comp_info["name"],
-                "count": count
-            })
-
-        print(f"✅ Компетенции: {len(competencies_list)}")
-
-
-        students_query = Participants.objects.annotate(
-            results_count=Count('results')
-        ).filter(
-            results_count__gt=0
-        ).order_by('part_name')[:1000]  # Ограничиваем 1000 для производительности
-
-        students_list = [
-            {
-                'id': student.part_id,
-                'name': f"{student.part_name} (ID: {student.part_id})",
-                'count': student.results_count
-            }
-            for student in students_query
-        ]
-
-        print(f"✅ Студенты: {len(students_list)}")
-
-        return successResponse({
-            "data": {
-                "institutions": institutions_list,
-                "directions": directions_list,
-                "courses": courses_list,
-                "test_attempts": test_attempts_list,
-                "competencies": competencies_list,  # ← С count!
-                "students": students_list,  # ← ДОБАВЛЕНО!
-                "max_attempts": max_attempts
-            }
-        })
-        
-    except Exception as e:
-        print(f"❌ Ошибка в get_filter_options_with_counts: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return exceptionResponse(e)
-
-
 # ============================================================
 # UNIFIED VAM FUNCTION (вместо Cross-Sectional и Longitudinal)
 # ============================================================
@@ -1285,6 +522,267 @@ def get_vam_unified(request):
         traceback.print_exc()
         return exceptionResponse(e)
 
+
+def group_vam_for_comparison(data, institution_ids, directions):
+    """
+    Группирует VAM данные для построения нескольких линий на графике.
+    
+    Возвращает:
+    {
+        "by_institution": {
+            "МГУ": {1: [vam1, vam2, ...], 2: [vam3, vam4, ...], ...},
+            "СПбГУ": {1: [...], 2: [...], ...}
+        },
+        "by_direction": {
+            "Информатика": {1: [...], 2: [...], ...},
+            "Математика": {1: [...], 2: [...], ...}
+        }
+    }
+    """
+    
+    grouped = {
+        "by_institution": defaultdict(lambda: defaultdict(list)),
+        "by_direction": defaultdict(lambda: defaultdict(list)),
+        "by_institution_direction": defaultdict(lambda: defaultdict(list))
+    }
+    
+    for item in data:
+        course = item.get("course") or item.get("to_course")
+        vam = item.get("mean_vam", 0)
+        institution = item.get("institution_name", "Неизвестно")
+        direction = item.get("direction", "Неизвестно")
+        
+        if course:
+            # Группируем по институту
+            grouped["by_institution"][institution][course].append(vam)
+            
+            # Группируем по направлению
+            grouped["by_direction"][direction][course].append(vam)
+            
+            # Группируем по комбинации институт+направление
+            key = f"{institution} - {direction}"
+            grouped["by_institution_direction"][key][course].append(vam)
+    
+    # Вычисляем средние значения
+    result = {
+        "by_institution": {},
+        "by_direction": {},
+        "by_institution_direction": {}
+    }
+    
+    for inst, courses_data in grouped["by_institution"].items():
+        result["by_institution"][inst] = {
+            course: round(sum(vams) / len(vams), 2) if vams else 0
+            for course, vams in courses_data.items()
+        }
+    
+    for dir, courses_data in grouped["by_direction"].items():
+        result["by_direction"][dir] = {
+            course: round(sum(vams) / len(vams), 2) if vams else 0
+            for course, vams in courses_data.items()
+        }
+    
+    for key, courses_data in grouped["by_institution_direction"].items():
+        result["by_institution_direction"][key] = {
+            course: round(sum(vams) / len(vams), 2) if vams else 0
+            for course, vams in courses_data.items()
+        }
+    
+    return result
+
+
+# ========================================
+# Дополнительная функция для сводной статистики
+# ========================================
+
+@csrf_exempt
+def vam_summary_statistics(request):
+    """
+    Сводная статистика для понимания данных и выбора подхода к анализу.
+    """
+    
+    results = Results.objects.select_related(
+        "res_participant"
+    ).exclude(
+        res_course_num__isnull=True
+    ).order_by(
+        "res_participant_id",
+        "res_year"
+    )
+    
+    # Подсчёт замеров по студентам
+    student_measurements = defaultdict(int)
+    
+    for row in results:
+        student_measurements[row.res_participant_id] += 1
+    
+    # Распределение по количеству замеров
+    distribution = defaultdict(int)
+    for count in student_measurements.values():
+        distribution[count] += 1
+    
+    # Распределение по курсам
+    course_distribution = defaultdict(int)
+    for row in results:
+        course_distribution[row.res_course_num] += 1
+    
+    # Распределение по годам
+    year_distribution = defaultdict(int)
+    for row in results:
+        year_distribution[row.res_year] += 1
+    
+    return JsonResponse({
+        "status": "success",
+        "total_students": len(student_measurements),
+        "total_measurements": sum(student_measurements.values()),
+        "measurements_distribution": dict(distribution),
+        "longitudinal_eligible": sum(1 for c in student_measurements.values() if c >= 2),
+        "course_distribution": dict(course_distribution),
+        "year_distribution": dict(year_distribution),
+        "recommendation": (
+            "Рекомендуем использовать Cross-Sectional VAM, так как только "
+            f"{sum(1 for c in student_measurements.values() if c >= 2)} студентов "
+            f"({round(100 * sum(1 for c in student_measurements.values() if c >= 2) / len(student_measurements), 1)}%) "
+            "имеют повторные замеры для Longitudinal VAM."
+        )
+    })
+
+
+@method('GET')
+@csrf_exempt  
+def get_vam_comparison(request):
+    """
+    Получает VAM данные для нескольких институтов/направлений для сравнения.
+    Добавлен фильтр по количеству прохождений тестирования.
+    """
+    try:
+        session_id = request.GET.get("session_id")
+        analysis_type = request.GET.get("type", "cross_sectional")
+        
+        # Multi-select параметры
+        institution_ids = request.GET.getlist('institution_ids[]')
+        directions = request.GET.getlist('directions[]')
+        courses = request.GET.getlist('courses[]')
+        test_attempts = request.GET.getlist('test_attempts[]')  # Новый параметр!
+        
+        print(f"\n{'='*60}")
+        print(f"📊 get_vam_comparison вызван")
+        print(f"   Институты: {institution_ids}")
+        print(f"   Направления: {directions}")
+        print(f"   Курсы: {courses}")
+        print(f"   Прохождений: {test_attempts}")
+        print(f"{'='*60}\n")
+
+        competencies = [
+            "res_comp_leadership", "res_comp_communication", 
+            "res_comp_self_development", "res_comp_result_orientation",
+            "res_comp_stress_resistance", "res_comp_client_focus",
+            "res_comp_planning", "res_comp_info_analysis",
+            "res_comp_partnership", "res_comp_rules_compliance",
+            "res_comp_emotional_intel", "res_comp_passive_vocab"
+        ]
+
+        # Базовый запрос
+        results = Results.objects.select_related(
+            "res_participant",
+            "res_participant__part_institution",
+            "res_participant__part_spec"
+        ).exclude(
+            res_course_num__isnull=True
+        ).order_by(
+            "res_participant_id",
+            "res_year",
+            "res_course_num"
+        )
+
+        # Применяем фильтры
+        if institution_ids and len(institution_ids) > 0:
+            results = results.filter(
+                res_participant__part_institution__inst_id__in=institution_ids
+            )
+        
+        if directions and len(directions) > 0:
+            results = results.filter(
+                res_participant__part_spec__spec_name__in=directions
+            )
+        
+        if courses and len(courses) > 0:
+            results = results.filter(res_course_num__in=courses)
+
+        # ============================================================
+        # НОВЫЙ ФИЛЬТР: По количеству прохождений тестирования
+        # ============================================================
+        
+        if test_attempts and len(test_attempts) > 0:
+            print(f"🔍 Фильтрация по количеству прохождений: {test_attempts}")
+            
+            # Группируем по студентам и считаем количество замеров
+            from django.db.models import Count
+            
+            # Подсчитываем количество замеров для каждого студента
+            student_attempts = Results.objects.values('res_participant').annotate(
+                attempt_count=Count('res_id')
+            )
+            
+            # Создаём словарь {student_id: attempt_count}
+            attempts_dict = {
+                item['res_participant']: item['attempt_count'] 
+                for item in student_attempts
+            }
+            
+            # Фильтруем студентов по заданному количеству прохождений
+            valid_students = [
+                student_id 
+                for student_id, count in attempts_dict.items()
+                if str(count) in test_attempts
+            ]
+            
+            print(f"✅ Найдено {len(valid_students)} студентов с нужным количеством прохождений")
+            
+            # Применяем фильтр
+            results = results.filter(res_participant__in=valid_students)
+
+        results_list = list(results)
+        
+        print(f"🔍 Найдено {len(results_list)} записей после всех фильтров")
+
+        # Вычисляем VAM
+        if analysis_type == "cross_sectional":
+            vam_data = calculate_cross_sectional_vam(results_list, competencies)
+        elif analysis_type == "longitudinal":
+            vam_data = calculate_longitudinal_vam(results_list, competencies)
+        else:
+            return JsonResponse({"status": "error", "message": "Invalid analysis type"})
+        
+        import json
+        response_data = json.loads(vam_data.content)
+        
+        if response_data.get("status") != "success":
+            return vam_data
+        
+        # Группируем данные для графика
+        grouped_data = group_vam_for_comparison(
+            response_data["data"],
+            institution_ids,
+            directions
+        )
+        
+        return JsonResponse({
+            "status": "success",
+            "data": response_data["data"],
+            "grouped": grouped_data,
+            "total_students": response_data.get("total_students", len(response_data["data"])),
+            "filtered_by_attempts": len(test_attempts) > 0,  # Флаг для фронта
+            "selected_attempts": test_attempts  # Для отладки
+        })
+        
+    except Exception as e:
+        print(f"❌ Ошибка в get_vam_comparison: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return exceptionResponse(e)
+
+
 @method('GET')
 @csrf_exempt
 def get_latent_growth(request):
@@ -1421,6 +919,7 @@ def get_latent_growth(request):
         traceback.print_exc()
         return exceptionResponse(e)
 
+
 def calculate_population_growth(results_list, competencies):
     """
     Latent Growth Model (LGM) - модель скрытого роста.
@@ -1488,7 +987,8 @@ def calculate_population_growth(results_list, competencies):
             "status": "error",
             "message": str(e)
         }
-    
+
+
 def calculate_grouped_growth(results_list, competencies, group_by):
     """
     Вычисляет траектории роста с группировкой по институтам/направлениям.
