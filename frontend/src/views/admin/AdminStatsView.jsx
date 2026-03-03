@@ -504,35 +504,48 @@ function AdminStatsView() {
 
                                 {/* Первый ряд диаграмм */}
                                 <div className="charts-row">
-                                    <div className="chart-container">
-                                        <h3>Участники по году первой оценки</h3>
-                                        <Chart
-                                            options={{
-                                                ...barChartOptions,
-                                                xaxis: { categories: stats?.participantsByFirstYear?.years || [] }
-                                            }}
-                                            series={[{
-                                                name: 'Участники',
-                                                data: stats?.participantsByFirstYear?.counts || []
-                                            }]}
-                                            type="bar"
-                                            height={350}
-                                        />
-                                    </div>
-                                    <div className="chart-container">
+                                    <div className="chart-container" style={{ gridColumn: '1 / -1' }}>
                                         <h3>Динамика тестирований по годам</h3>
                                         <Chart
                                             options={{
-                                                ...lineChartOptions,
-                                                xaxis: { categories: stats?.testsByYear?.years || [] },
-                                                yaxis: { title: { text: 'Количество студентов' } }
+                                                ...barChartOptions,
+                                                xaxis: { 
+                                                    categories: stats?.testsByYear?.years || [],
+                                                    title: {
+                                                        text: 'Учебный год'
+                                                    }
+                                                },
+                                                yaxis: { 
+                                                    title: { 
+                                                        text: 'Количество тестирований' 
+                                                    }
+                                                },
+                                                plotOptions: {
+                                                    bar: {
+                                                        borderRadius: 4,
+                                                        horizontal: false,
+                                                        columnWidth: '50%',
+                                                    }
+                                                },
+                                                colors: ['#10B981'],
+                                                dataLabels: {
+                                                    enabled: true,
+                                                    formatter: function(val) {
+                                                        return val.toFixed(0);
+                                                    },
+                                                    offsetY: -20,
+                                                    style: {
+                                                        fontSize: '12px',
+                                                        colors: ['#333']
+                                                    }
+                                                }
                                             }}
                                             series={[{
                                                 name: 'Тестирования',
                                                 data: stats?.testsByYear?.counts || []
                                             }]}
-                                            type="line"
-                                            height={350}
+                                            type="bar"
+                                            height={400}
                                         />
                                     </div>
                                 </div>
