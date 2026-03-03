@@ -269,7 +269,7 @@ def import_excel(request):
                     if not center_name:
                         continue
 
-                    center, _ = CompetenceCenters.objects.get_or_create(center_name=center_name)
+                    center, _ = Competencecenters.objects.get_or_create(center_name=center_name)
                     institution = None
                     if (inst_name := clean_value(row_data.get("inst_name"))):
                         institution, _ = Institutions.objects.get_or_create(inst_name=inst_name)
@@ -447,6 +447,7 @@ def import_excel(request):
                     updated_count += 1
 
     return JsonResponse({"status": "success", "created": created_count, "updated": updated_count})
+
 
 # ====== UTILITIES ====== #
 

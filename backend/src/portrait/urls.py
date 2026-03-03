@@ -1,13 +1,13 @@
 from django.urls import path
 
-from .endpoints import common, dataload, datasesh, analysis
+from .endpoints import statsresult, dataload, datasesh, analysis
 
 urlpatterns = [
-    path("courses/",                        common.courses,                        name="courses"),
-    path("get-institution-directions/",     common.get_institution_directions,     name="get_institution_directions"),
-    path("get-filter-options-with-counts/", common.get_filter_options_with_counts, name="get_filter_options_with_counts"),
-    path("students/",                       common.students,                       name="students"),
-    path("student-results/",                common.student_results,                name="student_results"),
+    path("courses/",                        statsresult.courses,                        name="courses"),
+    path("get-institution-directions/",     statsresult.get_institution_directions,     name="get_institution_directions"),
+    path("get-filter-options-with-counts/", statsresult.get_filter_options_with_counts, name="get_filter_options_with_counts"),
+    path("students/",                       statsresult.students,                       name="students"),
+    path("student-results/",                statsresult.student_results,                name="student_results"),
 
     path('import_excel/', dataload.import_excel, name="import_excel"),
 
