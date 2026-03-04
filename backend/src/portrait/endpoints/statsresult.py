@@ -223,8 +223,9 @@ def students(request):  #  fix: dubious necessity; todo: confirm usage
 
 
 @method('GET')
+@response
 @csrf_exempt
-def student_results(request):  #  fix: dubious necessity; todo: confirm usage
+def student_results(request):
     """ Get specific participant's results
     """
 
@@ -318,7 +319,7 @@ def student_results(request):  #  fix: dubious necessity; todo: confirm usage
 
 @method('GET')
 @csrf_exempt
-def get_institution_directions(request):  #  fix: dubious necessity; todo: confirm usage
+def get_institution_directions(request):
     """
     Возвращает направления, которые есть в выбранных институтах.
     Извлекает уникальные пары (institution, direction) из таблицы Results.

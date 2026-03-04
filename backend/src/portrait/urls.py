@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .endpoints import statsresult, dataload, datasesh, analysis
+from .endpoints import dataload, datanal, datasesh, statsresult
 
 urlpatterns = [
     path("courses/",                        statsresult.courses,                        name="courses"),
@@ -22,9 +22,9 @@ urlpatterns = [
     path("stats/",                   datasesh.stats_with_filters,      name="stats"),
     path("get-filter-options/",      datasesh.get_filter_options,      name="get_filter_options"),
 
-    path("value-added-improved/",   analysis.value_added_improved, name="value_added_improved"),
-    path("vam-summary-statistics/", analysis.vam_summary_statistics, name="vam_summary_statistics"),
-    path("get-vam-comparison/",     analysis.get_vam_comparison, name="get_vam_comparison"),
-    path("get-vam-unified/",        analysis.get_vam_unified, name="get_vam_unified"),
-    path('get-latent-growth/',      analysis.get_latent_growth, name='get_latent_growth')
+    path("value-added-improved/",   datanal.value_added_improved, name="value_added_improved"),
+    path("vam-summary-statistics/", datanal.vam_summary_statistics, name="vam_summary_statistics"),
+    path("get-vam-comparison/",     datanal.get_vam_comparison, name="get_vam_comparison"),
+    path("get-vam-unified/",        datanal.get_vam_unified, name="get_vam_unified"),
+    path('get-latent-growth/',      datanal.get_latent_growth, name='get_latent_growth')
 ]

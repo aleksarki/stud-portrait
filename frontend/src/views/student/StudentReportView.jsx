@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { portraitGetResults } from "../../api";
+import { getPortraitStudentResults } from "../../api";
 import { getAvailableProfiles, getAvailableCategories, prepareCategoryTableData, RESULT_PROFILES } from "../../utilities";
 
 import Header from "../../components/Header";
@@ -23,14 +23,15 @@ function StudentReportView() {
 
     useEffect(() => {
         const fetchData = async () => {
-            try {
-                setLoading(true);
-                await portraitGetResults(studentId, setStudResults);
-            } catch (err) {
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
+            getPortraitStudentResults(studentId)
+                .onSuccess(async response => {
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        setStudResults({student: data.student, results: data.results});
+                    }
+                })
+                .onError(error => console.error(error))
+                .finally(() => setLoading(false));
         };
         if (studentId) {
             fetchData();

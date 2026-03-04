@@ -19,6 +19,7 @@ import Button from '../../components/ui/Button.jsx';
 import MultiSelect from '../../components/MultiSelect';
 
 import "./AdminAnalysisView.scss";
+import { getPortraitGetFilterOptionsWithCounts, getPortraitGetInstitutionDirections, getPortraitGetLatentGrowth, getPortraitGetVamUnified, getPortraitVamSummaryStatistics, postPortraitCreateDataSession } from "../../api.js";
 
 const COLORS = [
     '#1976d2', '#d32f2f', '#388e3c', '#f57c00', '#7b1fa2',
@@ -89,49 +90,37 @@ function AdminAnalysisView() {
     useEffect(() => {
         const initializeData = async () => {
             setLoading(true);
-            try {
-                const response = await fetch(
-                    "http://localhost:8000/portrait/create-data-session/",
-                    {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" }
+            postPortraitCreateDataSession()
+                .onSuccess(async response => {
+                    const data = await response.json();
+                    if (data.status === "success") {
+                        setSessionId(data.session_id);
+                        await loadFilterOptions(data.session_id, false);
+                        await loadVAMData(data.session_id);
+                    } else {
+                        console.error(data.message);
                     }
-                );
-
-                const json = await response.json();
-
-                if (json.status === "success") {
-                    setSessionId(json.session_id);
-                    await loadFilterOptions(json.session_id, false);
-                    await loadVAMData(json.session_id);
-                }
-
-            } catch (err) {
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
+                })
+                .onError(error => console.error(error))
+                .finally(() => setLoading(false));
         };
-        
         initializeData();
         loadSummaryStats();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // -------------------- LOAD SUMMARY STATS --------------------
 
     const loadSummaryStats = async () => {
-        try {
-            const response = await fetch(
-                "http://localhost:8000/portrait/vam-summary-statistics/"
-            );
-            const json = await response.json();
-            if (json.status === "success") {
-                setSummaryStats(json);
-            }
-        } catch (err) {
-            console.error(err);
-        }
+        getPortraitVamSummaryStatistics()
+            .onSuccess(async response => {
+                const data = await response.json();
+                if (data.status === "success") {
+                    setSummaryStats(data);
+                } else {
+                    console.error(data.message);
+                }
+            })
+            .onError(error => console.error(error));
     };
 
     // -------------------- LOAD VAM DATA --------------------
@@ -140,35 +129,23 @@ function AdminAnalysisView() {
         if (!sid) return;
 
         setLoading(true);
-        try {
-            const params = new URLSearchParams({
-                session_id: sid
-            });
 
-            selectedInstitutions.forEach(id => params.append('institution_ids[]', id));
-            selectedDirections.forEach(dir => params.append('directions[]', dir));
-            selectedCourses.forEach(course => params.append('courses[]', course));
-            selectedTestAttempts.forEach(attempts => params.append('test_attempts[]', attempts));
-            selectedCompetencies.forEach(comp => params.append('competencies[]', comp));
-            selectedStudents.forEach(id => params.append('student_ids[]', id));
-
-            const response = await fetch(
-                `http://localhost:8000/portrait/get-vam-unified/?${params}`
-            );
-
-            const json = await response.json();
-
-            if (json.status === "success") {
-                setRawData(json.data);
-                setGroupedData(json.grouped || null);
-                prepareChartData(json.data, json.grouped);
-            }
-
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
+        getPortraitGetVamUnified(
+            sid, selectedInstitutions, selectedDirections, selectedCourses,
+            selectedTestAttempts, selectedCompetencies, selectedStudents
+        )
+            .onSuccess(async response => {
+                const data = await response.json();
+                if (data.status === "success") {
+                    setRawData(data.data);
+                    setGroupedData(data.grouped || null);
+                    prepareChartData(data.data, data.grouped);
+                } else {
+                    console.error(data.message);
+                }
+            })
+            .onError(error => console.error(error))
+            .finally(() => setLoading(false));
     };
 
     // -------------------- LOAD LGM DATA (НОВОЕ!) --------------------
@@ -177,34 +154,22 @@ function AdminAnalysisView() {
         if (!sid) return;
 
         setLoading(true);
-        try {
-            const params = new URLSearchParams({
-                session_id: sid
-            });
 
-            selectedInstitutions.forEach(id => params.append('institution_ids[]', id));
-            selectedDirections.forEach(dir => params.append('directions[]', dir));
-            selectedCourses.forEach(course => params.append('courses[]', course));
-            selectedTestAttempts.forEach(attempts => params.append('test_attempts[]', attempts));
-            selectedCompetencies.forEach(comp => params.append('competencies[]', comp));
-            selectedStudents.forEach(id => params.append('student_ids[]', id));
-
-            const response = await fetch(
-                `http://localhost:8000/portrait/get-latent-growth/?${params}`
-            );
-
-            const json = await response.json();
-
-            if (json.status === "success") {
-                setLgmData(json.data);
-                prepareLGMChartData(json.data);
-            }
-
-        } catch (err) {
-            console.error("❌ Ошибка загрузки LGM:", err);
-        } finally {
-            setLoading(false);
-        }
+        getPortraitGetLatentGrowth(
+            sid, selectedInstitutions, selectedDirections, selectedCourses,
+            selectedTestAttempts, selectedCompetencies, selectedStudents
+        )
+            .onSuccess(async response => {
+                const data = await response.json();
+                if (data.status === "success") {
+                    setLgmData(data.data);
+                    prepareLGMChartData(data.data);
+                } else {
+                    console.error(data.message);
+                }
+            })
+            .onError(error => console.error(error))
+            .finally(() => setLoading(false));
     };
 
     // -------------------- PREPARE LGM CHART DATA (НОВОЕ!) --------------------
@@ -312,40 +277,30 @@ function AdminAnalysisView() {
 
     const loadFilterOptions = async (sid = sessionId, updateCounts = false) => {
         if (!sid) return;
-        
-        try {
-            const params = new URLSearchParams({
-                session_id: sid
-            });
-            
-            if (updateCounts) {
-                selectedInstitutions.forEach(id => params.append('institution_ids[]', id));
-                selectedDirections.forEach(dir => params.append('directions[]', dir));
-                selectedCourses.forEach(course => params.append('courses[]', course));
-                selectedTestAttempts.forEach(attempts => params.append('test_attempts[]', attempts));
-                selectedCompetencies.forEach(comp => params.append('competencies[]', comp));
-            }
 
-            const url = `http://localhost:8000/portrait/get-filter-options-with-counts/?${params}`;
-            
-            const response = await fetch(url);
-            const json = await response.json();
+        const chain = updateCounts ? getPortraitGetFilterOptionsWithCounts(
+            sid, selectedInstitutions, selectedDirections,
+            selectedCourses, selectedTestAttempts, selectedCompetencies
+        ) : getPortraitGetFilterOptionsWithCounts(sid);
 
-            if (json.status === "success") {
-                setFilterOptions({
-                    institutions: json.data?.institutions || [],
-                    directions: json.data?.directions || [],
-                    allDirections: json.data?.directions || [],
-                    courses: json.data?.courses || [],
-                    testAttempts: json.data?.test_attempts || [],
-                    competencies: json.data?.competencies || [],
-                    students: json.data?.students || []  // ← ДОБАВЛЕНО!
-                });
-            }
-
-        } catch (err) {
-            console.error("❌ Ошибка загрузки фильтров:", err);
-        }
+        chain
+            .onSuccess(async response => {
+                const data = await response.json();
+                if (data.status === "success") {
+                    setFilterOptions({
+                        institutions:  data.data?.institutions  || [],
+                        directions:    data.data?.directions    || [],
+                        allDirections: data.data?.directions    || [],
+                        courses:       data.data?.courses       || [],
+                        testAttempts:  data.data?.test_attempts || [],
+                        competencies:  data.data?.competencies  || [],
+                        students:      data.data?.students      || []
+                    });
+                } else {
+                    console.error(data.message);
+                }
+            })
+            .onError(error => console.error(error));
     };
 
     // -------------------- GET VAM DATA FOR COMPETENCY (НОВОЕ!) --------------------
@@ -583,38 +538,22 @@ function AdminAnalysisView() {
                 }));
                 return;
             }
-
-            try {
-                const params = new URLSearchParams();
-                selectedInstitutions.forEach(id => params.append('institution_ids[]', id));
-
-                const response = await fetch(
-                    `http://localhost:8000/portrait/get-institution-directions/?${params}`
-                );
-                const json = await response.json();
-
-                if (json.status === "success") {
-                    const directionsWithCounts = json.directions.map(dirName => {
-                        const found = filterOptions.allDirections.find(d => d.name === dirName);
-                        return found || { name: dirName, count: 0 };
-                    });
-                    
-                    setFilterOptions(prev => ({
-                        ...prev,
-                        directions: directionsWithCounts
-                    }));
-
-                    setSelectedDirections(prev =>
-                        prev.filter(dir => json.directions.includes(dir))
-                    );
-                }
-            } catch (err) {
-                console.error(err);
-            }
+            getPortraitGetInstitutionDirections(selectedInstitutions)
+                .onSuccess(async response => {
+                    const data = await response.json();
+                    if (data.status === "success") {
+                        const directionsWithCounts = data.directions.map(dirName => {
+                            return filterOptions.allDirections.find(d => d.name === dirName) || { name: dirName, count: 0 };
+                        });
+                        setFilterOptions(prev => ({...prev, directions: directionsWithCounts}));
+                        setSelectedDirections(prev => prev.filter(dir => data.directions.includes(dir)));
+                    } else {
+                        console.error(data.message);
+                    }
+                })
+                .onError(error => console.error(error));
         };
-
         updateDirections();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedInstitutions]);
 
     // -------------------- RELOAD FILTER COUNTS ON ANY FILTER CHANGE --------------------
@@ -623,7 +562,6 @@ function AdminAnalysisView() {
         if (sessionId) {
             loadFilterOptions(sessionId, true);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedInstitutions, selectedDirections, selectedCourses, selectedTestAttempts, sessionId]);
 
     // -------------------- PREPARE CHART DATA --------------------

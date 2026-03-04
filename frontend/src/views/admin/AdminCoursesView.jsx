@@ -4,6 +4,7 @@ import SidebarLayout from "../../components/SidebarLayout";
 import Sidepanel from "../../components/Sidepanel";
 import Button from '../../components/ui/Button.jsx';
 import { FIELD_NAMES } from "../../utilities.js";
+import { getPortraitCourses } from '../../api.js';
 
 import "./AdminCoursesView.scss";
 
@@ -60,17 +61,15 @@ function AdminCoursesView() {
 
     const fetchCoursesData = async () => {
         setLoading(true);
-        try {
-            const response = await fetch('http://localhost:8000/portrait/courses/');
-            const data = await response.json();
-            if (data.status === 'success') {
-                setCoursesData(data.courses);
-            }
-        } catch (error) {
-            console.error('Error fetching courses data:', error);
-        } finally {
-            setLoading(false);
-        }
+        getPortraitCourses()
+            .onSuccess(async response => {
+                const data = await response.json();
+                if (data.status === 'success') {
+                    setCoursesData(data.courses);
+                }
+            })
+            .onError(error => console.error("Error fetching courses data:", error))
+            .finally(() => setLoading(false));
     };
 
     const handleSort = (key) => {

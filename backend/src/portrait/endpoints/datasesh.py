@@ -408,7 +408,7 @@ def stats_with_filters(request):
         total_participants = Participants.objects.count()
         total_tests = Results.objects.count()
         unique_institutions = Institutions.objects.count()
-        unique_centers = CompetenceCenters.objects.count()
+        unique_centers = Competencecenters.objects.count()
 
         # Участники по году получения первой оценки
         first_year_stats = Results.objects.values('res_participant').annotate(

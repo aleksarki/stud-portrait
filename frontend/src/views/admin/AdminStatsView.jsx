@@ -7,6 +7,7 @@ import Button from '../../components/ui/Button.jsx';
 import { FIELD_NAMES } from "../../utilities.js";
 
 import "./AdminStatsView.scss";
+import { postPortraitCreateDataSession, postPortraitStats, postPortraitUpdateSessionFilters } from '../../api.js';
 
 function AdminStatsView() {
     const [stats, setStats] = useState(null);
@@ -48,99 +49,49 @@ function AdminStatsView() {
     // Инициализация сессии
     const initializeSession = async () => {
         setLoading(true);
-        try {
-            const response = await fetch('http://localhost:8000/portrait/create-data-session/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
+        postPortraitCreateDataSession()
+            .onSuccess(async response => {
+                const data = await response.json();
+                if (data.status === 'success') {
+                    setSessionId(data.session_id);
+                    await fetchStats(data.session_id);
+                } else {
+                    console.error("Failed to create session:", data.message);
+                    await fetchStats();
                 }
-            });
-            
-            const data = await response.json();
-            
-            if (data.status === 'success') {
-                setSessionId(data.session_id);
-                await fetchStats(data.session_id);
-            } else {
-                console.error('Failed to create session:', data.message);
+            })
+            .onError(async error => {
+                console.error("Error initializing session:", error);
                 await fetchStats();
-            }
-        } catch (error) {
-            console.error('Error initializing session:', error);
-            await fetchStats();
-        }
+            });
     };
 
     const fetchStats = async (sessionIdToUse = null) => {
         setLoading(true);
-        try {
-            let url = 'http://localhost:8000/portrait/stats/';
-            const body = sessionIdToUse ? { session_id: sessionIdToUse } : {};
-            
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined
-            });
-            
-            const data = await response.json();
-            if (data.status === 'success') {
-                setStats(data.stats);
-                console.log(data.stats)
-                // Извлекаем доступные значения для фильтрации
-                if (data.stats.available_values) {
-                    console.log('Available values:', data.stats.available_values);
-                    setAvailableValues(data.stats.available_values);
-                } else {
-                    console.log('No available values in response');
-                    // Временная заглушка для тестирования
-                    const testAvailableValues = {
-                        'res_year': ['2023', '2024', '2025'],
-                        'part_gender': ['Мужской', 'Женский'],
-                        'center': ['ЦК1', 'ЦК2', 'ЦК3'],
-                        'institution': ['Университет 1', 'Университет 2'],
-                        'edu_level': ['Бакалавриат', 'Магистратура'],
-                        'res_course_num': ['1', '2', '3', '4'],
-                        'study_form': ['Очная', 'Заочная'],
-                        'specialty': ['Информатика', 'Математика', 'Физика']
-                    };
-                    setAvailableValues(testAvailableValues);
+        postPortraitStats(sessionIdToUse)
+            .onSuccess(async response => {
+                const data = await response.json();
+                if (data.status === 'success') {
+                    setStats(data.stats);
+                    setAvailableValues(data.stats.available_values);  // Извлекаем доступные значения для фильтрации
                 }
-            }
-        } catch (error) {
-            console.error('Error fetching stats:', error);
-        } finally {
-            setLoading(false);
-        }
+            })
+            .onError(error => console.error("Error fetching stats:", error))
+            .finally(() => setLoading(false));
     };
 
     // Обновление фильтров сессии
     const updateSessionFilters = async (newFilters) => {
         if (!sessionId) return;
-        
-        try {
-            const response = await fetch('http://localhost:8000/portrait/update-session-filters/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    session_id: sessionId,
-                    filters: newFilters
-                })
-            });
-            
-            const data = await response.json();
-            
-            if (data.status === 'success') {
-                // Перезагружаем статистику с новыми фильтрами
-                await fetchStats(sessionId);
-            }
-        } catch (error) {
-            console.error('Error updating session filters:', error);
-        }
+
+        postPortraitUpdateSessionFilters(sessionId, newFilters)
+            .onSuccess(async response => {
+                const data = await response.json();
+                if (data.status === 'success') {
+                    await fetchStats(sessionId);  // Перезагружаем статистику с новыми фильтрами
+                }
+            })
+            .onError(error => console.error("Error updating session filters:", error));
     };
 
     // Функции для работы с фильтрами

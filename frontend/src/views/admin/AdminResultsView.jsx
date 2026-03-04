@@ -5,6 +5,10 @@ import Header from "../../components/Header";
 import SidebarLayout from "../../components/SidebarLayout";
 import Sidepanel from "../../components/Sidepanel";
 import { FIELD_NAMES } from "../../utilities.js";
+import {
+    postPortraitCreateDataSession, postPortraitExportSelectedResults, postPortraitGetSessionData,
+    postPortraitLoadMoreData, postPortraitUpdateSessionColumns, postPortraitUpdateSessionFilters
+} from '../../api.js';
 
 import "./AdminResultsView.scss";
 import Button from '../../components/ui/Button.jsx';
@@ -154,28 +158,18 @@ function AdminResultsView() {
     // Инициализация сессии
     const initializeSession = async () => {
         setLoading(true);
-        try {
-            const response = await fetch('http://localhost:8000/portrait/create-data-session/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
+        postPortraitCreateDataSession()
+            .onSuccess(async response => {
+                const data = await response.json();
+                if (data.status === 'success') {
+                    setSessionId(data.session_id);
+                    await loadSessionData(data.session_id);  // Загружаем начальные данные
+                } else {
+                    console.error("Failed to create session:", data.message);
                 }
-            });
-            
-            const data = await response.json();
-            
-            if (data.status === 'success') {
-                setSessionId(data.session_id);
-                // Загружаем начальные данные
-                await loadSessionData(data.session_id);
-            } else {
-                console.error('Failed to create session:', data.message);
-            }
-        } catch (error) {
-            console.error('Error initializing session:', error);
-        } finally {
-            setLoading(false);
-        }
+            })
+            .onError(error => {console.error("Failed to create session:", error);})
+            .finally(() => setLoading(false));
     };
 
     // Загрузка данных сессии
@@ -183,35 +177,21 @@ function AdminResultsView() {
         if (!sessionIdToLoad) return;
         
         setLoading(true);
-        try {
-            const response = await fetch('http://localhost:8000/portrait/get-session-data/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    session_id: sessionIdToLoad
-                })
-            });
-            
-            const data = await response.json();
-            
-            if (data.status === 'success') {
-                setResults(data.results || []);
-                setTotalCount(data.total_count || 0);
-                // Проверяем, есть ли еще данные для загрузки (лимит 1000 записей)
-                setHasMore(data.results?.length > 0 && data.total_count > data.results.length);
-                
-                // Извлекаем доступные значения для фильтрации
-                if (data.results && data.results.length > 0) {
-                    extractAvailableValues(data.results);
+
+        postPortraitGetSessionData(sessionIdToLoad)
+            .onSuccess(async response => {
+                const data = await response.json();
+                if (data.status === 'success') {
+                    setResults(data.results || []);
+                    setTotalCount(data.total_count || 0);
+                    setHasMore(data.results?.length > 0 && data.total_count > data.results.length);  // Проверяем, есть ли ещё данные для загрузки (лимит 1000 записей)
+                    if (data.results && data.results.length > 0) {                                   // Извлекаем доступные значения для фильтрации
+                        extractAvailableValues(data.results);
+                    }
                 }
-            }
-        } catch (error) {
-            console.error('Error loading session data:', error);
-        } finally {
-            setLoading(false);
-        }
+            })
+            .onError(error => console.error("Error loading session data:", error))
+            .finally(() => setLoading(false));
     };
 
     // Загрузка дополнительных данных
@@ -219,57 +199,32 @@ function AdminResultsView() {
         if (!sessionId || !hasMore) return;
         
         setLoading(true);
-        try {
-            const response = await fetch('http://localhost:8000/portrait/load-more-data/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    session_id: sessionId
-                })
-            });
-            
-            const data = await response.json();
-            
-            if (data.status === 'success') {
-                setResults(prev => [...prev, ...(data.results || [])]);
-                setHasMore(data.results?.length > 0 && data.total_count > results.length + data.results.length);
-            }
-        } catch (error) {
-            console.error('Error loading more data:', error);
-        } finally {
-            setLoading(false);
-        }
+
+        postPortraitLoadMoreData(sessionId)
+            .onSuccess(async response => {
+                const data = await response.json();
+                if (data.status === 'success') {
+                    setResults(prev => [...prev, ...(data.results || [])]);
+                    setHasMore(data.results?.length > 0 && data.total_count > results.length + data.results.length);
+                }
+            })
+            .onError(error => console.error("Error loading more data:", error))
+            .finally(() => setLoading(false));
     };
 
     // Обновление фильтров сессии
     const updateSessionFilters = async (newFilters) => {
         if (!sessionId) return;
-        
-        try {
-            const response = await fetch('http://localhost:8000/portrait/update-session-filters/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    session_id: sessionId,
-                    filters: newFilters
-                })
-            });
-            
-            const data = await response.json();
-            
-            if (data.status === 'success') {
-                // Перезагружаем данные с новыми фильтрами
-                await loadSessionData();
-                // Сбрасываем выделение при изменении фильтров
-                setSelectedRows(new Set());
-            }
-        } catch (error) {
-            console.error('Error updating session filters:', error);
-        }
+
+        postPortraitUpdateSessionFilters(sessionId, newFilters)
+            .onSuccess(async response => {
+                const data = await response.json();
+                if (data.status === 'success') {
+                    await loadSessionData();     // Перезагружаем данные с новыми фильтрами
+                    setSelectedRows(new Set());  // Сбрасываем выделение при изменении фильтров
+                }
+            })
+            .onError(error => console.error("Error updating session filters:", error));
     };
 
     // Обновление видимых колонок сессии
@@ -277,28 +232,15 @@ function AdminResultsView() {
         if (!sessionId) return;
         
         const visibleColumns = columnOrder.filter(col => !newHiddenColumns.has(col));
-        
-        try {
-            const response = await fetch('http://localhost:8000/portrait/update-session-columns/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    session_id: sessionId,
-                    visible_columns: visibleColumns
-                })
-            });
-            
-            const data = await response.json();
-            
-            if (data.status === 'success') {
-                // Обновляем локальное состояние
-                setHiddenColumns(newHiddenColumns);
-            }
-        } catch (error) {
-            console.error('Error updating session columns:', error);
-        }
+
+        postPortraitUpdateSessionColumns(sessionId, visibleColumns)
+            .onSuccess(async response => {
+                const data = await response.json();
+                if (data.status === 'success') {
+                    setHiddenColumns(newHiddenColumns);  // Обновляем локальное состояние
+                }
+            })
+            .onError(error => console.error("Error updating session columns:", error));
     };
 
     // Извлечение доступных значений для фильтрации
@@ -409,78 +351,29 @@ function AdminResultsView() {
         }
 
         setExportLoading(true);
-        try {
-            const response = await fetch('http://localhost:8000/portrait/export-selected-results/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    session_id: sessionId,
-                    selected_ids: Array.from(selectedRows)
-                })
-            });
 
-            if (response.ok) {
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `selected_results_${new Date().toISOString().split('T')[0]}.xlsx`;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-            } else {
-                const errorData = await response.json();
-                alert(`Ошибка при выгрузке данных: ${errorData.message}`);
-            }
-        } catch (error) {
-            console.error('Export error:', error);
-            alert('Ошибка при выгрузке данных');
-        } finally {
-            setExportLoading(false);
-        }
-    };
-
-    const handleExportAll = async () => {
-        if (!sessionId) {
-            alert('Сессия не инициализирована');
-            return;
-        }
-
-        setExportLoading(true);
-        try {
-            const response = await fetch('http://localhost:8000/portrait/export-session-data/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    session_id: sessionId
-                })
-            });
-
-            if (response.ok) {
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `all_results_${new Date().toISOString().split('T')[0]}.xlsx`;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-            } else {
-                const errorData = await response.json();
-                alert(`Ошибка при выгрузке данных: ${errorData.message}`);
-            }
-        } catch (error) {
-            console.error('Export error:', error);
-            alert('Ошибка при выгрузке данных');
-        } finally {
-            setExportLoading(false);
-        }
+        postPortraitExportSelectedResults(sessionId, Array.from(selectedRows))
+            .onSuccess(async response => {
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `selected_results_${new Date().toISOString().split('T')[0]}.xlsx`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                } else {
+                    const errorData = await response.json();
+                    alert(`Ошибка при выгрузке данных: ${errorData.message}`);
+                }
+            })
+            .onError(error => {
+                console.error("Export error:", error);
+                alert('Ошибка при выгрузке данных');
+            })
+            .finally(() => setExportLoading(false));
     };
 
     // Функции для работы с фильтрами
@@ -674,15 +567,6 @@ function AdminResultsView() {
                                         hoverBg="#218838"
                                         disabledBg="#6c757d"
                                     />
-                                    {/*<Button
-                                        text={`${exportLoading ? '⏳' : '📋'} Выгрузить все`}
-                                        onClick={handleExportAll}
-                                        disabled={!sessionId || exportLoading}
-                                        fg="white"
-                                        bg="#17a2b8"
-                                        hoverBg="#138496"
-                                        disabledBg="#6c757d"
-                                    />*/}
                                     <Button
                                         text={`${loading ? '⏳' : '🔄'} Обновить`}
                                         onClick={() => loadSessionData()}

@@ -9,6 +9,7 @@ import Button from '../../components/ui/Button.jsx';
 import { FIELD_NAMES } from "../../utilities.js";
 
 import "./AdminGroupingView.scss";
+import { postPortraitGroupData } from '../../api.js';
 
 function AdminGroupingView() {
     const location = useLocation(); // Теперь это работает правильно
@@ -41,30 +42,17 @@ function AdminGroupingView() {
 
     const fetchGroupedData = async (data) => {
         setLoading(true);
-        try {
-            const response = await fetch('http://localhost:8000/portrait/group-data/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    selected_ids: data.selectedIds,
-                    grouping_column: data.groupingColumn,
-                    session_id: data.sessionId
-                })
-            });
-
-            const result = await response.json();
-            if (result.status === 'success') {
-                setChartData(result.grouped_data);
-            } else {
-                console.error('Error from server:', result.message);
-            }
-        } catch (error) {
-            console.error('Error fetching grouped data:', error);
-        } finally {
-            setLoading(false);
-        }
+        postPortraitGroupData(data.sessionId, data.selectedIds, data.groupingColumn)
+            .onSuccess(async response => {
+                const result = await response.json();
+                if (result.status === 'success') {
+                    setChartData(result.grouped_data);
+                } else {
+                    console.error("Error from server:", result.message);
+                }
+            })
+            .onError(error => console.error("Error fetching grouped data:", error))
+            .finally(() => setLoading(false));
     };
 
     // Опции для диаграмм
