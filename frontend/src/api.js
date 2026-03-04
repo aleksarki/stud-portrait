@@ -25,6 +25,8 @@ class AsyncChain {
 const PROTOCOL = "http";
 const HOST = "localhost:8000";
 
+/* *** statsresult *** */
+
 /** Perform GET request to `http://localhost:8000/portrait/courses/` */
 export function getPortraitCourses() {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/courses/`);
@@ -43,6 +45,21 @@ export function getPortraitGetInstitutionDirections(selectedInstitutions) {
     const params = new URLSearchParams();
     selectedInstitutions?.forEach(id => params.append('institution_ids[]', id));
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-institution-directions/?${params}`);
+    return new AsyncChain(promise);
+}
+
+/** Perform GET request to `http://localhost:8000/portrait/get-filter-options-with-counts/` */
+export function getPortraitGetFilterOptionsWithCounts(
+    sessionId, selectedInstitutions, selectedDirections, selectedCourses,
+    selectedTestAttempts, selectedCompetencies
+) {
+    const params = new URLSearchParams({session_id: sessionId});
+    selectedInstitutions?.forEach(id => params.append('institution_ids[]', id));
+    selectedDirections?.forEach(dir => params.append('directions[]', dir));
+    selectedCourses?.forEach(course => params.append('courses[]', course));
+    selectedTestAttempts?.forEach(attempts => params.append('test_attempts[]', attempts));
+    selectedCompetencies?.forEach(comp => params.append('competencies[]', comp));
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-filter-options-with-counts/?${params}`);
     return new AsyncChain(promise);
 }
 
@@ -178,20 +195,5 @@ export function getPortraitGetLatentGrowth(
     selectedCompetencies?.forEach(comp => params.append('competencies[]', comp));
     selectedStudents?.forEach(id => params.append('student_ids[]', id));
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-latent-growth/?${params}`);
-    return new AsyncChain(promise);
-}
-
-/** Perform GET request to `http://localhost:8000/portrait/get-filter-options-with-counts/` */
-export function getPortraitGetFilterOptionsWithCounts(
-    sessionId, selectedInstitutions, selectedDirections, selectedCourses,
-    selectedTestAttempts, selectedCompetencies
-) {
-    const params = new URLSearchParams({session_id: sessionId});
-    selectedInstitutions?.forEach(id => params.append('institution_ids[]', id));
-    selectedDirections?.forEach(dir => params.append('directions[]', dir));
-    selectedCourses?.forEach(course => params.append('courses[]', course));
-    selectedTestAttempts?.forEach(attempts => params.append('test_attempts[]', attempts));
-    selectedCompetencies?.forEach(comp => params.append('competencies[]', comp));
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-filter-options-with-counts/?${params}`);
     return new AsyncChain(promise);
 }

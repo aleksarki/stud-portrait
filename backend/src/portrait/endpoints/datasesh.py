@@ -11,7 +11,8 @@ import uuid
 
 from .common import *
 
-# ====== ENDPOINTS ====== #
+
+# ====== SESSION STORAGE ====== #
 
 data_view_sessions = {}  # ffs
 
@@ -39,16 +40,7 @@ class DataViewSession:
         self.last_activity = timezone.now()
 
 
-def cleanup_old_sessions():
-    now = timezone.now()
-    expired_sessions = []
-    for session_id, session in data_view_sessions.items():
-        if (now - session.last_activity).total_seconds() > 3600:  # 1 час
-            expired_sessions.append(session_id)
-    
-    for session_id in expired_sessions:
-        del data_view_sessions[session_id]
-
+# ====== ENDPOINTS ====== #
 
 @method('POST')
 @csrf_exempt
@@ -235,108 +227,6 @@ def load_more_data(request):
         
         # Повторно используем логику get_session_data
         return get_session_data(request)
-        
-    except Exception as e:
-        return exceptionResponse(e)
-
-
-@method('POST')
-@csrf_exempt
-def export_session_data(request):
-    try:
-        data = json.loads(request.body)
-        session_id = data.get('session_id')
-        
-        if not session_id or session_id not in data_view_sessions:
-            return errorResponse("Invalid session ID")
-        
-        session = data_view_sessions[session_id]
-        session.update_activity()
-        
-        # Получаем ВСЕ данные с текущими фильтрами (без лимита)
-        results_query = Results.objects.all().select_related(
-            'res_participant', 'res_center', 'res_institution',
-            'res_edu_level', 'res_form', 'res_spec'
-        )
-        
-        # Применяем фильтры сессии
-        for filter_obj in session.filters:
-            if filter_obj['type'] == 'basic' and filter_obj['selectedValues']:
-                field = filter_obj['field']
-                if field == 'part_gender':
-                    results_query = results_query.filter(
-                        res_participant__part_gender__in=filter_obj['selectedValues']
-                    )
-                elif field == 'center':
-                    results_query = results_query.filter(
-                        res_center__center_name__in=filter_obj['selectedValues']
-                    )
-                elif field == 'institution':
-                    results_query = results_query.filter(
-                        res_institution__inst_name__in=filter_obj['selectedValues']
-                    )
-                elif field == 'edu_level':
-                    results_query = results_query.filter(
-                        res_edu_level__edu_level_name__in=filter_obj['selectedValues']
-                    )
-                elif field == 'study_form':
-                    results_query = results_query.filter(
-                        res_form__form_name__in=filter_obj['selectedValues']
-                    )
-                elif field == 'specialty':
-                    results_query = results_query.filter(
-                        res_spec__spec_name__in=filter_obj['selectedValues']
-                    )
-                elif field == 'res_year':
-                    results_query = results_query.filter(
-                        res_year__in=filter_obj['selectedValues']
-                    )
-                elif field == 'res_course_num':
-                    results_query = results_query.filter(
-                        res_course_num__in=filter_obj['selectedValues']
-                    )
-                    
-            elif filter_obj['type'] == 'numeric':
-                field = filter_obj['field']
-                min_val = filter_obj['min']
-                max_val = filter_obj['max']
-                
-                # Компетенции
-                if field.startswith('res_comp_'):
-                    results_query = results_query.filter(
-                        **{f'{field}__gte': min_val, f'{field}__lte': max_val}
-                    )
-                # Мотиваторы
-                elif field.startswith('res_mot_'):
-                    results_query = results_query.filter(
-                        **{f'{field}__gte': min_val, f'{field}__lte': max_val}
-                    )
-                # Ценности
-                elif field.startswith('res_val_'):
-                    results_query = results_query.filter(
-                        **{f'{field}__gte': min_val, f'{field}__lte': max_val}
-                    )
-        
-        results_list = results_query
-        
-        # Создаем DataFrame для экспорта
-        export_data = []
-        for result in results_list:
-            row = format_result_for_export(result, session.visible_columns)
-            export_data.append(row)
-        
-        df = pd.DataFrame(export_data)
-        
-        # Создаем HTTP response с Excel файлом
-        response = HttpResponse(
-            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
-        response['Content-Disposition'] = 'attachment; filename="results_export.xlsx"'
-        
-        with pd.ExcelWriter(response, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name='Результаты тестирования')
-        
-        return response
         
     except Exception as e:
         return exceptionResponse(e)
@@ -799,6 +689,18 @@ def group_data(request):
         return exceptionResponse(e)
 
 
+# ====== UTILITIES ====== #
+
+def cleanup_old_sessions():
+    now = timezone.now()
+    expired_sessions = []
+    for session_id, session in data_view_sessions.items():
+        if (now - session.last_activity).total_seconds() > 3600:  # 1 час
+            expired_sessions.append(session_id)
+    
+    for session_id in expired_sessions:
+        del data_view_sessions[session_id]
+
 
 def format_result_data(result, visible_columns=None):
     """Форматирует данные результата для отправки на фронтенд"""
@@ -964,103 +866,3 @@ def get_group_value(result, grouping_column):
     elif grouping_column == 'res_course_num':
         return result.res_course_num
     return None
-
-
-@method('GET')
-@csrf_exempt
-def get_filter_options(request):
-    """
-    Возвращает доступные опции для фильтров (ВУЗы, направления, курсы)
-    """
-    try:
-        session_id = request.GET.get('session_id')
-        
-        print(f"=== get_filter_options called ===")
-        print(f"session_id: {session_id}")
-        print(f"Available sessions: {list(data_view_sessions.keys())}")
-        
-        # Проверка сессии НЕ обязательна для этого endpoint
-        # Можем вернуть данные и без сессии
-        if session_id and session_id in data_view_sessions:
-            session = data_view_sessions[session_id]
-            session.update_activity()
-            print("Session found and updated")
-        else:
-            print("No valid session, but continuing anyway")
-        
-        # Получаем уникальные значения для фильтров
-        
-        # Институты
-        print("Fetching institutions...")
-        institutions = Institutions.objects.all().values('inst_id', 'inst_name').order_by('inst_name')
-        institutions_list = [
-            {'id': inst['inst_id'], 'name': inst['inst_name']} 
-            for inst in institutions
-        ]
-        print(f"Found {len(institutions_list)} institutions")
-        if institutions_list:
-            print(f"First institution: {institutions_list[0]}")
-        
-        # Направления (специальности)
-        print("Fetching directions...")
-        directions = Specialties.objects.all().values_list('spec_name', flat=True).distinct().order_by('spec_name')
-        directions_list = list(directions)
-        print(f"Found {len(directions_list)} directions")
-        if directions_list:
-            print(f"First direction: {directions_list[0]}")
-        
-        # Курсы (обычно 1-6)
-        print("Fetching courses...")
-        courses = Results.objects.filter(
-            res_course_num__isnull=False
-        ).values_list('res_course_num', flat=True).distinct().order_by('res_course_num')
-        courses_list = list(courses)
-        print(f"Found {len(courses_list)} courses: {courses_list}")
-        
-        # Годы
-        print("Fetching years...")
-        years = Results.objects.filter(
-            res_year__isnull=False
-        ).values_list('res_year', flat=True).distinct().order_by('res_year')
-        years_list = list(years)
-        print(f"Found {len(years_list)} years")
-        
-        # Центры компетенций
-        print("Fetching centers...")
-        centers = CompetenceCenters.objects.all().values_list('center_name', flat=True).distinct().order_by('center_name')
-        centers_list = list(centers)
-        print(f"Found {len(centers_list)} centers")
-        
-        # Уровни образования
-        print("Fetching edu_levels...")
-        edu_levels = Educationlevels.objects.all().values_list('edu_level_name', flat=True).distinct().order_by('edu_level_name')
-        edu_levels_list = list(edu_levels)
-        print(f"Found {len(edu_levels_list)} edu_levels")
-        
-        # Формы обучения
-        print("Fetching study_forms...")
-        study_forms = Studyforms.objects.all().values_list('form_name', flat=True).distinct().order_by('form_name')
-        study_forms_list = list(study_forms)
-        print(f"Found {len(study_forms_list)} study_forms")
-        
-        response_data = {
-            "data": {
-                "institutions": institutions_list,
-                "directions": directions_list,
-                "courses": courses_list,
-                "years": years_list,
-                "centers": centers_list,
-                "edu_levels": edu_levels_list,
-                "study_forms": study_forms_list
-            }
-        }
-        
-        print(f"Returning response with {len(institutions_list)} institutions, {len(directions_list)} directions, {len(courses_list)} courses")
-        
-        return successResponse(response_data)
-        
-    except Exception as e:
-        print(f"ERROR in get_filter_options: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return exceptionResponse(e)
