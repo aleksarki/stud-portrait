@@ -167,11 +167,6 @@ export const CATEGORIES_DESCRIPTIONS = {
     res_val_environment: "Забота об окружающей среде и экологии"
 };
 
-// Получение описания по ключу компетенции
-export function getCompetencyDescription(competencyKey) {
-  return CATEGORIES_DESCRIPTIONS[competencyKey] || null;
-}
-
 /** Получить доступные профили на основе данных */
 export function getAvailableProfiles(data) {
     if (!data) return [];
@@ -247,32 +242,6 @@ export function getCategoryData(data, profileKey, categoryKey) {
     });
 };
 
-/** Получить данные категории для графика */
-export function getCategoryDataForChart(data, profileKey, categoryKey) {
-    if (!data) return { labels: [], series: [] };
-    
-    const profile = RESULT_PROFILES[profileKey];
-    if (!profile) return { labels: [], series: [] };
-
-    const category = profile.categories[categoryKey];
-    if (!category) return { labels: [], series: [] };
-
-    const labels = category.fields.map(field => field.label);
-    const allYears = [...new Set(data.map(item => item.res_year))].sort();
-
-    const series = allYears.map(year => {
-        const yearData = data.find(item => item.res_year === year);
-        return {
-            name: year.toString(),
-            data: category.fields.map(field => 
-                yearData && yearData[field.key] !== null ? yearData[field.key] : null
-            )
-        };
-    });
-
-    return { labels, series };
-}
-
 /** Подготовить данные для таблицы категории */
 export function prepareCategoryTableData(resultsData, profileKey, categoryKey) {
     if (!resultsData?.length) return { tableData: [], years: [] };
@@ -301,47 +270,6 @@ export function prepareCategoryTableData(resultsData, profileKey, categoryKey) {
     });
 
     return { tableData, years };
-}
-
-/** Получить данные за последний доступный год для категории */
-export function getLastYearCategoryData(resultsData, profileKey, categoryKey) {
-    if (!resultsData?.length) return { labels: [], data: [], year: null };
-
-    const profile = RESULT_PROFILES[profileKey];
-    if (!profile) return { labels: [], data: [], year: null };
-
-    const category = profile.categories[categoryKey];
-    if (!category) return { labels: [], data: [], year: null };
-
-    const yearsWithData = resultsData
-        .filter(yearData => 
-            category.fields.some(field => 
-                yearData[field.key] !== null && yearData[field.key] !== undefined
-            )
-        )
-        .map(yearData => yearData.res_year)
-        .sort((a, b) => b - a);
-
-    const lastYear = yearsWithData[0];
-    
-    if (!lastYear) return { labels: [], data: [], year: null };
-
-    const lastYearData = resultsData.find(item => item.res_year === lastYear);
-    
-    if (!lastYearData) return { labels: [], data: [], year: null };
-
-    const labels = [];
-    const data = [];
-
-    category.fields.forEach(field => {
-        const value = lastYearData[field.key];
-        if (value !== null && value !== undefined) {
-            labels.push(field.label);
-            data.push(value);
-        }
-    });
-
-    return { labels, data, year: lastYear };
 }
 
 /** Получить все доступные годы из данных */
