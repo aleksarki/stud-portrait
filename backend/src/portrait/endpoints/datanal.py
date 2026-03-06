@@ -23,12 +23,12 @@ def get_vam_unified(request):
     """
     try:        
         # Фильтры
-        institution_ids = request.GET.getlist('institution_ids[]')
-        directions = request.GET.getlist('directions[]')
-        courses = request.GET.getlist('courses[]')
-        test_attempts = request.GET.getlist('test_attempts[]')
+        institution_ids =       request.GET.getlist('institution_ids[]')
+        directions =            request.GET.getlist('directions[]')
+        courses =               request.GET.getlist('courses[]')
+        test_attempts =         request.GET.getlist('test_attempts[]')
         selected_competencies = request.GET.getlist('competencies[]')
-        student_ids = request.GET.getlist('student_ids[]')
+        student_ids =           request.GET.getlist('student_ids[]')
         
         print(f"\n{'='*60}")
         print(f"📊 get_vam_unified вызван")
@@ -38,15 +38,6 @@ def get_vam_unified(request):
         print(f"   Прохождений: {test_attempts}")
         print(f"   Студенты: {student_ids}")
         print(f"{'='*60}\n")
-
-        competencies = [
-            "res_comp_leadership", "res_comp_communication", 
-            "res_comp_self_development", "res_comp_result_orientation",
-            "res_comp_stress_resistance", "res_comp_client_focus",
-            "res_comp_planning", "res_comp_info_analysis",
-            "res_comp_partnership", "res_comp_rules_compliance",
-            "res_comp_emotional_intel", "res_comp_passive_vocab"
-        ]
 
         # Базовый запрос
         results = Results.objects.select_related(
@@ -99,9 +90,10 @@ def get_vam_unified(request):
             print(f"✅ Найдено {len(valid_students)} студентов")
             
             results = results.filter(res_participant__in=valid_students)
+        
+        competencies = list(COMP.names.keys())
 
         if selected_competencies:
-            # Фильтруем список компетенций
             competencies = [c for c in competencies if c in selected_competencies]
 
         if student_ids and len(student_ids) > 0:
@@ -150,12 +142,12 @@ def get_vam_unified(request):
         )
         
         return JsonResponse({
-            "status": "success",
-            "data": response_data["data"],
-            "grouped": grouped_data,
-            "total_students": response_data.get("total_students", len(response_data["data"])),
-            "analysis_method": analysis_method,  # Для информации на фронте
-            "selected_attempts": test_attempts,
+            "status":                "success",
+            "data":                  response_data["data"],
+            "grouped":               grouped_data,
+            "total_students":        response_data.get("total_students", len(response_data["data"])),
+            "analysis_method":       analysis_method,  # Для информации на фронте
+            "selected_attempts":     test_attempts,
             "selected_competencies": selected_competencies
         })
         
@@ -204,13 +196,13 @@ def vam_summary_statistics(request):
         year_distribution[row.res_year] += 1
     
     return JsonResponse({
-        "status": "success",
-        "total_students": len(student_measurements),
-        "total_measurements": sum(student_measurements.values()),
+        "status":                    "success",
+        "total_students":            len(student_measurements),
+        "total_measurements":        sum(student_measurements.values()),
         "measurements_distribution": dict(distribution),
-        "longitudinal_eligible": sum(1 for c in student_measurements.values() if c >= 2),
-        "course_distribution": dict(course_distribution),
-        "year_distribution": dict(year_distribution),
+        "longitudinal_eligible":     sum(1 for c in student_measurements.values() if c >= 2),
+        "course_distribution":       dict(course_distribution),
+        "year_distribution":         dict(year_distribution),
         "recommendation": (
             "Рекомендуем использовать Cross-Sectional VAM, так как только "
             f"{sum(1 for c in student_measurements.values() if c >= 2)} студентов "
@@ -229,10 +221,10 @@ def get_latent_growth(request):
     """
     try:
         # Получаем фильтры
-        institution_ids = request.GET.getlist('institution_ids[]')
-        directions = request.GET.getlist('directions[]')
-        courses = request.GET.getlist('courses[]')
-        test_attempts = request.GET.getlist('test_attempts[]')
+        institution_ids =       request.GET.getlist('institution_ids[]')
+        directions =            request.GET.getlist('directions[]')
+        courses =               request.GET.getlist('courses[]')
+        test_attempts =         request.GET.getlist('test_attempts[]')
         selected_competencies = request.GET.getlist('competencies[]')
 
         print(f"\n{'='*60}")
@@ -241,21 +233,10 @@ def get_latent_growth(request):
         print(f"   Направления: {directions}")
         print(f"{'='*60}\n")
 
-        # Список всех компетенций
-        all_competencies = [
-            "res_comp_leadership", "res_comp_communication",
-            "res_comp_self_development", "res_comp_result_orientation",
-            "res_comp_stress_resistance", "res_comp_client_focus",
-            "res_comp_planning", "res_comp_info_analysis",
-            "res_comp_partnership", "res_comp_rules_compliance",
-            "res_comp_emotional_intel", "res_comp_passive_vocab"
-        ]
+        competencies = list(COMP.names.keys())
 
-        # Фильтруем компетенции
         if selected_competencies:
-            competencies = [c for c in all_competencies if c in selected_competencies]
-        else:
-            competencies = all_competencies
+            competencies = [c for c in competencies if c in selected_competencies]
 
         # Базовый запрос
         results = Results.objects.select_related(
@@ -341,11 +322,11 @@ def get_latent_growth(request):
         if growth_data.get("status") == "success":
             growth_data["group_by"] = group_by
             growth_data["filters_applied"] = {
-                "institutions": len(institution_ids),
-                "directions": len(directions),
-                "courses": len(courses),
+                "institutions":  len(institution_ids),
+                "directions":    len(directions),
+                "courses":       len(courses),
                 "test_attempts": len(test_attempts),
-                "competencies": len(competencies)
+                "competencies":  len(competencies)
             }
 
         return JsonResponse(growth_data)
@@ -414,11 +395,11 @@ def calculate_cross_sectional_vam(results_list, competencies):
         mean_vam = np.mean(vam_values)
         
         data.append({
-            "participant_id": row.res_participant_id,
-            "participant_name": participant.part_name if participant else "Unknown",
-            "year": row.res_year,
-            "course": course,
-            "mean_vam": round(mean_vam, 3),
+            "participant_id":    row.res_participant_id,
+            "participant_name":  participant.part_name if participant else "Unknown",
+            "year":              row.res_year,
+            "course":            course,
+            "mean_vam":          round(mean_vam, 3),
             "vam_by_competency": vam_by_competency,
             "institution_id": (
                 participant.part_institution.inst_id
@@ -436,8 +417,8 @@ def calculate_cross_sectional_vam(results_list, competencies):
         })
     
     return JsonResponse({
-        "status": "success",
-        "data": data,
+        "status":         "success",
+        "data":           data,
         "total_students": len(data),
         "course_baselines": {
             course: {comp: round(val, 3) for comp, val in baselines.items()}
@@ -537,13 +518,13 @@ def calculate_longitudinal_vam(results_list, competencies):
             mean_vam = np.mean(vam_values)
             
             data.append({
-                "participant_id": participant_id,
-                "participant_name": participant.part_name if participant else "Unknown",
-                "from_year": prev_row.res_year,
-                "to_year": curr_row.res_year,
-                "from_course": prev_row.res_course_num,
-                "to_course": curr_row.res_course_num,
-                "mean_vam": round(mean_vam, 3),
+                "participant_id":    participant_id,
+                "participant_name":  participant.part_name if participant else "Unknown",
+                "from_year":         prev_row.res_year,
+                "to_year":           curr_row.res_year,
+                "from_course":       prev_row.res_course_num,
+                "to_course":         curr_row.res_course_num,
+                "mean_vam":          round(mean_vam, 3),
                 "vam_by_competency": vam_by_competency,
                 "institution_id": (
                     participant.part_institution.inst_id
@@ -561,9 +542,9 @@ def calculate_longitudinal_vam(results_list, competencies):
             })
     
     return JsonResponse({
-        "status": "success",
-        "data": data,
-        "total_students": len(grouped),
+        "status":            "success",
+        "data":              data,
+        "total_students":    len(grouped),
         "total_transitions": len(data),
         "regression_models": {
             comp: {"a": round(a, 4), "b": round(b, 4)}
@@ -590,16 +571,16 @@ def group_vam_for_comparison(data, institution_ids, directions):
     """
     
     grouped = {
-        "by_institution": defaultdict(lambda: defaultdict(list)),
-        "by_direction": defaultdict(lambda: defaultdict(list)),
+        "by_institution":           defaultdict(lambda: defaultdict(list)),
+        "by_direction":             defaultdict(lambda: defaultdict(list)),
         "by_institution_direction": defaultdict(lambda: defaultdict(list))
     }
     
     for item in data:
-        course = item.get("course") or item.get("to_course")
-        vam = item.get("mean_vam", 0)
+        course =      item.get("course") or item.get("to_course")
+        vam =         item.get("mean_vam", 0)
         institution = item.get("institution_name", "Неизвестно")
-        direction = item.get("direction", "Неизвестно")
+        direction =   item.get("direction", "Неизвестно")
         
         if course:
             # Группируем по институту
@@ -692,10 +673,10 @@ def calculate_population_growth(results_list, competencies):
         print(f"\n✅ Построены траектории для {len(growth_trajectory)} компетенций")
         
         return {
-            "status": "success",
-            "data": growth_trajectory,
-            "model": "latent_growth",
-            "total_records": len(results_list),
+            "status":             "success",
+            "data":               growth_trajectory,
+            "model":              "latent_growth",
+            "total_records":      len(results_list),
             "competencies_count": len(growth_trajectory)
         }
     
@@ -781,12 +762,12 @@ def calculate_grouped_growth(results_list, competencies, group_by):
         print(f"✅ Построены траектории для {len(growth_trajectory)} компетенций")
         
         return {
-            "status": "success",
-            "data": growth_trajectory,
-            "model": "latent_growth",
-            "group_by": group_by,
+            "status":        "success",
+            "data":          growth_trajectory,
+            "model":         "latent_growth",
+            "group_by":      group_by,
             "total_records": len(results_list),
-            "groups_count": len(groups)
+            "groups_count":  len(groups)
         }
     
     except Exception as e:

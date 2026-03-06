@@ -143,14 +143,14 @@ def student_results(request):
 
     return {
         "student": {
-            "stud_id": participant.part_id,
-            "stud_name": participant.part_name,
+            "stud_id":     participant.part_id,
+            "stud_name":   participant.part_name,
             "stud_gender": participant.part_gender,
-            "institution": participant.part_institution.inst_name if participant.part_institution else None,
-            "specialty": participant.part_spec.spec_name if participant.part_spec else None,
-            "edu_level": participant.part_edu_level.edu_level_name if participant.part_edu_level else None,
-            "study_form": participant.part_form.form_name if participant.part_form else None,
-            "course_num": participant.part_course_num
+            "institution": participant.part_institution.inst_name    if participant.part_institution else None,
+            "specialty":   participant.part_spec.spec_name           if participant.part_spec        else None,
+            "edu_level":   participant.part_edu_level.edu_level_name if participant.part_edu_level   else None,
+            "study_form":  participant.part_form.form_name           if participant.part_form        else None,
+            "course_num":  participant.part_course_num
         },
         "results": results_list
     }
@@ -205,7 +205,7 @@ def get_institution_directions(request):
 
 @method('GET')
 @csrf_exempt
-def get_filter_options_with_counts(request):  #  fix: dubious necessity; todo: confirm usage
+def get_filter_options_with_counts(request):
     """
     Возвращает опции фильтров с количеством записей для каждой.
     С учётом уже выбранных фильтров (cross-filtering).
@@ -213,14 +213,11 @@ def get_filter_options_with_counts(request):  #  fix: dubious necessity; todo: c
     ВАЖНО: Динамически подсчитывает максимальное количество прохождений!
     """
     try:
-        session_id = request.GET.get('session_id')
-        
-
         # Получаем текущие выбранные фильтры
         selected_institution_ids = request.GET.getlist('institution_ids[]')
-        selected_directions = request.GET.getlist('directions[]')
-        selected_courses = request.GET.getlist('courses[]')
-        selected_test_attempts = request.GET.getlist('test_attempts[]')
+        selected_directions =      request.GET.getlist('directions[]')
+        selected_courses =         request.GET.getlist('courses[]')
+        selected_test_attempts =   request.GET.getlist('test_attempts[]')
         
         print(f"\n{'='*60}")
         print(f"📊 get_filter_options_with_counts вызван")
@@ -341,12 +338,11 @@ def get_filter_options_with_counts(request):  #  fix: dubious necessity; todo: c
         
         directions_list = [
             {
-                'id': item['res_participant__part_spec__spec_name'],  # id = name для строк
-                'name': item['res_participant__part_spec__spec_name'],
+                'id':    item['res_participant__part_spec__spec_name'],  # id = name для строк
+                'name':  item['res_participant__part_spec__spec_name'],
                 'count': item['count']
             }
-            for item in directions_counts
-            if item['res_participant__part_spec__spec_name']
+            for item in directions_counts if item['res_participant__part_spec__spec_name']
         ]
         
         print(f"✅ Направления: {len(directions_list)} (отсортировано по количеству)")
@@ -394,12 +390,11 @@ def get_filter_options_with_counts(request):  #  fix: dubious necessity; todo: c
         
         courses_list = [
             {
-                'id': item['res_course_num'],
-                'name': f"{item['res_course_num']} курс",
+                'id':    item['res_course_num'],
+                'name':  f"{item['res_course_num']} курс",
                 'count': item['count']
             }
-            for item in courses_counts
-            if item['res_course_num']
+            for item in courses_counts if item['res_course_num']
         ]
         
         print(f"✅ Курсы: {len(courses_list)}")
@@ -458,18 +453,8 @@ def get_filter_options_with_counts(request):  #  fix: dubious necessity; todo: c
         
         # Компетенции с русскими названиями
         competencies_data = [
-            {"id": "res_comp_info_analysis", "name": "Анализ информации"},
-            {"id": "res_comp_planning", "name": "Планирование"},
-            {"id": "res_comp_result_orientation", "name": "Ориентация на результат"},
-            {"id": "res_comp_stress_resistance", "name": "Стрессоустойчивость"},
-            {"id": "res_comp_partnership", "name": "Партнёрство"},
-            {"id": "res_comp_rules_compliance", "name": "Соблюдение правил"},
-            {"id": "res_comp_self_development", "name": "Саморазвитие"},
-            {"id": "res_comp_leadership", "name": "Лидерство"},
-            {"id": "res_comp_emotional_intel", "name": "Эмоциональный интеллект"},
-            {"id": "res_comp_client_focus", "name": "Клиентоориентированность"},
-            {"id": "res_comp_communication", "name": "Коммуникация"},
-            {"id": "res_comp_passive_vocab", "name": "Пассивный словарь"},
+            {"id": comp, "name": COMP.names[comp]}
+            for comp in COMP.names.keys()
         ]
 
         competencies_list = []
@@ -510,13 +495,13 @@ def get_filter_options_with_counts(request):  #  fix: dubious necessity; todo: c
 
         return successResponse({
             "data": {
-                "institutions": institutions_list,
-                "directions": directions_list,
-                "courses": courses_list,
+                "institutions":  institutions_list,
+                "directions":    directions_list,
+                "courses":       courses_list,
                 "test_attempts": test_attempts_list,
-                "competencies": competencies_list,  # ← С count!
-                "students": students_list,  # ← ДОБАВЛЕНО!
-                "max_attempts": max_attempts
+                "competencies":  competencies_list,
+                "students":      students_list,
+                "max_attempts":  max_attempts
             }
         })
         

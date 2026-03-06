@@ -29,11 +29,11 @@ class DataViewSession:
         
     def to_dict(self):
         return {
-            'session_id': self.session_id,
-            'filters': self.filters,
+            'session_id':      self.session_id,
+            'filters':         self.filters,
             'visible_columns': self.visible_columns,
-            'limit': self.limit,
-            'offset': self.offset
+            'limit':           self.limit,
+            'offset':          self.offset
         }
     
     def update_activity(self):
@@ -52,10 +52,10 @@ def create_data_session(request):
         data_view_sessions[session.session_id] = session
         
         return successResponse({
-            "session_id": session.session_id,
-            "filters": session.filters,
+            "session_id":      session.session_id,
+            "filters":         session.filters,
             "visible_columns": session.visible_columns,
-            "limit": session.limit
+            "limit":           session.limit
         })
         
     except Exception as e:
@@ -84,39 +84,39 @@ def get_session_data(request):
         # Применяем фильтры сессии
         for filter_obj in session.filters:
             if filter_obj['type'] == 'basic' and filter_obj['selectedValues']:
-                field = filter_obj['field']
-                if field == 'part_gender':
-                    results_query = results_query.filter(
-                        res_participant__part_gender__in=filter_obj['selectedValues']
-                    )
-                elif field == 'center':
-                    results_query = results_query.filter(
-                        res_center__center_name__in=filter_obj['selectedValues']
-                    )
-                elif field == 'institution':
-                    results_query = results_query.filter(
-                        res_institution__inst_name__in=filter_obj['selectedValues']
-                    )
-                elif field == 'edu_level':
-                    results_query = results_query.filter(
-                        res_edu_level__edu_level_name__in=filter_obj['selectedValues']
-                    )
-                elif field == 'study_form':
-                    results_query = results_query.filter(
-                        res_form__form_name__in=filter_obj['selectedValues']
-                    )
-                elif field == 'specialty':
-                    results_query = results_query.filter(
-                        res_spec__spec_name__in=filter_obj['selectedValues']
-                    )
-                elif field == 'res_year':
-                    results_query = results_query.filter(
-                        res_year__in=filter_obj['selectedValues']
-                    )
-                elif field == 'res_course_num':
-                    results_query = results_query.filter(
-                        res_course_num__in=filter_obj['selectedValues']
-                    )
+                match filter_obj['field']:
+                    case 'part_gender':
+                        results_query = results_query.filter(
+                            res_participant__part_gender__in=filter_obj['selectedValues']
+                        )
+                    case 'center':
+                        results_query = results_query.filter(
+                            res_center__center_name__in=filter_obj['selectedValues']
+                        )
+                    case 'institution':
+                        results_query = results_query.filter(
+                            res_institution__inst_name__in=filter_obj['selectedValues']
+                        )
+                    case 'edu_level':
+                        results_query = results_query.filter(
+                            res_edu_level__edu_level_name__in=filter_obj['selectedValues']
+                        )
+                    case 'study_form':
+                        results_query = results_query.filter(
+                            res_form__form_name__in=filter_obj['selectedValues']
+                        )
+                    case 'specialty':
+                        results_query = results_query.filter(
+                            res_spec__spec_name__in=filter_obj['selectedValues']
+                        )
+                    case 'res_year':
+                        results_query = results_query.filter(
+                            res_year__in=filter_obj['selectedValues']
+                        )
+                    case 'res_course_num':
+                        results_query = results_query.filter(
+                            res_course_num__in=filter_obj['selectedValues']
+                        )
                     
             elif filter_obj['type'] == 'numeric':
                 field = filter_obj['field']
@@ -151,9 +151,9 @@ def get_session_data(request):
             results_data.append(result_data)
         
         return successResponse({
-            "results": results_data,
+            "results":     results_data,
             "total_count": total_count,
-            "session": session.to_dict()
+            "session":     session.to_dict()
         })
         
     except Exception as e:
@@ -202,9 +202,9 @@ def update_session_columns(request):
         session.visible_columns = visible_columns
         
         return successResponse({
-            "session_id": session.session_id,
+            "session_id":      session.session_id,
             "visible_columns": session.visible_columns,
-            "message": "Visible columns updated successfully"
+            "message":         "Visible columns updated successfully"
         })
         
     except Exception as e:
@@ -295,10 +295,10 @@ def stats_with_filters(request):
             filters = session.filters
         
         # Общая статистика
-        total_participants = Participants.objects.count()
-        total_tests = Results.objects.count()
+        total_participants =  Participants.objects.count()
+        total_tests =         Results.objects.count()
         unique_institutions = Institutions.objects.count()
-        unique_centers = Competencecenters.objects.count()
+        unique_centers =      Competencecenters.objects.count()
 
         # Участники по году получения первой оценки
         first_year_stats = Results.objects.values('res_participant').annotate(
@@ -308,7 +308,7 @@ def stats_with_filters(request):
         ).order_by('first_year')
         
         participants_by_first_year = {
-            'years': [str(stat['first_year']) for stat in first_year_stats if stat['first_year']],
+            'years':  [str(stat['first_year']) for stat in first_year_stats if stat['first_year']],
             'counts': [stat['count'] for stat in first_year_stats if stat['first_year']]
         }
 
@@ -321,7 +321,7 @@ def stats_with_filters(request):
         
         participants_by_center = {
             'centers': [stat['res_center__center_name'] for stat in centers_stats if stat['res_center__center_name']],
-            'counts': [stat['count'] for stat in centers_stats if stat['res_center__center_name']]
+            'counts':  [stat['count'] for stat in centers_stats if stat['res_center__center_name']]
         }
 
         # Участники по учебным заведениям (топ-15)
@@ -333,7 +333,7 @@ def stats_with_filters(request):
         
         participants_by_institution = {
             'institutions': [stat['res_institution__inst_name'] for stat in institutions_stats if stat['res_institution__inst_name']],
-            'counts': [stat['count'] for stat in institutions_stats if stat['res_institution__inst_name']]
+            'counts':       [stat['count'] for stat in institutions_stats if stat['res_institution__inst_name']]
         }
 
         # Специальности участников
@@ -345,7 +345,7 @@ def stats_with_filters(request):
         
         specialties_distribution = {
             'specialties': [stat['res_spec__spec_name'] for stat in specialties_stats if stat['res_spec__spec_name']],
-            'counts': [stat['count'] for stat in specialties_stats if stat['res_spec__spec_name']]
+            'counts':       [stat['count'] for stat in specialties_stats if stat['res_spec__spec_name']]
         }
 
         # Динамика тестирований по годам
@@ -359,32 +359,9 @@ def stats_with_filters(request):
             'years': [str(stat['res_year']) for stat in tests_by_year if stat['res_year']],
             'counts': [stat['count'] for stat in tests_by_year if stat['res_year']]
         }
-
-        # Средние оценки по компетенциям по годам
-        competences_fields = [
-            'res_comp_info_analysis', 'res_comp_planning', 'res_comp_result_orientation',
-            'res_comp_stress_resistance', 'res_comp_partnership', 'res_comp_rules_compliance',
-            'res_comp_self_development', 'res_comp_leadership', 'res_comp_emotional_intel',
-            'res_comp_client_focus', 'res_comp_communication', 'res_comp_passive_vocab'
-        ]
-        
-        competence_names = {
-            'res_comp_info_analysis': 'Анализ информации',
-            'res_comp_planning': 'Планирование',
-            'res_comp_result_orientation': 'Ориентация на результат',
-            'res_comp_stress_resistance': 'Стрессоустойчивость',
-            'res_comp_partnership': 'Партнерство',
-            'res_comp_rules_compliance': 'Соблюдение правил',
-            'res_comp_self_development': 'Саморазвитие',
-            'res_comp_leadership': 'Лидерство',
-            'res_comp_emotional_intel': 'Эмоциональный интеллект',
-            'res_comp_client_focus': 'Клиентоориентированность',
-            'res_comp_communication': 'Коммуникация',
-            'res_comp_passive_vocab': 'Пассивный словарь'
-        }
         
         competences_by_year = []
-        for field in competences_fields:
+        for field in COMP.names.keys():
             yearly_stats = Results.objects.filter(
                 **{f'{field}__isnull': False},
                 res_year__isnull=False
@@ -394,40 +371,13 @@ def stats_with_filters(request):
             
             if yearly_stats:
                 competences_by_year.append({
-                    'name': competence_names[field],
+                    'name': COMP.names[field],
                     'years': [str(stat['res_year']) for stat in yearly_stats if stat['res_year']],
                     'values': [round(float(stat['avg_value']), 1) for stat in yearly_stats if stat['res_year']]
                 })
-
-        # Средние оценки по мотиваторам по годам
-        motivators_fields = [
-            'res_mot_autonomy', 'res_mot_altruism', 'res_mot_challenge', 'res_mot_salary',
-            'res_mot_career', 'res_mot_creativity', 'res_mot_relationships', 'res_mot_recognition',
-            'res_mot_affiliation', 'res_mot_self_development', 'res_mot_purpose', 'res_mot_cooperation',
-            'res_mot_stability', 'res_mot_tradition', 'res_mot_management', 'res_mot_work_conditions'
-        ]
-        
-        motivator_names = {
-            'res_mot_autonomy': 'Автономия',
-            'res_mot_altruism': 'Альтруизм',
-            'res_mot_challenge': 'Вызов',
-            'res_mot_salary': 'Зарплата',
-            'res_mot_career': 'Карьера',
-            'res_mot_creativity': 'Креативность',
-            'res_mot_relationships': 'Отношения',
-            'res_mot_recognition': 'Признание',
-            'res_mot_affiliation': 'Принадлежность',
-            'res_mot_self_development': 'Саморазвитие',
-            'res_mot_purpose': 'Цель',
-            'res_mot_cooperation': 'Сотрудничество',
-            'res_mot_stability': 'Стабильность',
-            'res_mot_tradition': 'Традиции',
-            'res_mot_management': 'Управление',
-            'res_mot_work_conditions': 'Условия работы'
-        }
         
         motivators_by_year = []
-        for field in motivators_fields:
+        for field in MOT.names.keys():
             yearly_stats = Results.objects.filter(
                 **{f'{field}__isnull': False},
                 res_year__isnull=False
@@ -437,28 +387,13 @@ def stats_with_filters(request):
             
             if yearly_stats:
                 motivators_by_year.append({
-                    'name': motivator_names[field],
+                    'name': MOT.names[field],
                     'years': [str(stat['res_year']) for stat in yearly_stats if stat['res_year']],
                     'values': [round(float(stat['avg_value']), 1) for stat in yearly_stats if stat['res_year']]
                 })
-
-        # Средние оценки по ценностям по годам
-        values_fields = [
-            'res_val_honesty_justice', 'res_val_humanism', 'res_val_patriotism',
-            'res_val_family', 'res_val_health', 'res_val_environment'
-        ]
-        
-        value_names = {
-            'res_val_honesty_justice': 'Честность и справедливость',
-            'res_val_humanism': 'Гуманизм',
-            'res_val_patriotism': 'Патриотизм',
-            'res_val_family': 'Семья',
-            'res_val_health': 'Здоровье',
-            'res_val_environment': 'Окружающая среда'
-        }
         
         values_by_year = []
-        for field in values_fields:
+        for field in VAL.names.keys():
             yearly_stats = Results.objects.filter(
                 **{f'{field}__isnull': False},
                 res_year__isnull=False
@@ -468,26 +403,26 @@ def stats_with_filters(request):
             
             if yearly_stats:
                 values_by_year.append({
-                    'name': value_names[field],
+                    'name': VAL.names[field],
                     'years': [str(stat['res_year']) for stat in yearly_stats if stat['res_year']],
                     'values': [round(float(stat['avg_value']), 1) for stat in yearly_stats if stat['res_year']]
                 })
         
         # Добавляем available_values для фильтрации
         stats_data = {
-            'totalParticipants': total_participants,
-            'totalTests': total_tests,
-            'uniqueInstitutions': unique_institutions,
-            'uniqueCenters': unique_centers,
-            'participantsByFirstYear': participants_by_first_year,
-            'participantsByCenter': participants_by_center,
+            'totalParticipants':         total_participants,
+            'totalTests':                total_tests,
+            'uniqueInstitutions':        unique_institutions,
+            'uniqueCenters':             unique_centers,
+            'participantsByFirstYear':   participants_by_first_year,
+            'participantsByCenter':      participants_by_center,
             'participantsByInstitution': participants_by_institution,
-            'specialtiesDistribution': specialties_distribution,
-            'testsByYear': tests_by_year_data,
-            'competencesByYear': competences_by_year,
-            'motivatorsByYear': motivators_by_year,
-            'valuesByYear': values_by_year,
-            'available_values': extract_available_values_for_filters(filters)
+            'specialtiesDistribution':   specialties_distribution,
+            'testsByYear':               tests_by_year_data,
+            'competencesByYear':         competences_by_year,
+            'motivatorsByYear':          motivators_by_year,
+            'valuesByYear':              values_by_year,
+            'available_values':          extract_available_values_for_filters(filters)
         }
         
         return successResponse({"stats": stats_data})
@@ -624,13 +559,7 @@ def group_data(request):
         
         groups = sorted(list(groups))
         
-        # Компетенции
-        competence_fields = ['res_comp_info_analysis', 'res_comp_planning', 'res_comp_result_orientation',
-                            'res_comp_stress_resistance', 'res_comp_partnership', 'res_comp_rules_compliance',
-                            'res_comp_self_development', 'res_comp_leadership', 'res_comp_emotional_intel',
-                            'res_comp_client_focus', 'res_comp_communication', 'res_comp_passive_vocab']
-        
-        for field in competence_fields:
+        for field in COMP.names.keys():
             values_by_group = []
             for group in groups:
                 group_results = [r for r in results_query if get_group_value(r, grouping_column) == group]
@@ -643,13 +572,7 @@ def group_data(request):
                 'values': values_by_group
             }
         
-        # Мотиваторы
-        motivator_fields = ['res_mot_autonomy', 'res_mot_altruism', 'res_mot_challenge', 'res_mot_salary',
-                           'res_mot_career', 'res_mot_creativity', 'res_mot_relationships', 'res_mot_recognition',
-                           'res_mot_affiliation', 'res_mot_self_development', 'res_mot_purpose', 'res_mot_cooperation',
-                           'res_mot_stability', 'res_mot_tradition', 'res_mot_management', 'res_mot_work_conditions']
-        
-        for field in motivator_fields:
+        for field in MOT.names.keys():
             values_by_group = []
             for group in groups:
                 group_results = [r for r in results_query if get_group_value(r, grouping_column) == group]
@@ -662,11 +585,7 @@ def group_data(request):
                 'values': values_by_group
             }
         
-        # Ценности
-        value_fields = ['res_val_honesty_justice', 'res_val_humanism', 'res_val_patriotism',
-                       'res_val_family', 'res_val_health', 'res_val_environment']
-        
-        for field in value_fields:
+        for field in VAL.names.keys():
             values_by_group = []
             for group in groups:
                 group_results = [r for r in results_query if get_group_value(r, grouping_column) == group]
@@ -680,8 +599,8 @@ def group_data(request):
             }
         
         return successResponse({
-            "grouped_data": grouped_data,
-            "groups": groups,
+            "grouped_data":  grouped_data,
+            "groups":        groups,
             "total_records": len(selected_ids)
         })
         
@@ -707,34 +626,20 @@ def format_result_data(result, visible_columns=None):
     base_data = {
         'res_id': result.res_id,
         'participant': {
-            'part_id': result.res_participant.part_id,
-            'part_name': result.res_participant.part_name,
+            'part_id':     result.res_participant.part_id,
+            'part_name':   result.res_participant.part_name,
             'part_gender': result.res_participant.part_gender,
         },
-        'center': result.res_center.center_name if result.res_center else None,
-        'institution': result.res_institution.inst_name if result.res_institution else None,
-        'edu_level': result.res_edu_level.edu_level_name if result.res_edu_level else None,
-        'study_form': result.res_form.form_name if result.res_form else None,
-        'specialty': result.res_spec.spec_name if result.res_spec else None,
-        'res_year': result.res_year,
-        'res_course_num': result.res_course_num,
+        'center':             result.res_center.center_name       if result.res_center      else None,
+        'institution':        result.res_institution.inst_name    if result.res_institution else None,
+        'edu_level':          result.res_edu_level.edu_level_name if result.res_edu_level   else None,
+        'study_form':         result.res_form.form_name           if result.res_form        else None,
+        'specialty':          result.res_spec.spec_name           if result.res_spec        else None,
+        'res_year':           result.res_year,
+        'res_course_num':     result.res_course_num,
         'res_high_potential': result.res_high_potential,
         'res_summary_report': result.res_summary_report,
     }
-    
-    # Добавляем компетенции, мотиваторы и ценности
-    competence_fields = ['res_comp_info_analysis', 'res_comp_planning', 'res_comp_result_orientation',
-                        'res_comp_stress_resistance', 'res_comp_partnership', 'res_comp_rules_compliance',
-                        'res_comp_self_development', 'res_comp_leadership', 'res_comp_emotional_intel',
-                        'res_comp_client_focus', 'res_comp_communication', 'res_comp_passive_vocab']
-    
-    motivator_fields = ['res_mot_autonomy', 'res_mot_altruism', 'res_mot_challenge', 'res_mot_salary',
-                       'res_mot_career', 'res_mot_creativity', 'res_mot_relationships', 'res_mot_recognition',
-                       'res_mot_affiliation', 'res_mot_self_development', 'res_mot_purpose', 'res_mot_cooperation',
-                       'res_mot_stability', 'res_mot_tradition', 'res_mot_management', 'res_mot_work_conditions']
-    
-    value_fields = ['res_val_honesty_justice', 'res_val_humanism', 'res_val_patriotism',
-                   'res_val_family', 'res_val_health', 'res_val_environment']
     
     # Если указаны видимые колонки, фильтруем данные
     if visible_columns:
@@ -742,24 +647,24 @@ def format_result_data(result, visible_columns=None):
         for field in visible_columns:
             if field in base_data:
                 filtered_data[field] = base_data[field]
-            elif field in competence_fields:
+            elif field in COMP.names.keys():
                 if 'competences' not in filtered_data:
                     filtered_data['competences'] = {}
                 filtered_data['competences'][field] = getattr(result, field)
-            elif field in motivator_fields:
+            elif field in MOT.names.keys():
                 if 'motivators' not in filtered_data:
                     filtered_data['motivators'] = {}
                 filtered_data['motivators'][field] = getattr(result, field)
-            elif field in value_fields:
+            elif field in VAL.names.keys():
                 if 'values' not in filtered_data:
                     filtered_data['values'] = {}
                 filtered_data['values'][field] = getattr(result, field)
         return filtered_data
     else:
         # Возвращаем все данные
-        base_data['competences'] = {field: getattr(result, field) for field in competence_fields}
-        base_data['motivators'] = {field: getattr(result, field) for field in motivator_fields}
-        base_data['values'] = {field: getattr(result, field) for field in value_fields}
+        base_data['competences'] = {field: getattr(result, field) for field in COMP.names.keys()}
+        base_data['motivators'] =  {field: getattr(result, field) for field in MOT.names.keys()}
+        base_data['values'] =      {field: getattr(result, field) for field in VAL.names.keys()}
         return base_data
 
 
@@ -767,82 +672,30 @@ def format_result_for_export(result, visible_columns=None):
     """Форматирует данные для экспорта в Excel"""
     # Аналогичная логика format_result_data, но в плоском формате для Excel
     row = {
-        'ID результата': result.res_id,
-        'ФИО участника': result.res_participant.part_name,
-        'Пол': result.res_participant.part_gender,
-        'Центр компетенций': result.res_center.center_name if result.res_center else '',
-        'Учебное заведение': result.res_institution.inst_name if result.res_institution else '',
-        'Уровень образования': result.res_edu_level.edu_level_name if result.res_edu_level else '',
-        'Форма обучения': result.res_form.form_name if result.res_form else '',
-        'Специальность': result.res_spec.spec_name if result.res_spec else '',
-        'Учебный год': result.res_year,
-        'Номер курса': result.res_course_num,
-        'Высокий потенциал': result.res_high_potential or '',
-        'Сводный отчет': result.res_summary_report or '',
+        'ID результата':       result.res_id,
+        'ФИО участника':       result.res_participant.part_name,
+        'Пол':                 result.res_participant.part_gender,
+        'Центр компетенций':   result.res_center.center_name       if result.res_center      else '',
+        'Учебное заведение':   result.res_institution.inst_name    if result.res_institution else '',
+        'Уровень образования': result.res_edu_level.edu_level_name if result.res_edu_level   else '',
+        'Форма обучения':      result.res_form.form_name           if result.res_form        else '',
+        'Специальность':       result.res_spec.spec_name           if result.res_spec        else '',
+        'Учебный год':         result.res_year,
+        'Номер курса':         result.res_course_num,
+        'Высокий потенциал':   result.res_high_potential or '',
+        'Сводный отчет':       result.res_summary_report or '',
     }
     
-    # Добавляем все поля компетенций, мотиваторов и ценностей
-    competence_fields = ['res_comp_info_analysis', 'res_comp_planning', 'res_comp_result_orientation',
-                        'res_comp_stress_resistance', 'res_comp_partnership', 'res_comp_rules_compliance',
-                        'res_comp_self_development', 'res_comp_leadership', 'res_comp_emotional_intel',
-                        'res_comp_client_focus', 'res_comp_communication', 'res_comp_passive_vocab']
-    
-    motivator_fields = ['res_mot_autonomy', 'res_mot_altruism', 'res_mot_challenge', 'res_mot_salary',
-                       'res_mot_career', 'res_mot_creativity', 'res_mot_relationships', 'res_mot_recognition',
-                       'res_mot_affiliation', 'res_mot_self_development', 'res_mot_purpose', 'res_mot_cooperation',
-                       'res_mot_stability', 'res_mot_tradition', 'res_mot_management', 'res_mot_work_conditions']
-    
-    value_fields = ['res_val_honesty_justice', 'res_val_humanism', 'res_val_patriotism',
-                   'res_val_family', 'res_val_health', 'res_val_environment']
-    
-    field_names = {
-        # Компетенции
-        'res_comp_info_analysis': 'Анализ информации',
-        'res_comp_planning': 'Планирование',
-        'res_comp_result_orientation': 'Ориентация на результат',
-        'res_comp_stress_resistance': 'Стрессоустойчивость',
-        'res_comp_partnership': 'Партнерство',
-        'res_comp_rules_compliance': 'Соблюдение правил',
-        'res_comp_self_development': 'Саморазвитие',
-        'res_comp_leadership': 'Лидерство',
-        'res_comp_emotional_intel': 'Эмоциональный интеллект',
-        'res_comp_client_focus': 'Клиентоориентированность',
-        'res_comp_communication': 'Коммуникация',
-        'res_comp_passive_vocab': 'Пассивный словарь',
-        
-        # Мотиваторы
-        'res_mot_autonomy': 'Автономия',
-        'res_mot_altruism': 'Альтруизм',
-        'res_mot_challenge': 'Вызов',
-        'res_mot_salary': 'Зарплата',
-        'res_mot_career': 'Карьера',
-        'res_mot_creativity': 'Креативность',
-        'res_mot_relationships': 'Отношения',
-        'res_mot_recognition': 'Признание',
-        'res_mot_affiliation': 'Принадлежность',
-        'res_mot_self_development': 'Саморазвитие (мотиватор)',
-        'res_mot_purpose': 'Цель',
-        'res_mot_cooperation': 'Сотрудничество',
-        'res_mot_stability': 'Стабильность',
-        'res_mot_tradition': 'Традиции',
-        'res_mot_management': 'Управление',
-        'res_mot_work_conditions': 'Условия работы',
-        
-        # Ценности
-        'res_val_honesty_justice': 'Честность и справедливость',
-        'res_val_humanism': 'Гуманизм',
-        'res_val_patriotism': 'Патриотизм',
-        'res_val_family': 'Семья',
-        'res_val_health': 'Здоровье',
-        'res_val_environment': 'Окружающая среда'
-    }
+    all_fields = {}
+    all_fields.update(COMP.names)
+    all_fields.update(MOT.names)
+    all_fields.update(VAL.names)
     
     # Добавляем поля в row
-    all_fields = competence_fields + motivator_fields + value_fields
-    for field in all_fields:
+    for field in all_fields.keys():
         if not visible_columns or field in visible_columns:
             value = getattr(result, field)
-            row[field_names[field]] = value if value is not None else ''
+            row[all_fields[field]] = value if value is not None else ''
     
     return row
 

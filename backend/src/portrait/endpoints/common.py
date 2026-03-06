@@ -2,7 +2,7 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from ..constants import *
+from ..constants import COMPETENCIES as COMP, MOTIVATORS as MOT, VALUES as VAL, COURSES as CUR
 from ..models import *
 
 successResponse =    lambda d: JsonResponse({**{"status": "success"}, **d},                       status=200)
