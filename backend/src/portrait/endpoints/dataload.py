@@ -91,12 +91,12 @@ def import_excel(request):
                     participant, created = Participants.objects.get_or_create(
                         part_name=participant_name,
                         defaults={
-                            "part_gender": clean_value(row_data.get("part_gender")),
+                            "part_gender":      clean_value(row_data.get("part_gender")),
                             "part_institution": institution,
-                            "part_spec": spec,
-                            "part_edu_level": edu_level,
-                            "part_form": form,
-                            "part_course_num": clean_value(row_data.get("part_course_num"), "int"),
+                            "part_spec":        spec,
+                            "part_edu_level":   edu_level,
+                            "part_form":        form,
+                            "part_course_num":  clean_value(row_data.get("part_course_num"), "int"),
                         },
                     )
 
@@ -104,33 +104,22 @@ def import_excel(request):
                     result, created_res = Results.objects.get_or_create(
                         res_participant=participant,
                         defaults={
-                            "res_center": center,
-                            "res_institution": institution,
-                            "res_edu_level": edu_level,
-                            "res_form": form,
-                            "res_spec": spec,
-                            "res_course_num": clean_value(row_data.get("res_course_num"), "int"),
-                            "res_year": clean_value(row_data.get("res_year")),
+                            "res_center":         center,
+                            "res_institution":    institution,
+                            "res_edu_level":      edu_level,
+                            "res_form":           form,
+                            "res_spec":           spec,
+                            "res_course_num":     clean_value(row_data.get("res_course_num"), "int"),
+                            "res_year":           clean_value(row_data.get("res_year")),
                             "res_high_potential": clean_value(row_data.get("res_high_potential")),
                             "res_summary_report": clean_value(row_data.get("res_summary_report")),
                         },
                     )
 
                     # Обновляем компетенции
-                    Results.objects.filter(pk=result.pk).update(
-                        res_comp_info_analysis=clean_value(row_data.get("res_comp_info_analysis"), "int"),
-                        res_comp_planning=clean_value(row_data.get("res_comp_planning"), "int"),
-                        res_comp_result_orientation=clean_value(row_data.get("res_comp_result_orientation"), "int"),
-                        res_comp_stress_resistance=clean_value(row_data.get("res_comp_stress_resistance"), "int"),
-                        res_comp_partnership=clean_value(row_data.get("res_comp_partnership"), "int"),
-                        res_comp_rules_compliance=clean_value(row_data.get("res_comp_rules_compliance"), "int"),
-                        res_comp_self_development=clean_value(row_data.get("res_comp_self_development"), "int"),
-                        res_comp_leadership=clean_value(row_data.get("res_comp_leadership"), "int"),
-                        res_comp_emotional_intel=clean_value(row_data.get("res_comp_emotional_intel"), "int"),
-                        res_comp_client_focus=clean_value(row_data.get("res_comp_client_focus"), "int"),
-                        res_comp_communication=clean_value(row_data.get("res_comp_communication"), "int"),
-                        res_comp_passive_vocab=clean_value(row_data.get("res_comp_passive_vocab"), "int"),
-                    )
+                    Results.objects.filter(pk=result.pk).update(**{
+                        comp: clean_value(row_data.get(comp), 'int') for comp in COMP.names.keys()
+                    })
                     created_count += 1
 
                 # === Мотивационный профиль ===
@@ -145,24 +134,9 @@ def import_excel(request):
                         print(f"Не найден участник '{participant_name}', пропуск")
                         continue
 
-                    Results.objects.filter(res_participant=participant).update(
-                        res_mot_autonomy=clean_value(row_data.get("res_mot_autonomy"), "float"),
-                        res_mot_altruism=clean_value(row_data.get("res_mot_altruism"), "float"),
-                        res_mot_challenge=clean_value(row_data.get("res_mot_challenge"), "float"),
-                        res_mot_salary=clean_value(row_data.get("res_mot_salary"), "float"),
-                        res_mot_career=clean_value(row_data.get("res_mot_career"), "float"),
-                        res_mot_creativity=clean_value(row_data.get("res_mot_creativity"), "float"),
-                        res_mot_relationships=clean_value(row_data.get("res_mot_relationships"), "float"),
-                        res_mot_recognition=clean_value(row_data.get("res_mot_recognition"), "float"),
-                        res_mot_affiliation=clean_value(row_data.get("res_mot_affiliation"), "float"),
-                        res_mot_self_development=clean_value(row_data.get("res_mot_self_development"), "float"),
-                        res_mot_purpose=clean_value(row_data.get("res_mot_purpose"), "float"),
-                        res_mot_cooperation=clean_value(row_data.get("res_mot_cooperation"), "float"),
-                        res_mot_stability=clean_value(row_data.get("res_mot_stability"), "float"),
-                        res_mot_tradition=clean_value(row_data.get("res_mot_tradition"), "float"),
-                        res_mot_management=clean_value(row_data.get("res_mot_management"), "float"),
-                        res_mot_work_conditions=clean_value(row_data.get("res_mot_work_conditions"), "float"),
-                    )
+                    Results.objects.filter(res_participant=participant).update(**{
+                        mot: clean_value(row_data.get(mot), 'float') for mot in MOT.names.keys()
+                    })
                     updated_count += 1
 
                 # === Образовательные курсы ===
@@ -177,30 +151,7 @@ def import_excel(request):
 
                     Course.objects.update_or_create(
                         course_participant=participant,
-                        defaults={
-                            "course_an_dec": clean_value(row_data.get("course_an_dec"), "float"),
-                            "course_client_focus": clean_value(row_data.get("course_client_focus"), "float"),
-                            "course_communication": clean_value(row_data.get("course_communication"), "float"),
-                            "course_leadership": clean_value(row_data.get("course_leadership"), "float"),
-                            "course_result_orientation": clean_value(row_data.get("course_result_orientation"), "float"),
-                            "course_planning_org": clean_value(row_data.get("course_planning_org"), "float"),
-                            "course_rules_culture": clean_value(row_data.get("course_rules_culture"), "float"),
-                            "course_self_dev": clean_value(row_data.get("course_self_dev"), "float"),
-                            "course_collaboration": clean_value(row_data.get("course_collaboration"), "float"),
-                            "course_stress_resistance": clean_value(row_data.get("course_stress_resistance"), "float"),
-                            "course_emotions_communication": clean_value(row_data.get("course_emotions_communication"), "float"),
-                            "course_negotiations": clean_value(row_data.get("course_negotiations"), "float"),
-                            "course_digital_comm": clean_value(row_data.get("course_digital_comm"), "float"),
-                            "course_effective_learning": clean_value(row_data.get("course_effective_learning"), "float"),
-                            "course_entrepreneurship": clean_value(row_data.get("course_entrepreneurship"), "float"),
-                            "course_creativity_tech": clean_value(row_data.get("course_creativity_tech"), "float"),
-                            "course_trendwatching": clean_value(row_data.get("course_trendwatching"), "float"),
-                            "course_conflict_management": clean_value(row_data.get("course_conflict_management"), "float"),
-                            "course_career_management": clean_value(row_data.get("course_career_management"), "float"),
-                            "course_burnout": clean_value(row_data.get("course_burnout"), "float"),
-                            "course_cross_cultural_comm": clean_value(row_data.get("course_cross_cultural_comm"), "float"),
-                            "course_mentoring": clean_value(row_data.get("course_mentoring"), "float"),
-                        },
+                        defaults={cur: clean_value(row_data.get(cur), 'float') for cur in CUR.names.keys()}
                     )
                     updated_count += 1
 
@@ -217,31 +168,17 @@ def import_excel(request):
                         print(f"Не найден участник '{participant_name}', пропуск")
                         continue
 
-                    # Год
-                    perf_year = clean_value(row_data.get("perf_year"))
-
-                    # Средние значения
-                    perf_current_avg = clean_value(row_data.get("perf_current_avg"), "float")
-                    perf_digital_culture = clean_value(row_data.get("perf_digital_culture"), "float")
-
-                    # Аттестации (строки)
-                    perf_main_attestation = clean_value(row_data.get("perf_main_attestation"))
-                    perf_first_retake = clean_value(row_data.get("perf_first_retake"))
-                    perf_second_retake = clean_value(row_data.get("perf_second_retake"))
-                    perf_high_grade_retake = clean_value(row_data.get("perf_high_grade_retake"))
-                    perf_final_grade = clean_value(row_data.get("perf_final_grade"))
-
                     Academicperformance.objects.update_or_create(
                         perf_part_id=participant.part_id,
-                        perf_year=perf_year,
+                        perf_year=clean_value(row_data.get("perf_year")),
                         defaults={
-                            "perf_current_avg": perf_current_avg,
-                            "perf_digital_culture": perf_digital_culture,
-                            "perf_main_attestation": perf_main_attestation,
-                            "perf_first_retake": perf_first_retake,
-                            "perf_second_retake": perf_second_retake,
-                            "perf_high_grade_retake": perf_high_grade_retake,
-                            "perf_final_grade": perf_final_grade,
+                            "perf_current_avg":       clean_value(row_data.get("perf_current_avg"),     "float"),
+                            "perf_digital_culture":   clean_value(row_data.get("perf_digital_culture"), "float"),
+                            "perf_main_attestation":  clean_value(row_data.get("perf_main_attestation")),
+                            "perf_first_retake":      clean_value(row_data.get("perf_first_retake")),
+                            "perf_second_retake":     clean_value(row_data.get("perf_second_retake")),
+                            "perf_high_grade_retake": clean_value(row_data.get("perf_high_grade_retake")),
+                            "perf_final_grade":       clean_value(row_data.get("perf_final_grade"))
                         }
                     )
 
@@ -262,12 +199,11 @@ def clean_value(value, value_type="str"):
     if value is None:
         return None
 
-    # Приводим к строке и чистим пробелы
     s = str(value).strip()
 
     # Маркеры отсутствующих значений
-    empty_markers = {"", "-", "–", "—", "Отсутствует", "н/д", "н/п", "нет", "na", "n/a"}
-    if s.lower() in {m.lower() for m in empty_markers}:
+    empty_markers = {"", "-", "–", "—", "отсутствует", "н/д", "н/п", "нет", "na", "n/a"}
+    if s.lower() in empty_markers:
         return None
 
     # Тип int

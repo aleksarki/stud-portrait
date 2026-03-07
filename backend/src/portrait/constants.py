@@ -1,47 +1,160 @@
 # Constant values for reusing.
 
-# RSV competencies mapped to their names
-COMPETENCIES = {
-    'res_comp_info_analysis':      "Анализ информаци",
-    'res_comp_planning':           "Планировани",
-    'res_comp_result_orientation': "Ориентация на результа",
-    'res_comp_stress_resistance':  "Стрессоустойчивост",
-    'res_comp_partnership':        "Партнерств",
-    'res_comp_rules_compliance':   "Соблюдение прави",
-    'res_comp_self_development':   "Саморазвити",
-    'res_comp_leadership':         "Лидерств",
-    'res_comp_emotional_intel':    "Эмоциональный интеллек",
-    'res_comp_client_focus':       "Клиентоориентированност",
-    'res_comp_communication':      "Коммуникаци",
-    'res_comp_passive_vocab':      "Пассивный словарь"
-} 
+class RsvCompetencies:
+    """ Tested RSV competencies mapped to their names.
+    """
+    INFO_ANALYSIS = 'res_comp_info_analysis'
+    PLANNING =      'res_comp_planning'
+    RESULT_ORIENT = 'res_comp_result_orientation'
+    STRESS_RESIST = 'res_comp_stress_resistance'
+    PARTNERSHIP =   'res_comp_partnership'
+    RULE_COMPLY =   'res_comp_rules_compliance'
+    SELF_DEVELOP =  'res_comp_self_development'
+    LEADERSHIP =    'res_comp_leadership'
+    EMOTE_INTEL =    'res_comp_emotional_intel'
+    CLIENT_FOCUS =  'res_comp_client_focus'
+    COMMUNICATION = 'res_comp_communication'
+    PASSIVE_VOCAB = 'res_comp_passive_vocab'
 
-# RSV motivators mapped to their names
-MOTIVATORS = {
-    'res_mot_autonomy':         "Автономия",
-    'res_mot_altruism':         "Альтруизм",
-    'res_mot_challenge':        "Вызов",
-    'res_mot_salary':           "Зарплата",
-    'res_mot_career':           "Карьера",
-    'res_mot_creativity':       "Креативность",
-    'res_mot_relationships':    "Отношения",
-    'res_mot_recognition':      "Признание",
-    'res_mot_affiliation':      "Принадлежность",
-    'res_mot_self_development': "Саморазвитие",
-    'res_mot_purpose':          "Цель",
-    'res_mot_cooperation':      "Сотрудничество",
-    'res_mot_stability':        "Стабильность",
-    'res_mot_tradition':        "Традиции",
-    'res_mot_management':       "Управление",
-    'res_mot_work_conditions':  "Условия работы"
-}
+    names = {
+        INFO_ANALYSIS: "Анализ информаци",
+        PLANNING:      "Планировани",
+        RESULT_ORIENT: "Ориентация на результа",
+        STRESS_RESIST: "Стрессоустойчивост",
+        PARTNERSHIP:   "Партнерств",
+        RULE_COMPLY:   "Соблюдение прави",
+        SELF_DEVELOP:  "Саморазвити",
+        LEADERSHIP:    "Лидерств",
+        EMOTE_INTEL:   "Эмоциональный интеллек",
+        CLIENT_FOCUS:  "Клиентоориентированност",
+        COMMUNICATION: "Коммуникаци",
+        PASSIVE_VOCAB: "Пассивный словарь"
+    }
 
-# RSV values mapped to their names
-VALUES = {
-    'res_val_honesty_justice': "Честность и справедливость",
-    'res_val_humanism':        "Гуманизм",
-    'res_val_patriotism':      "Патриотизм",
-    'res_val_family':          "Семья",
-    'res_val_health':          "Здоровье",
-    'res_val_environment':     "Окружающая среда"
-}
+
+class RsvMotivators:
+    """ Tested RSV motivators mapped to their names.
+    """
+    AUTONOMY =     'res_mot_autonomy'
+    ALTRUISM =     'res_mot_altruism'
+    CHALLENGE =    'res_mot_challenge'
+    SALARY =       'res_mot_salary'
+    CAREER =       'res_mot_career'
+    CREATIVITY =   'res_mot_creativity'
+    RELATION =     'res_mot_relationships'
+    RECOGNITION =  'res_mot_recognition'
+    AFFILIATION =  'res_mot_affiliation'
+    SELF_DEVELOP = 'res_mot_self_development'
+    PURPOSE =      'res_mot_purpose'
+    COOPERATION =  'res_mot_cooperation'
+    STABILITY =    'res_mot_stability'
+    TRADITION =    'res_mot_tradition'
+    MARAGEMENT =   'res_mot_management'
+    WORK_CONDIT =  'res_mot_work_conditions'
+
+    names = {
+        AUTONOMY :     "Автономия",
+        ALTRUISM :     "Альтруизм",
+        CHALLENGE :    "Вызов",
+        SALARY :       "Зарплата",
+        CAREER :       "Карьера",
+        CREATIVITY :   "Креативность",
+        RELATION :     "Отношения",
+        RECOGNITION :  "Признание",
+        AFFILIATION :  "Принадлежность",
+        SELF_DEVELOP : "Саморазвитие",
+        PURPOSE :      "Цель",
+        COOPERATION :  "Сотрудничество",
+        STABILITY :    "Стабильность",
+        TRADITION :    "Традиции",
+        MARAGEMENT :   "Управление",
+        WORK_CONDIT :  "Условия работы"
+    }
+
+
+class RsvValues:
+    """ Tested RSV values mapped to their names.
+    """
+    HONEST_JUST = 'res_val_honesty_justice'
+    HUMANISM =    'res_val_humanism'
+    PATRIOTISM =  'res_val_patriotism'
+    FAMILY =      'res_val_family'
+    HEALTH =      'res_val_health'
+    ENVIRONMENT = 'res_val_environment'
+
+    names = {
+        HONEST_JUST : "Честность и справедливость",
+        HUMANISM :    "Гуманизм",
+        PATRIOTISM :  "Патриотизм",
+        FAMILY :      "Семья",
+        HEALTH :      "Здоровье",
+        ENVIRONMENT : "Окружающая среда"
+    }
+
+
+class RsvCourses:
+    """ RSV courses mapped to their names.
+    """
+    DATA_ANALYSIS =   'course_an_dec'
+    CLIENT_FOCUS =    'course_client_focus'
+    COMMUNICATION =   'course_communication'
+    LEADERSHIP =      'course_leadership'
+    RESULT_ORIENT =   'course_result_orientation'
+    PLANNING_ORG =    'course_planning_org'
+    RULES_CULTURE =   'course_rules_culture'
+    SELF_DEVELOP =    'course_self_dev'
+    COLLABORATION =   'course_collaboration'
+    STRESS_RESIST =   'course_stress_resistance'
+    EMOTE_COMMUNIC =  'course_emotions_communication'
+    NEGOTIATIONS =    'course_negotiations'
+    DIGIT_COMMUNIC =  'course_digital_comm'
+    EFFECT_LEARN =    'course_effective_learning'
+    ENTREPRENEUR =    'course_entrepreneurship'
+    CREATIVE_TECH =   'course_creativity_tech'
+    TREND_WATCHING =  'course_trendwatching'
+    CONFLICT_MANAGE = 'course_conflict_management'
+    CAREER_MANAGE =   'course_career_management'
+    EMOTE_BURNOUT =   'course_burnout'
+    CULTUR_COMMUNIC = 'course_cross_cultural_comm'
+    MENTORING =       'course_mentoring'
+
+    names = {
+        DATA_ANALYSIS:   "Анализ информации для принятия решений",
+        CLIENT_FOCUS:    "Клиентоориентированность",
+        COMMUNICATION:   "Коммуникативная грамотность",
+        LEADERSHIP:      "Лидерство:основы",
+        RESULT_ORIENT:   "Ориентация на результат",
+        PLANNING_ORG:    "Планирование и организаия",
+        RULES_CULTURE:   "Роль культуры правил в стабилизации процессов в организации",
+        SELF_DEVELOP:    "Саморазвитие на основе жизненных целей",
+        COLLABORATION:   "Сотрудничество в профессиональной среде",
+        STRESS_RESIST:   "Стрессоустойчивость в современном мире",
+        EMOTE_COMMUNIC:  "Эмоции и коммуникация",
+        NEGOTIATIONS:    "Искусство деловых переговоров",
+        DIGIT_COMMUNIC:  "Коммуникация в цифровой среде",
+        EFFECT_LEARN:    "Навыки эффективного обучения",
+        ENTREPRENEUR:    "Предпринимательское мышление",
+        CREATIVE_TECH:   "Технологии развития креативности и инновационного мышления",
+        TREND_WATCHING:  "Трендвотчинг: работа с трендами",
+        CONFLICT_MANAGE: "Управление конфликтами",
+        CAREER_MANAGE:   "Управляй своей карьерой",
+        EMOTE_BURNOUT:   "Эмоциональное выгорание",
+        CULTUR_COMMUNIC: "Эффективные межкультурные коммуникации",
+        MENTORING:       "Я — наставник"
+    }
+
+
+class TableResults:
+    """ Columns of Results database table.
+    """
+    ID =          'res_id'
+    PARTICIPANT = 'res_participant'
+    CENTER =      'res_center'
+    INSTITUTION = 'res_institution'
+    EDU_LEVEL =   'res_edu_level'
+    EDU_FORM =    'res_form'
+    EDU_SPEC =    'res_spec'
+    COURSE_NUM =  'res_course_num'
+    YEAR =        'res_year'
+    POTENTIAL =   'res_high_potential'
+    REPORT =      'res_summary_report'
