@@ -8,7 +8,7 @@ from .common import *
 # ====== ENDPOINTS ====== #
 
 @method('GET')
-@response
+@jsonResponse
 @csrf_exempt
 def courses(request):
     """ Information about course completion for '/admin/courses' page
@@ -62,7 +62,7 @@ def courses(request):
 
 
 @method('GET')
-@response
+@jsonResponse
 @csrf_exempt
 def student_results(request):
     """ Get specific participant's results

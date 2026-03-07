@@ -1,9 +1,8 @@
 # Constant values for reusing.
 
-class COMPETENCIES:
-    """ RSV competencies mapped to their names
+class RsvCompetencies:
+    """ Tested RSV competencies mapped to their names.
     """
-
     INFO_ANALYSIS = 'res_comp_info_analysis'
     PLANNING =      'res_comp_planning'
     RESULT_ORIENT = 'res_comp_result_orientation'
@@ -32,8 +31,10 @@ class COMPETENCIES:
         PASSIVE_VOCAB: "Пассивный словарь"
     }
 
-# RSV motivators mapped to their names
-class MOTIVATORS:
+
+class RsvMotivators:
+    """ Tested RSV motivators mapped to their names.
+    """
     AUTONOMY =     'res_mot_autonomy'
     ALTRUISM =     'res_mot_altruism'
     CHALLENGE =    'res_mot_challenge'
@@ -70,8 +71,10 @@ class MOTIVATORS:
         WORK_CONDIT :  "Условия работы"
     }
 
-# RSV values mapped to their names
-class VALUES:
+
+class RsvValues:
+    """ Tested RSV values mapped to their names.
+    """
     HONEST_JUST = 'res_val_honesty_justice'
     HUMANISM =    'res_val_humanism'
     PATRIOTISM =  'res_val_patriotism'
@@ -88,8 +91,10 @@ class VALUES:
         ENVIRONMENT : "Окружающая среда"
     }
 
-# RSV courses mapped to their names
-class COURSES:
+
+class RsvCourses:
+    """ RSV courses mapped to their names.
+    """
     DATA_ANALYSIS =   'course_an_dec'
     CLIENT_FOCUS =    'course_client_focus'
     COMMUNICATION =   'course_communication'
@@ -137,3 +142,19 @@ class COURSES:
         CULTUR_COMMUNIC: "Эффективные межкультурные коммуникации",
         MENTORING:       "Я — наставник"
     }
+
+
+class TableResults:
+    """ Columns of Results database table.
+    """
+    ID =          'res_id'
+    PARTICIPANT = 'res_participant'
+    CENTER =      'res_center'
+    INSTITUTION = 'res_institution'
+    EDU_LEVEL =   'res_edu_level'
+    EDU_FORM =    'res_form'
+    EDU_SPEC =    'res_spec'
+    COURSE_NUM =  'res_course_num'
+    YEAR =        'res_year'
+    POTENTIAL =   'res_high_potential'
+    REPORT =      'res_summary_report'
