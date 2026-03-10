@@ -1,6 +1,5 @@
 import Header from "../../components/Header";
-import SidebarLayout from "../../components/SidebarLayout";
-import Sidepanel from "../../components/Sidepanel";
+import { Sidebar, SIDEBAR_STYLE, SidebarLayout, SidebarLayoutContent } from "../../components/SidebarLayout";
 
 import "./AdminHelpView.scss";
 
@@ -17,8 +16,11 @@ function AdminHelpView() {
         <div className="AdminHelpView">
             <Header title="Админ: Справка (библиотека)" name="Администратор1" style="modeus" />
             <div className="main-area">
-                <SidebarLayout sidebar={<Sidepanel links={linkList} style="modeus" />} style="modeus">
-                    content
+                <SidebarLayout style={SIDEBAR_STYLE.MODEUS}>
+                    <Sidebar links={linkList} />
+                    <SidebarLayoutContent>
+                        <span>content</span>
+                    </SidebarLayoutContent>
                 </SidebarLayout>
             </div>
         </div>

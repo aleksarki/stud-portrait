@@ -1,17 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+
 import { getPortraitStudentResults } from "../../api";
 import { 
-  getAvailableProfiles, 
-  getAvailableCategories, 
-  getAvailableYears,
-  getCategoryDataForYear 
+  getAvailableProfiles, getAvailableCategories, getAvailableYears, getCategoryDataForYear 
 } from "../../utilities";
-
 import ChartSwitcher from "../../components/charts/ChartSwitcher";
 import Header from "../../components/Header"
-import SidebarLayout from "../../components/SidebarLayout";
-import Sidepanel from "../../components/Sidepanel";
+import { Sidebar, SidebarLayout, SidebarLayoutContent } from "../../components/SidebarLayout";
 import Title from "../../components/Title";
 import Dropdown from "../../components/ui/Dropdown";
 
@@ -129,61 +125,64 @@ function StudentMainView() {
         <div className="StudentMainView">
             <Header title="Профиль" name={`${studResults?.student?.stud_name}`} />
             <Title title="Главная страница" />
-            <SidebarLayout sidebar={<Sidepanel links={linkList} />}>
-                <div className="main-controls">
-                    {availableYears.length > 0 && (
-                        <div className="year-selector">
-                            <span className="year-label">Год данных:</span>
-                            <Dropdown 
-                                handle={
-                                    <div className="year-dropdown-handle">
-                                        {selectedYear || "Выберите год"}
-                                        <span className="dropdown-arrow">▼</span>
-                                    </div>
-                                }
-                            >
-                                {availableYears.map(year => (
-                                    <div 
-                                        key={year} 
-                                        className={`year-option ${year === selectedYear ? 'selected' : ''}`}
-                                        onClick={() => handleYearChange(year)}
-                                    >
-                                        {year}
-                                    </div>
-                                ))}
-                            </Dropdown>
-                        </div>
-                    )}
-                </div>
-                
-                <div className="charts-grid">
-                    {loading ? (
-                        <div className="loading">Загрузка данных...</div>
-                    ) : chartsData.length > 0 ? (
-                        chartsData.map((chart, index) => (
-                            <div key={index} className="chart-card">
-                                <div className="chart-header">
-                                    <h3>{chart.title}</h3>
-                                    {chart.year && (
-                                        <span className="chart-year">{chart.year}</span>
-                                    )}
-                                </div>
-                                <div className="chart-container">
-                                    <ChartSwitcher
-                                        seriesLabel={`${chart.year} год`}
-                                        seriesData={chart.data}
-                                        categories={chart.labels}
-                                        competencyKeys={chart.competencyKeys}
-                                    />
-                                </div>
+            <SidebarLayout>
+                <Sidebar links={linkList} />
+                <SidebarLayoutContent>
+                    <div className="main-controls">
+                        {availableYears.length > 0 && (
+                            <div className="year-selector">
+                                <span className="year-label">Год данных:</span>
+                                <Dropdown 
+                                    handle={
+                                        <div className="year-dropdown-handle">
+                                            {selectedYear || "Выберите год"}
+                                            <span className="dropdown-arrow">▼</span>
+                                        </div>
+                                    }
+                                >
+                                    {availableYears.map(year => (
+                                        <div 
+                                            key={year} 
+                                            className={`year-option ${year === selectedYear ? 'selected' : ''}`}
+                                            onClick={() => handleYearChange(year)}
+                                        >
+                                            {year}
+                                        </div>
+                                    ))}
+                                </Dropdown>
                             </div>
-                        ))
-                    ) : (
-                        <div className="no-data">
-                            {availableYears.length > 0 ? "Нет данных для отображения" : "Нет доступных данных"}
-                        </div>
-                    )}
-                </div>
+                        )}
+                    </div>
+                    
+                    <div className="charts-grid">
+                        {loading ? (
+                            <div className="loading">Загрузка данных...</div>
+                        ) : chartsData.length > 0 ? (
+                            chartsData.map((chart, index) => (
+                                <div key={index} className="chart-card">
+                                    <div className="chart-header">
+                                        <h3>{chart.title}</h3>
+                                        {chart.year && (
+                                            <span className="chart-year">{chart.year}</span>
+                                        )}
+                                    </div>
+                                    <div className="chart-container">
+                                        <ChartSwitcher
+                                            seriesLabel={`${chart.year} год`}
+                                            seriesData={chart.data}
+                                            categories={chart.labels}
+                                            competencyKeys={chart.competencyKeys}
+                                        />
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="no-data">
+                                {availableYears.length > 0 ? "Нет данных для отображения" : "Нет доступных данных"}
+                            </div>
+                        )}
+                    </div>
+                </SidebarLayoutContent>
             </SidebarLayout>
         </div>
     );
