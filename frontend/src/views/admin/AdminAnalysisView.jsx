@@ -1,25 +1,20 @@
 import { useEffect, useState } from "react";
 import {
-    BarChart,
-    Bar,
-    LineChart,
-    Line,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    Legend,
-    ResponsiveContainer
+    BarChart, Bar, LineChart, Line, XAxis, YAxis,
+    CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from "recharts";
 
 import Header from "../../components/Header";
 import SidebarLayout from "../../components/SidebarLayout";
 import Sidepanel from "../../components/Sidepanel";
 import Button from '../../components/ui/Button.jsx';
-import MultiSelect from '../../components/MultiSelect';
+import MultiSelect from '../../components/ui/MultiSelect';
+import {
+    getPortraitGetFilterOptionsWithCounts, getPortraitGetInstitutionDirections, getPortraitGetLatentGrowth,
+    getPortraitGetVamUnified, getPortraitVamSummaryStatistics, postPortraitCreateDataSession 
+} from "../../api.js";
 
 import "./AdminAnalysisView.scss";
-import { getPortraitGetFilterOptionsWithCounts, getPortraitGetInstitutionDirections, getPortraitGetLatentGrowth, getPortraitGetVamUnified, getPortraitVamSummaryStatistics, postPortraitCreateDataSession } from "../../api.js";
 
 const COLORS = [
     '#1976d2', '#d32f2f', '#388e3c', '#f57c00', '#7b1fa2',

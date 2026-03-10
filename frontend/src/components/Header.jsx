@@ -1,4 +1,4 @@
-import Dropdown from "./Dropdown";
+import Dropdown from "./ui/Dropdown";
 import logo from "../static/logo_white.png";
 import "./Header.scss";
 

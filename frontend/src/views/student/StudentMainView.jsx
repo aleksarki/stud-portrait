@@ -13,7 +13,7 @@ import Header from "../../components/Header"
 import SidebarLayout from "../../components/SidebarLayout";
 import Sidepanel from "../../components/Sidepanel";
 import Title from "../../components/Title";
-import Dropdown from "../../components/Dropdown";
+import Dropdown from "../../components/ui/Dropdown";
 
 import "./StudentMainView.scss";
 
