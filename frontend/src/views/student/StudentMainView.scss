@@ -1,10 +1,16 @@
-// StudentMainView.scss
+// StudentMainView.scss (ОБНОВЛЁННАЯ ВЕРСИЯ)
+
 .StudentMainView {
+    // ============================================================
+    // ГЛАВНЫЕ КОНТРОЛЫ
+    // ============================================================
     .main-controls {
         margin-bottom: 20px;
         display: flex;
-        justify-content: flex-end;
+        justify-content: space-between;
         align-items: center;
+        gap: 15px;
+        flex-wrap: wrap;
         
         .year-selector {
             display: flex;
@@ -38,8 +44,189 @@
                 }
             }
         }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
     }
 
+    // ============================================================
+    // AI-ИНТЕРПРЕТАЦИИ СЕКЦИЯ
+    // ============================================================
+    .ai-interpretations-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 12px;
+        padding: 30px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        
+        .ai-section-header {
+            text-align: center;
+            margin-bottom: 30px;
+            
+            h2 {
+                color: white;
+                margin: 0 0 10px 0;
+                font-size: 24px;
+            }
+            
+            .ai-section-description {
+                color: rgba(255, 255, 255, 0.9);
+                font-size: 14px;
+                margin: 0;
+            }
+        }
+
+        .ai-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 20px;
+        }
+
+        .ai-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            
+            &:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+            }
+
+            .ai-card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                margin-bottom: 15px;
+
+                .competency-title {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    flex: 1;
+
+                    .emoji {
+                        font-size: 28px;
+                        line-height: 1;
+                    }
+
+                    h3 {
+                        margin: 0;
+                        font-size: 18px;
+                        color: #333;
+                        font-weight: 600;
+                    }
+                }
+
+                .score-badge {
+                    background: #e3f2fd;
+                    color: #1976d2;
+                    padding: 6px 14px;
+                    border-radius: 20px;
+                    font-weight: 600;
+                    font-size: 14px;
+                    white-space: nowrap;
+                }
+            }
+
+            .progress-bar {
+                width: 100%;
+                height: 8px;
+                background: #e0e0e0;
+                border-radius: 4px;
+                overflow: hidden;
+                margin-bottom: 12px;
+
+                .progress-fill {
+                    height: 100%;
+                    transition: width 0.5s ease;
+                    border-radius: 4px;
+                }
+            }
+
+            .level-indicator {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 15px;
+                font-size: 14px;
+
+                strong {
+                    letter-spacing: 0.5px;
+                }
+
+                .confidence {
+                    font-size: 12px;
+                    color: #666;
+                    font-weight: normal;
+                }
+            }
+
+            .ai-interpretation {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 16px;
+                border-radius: 8px;
+                margin-bottom: 15px;
+
+                .ai-badge {
+                    display: inline-block;
+                    background: rgba(255, 255, 255, 0.2);
+                    padding: 4px 10px;
+                    border-radius: 12px;
+                    font-size: 11px;
+                    font-weight: 500;
+                    margin-bottom: 10px;
+                    letter-spacing: 0.5px;
+                }
+
+                p {
+                    margin: 0;
+                    line-height: 1.6;
+                    font-size: 14px;
+                    white-space: pre-line;
+                }
+            }
+
+            .recommendations {
+                background: #f5f5f5;
+                padding: 15px;
+                border-radius: 8px;
+                border-left: 4px solid #4caf50;
+
+                strong {
+                    display: block;
+                    margin-bottom: 10px;
+                    color: #333;
+                    font-size: 14px;
+                }
+
+                ul {
+                    margin: 0;
+                    padding-left: 20px;
+
+                    li {
+                        margin-bottom: 8px;
+                        color: #555;
+                        font-size: 13px;
+                        line-height: 1.5;
+
+                        &:last-child {
+                            margin-bottom: 0;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ============================================================
+    // ГРАФИКИ (СУЩЕСТВУЮЩИЕ СТИЛИ)
+    // ============================================================
     .charts-grid {
         display: flex;
         flex-wrap: wrap;
@@ -109,7 +296,9 @@
     }
 }
 
-// fixme
+// ============================================================
+// DROPDOWN СТИЛИ (СУЩЕСТВУЮЩИЕ)
+// ============================================================
 .Dropdown {
     .dropdown-menu {
         min-width: 120px;
@@ -136,16 +325,64 @@
     }
 }
 
-// Адаптивность для мобильных устройств
+// ============================================================
+// АДАПТИВНОСТЬ
+// ============================================================
+@media (max-width: 1200px) {
+    .StudentMainView {
+        .ai-interpretations-section {
+            .ai-cards-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    }
+}
+
 @media (max-width: 768px) {
     .StudentMainView {
         .main-controls {
-            justify-content: flex-start;
-            margin-bottom: 15px;
+            flex-direction: column;
+            align-items: stretch;
             
             .year-selector {
                 width: 100%;
                 justify-content: space-between;
+            }
+
+            .action-buttons {
+                width: 100%;
+                flex-direction: column;
+
+                button {
+                    width: 100%;
+                }
+            }
+        }
+
+        .ai-interpretations-section {
+            padding: 20px 15px;
+
+            .ai-section-header {
+                h2 {
+                    font-size: 20px;
+                }
+            }
+
+            .ai-cards-grid {
+                gap: 15px;
+            }
+
+            .ai-card {
+                padding: 15px;
+
+                .ai-card-header {
+                    flex-direction: column;
+                    gap: 10px;
+
+                    .score-badge {
+                        align-self: flex-start;
+                    }
+                }
             }
         }
         
@@ -175,9 +412,40 @@
     }
 }
 
-// Дополнительные стили для очень маленьких экранов
 @media (max-width: 480px) {
     .StudentMainView {
+        .ai-interpretations-section {
+            .ai-card {
+                .ai-card-header {
+                    .competency-title {
+                        .emoji {
+                            font-size: 24px;
+                        }
+
+                        h3 {
+                            font-size: 16px;
+                        }
+                    }
+                }
+
+                .ai-interpretation {
+                    padding: 12px;
+
+                    p {
+                        font-size: 13px;
+                    }
+                }
+
+                .recommendations {
+                    padding: 12px;
+
+                    ul li {
+                        font-size: 12px;
+                    }
+                }
+            }
+        }
+
         .charts-grid {
             .chart-card {
                 padding: 10px;
@@ -190,39 +458,72 @@
     }
 }
 
-// Оптимизация для мобильных устройств
-@media (max-width: 768px) {
-    .charts-grid {
-        .chart-card {
-            flex: 1 1 100%;
-            min-width: auto;
-            margin: 5px;
-            padding: 15px;
-            
-            .chart-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 8px;
-                
-                .chart-year {
-                    margin-left: 0;
-                    align-self: flex-start;
-                }
-            }
-            
-            .chart-container {
-                min-height: 350px; // Увеличили для мобильных
-            }
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    
+    button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+        
+        &:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        &:active:not(:disabled) {
+            transform: scale(0.98);
         }
     }
     
-    .RadarChart {
-        > div {
-            // Увеличиваем размер на мобильных
-            svg {
-                transform: scale(1.1);
-                transform-origin: center;
-            }
+    .ai-button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+        
+        &:hover:not(:disabled) {
+            background: linear-gradient(135deg, #5568d3 0%, #6a3f90 100%);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
+        }
+    }
+    
+    .resume-button {
+        background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
+        color: white;
+        box-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
+        
+        &:hover:not(:disabled) {
+            background: linear-gradient(135deg, #45a049 0%, #2e7d32 100%);
+            box-shadow: 0 4px 8px rgba(76, 175, 80, 0.4);
+        }
+    }
+}
+
+// Адаптивность для кнопок
+@media (max-width: 768px) {
+    .action-buttons {
+        width: 100%;
+        
+        button {
+            flex: 1;
+            min-width: 140px;
+        }
+    }
+}
+
+@media (max-width: 480px) {
+    .action-buttons {
+        flex-direction: column;
+        
+        button {
+            width: 100%;
         }
     }
 }

@@ -1,0 +1,28 @@
+{
+  "model_name": "LightGBM",
+  "target_competency": "res_comp_leadership",
+  "accuracy": 0.7078853046594982,
+  "f1_score": 0.7007733278921012,
+  "feature_names": [
+    "part_course_num",
+    "res_comp_communication",
+    "res_comp_self_development",
+    "res_comp_result_orientation",
+    "res_comp_stress_resistance",
+    "res_comp_client_focus",
+    "res_comp_planning",
+    "res_comp_info_analysis",
+    "res_comp_partnership",
+    "res_comp_rules_compliance",
+    "res_comp_emotional_intel",
+    "res_comp_passive_vocab"
+  ],
+  "classes": [
+    "низкий",
+    "средний",
+    "высокий"
+  ],
+  "training_date": "2026-03-08 02:34:47.011372",
+  "n_samples_train": 7809,
+  "n_samples_test": 3348
+}

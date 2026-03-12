@@ -25,6 +25,12 @@ function StudentMainView() {
     const [availableYears, setAvailableYears] = useState([]);
     const [selectedYear, setSelectedYear] = useState(null);
     const [loading, setLoading] = useState(true);
+    
+    // AI-интерпретации
+    const [aiInterpretations, setAiInterpretations] = useState(null);
+    const [aiLoading, setAiLoading] = useState(false);
+    const [showAiSection, setShowAiSection] = useState(false);
+    const [resumeGenerating, setResumeGenerating] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -47,7 +53,6 @@ function StudentMainView() {
         const defineAvailableData = () => {
             if (!studResults?.results?.length) return;
 
-            // Ссылки для боковой панели
             const availableProfiles = getAvailableProfiles(studResults.results);
             const profileLinks = availableProfiles.map(profile => {
                 return {
@@ -61,11 +66,9 @@ function StudentMainView() {
                 title: "Главная страница"
             }, ...profileLinks]);
 
-            // Доступные годы
             const years = getAvailableYears(studResults.results);
             setAvailableYears(years);
             
-            // Установить выбранный год (последний доступный)
             if (years.length > 0 && !selectedYear) {
                 setSelectedYear(years[0]);
             }
@@ -97,10 +100,8 @@ function StudentMainView() {
                 const yearData = getCategoryDataForYear(studResults.results, profile.key, category.key, year);
                 
                 if (yearData.labels.length > 0) {
-                    // ключи компетенций для этой категории
                     const competencyKeys = category.fields
                         .filter(field => {
-                            // поле есть в отображаемых данных
                             return yearData.labels.includes(field.label);
                         })
                         .map(field => field.key);
@@ -123,6 +124,74 @@ function StudentMainView() {
 
     const handleYearChange = (year) => {
         setSelectedYear(year);
+    };
+
+    // ============================================================
+    // AI-ИНТЕРПРЕТАЦИИ (ИСПРАВЛЕНО!)
+    // ============================================================
+
+    const loadAIInterpretations = async () => {
+        if (aiInterpretations) {
+            // Уже загружены, просто показываем/скрываем
+            setShowAiSection(!showAiSection);
+            return;
+        }
+
+        setAiLoading(true);
+        
+        try {
+            console.log('🔄 Загрузка AI-интерпретаций для студента:', studentId);
+            
+            const response = await fetch(
+                `http://localhost:8000/portrait/student-resume-data/?student_id=${studentId}&with_ai=true`
+            );
+            
+            console.log('📡 Ответ получен:', response.status);
+            
+            const data = await response.json();
+            console.log('📦 Данные:', data);
+            
+            if (data.status === 'success') {
+                setAiInterpretations(data.data);
+                setShowAiSection(true);
+                console.log('✅ AI-интерпретации загружены:', data.data.competencies?.length, 'компетенций');
+            } else {
+                console.error('❌ Ошибка от сервера:', data.message);
+                alert('Не удалось загрузить AI-анализ: ' + data.message);
+            }
+            
+        } catch (error) {
+            console.error('❌ Ошибка загрузки AI:', error);
+            alert('Ошибка подключения к серверу: ' + error.message);
+        } finally {
+            setAiLoading(false);
+        }
+    };
+
+    // ============================================================
+    // ГЕНЕРАЦИЯ DOCX РЕЗЮМЕ (ИСПРАВЛЕНО!)
+    // ============================================================
+
+    const generateDocxResume = async () => {
+        setResumeGenerating(true);
+        
+        try {
+            console.log('📄 Генерация резюме для студента:', studentId);
+            
+            const url = `http://localhost:8000/portrait/generate-docx-resume/?student_id=${studentId}`;
+            console.log('🔗 URL:', url);
+            
+            window.open(url, '_blank');
+            
+            setTimeout(() => {
+                setResumeGenerating(false);
+            }, 1000);
+            
+        } catch (error) {
+            console.error('❌ Ошибка генерации резюме:', error);
+            alert('Ошибка генерации резюме: ' + error.message);
+            setResumeGenerating(false);
+        }
     };
 
     return (
@@ -154,8 +223,92 @@ function StudentMainView() {
                             </Dropdown>
                         </div>
                     )}
+                    
+                    <div className="action-buttons">
+                        <button 
+                            className="ai-button"
+                            onClick={loadAIInterpretations}
+                            disabled={aiLoading}
+                        >
+                            {aiLoading ? "⏳ Загрузка..." : showAiSection ? "🔽 Скрыть AI-анализ" : "🤖 Показать AI-анализ"}
+                        </button>
+                        
+                        <button 
+                            className="resume-button"
+                            onClick={generateDocxResume}
+                            disabled={resumeGenerating}
+                        >
+                            {resumeGenerating ? "⏳ Генерация..." : "📄 Скачать резюме DOCX"}
+                        </button>
+                    </div>
                 </div>
+
+                {/* AI-ИНТЕРПРЕТАЦИИ СЕКЦИЯ */}
+                {showAiSection && aiInterpretations && (
+                    <div className="ai-interpretations-section">
+                        <div className="ai-section-header">
+                            <h2>🤖 AI-анализ профессиональных компетенций</h2>
+                            <p className="ai-section-description">
+                                Интеллектуальная интерпретация результатов на основе модели машинного обучения
+                            </p>
+                        </div>
+
+                        <div className="ai-cards-grid">
+                            {aiInterpretations.competencies?.map((comp) => {
+                                if (!comp.ai) return null;
+                                
+                                return (
+                                    <div key={comp.field} className="ai-card">
+                                        <div className="ai-card-header">
+                                            <div className="competency-title">
+                                                <span className="emoji">{comp.ai.emoji}</span>
+                                                <h3>{comp.name}</h3>
+                                            </div>
+                                            <div className="score-badge">
+                                                {comp.score}/800
+                                            </div>
+                                        </div>
+
+                                        <div className="progress-bar">
+                                            <div 
+                                                className="progress-fill"
+                                                style={{
+                                                    width: `${comp.percentage}%`,
+                                                    backgroundColor: comp.ai.color
+                                                }}
+                                            ></div>
+                                        </div>
+
+                                        <div className="level-indicator" style={{ color: comp.ai.color }}>
+                                            <strong>{comp.ai.level.toUpperCase()}</strong> уровень
+                                            <span className="confidence">
+                                                (уверенность: {(comp.ai.confidence * 100).toFixed(0)}%)
+                                            </span>
+                                        </div>
+
+                                        <div className="ai-interpretation">
+                                            <div className="ai-badge">🤖 AI-интерпретация</div>
+                                            <p>{comp.ai.interpretation}</p>
+                                        </div>
+
+                                        {comp.ai.recommendations && comp.ai.recommendations.length > 0 && (
+                                            <div className="recommendations">
+                                                <strong>📌 Рекомендации:</strong>
+                                                <ul>
+                                                    {comp.ai.recommendations.map((rec, idx) => (
+                                                        <li key={idx}>{rec}</li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
                 
+                {/* ГРАФИКИ */}
                 <div className="charts-grid">
                     {loading ? (
                         <div className="loading">Загрузка данных...</div>
