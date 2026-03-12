@@ -22,10 +22,10 @@ function StudentMainView() {
     const [selectedYear, setSelectedYear] = useState(null);
     const [loading, setLoading] = useState(true);
     
-    // AI-интерпретации
-    const [aiInterpretations, setAiInterpretations] = useState(null);
-    const [aiLoading, setAiLoading] = useState(false);
-    const [showAiSection, setShowAiSection] = useState(false);
+    // Аналитика компетенций
+    const [analyticsData, setAnalyticsData] = useState(null);
+    const [analyticsLoading, setAnalyticsLoading] = useState(false);
+    const [showAnalytics, setShowAnalytics] = useState(false);
     const [resumeGenerating, setResumeGenerating] = useState(false);
 
     useEffect(() => {
@@ -123,20 +123,20 @@ function StudentMainView() {
     };
 
     // ============================================================
-    // AI-ИНТЕРПРЕТАЦИИ (ИСПРАВЛЕНО!)
+    // АНАЛИТИКА КОМПЕТЕНЦИЙ
     // ============================================================
 
-    const loadAIInterpretations = async () => {
-        if (aiInterpretations) {
+    const loadAnalytics = async () => {
+        if (analyticsData) {
             // Уже загружены, просто показываем/скрываем
-            setShowAiSection(!showAiSection);
+            setShowAnalytics(!showAnalytics);
             return;
         }
 
-        setAiLoading(true);
+        setAnalyticsLoading(true);
         
         try {
-            console.log('🔄 Загрузка AI-интерпретаций для студента:', studentId);
+            console.log('🔄 Загрузка аналитики для студента:', studentId);
             
             const response = await fetch(
                 `http://localhost:8000/portrait/student-resume-data/?student_id=${studentId}&with_ai=true`
@@ -148,24 +148,24 @@ function StudentMainView() {
             console.log('📦 Данные:', data);
             
             if (data.status === 'success') {
-                setAiInterpretations(data.data);
-                setShowAiSection(true);
-                console.log('✅ AI-интерпретации загружены:', data.data.competencies?.length, 'компетенций');
+                setAnalyticsData(data.data);
+                setShowAnalytics(true);
+                console.log('✅ Аналитика загружена:', data.data.competencies?.length, 'компетенций');
             } else {
                 console.error('❌ Ошибка от сервера:', data.message);
-                alert('Не удалось загрузить AI-анализ: ' + data.message);
+                alert('Не удалось загрузить аналитику: ' + data.message);
             }
             
         } catch (error) {
-            console.error('❌ Ошибка загрузки AI:', error);
+            console.error('❌ Ошибка загрузки аналитики:', error);
             alert('Ошибка подключения к серверу: ' + error.message);
         } finally {
-            setAiLoading(false);
+            setAnalyticsLoading(false);
         }
     };
 
     // ============================================================
-    // ГЕНЕРАЦИЯ DOCX РЕЗЮМЕ (ИСПРАВЛЕНО!)
+    // ГЕНЕРАЦИЯ DOCX РЕЗЮМЕ
     // ============================================================
 
     const generateDocxResume = async () => {
@@ -221,8 +221,91 @@ function StudentMainView() {
                                 </Dropdown>
                             </div>
                         )}
+                        
+                        <div className="action-buttons">
+                            <button 
+                                className="analytics-button"
+                                onClick={loadAnalytics}
+                                disabled={analyticsLoading}
+                            >
+                                {analyticsLoading ? "⏳ Загрузка..." : showAnalytics ? "🔽 Скрыть аналитику" : "📊 Показать аналитику"}
+                            </button>
+                            
+                            <button 
+                                className="resume-button"
+                                onClick={generateDocxResume}
+                                disabled={resumeGenerating}
+                            >
+                                {resumeGenerating ? "⏳ Генерация..." : "📄 Скачать резюме DOCX"}
+                            </button>
+                        </div>
                     </div>
+
+                    {/* АНАЛИТИКА КОМПЕТЕНЦИЙ */}
+                    {showAnalytics && analyticsData && (
+                        <div className="analytics-section">
+                            <div className="analytics-header">
+                                <h2>📊 Аналитика профессиональных компетенций</h2>
+                                <p className="analytics-description">
+                                    Детальный анализ результатов тестирования с рекомендациями по развитию
+                                </p>
+                            </div>
+
+                            <div className="analytics-cards-grid">
+                                {analyticsData.competencies?.map((comp) => {
+                                    if (!comp.ai) return null;
+                                    
+                                    return (
+                                        <div key={comp.field} className="analytics-card">
+                                            <div className="analytics-card-header">
+                                                <div className="competency-title">
+                                                    <span className="emoji">{comp.ai.emoji}</span>
+                                                    <h3>{comp.name}</h3>
+                                                </div>
+                                                <div className="score-badge">
+                                                    {comp.score}/800
+                                                </div>
+                                            </div>
+
+                                            <div className="progress-bar">
+                                                <div 
+                                                    className="progress-fill"
+                                                    style={{
+                                                        width: `${comp.percentage}%`,
+                                                        backgroundColor: comp.ai.color
+                                                    }}
+                                                ></div>
+                                            </div>
+
+                                            <div className="level-indicator" style={{ color: comp.ai.color }}>
+                                                <strong>{comp.ai.level.toUpperCase()}</strong> уровень
+                                                <span className="percentile">
+                                                    ({comp.ai.percentile}-й процентиль)
+                                                </span>
+                                            </div>
+
+                                            <div className="interpretation">
+                                                <p>{comp.ai.interpretation}</p>
+                                            </div>
+
+                                            {comp.ai.recommendations && comp.ai.recommendations.length > 0 && (
+                                                <div className="recommendations">
+                                                    <strong>📌 Рекомендации:</strong>
+                                                    <ul>
+                                                        {comp.ai.recommendations.map((rec, idx) => (
+                                                            <li key={idx}>{rec}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
                     
+                    {/* ГРАФИКИ */}
                     <div className="charts-grid">
                         {loading ? (
                             <div className="loading">Загрузка данных...</div>

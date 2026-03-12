@@ -1,59 +1,39 @@
-# ═══════════════════════════════════════════════════════════
-# portrait/endpoints/ml_utils.py
-# Утилиты для работы с ML моделью (LightGBM)
-# ═══════════════════════════════════════════════════════════
-
-import pickle
 import json
 import numpy as np
 from pathlib import Path
 from django.conf import settings
 
-from .common import *
+# Маппинг компетенций
+COMPETENCY_NAMES = {
+    'res_comp_leadership': 'Лидерство',
+    'res_comp_communication': 'Коммуникация',
+    'res_comp_self_development': 'Саморазвитие',
+    'res_comp_result_orientation': 'Ориентация на результат',
+    'res_comp_stress_resistance': 'Стрессоустойчивость',
+    'res_comp_client_focus': 'Клиентоориентированность',
+    'res_comp_planning': 'Планирование',
+    'res_comp_info_analysis': 'Анализ информации',
+    'res_comp_partnership': 'Партнёрство',
+    'res_comp_rules_compliance': 'Соблюдение правил',
+    'res_comp_emotional_intel': 'Эмоциональный интеллект',
+    'res_comp_passive_vocab': 'Пассивный словарь'
+}
 
-# Путь к моделям
-MODEL_DIR = Path(settings.BASE_DIR) / 'portrait' / 'ml_models'
 
-# Глобальные переменные для кэширования модели
-_model = None
-_scaler = None
-_metadata = None
-
-
-def load_model():
+def predict_competency_level(score, course=None, other_scores=None):
     """
-    Ленивая загрузка ML модели.
-    Модель загружается один раз при первом вызове и кэшируется.
+    Определяет уровень компетенции на основе простых правил.
+    
+    Args:
+        score (float): Балл компетенции (200-800)
+        course (int): Курс студента (не используется в простой версии)
+        other_scores (list): Другие компетенции (не используется в простой версии)
+    
+    Returns:
+        dict: Информация об уровне
     """
-    global _model, _scaler, _metadata
     
-    if _model is None:
-        try:
-            # Загружаем модель
-            with open(MODEL_DIR / 'best_model.pkl', 'rb') as f:
-                _model = pickle.load(f)
-            
-            # Загружаем scaler
-            with open(MODEL_DIR / 'scaler.pkl', 'rb') as f:
-                _scaler = pickle.load(f)
-            
-            # Загружаем метаданные
-            with open(MODEL_DIR / 'metadata.json', 'r', encoding='utf-8') as f:
-                _metadata = json.load(f)
-            
-            print(f"✅ ML модель загружена: {_metadata.get('model_name', 'Unknown')}")
-            print(f"   Accuracy: {_metadata.get('accuracy', 'N/A')}")
-            print(f"   F1-Score: {_metadata.get('f1_score', 'N/A')}")
-            
-        except Exception as e:
-            print(f"❌ Ошибка загрузки ML модели: {str(e)}")
-            raise
-    
-    return _model, _scaler, _metadata
-
-
-def predict_competency_level(score):
-    
+    # Определяем уровень по баллу
     if score < 400:
         level = "низкий"
         level_code = 0
@@ -64,68 +44,18 @@ def predict_competency_level(score):
         level = "высокий"
         level_code = 2
 
+    # Вычисляем процентиль
     percentile = calculate_percentile(score)
 
     return {
         "level": level,
         "level_code": level_code,
-        "confidence": 1.0,
+        "confidence": 1.0,  # 100% уверенность для правил
         "percentile": percentile,
         "probabilities": {
             "низкий": 1.0 if level_code == 0 else 0.0,
             "средний": 1.0 if level_code == 1 else 0.0,
             "высокий": 1.0 if level_code == 2 else 0.0
-        }
-    }
-
-def predict_student_profile(competencies):
-
-    model, scaler, metadata = load_model()
-
-    features = np.array(competencies).reshape(1, -1)
-
-    features_scaled = scaler.transform(features)
-
-    pred = model.predict(features_scaled)[0]
-    probs = model.predict_proba(features_scaled)[0]
-
-    classes = metadata.get("classes", ["низкий", "средний", "высокий"])
-
-    return {
-        "level": classes[pred],
-        "confidence": float(max(probs)),
-        "probabilities": {
-            classes[i]: float(probs[i])
-            for i in range(len(probs))
-        }
-    }
-
-def fallback_prediction(score):
-    """
-    Запасной вариант предсказания на основе простых правил.
-    Используется если ML модель недоступна.
-    """
-    if score < 400:
-        level = 'низкий'
-        level_code = 0
-    elif score < 600:
-        level = 'средний'
-        level_code = 1
-    else:
-        level = 'высокий'
-        level_code = 2
-    
-    percentile = calculate_percentile(score)
-    
-    return {
-        'level': level,
-        'level_code': level_code,
-        'confidence': 0.85,  # Условная уверенность
-        'percentile': percentile,
-        'probabilities': {
-            'низкий': 1.0 if level_code == 0 else 0.0,
-            'средний': 1.0 if level_code == 1 else 0.0,
-            'высокий': 1.0 if level_code == 2 else 0.0
         }
     }
 
@@ -140,7 +70,6 @@ def calculate_percentile(score):
     Returns:
         int: Процентиль (0-100)
     """
-    # Линейная интерполяция в диапазоне 200-800
     percentile = ((score - 200) / 600) * 100
     return int(max(0, min(100, percentile)))
 
@@ -152,7 +81,7 @@ def generate_interpretation(score, level, competency_name, course, percentile):
     Args:
         score (float): Балл компетенции
         level (str): Уровень (низкий/средний/высокий)
-        competency_name (str): Название компетенции на русском
+        competency_name (str): Название компетенции
         course (int): Курс студента
         percentile (int): Процентиль
     
@@ -203,26 +132,10 @@ def generate_recommendations(competency_field, level, course):
         course (int): Курс студента
     
     Returns:
-        list: Список рекомендаций (3-5 пунктов)
+        list: Список рекомендаций
     """
     
-    # Маппинг полей на русские названия
-    competency_map = {
-        'res_comp_leadership': 'Лидерство',
-        'res_comp_communication': 'Коммуникация',
-        'res_comp_self_development': 'Саморазвитие',
-        'res_comp_result_orientation': 'Ориентация на результат',
-        'res_comp_stress_resistance': 'Стрессоустойчивость',
-        'res_comp_client_focus': 'Клиентоориентированность',
-        'res_comp_planning': 'Планирование',
-        'res_comp_info_analysis': 'Анализ информации',
-        'res_comp_partnership': 'Партнёрство',
-        'res_comp_rules_compliance': 'Соблюдение правил',
-        'res_comp_emotional_intel': 'Эмоциональный интеллект',
-        'res_comp_passive_vocab': 'Пассивный словарь'
-    }
-    
-    comp_name = competency_map.get(competency_field, 'Компетенция')
+    comp_name = COMPETENCY_NAMES.get(competency_field, 'Компетенция')
     
     # База рекомендаций
     recommendations_db = {
@@ -261,7 +174,7 @@ def generate_recommendations(competency_field, level, course):
             ],
             'высокий': [
                 "Выступайте на студенческих конференциях и форумах",
-                "Развивайте кросс-культурные коммуникации (работа в международных проектах)",
+                "Развивайте кросс-культурные коммуникации",
                 "Станьте спикером или модератором на крупных мероприятиях",
                 "Делитесь опытом: проводите мастер-классы по коммуникации"
             ]
@@ -269,61 +182,21 @@ def generate_recommendations(competency_field, level, course):
         'Саморазвитие': {
             'низкий': [
                 "Составьте план личностного развития на семестр",
-                "Начните читать профессиональную литературу (хотя бы 30 минут в день)",
-                "Определите 2-3 навыка для развития и составьте план их освоения",
+                "Начните читать профессиональную литературу",
+                "Определите 2-3 навыка для развития",
                 "Ведите дневник достижений и рефлексии"
             ],
             'средний': [
-                "Пройдите курсы повышения квалификации в интересующей области",
-                "Установите систему регулярного самообразования (MOOC, подкасты)",
+                "Пройдите курсы повышения квалификации",
+                "Установите систему регулярного самообразования",
                 "Найдите ментора в профессиональной сфере",
-                "Участвуйте в профессиональных сообществах и meetup"
+                "Участвуйте в профессиональных сообществах"
             ],
             'высокий': [
-                "Делитесь знаниями: пишите статьи, ведите блог, выступайте",
+                "Делитесь знаниями: пишите статьи, ведите блог",
                 "Изучайте смежные области для расширения компетенций",
-                "Участвуйте в научных исследованиях или стартап-проектах",
-                "Станьте наставником для тех, кто начинает путь саморазвития"
-            ]
-        },
-        'Анализ информации': {
-            'низкий': [
-                "Практикуйте критическое мышление при чтении новостей и статей",
-                "Пройдите курс по основам аналитики данных",
-                "Учитесь систематизировать информацию (mind maps, конспекты)",
-                "Развивайте навыки работы с Excel и базами данных"
-            ],
-            'средний': [
-                "Изучите продвинутые методы анализа данных (Python, R)",
-                "Участвуйте в кейс-чемпионатах по аналитике",
-                "Применяйте аналитические инструменты в учебных проектах",
-                "Развивайте навыки визуализации данных (Tableau, Power BI)"
-            ],
-            'высокий': [
-                "Участвуйте в исследовательских проектах с использованием big data",
-                "Изучайте машинное обучение и AI для анализа данных",
-                "Публикуйте результаты анализа в профессиональных изданиях",
-                "Консультируйте студентов и компании по вопросам аналитики"
-            ]
-        },
-        'Планирование': {
-            'низкий': [
-                "Начните использовать планировщик задач (Notion, Trello)",
-                "Освойте технику SMART для постановки целей",
-                "Планируйте день накануне вечером",
-                "Изучите основы тайм-менеджмента"
-            ],
-            'средний': [
-                "Используйте методологии управления проектами (Agile, Kanban)",
-                "Планируйте не только задачи, но и ресурсы",
-                "Применяйте техники приоритизации (матрица Эйзенхауэра)",
-                "Анализируйте эффективность своего планирования"
-            ],
-            'высокий': [
-                "Управляйте сложными проектами с множеством участников",
-                "Изучите профессиональные инструменты PM (MS Project, Jira)",
-                "Получите сертификацию по управлению проектами",
-                "Обучайте других эффективному планированию"
+                "Участвуйте в научных исследованиях",
+                "Станьте наставником для других студентов"
             ]
         }
     }
@@ -336,7 +209,6 @@ def generate_recommendations(competency_field, level, course):
         "Получайте обратную связь от преподавателей и сокурсников"
     ])
     
-    # Возвращаем 3-4 рекомендации
     return recs[:4]
 
 
