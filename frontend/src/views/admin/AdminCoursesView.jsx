@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 
-import Header from "../../components/Header";
-import { Sidebar, SIDEBAR_STYLE, SidebarLayout, SidebarLayoutContent } from "../../components/SidebarLayout";
+import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 import Button from '../../components/ui/Button.jsx';
 import { FIELD_NAMES } from "../../utilities.js";
 import { getPortraitCourses } from '../../api.js';
@@ -217,187 +216,183 @@ function AdminCoursesView() {
     if (loading) {
         return (
             <div className="AdminCoursesView">
-                <Header title="Админ: Образовательные курсы" name="Администратор1" style="modeus" />
-                <div className="main-area">
-                    <SidebarLayout style={SIDEBAR_STYLE.MODEUS}>
-                        <Sidebar links={linkList} />
-                        <SidebarLayoutContent>
-                            <div className="loading">
-                                <div className="spinner"></div>
-                                <div>Загрузка данных по курсам...</div>
-                            </div>
-                        </SidebarLayoutContent>
-                    </SidebarLayout>
-                </div>
+                <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
+                    <Header title="Админ: Образовательные курсы" name="Администратор1" />
+                    <Sidebar links={linkList} />
+                    <Content>
+                        <div className="loading">
+                            <div className="spinner"></div>
+                            <div>Загрузка данных по курсам...</div>
+                        </div>
+                    </Content>
+                </SidebarLayout>
             </div>
         );
     }
 
     return (
         <div className="AdminCoursesView">
-            <Header title="Админ: Образовательные курсы" name="Администратор1" style="modeus" />
-            <div className="main-area">
-                <SidebarLayout style={SIDEBAR_STYLE.MODEUS}>
-                    <Sidebar links={linkList} />
-                    <SidebarLayoutContent>
-                        <div className="courses-container">
-                            <div className="courses-header">
-                                <h2>Результаты образовательных курсов</h2>
-                                <div className="controls">
-                                    <div className="courses-info">
-                                        <span>
-                                            Участников: {new Set(coursesData.map(c => c.participant?.part_id)).size} • 
-                                            Всего записей: {coursesData.length} • 
-                                            Выбрано: {selectedRows.size}
-                                        </span>
-                                    </div>
-                                    <div className="control-buttons">
-                                        <Button
-                                            text="🔄 Обновить"
-                                            onClick={fetchCoursesData}
-                                            disabled={loading}
-                                            fg="white"
-                                            bg="#17a2b8"
-                                            hoverBg="#138496"
-                                            disabledBg="#6c757d"
-                                        />
-                                    </div>
+            <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
+                <Header title="Админ: Образовательные курсы" name="Администратор1" />
+                <Sidebar links={linkList} />
+                <Content>
+                    <div className="courses-container">
+                        <div className="courses-header">
+                            <h2>Результаты образовательных курсов</h2>
+                            <div className="controls">
+                                <div className="courses-info">
+                                    <span>
+                                        Участников: {new Set(coursesData.map(c => c.participant?.part_id)).size} • 
+                                        Всего записей: {coursesData.length} • 
+                                        Выбрано: {selectedRows.size}
+                                    </span>
                                 </div>
-                            </div>
-
-                            {/* Общая статистика */}
-                            <div className="stats-overview">
-                                <div className="stat-card">
-                                    <div className="stat-value">
-                                        {new Set(coursesData.map(c => c.participant?.part_id)).size}
-                                    </div>
-                                    <div className="stat-label">Участников</div>
-                                </div>
-                                <div className="stat-card">
-                                    <div className="stat-value">{Object.keys(courseNames).length}</div>
-                                    <div className="stat-label">Всего курсов</div>
-                                </div>
-                                {/*<div className="stat-card">
-                                    <div className="stat-value">
-                                        {coursesData.filter(c => 
-                                            Object.keys(courseNames).some(courseKey => c[courseKey] > 0)
-                                        ).length}
-                                    </div>
-                                    <div className="stat-label">Записей с прогрессом</div>
-                                </div>*/}
-                            </div>
-
-                            {/* Таблица с курсами */}
-                            <div className="table-scroll-container">
-                                <div className="table-wrapper">
-                                    <table className="courses-table">
-                                        <thead>
-                                            <tr>
-                                                <th className="sticky-col participant-col">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedRows.size === coursesData.length && coursesData.length > 0}
-                                                        onChange={handleSelectAll}
-                                                    />
-                                                </th>
-                                                <th 
-                                                    className="sticky-col participant-col"
-                                                    onClick={() => handleSort('participant')}
-                                                >
-                                                    Участник {getSortIcon('participant')}
-                                                </th>
-                                                {Object.keys(courseNames).map(courseKey => (
-                                                    <th 
-                                                        key={courseKey}
-                                                        onClick={() => handleSort(courseKey)}
-                                                        title={courseNames[courseKey]}
-                                                    >
-                                                        <div className="course-header">
-                                                            <div className="course-short-name">
-                                                                {courseNames[courseKey].split(' ')[0]}
-                                                            </div>
-                                                            {getSortIcon(courseKey)}
-                                                        </div>
-                                                    </th>
-                                                ))}
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {coursesData.map((course) => (
-                                                <tr key={course.course_id} className={selectedRows.has(course.course_id) ? 'selected' : ''}>
-                                                    <td className="sticky-col participant-col">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={selectedRows.has(course.course_id)}
-                                                            onChange={() => handleRowSelect(course.course_id)}
-                                                        />
-                                                    </td>
-                                                    <td className="sticky-col participant-col">
-                                                        <div className="participant-info">
-                                                            <div className="participant-name">
-                                                                {course.participant?.part_name}
-                                                            </div>
-                                                            <div className="participant-stats">
-                                                                Пройдено: {calculateActualCompletedCoursesNumber_(course)}/
-                                                                {calculateParticipantStats(course.participant?.part_id).total} курсов
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    {Object.keys(courseNames).map(courseKey => (
-                                                        <td 
-                                                            key={courseKey}
-                                                            className={`course-cell ${getProgressClass(course[courseKey] || 0)}`}
-                                                            title={`${courseNames[courseKey]}: ${course[courseKey] ? (course[courseKey] * 100).toFixed(1) + '%' : 'Не пройден'}`}
-                                                        >
-                                                            {renderTableCell(course, courseKey)}
-                                                        </td>
-                                                    ))}
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                {coursesData.length === 0 && !loading && (
-                                    <div className="no-data">
-                                        <div className="no-data-icon">📚</div>
-                                        <div className="no-data-text">
-                                            <strong>Нет данных по курсам</strong><br />
-                                            Загрузите данные через раздел "Загрузка данных"
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Легенда прогресса */}
-                            <div className="progress-legend">
-                                <div className="legend-title">Легенда прогресса:</div>
-                                <div className="legend-items">
-                                    <div className="legend-item">
-                                        <div className="color-box progress-not-started"></div>
-                                        <span>Не начат (0%)</span>
-                                    </div>
-                                    <div className="legend-item">
-                                        <div className="color-box progress-low"></div>
-                                        <span>Низкий (1-29%)</span>
-                                    </div>
-                                    <div className="legend-item">
-                                        <div className="color-box progress-medium"></div>
-                                        <span>Средний (30-69%)</span>
-                                    </div>
-                                    <div className="legend-item">
-                                        <div className="color-box progress-high"></div>
-                                        <span>Высокий (70-89%)</span>
-                                    </div>
-                                    <div className="legend-item">
-                                        <div className="color-box progress-completed"></div>
-                                        <span>Завершен (90-100%)</span>
-                                    </div>
+                                <div className="control-buttons">
+                                    <Button
+                                        text="🔄 Обновить"
+                                        onClick={fetchCoursesData}
+                                        disabled={loading}
+                                        fg="white"
+                                        bg="#17a2b8"
+                                        hoverBg="#138496"
+                                        disabledBg="#6c757d"
+                                    />
                                 </div>
                             </div>
                         </div>
-                    </SidebarLayoutContent>
-                </SidebarLayout>
-            </div>
+
+                        {/* Общая статистика */}
+                        <div className="stats-overview">
+                            <div className="stat-card">
+                                <div className="stat-value">
+                                    {new Set(coursesData.map(c => c.participant?.part_id)).size}
+                                </div>
+                                <div className="stat-label">Участников</div>
+                            </div>
+                            <div className="stat-card">
+                                <div className="stat-value">{Object.keys(courseNames).length}</div>
+                                <div className="stat-label">Всего курсов</div>
+                            </div>
+                            {/*<div className="stat-card">
+                                <div className="stat-value">
+                                    {coursesData.filter(c => 
+                                        Object.keys(courseNames).some(courseKey => c[courseKey] > 0)
+                                    ).length}
+                                </div>
+                                <div className="stat-label">Записей с прогрессом</div>
+                            </div>*/}
+                        </div>
+
+                        {/* Таблица с курсами */}
+                        <div className="table-scroll-container">
+                            <div className="table-wrapper">
+                                <table className="courses-table">
+                                    <thead>
+                                        <tr>
+                                            <th className="sticky-col participant-col">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedRows.size === coursesData.length && coursesData.length > 0}
+                                                    onChange={handleSelectAll}
+                                                />
+                                            </th>
+                                            <th 
+                                                className="sticky-col participant-col"
+                                                onClick={() => handleSort('participant')}
+                                            >
+                                                Участник {getSortIcon('participant')}
+                                            </th>
+                                            {Object.keys(courseNames).map(courseKey => (
+                                                <th 
+                                                    key={courseKey}
+                                                    onClick={() => handleSort(courseKey)}
+                                                    title={courseNames[courseKey]}
+                                                >
+                                                    <div className="course-header">
+                                                        <div className="course-short-name">
+                                                            {courseNames[courseKey].split(' ')[0]}
+                                                        </div>
+                                                        {getSortIcon(courseKey)}
+                                                    </div>
+                                                </th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {coursesData.map((course) => (
+                                            <tr key={course.course_id} className={selectedRows.has(course.course_id) ? 'selected' : ''}>
+                                                <td className="sticky-col participant-col">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedRows.has(course.course_id)}
+                                                        onChange={() => handleRowSelect(course.course_id)}
+                                                    />
+                                                </td>
+                                                <td className="sticky-col participant-col">
+                                                    <div className="participant-info">
+                                                        <div className="participant-name">
+                                                            {course.participant?.part_name}
+                                                        </div>
+                                                        <div className="participant-stats">
+                                                            Пройдено: {calculateActualCompletedCoursesNumber_(course)}/
+                                                            {calculateParticipantStats(course.participant?.part_id).total} курсов
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                {Object.keys(courseNames).map(courseKey => (
+                                                    <td 
+                                                        key={courseKey}
+                                                        className={`course-cell ${getProgressClass(course[courseKey] || 0)}`}
+                                                        title={`${courseNames[courseKey]}: ${course[courseKey] ? (course[courseKey] * 100).toFixed(1) + '%' : 'Не пройден'}`}
+                                                    >
+                                                        {renderTableCell(course, courseKey)}
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {coursesData.length === 0 && !loading && (
+                                <div className="no-data">
+                                    <div className="no-data-icon">📚</div>
+                                    <div className="no-data-text">
+                                        <strong>Нет данных по курсам</strong><br />
+                                        Загрузите данные через раздел "Загрузка данных"
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Легенда прогресса */}
+                        <div className="progress-legend">
+                            <div className="legend-title">Легенда прогресса:</div>
+                            <div className="legend-items">
+                                <div className="legend-item">
+                                    <div className="color-box progress-not-started"></div>
+                                    <span>Не начат (0%)</span>
+                                </div>
+                                <div className="legend-item">
+                                    <div className="color-box progress-low"></div>
+                                    <span>Низкий (1-29%)</span>
+                                </div>
+                                <div className="legend-item">
+                                    <div className="color-box progress-medium"></div>
+                                    <span>Средний (30-69%)</span>
+                                </div>
+                                <div className="legend-item">
+                                    <div className="color-box progress-high"></div>
+                                    <span>Высокий (70-89%)</span>
+                                </div>
+                                <div className="legend-item">
+                                    <div className="color-box progress-completed"></div>
+                                    <span>Завершен (90-100%)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </Content>
+            </SidebarLayout>
         </div>
     );
 }
