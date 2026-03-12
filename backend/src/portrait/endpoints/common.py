@@ -4,9 +4,22 @@ from django.views.decorators.csrf import csrf_exempt
 
 from ..constants import (
     RsvCompetencies as COMP, RsvMotivators as MOT, RsvValues as VAL, RsvCourses as CUR,
-    TableResults as RES
+    TableResults as RES, TableParticipants as PART
 )
 from ..models import *
+
+
+# ====== GETTERS ====== #
+
+def zeroIfNull(value):
+    """ Get float if value is not None; else zero.
+    """
+    return float(value) if value is not None else 0
+
+def attrIfObj(obj, attr):
+    """ Get attribute of an object if it is not None; else None.
+    """
+    return getattr(obj, attr) if obj is not None else None
 
 
 # ====== EXCEPTION ====== #
@@ -83,5 +96,5 @@ def jsonResponse(func):
         except ResponseError as e:
             return errorResponse(e.message, e.status)
         except Exception as e:
-            return exceptionResponse(e)
+            return exceptionResponse(str(e))
     return wrapper

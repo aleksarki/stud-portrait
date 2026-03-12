@@ -109,8 +109,8 @@ def update_session_filters(request):
 
     return {
         "session_id": session.session_id,
-        "filters": session.filters,
-        "message": "Filters updated successfully"
+        "filters":    session.filters,
+        "message":    "Filters updated successfully"
     }
 
 
@@ -194,7 +194,7 @@ def export_selected_results(request):
         return response
 
     except Exception as e:
-        return exceptionResponse(e)
+        return exceptionResponse(str(e))
 
 
 @method('POST')
@@ -203,9 +203,11 @@ def export_selected_results(request):
 def stats_with_filters(request):
     """ Calculate statistics of testing.
     """
-    session, _ = retrieve_session(request, soft=True)
-
-    filters = session.filters if session else []
+    try:
+        session, _ = retrieve_session(request)
+        filters = session.filters
+    except ResponseError:
+        filters = []
 
     total_participants =  Participants.objects.count()
     total_tests =         Results.objects.count()
@@ -438,17 +440,20 @@ RESULTS_FIELD_MAP = {
 
 # ====== UTILITIES ====== #
 
-def retrieve_session(request, *, soft=False) -> tuple[DataViewSession | None, dict]:
+def retrieve_session(request) -> tuple[DataViewSession, dict]:
     """ Exctract session data from request and fail if there is no such session.
     """
     data: dict = json.loads(request.body)
     session_id = data.get('session_id')
 
-    if (not session_id or session_id not in DATA_SESSIONS_VAULT) and not soft:
+    if session_id is None:
         raise ResponseError("Invalid session ID")
 
-    if session := DATA_SESSIONS_VAULT.get(session_id):
-        session.update_activity()
+    if (session_id := str(session_id)) not in DATA_SESSIONS_VAULT:
+        raise ResponseError("Invalid session ID", status=404)
+
+    session = DATA_SESSIONS_VAULT[session_id]
+    session.update_activity()
 
     return session, data
 

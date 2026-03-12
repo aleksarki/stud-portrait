@@ -5,8 +5,7 @@ import { getAvailableProfiles, getAvailableCategories, prepareCategoryTableData,
 
 import Header from "../../components/Header";
 import ResultTable from "../../components/ResultTable";
-import SidebarLayout from "../../components/SidebarLayout";
-import Sidepanel from "../../components/Sidepanel";
+import { Sidebar, SidebarLayout, SidebarLayoutContent } from "../../components/SidebarLayout";
 import Subtitle from "../../components/Subtitle";
 import Title from "../../components/Title";
 
@@ -96,24 +95,27 @@ function StudentReportView() {
         <div className="StudentReportView">
             <Header title="Результаты" name={`${studResults?.student?.stud_name}`} />
             <Title title={reportTitle} />
-            <SidebarLayout sidebar={<Sidepanel links={linkList} />}>
-                <div className="report-container">
-                    {loading ? (
-                        <div className="loading">Загрузка данных...</div>
-                    ) : tablesData.length > 0 ? (
-                        tablesData.map((table, index) => (
-                            <div key={index} className="category-table-section">
-                                <Subtitle text={table.title} />
-                                <ResultTable
-                                    data={table.tableData}
-                                    years={table.years}
-                                />
-                            </div>
-                        ))
-                    ) : (
-                        <div className="no-data">Нет данных для отображения</div>
-                    )}
-                </div>
+            <SidebarLayout>
+                <Sidebar links={linkList} />
+                <SidebarLayoutContent>
+                    <div className="report-container">
+                        {loading ? (
+                            <div className="loading">Загрузка данных...</div>
+                        ) : tablesData.length > 0 ? (
+                            tablesData.map((table, index) => (
+                                <div key={index} className="category-table-section">
+                                    <Subtitle text={table.title} />
+                                    <ResultTable
+                                        data={table.tableData}
+                                        years={table.years}
+                                    />
+                                </div>
+                            ))
+                        ) : (
+                            <div className="no-data">Нет данных для отображения</div>
+                        )}
+                    </div>
+                </SidebarLayoutContent>
             </SidebarLayout>
         </div>
     );

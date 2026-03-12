@@ -11,7 +11,7 @@ class RsvCompetencies:
     RULE_COMPLY =   'res_comp_rules_compliance'
     SELF_DEVELOP =  'res_comp_self_development'
     LEADERSHIP =    'res_comp_leadership'
-    EMOTE_INTEL =    'res_comp_emotional_intel'
+    EMOTE_INTEL =   'res_comp_emotional_intel'
     CLIENT_FOCUS =  'res_comp_client_focus'
     COMMUNICATION = 'res_comp_communication'
     PASSIVE_VOCAB = 'res_comp_passive_vocab'
@@ -158,3 +158,16 @@ class TableResults:
     YEAR =        'res_year'
     POTENTIAL =   'res_high_potential'
     REPORT =      'res_summary_report'
+
+
+class TableParticipants:
+    """ Columns of Participants database table.
+    """
+    ID =          'part_id'
+    NAME =        'part_name'
+    GENDER =      'part_gender'
+    INSTITUTION = 'part_institution'
+    EDU_SPEC =    'part_spec'
+    EDU_LEVEL =   'part_edu_level'
+    EDU_FORM =    'part_form'
+    COURSE_NUM =  'part_course_num'

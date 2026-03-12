@@ -1,19 +1,15 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+
 import { getPortraitStudentResults } from "../../api";
 import { 
-  getAvailableProfiles, 
-  getAvailableCategories, 
-  getAvailableYears,
-  getCategoryDataForYear 
+  getAvailableProfiles, getAvailableCategories, getAvailableYears, getCategoryDataForYear 
 } from "../../utilities";
-
 import ChartSwitcher from "../../components/charts/ChartSwitcher";
 import Header from "../../components/Header"
-import SidebarLayout from "../../components/SidebarLayout";
-import Sidepanel from "../../components/Sidepanel";
+import { Sidebar, SidebarLayout, SidebarLayoutContent } from "../../components/SidebarLayout";
 import Title from "../../components/Title";
-import Dropdown from "../../components/Dropdown";
+import Dropdown from "../../components/ui/Dropdown";
 
 import "./StudentMainView.scss";
 
@@ -198,145 +194,64 @@ function StudentMainView() {
         <div className="StudentMainView">
             <Header title="Профиль" name={`${studResults?.student?.stud_name}`} />
             <Title title="Главная страница" />
-            <SidebarLayout sidebar={<Sidepanel links={linkList} />}>
-                <div className="main-controls">
-                    {availableYears.length > 0 && (
-                        <div className="year-selector">
-                            <span className="year-label">Год данных:</span>
-                            <Dropdown 
-                                handle={
-                                    <div className="year-dropdown-handle">
-                                        {selectedYear || "Выберите год"}
-                                        <span className="dropdown-arrow">▼</span>
-                                    </div>
-                                }
-                            >
-                                {availableYears.map(year => (
-                                    <div 
-                                        key={year} 
-                                        className={`year-option ${year === selectedYear ? 'selected' : ''}`}
-                                        onClick={() => handleYearChange(year)}
-                                    >
-                                        {year}
-                                    </div>
-                                ))}
-                            </Dropdown>
-                        </div>
-                    )}
-                    
-                    <div className="action-buttons">
-                        <button 
-                            className="ai-button"
-                            onClick={loadAIInterpretations}
-                            disabled={aiLoading}
-                        >
-                            {aiLoading ? "⏳ Загрузка..." : showAiSection ? "🔽 Скрыть AI-анализ" : "🤖 Показать AI-анализ"}
-                        </button>
-                        
-                        <button 
-                            className="resume-button"
-                            onClick={generateDocxResume}
-                            disabled={resumeGenerating}
-                        >
-                            {resumeGenerating ? "⏳ Генерация..." : "📄 Скачать резюме DOCX"}
-                        </button>
+            <SidebarLayout>
+                <Sidebar links={linkList} />
+                <SidebarLayoutContent>
+                    <div className="main-controls">
+                        {availableYears.length > 0 && (
+                            <div className="year-selector">
+                                <span className="year-label">Год данных:</span>
+                                <Dropdown 
+                                    handle={
+                                        <div className="year-dropdown-handle">
+                                            {selectedYear || "Выберите год"}
+                                            <span className="dropdown-arrow">▼</span>
+                                        </div>
+                                    }
+                                >
+                                    {availableYears.map(year => (
+                                        <div 
+                                            key={year} 
+                                            className={`year-option ${year === selectedYear ? 'selected' : ''}`}
+                                            onClick={() => handleYearChange(year)}
+                                        >
+                                            {year}
+                                        </div>
+                                    ))}
+                                </Dropdown>
+                            </div>
+                        )}
                     </div>
-                </div>
-
-                {/* AI-ИНТЕРПРЕТАЦИИ СЕКЦИЯ */}
-                {showAiSection && aiInterpretations && (
-                    <div className="ai-interpretations-section">
-                        <div className="ai-section-header">
-                            <h2>🤖 AI-анализ профессиональных компетенций</h2>
-                            <p className="ai-section-description">
-                                Интеллектуальная интерпретация результатов на основе модели машинного обучения
-                            </p>
-                        </div>
-
-                        <div className="ai-cards-grid">
-                            {aiInterpretations.competencies?.map((comp) => {
-                                if (!comp.ai) return null;
-                                
-                                return (
-                                    <div key={comp.field} className="ai-card">
-                                        <div className="ai-card-header">
-                                            <div className="competency-title">
-                                                <span className="emoji">{comp.ai.emoji}</span>
-                                                <h3>{comp.name}</h3>
-                                            </div>
-                                            <div className="score-badge">
-                                                {comp.score}/800
-                                            </div>
-                                        </div>
-
-                                        <div className="progress-bar">
-                                            <div 
-                                                className="progress-fill"
-                                                style={{
-                                                    width: `${comp.percentage}%`,
-                                                    backgroundColor: comp.ai.color
-                                                }}
-                                            ></div>
-                                        </div>
-
-                                        <div className="level-indicator" style={{ color: comp.ai.color }}>
-                                            <strong>{comp.ai.level.toUpperCase()}</strong> уровень
-                                            <span className="confidence">
-                                                (уверенность: {(comp.ai.confidence * 100).toFixed(0)}%)
-                                            </span>
-                                        </div>
-
-                                        <div className="ai-interpretation">
-                                            <div className="ai-badge">🤖 AI-интерпретация</div>
-                                            <p>{comp.ai.interpretation}</p>
-                                        </div>
-
-                                        {comp.ai.recommendations && comp.ai.recommendations.length > 0 && (
-                                            <div className="recommendations">
-                                                <strong>📌 Рекомендации:</strong>
-                                                <ul>
-                                                    {comp.ai.recommendations.map((rec, idx) => (
-                                                        <li key={idx}>{rec}</li>
-                                                    ))}
-                                                </ul>
-                                            </div>
+                    
+                    <div className="charts-grid">
+                        {loading ? (
+                            <div className="loading">Загрузка данных...</div>
+                        ) : chartsData.length > 0 ? (
+                            chartsData.map((chart, index) => (
+                                <div key={index} className="chart-card">
+                                    <div className="chart-header">
+                                        <h3>{chart.title}</h3>
+                                        {chart.year && (
+                                            <span className="chart-year">{chart.year}</span>
                                         )}
                                     </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                )}
-                
-                {/* ГРАФИКИ */}
-                <div className="charts-grid">
-                    {loading ? (
-                        <div className="loading">Загрузка данных...</div>
-                    ) : chartsData.length > 0 ? (
-                        chartsData.map((chart, index) => (
-                            <div key={index} className="chart-card">
-                                <div className="chart-header">
-                                    <h3>{chart.title}</h3>
-                                    {chart.year && (
-                                        <span className="chart-year">{chart.year}</span>
-                                    )}
+                                    <div className="chart-container">
+                                        <ChartSwitcher
+                                            seriesLabel={`${chart.year} год`}
+                                            seriesData={chart.data}
+                                            categories={chart.labels}
+                                            competencyKeys={chart.competencyKeys}
+                                        />
+                                    </div>
                                 </div>
-                                <div className="chart-container">
-                                    <ChartSwitcher
-                                        seriesLabel={`${chart.year} год`}
-                                        seriesData={chart.data}
-                                        categories={chart.labels}
-                                        competencyKeys={chart.competencyKeys}
-                                    />
-                                </div>
+                            ))
+                        ) : (
+                            <div className="no-data">
+                                {availableYears.length > 0 ? "Нет данных для отображения" : "Нет доступных данных"}
                             </div>
-                        ))
-                    ) : (
-                        <div className="no-data">
-                            {availableYears.length > 0 ? "Нет данных для отображения" : "Нет доступных данных"}
-                        </div>
-                    )}
-                </div>
+                        )}
+                    </div>
+                </SidebarLayoutContent>
             </SidebarLayout>
         </div>
     );
