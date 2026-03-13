@@ -1,7 +1,7 @@
+
 from django.urls import path
 
-from .endpoints import dataload, datanal, datasesh, statsresult, ai_interp, gen_resume
-from .generate_resume import gen_docx_resume
+from .endpoints import dataload, datanal, datasesh, statsresult, ai_interp, gen_resume, gen_docx_resume
 
 urlpatterns = [
     path("courses/",                        statsresult.courses,                        name="courses"),
@@ -24,9 +24,9 @@ urlpatterns = [
     path("get-vam-unified/",        datanal.get_vam_unified,        name="get_vam_unified"),
     path('get-latent-growth/',      datanal.get_latent_growth,      name='get_latent_growth'),
 
-    path('ai-interpret/', ai_interp.ai_interpret_competency, name='ai_interpret'),
+    path('ai-interpret/',     ai_interp.ai_interpret_competency,       name='ai_interpret'),
     path('ai-interpret-all/', ai_interp.ai_interpret_all_competencies, name='ai_interpret_all'),
     
-    path('student-resume-data/', gen_resume.get_student_resume_data, name='student-resume-data'),
+    path('student-resume-data/',  gen_resume.get_student_resume_data,   name='student-resume-data'),
     path('generate-docx-resume/', gen_docx_resume.generate_docx_resume, name='generate_docx_resume'),
 ]

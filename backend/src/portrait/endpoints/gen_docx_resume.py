@@ -1,14 +1,13 @@
-# ═══════════════════════════════════════════════════════════
-# portrait/ml_api.py (ИСПРАВЛЕНО - БЕЗ УПОМИНАНИЙ AI)
-# ═══════════════════════════════════════════════════════════
 
+from datetime import datetime
+from io import BytesIO
 import json
+
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
-from ..models import Participants, Results
-from datetime import datetime
-from io import BytesIO
+
+from .common import *
 
 # Импорт ML утилит
 from portrait.endpoints.ml_utils import (
@@ -29,29 +28,7 @@ except ImportError:
     DOCX_AVAILABLE = False
 
 
-# ============================================================
-# МАППИНГ КОМПЕТЕНЦИЙ
-# ============================================================
-
-COMPETENCY_NAMES = {
-    'res_comp_leadership': 'Лидерство',
-    'res_comp_communication': 'Коммуникация',
-    'res_comp_self_development': 'Саморазвитие',
-    'res_comp_result_orientation': 'Ориентация на результат',
-    'res_comp_stress_resistance': 'Стрессоустойчивость',
-    'res_comp_client_focus': 'Клиентоориентированность',
-    'res_comp_planning': 'Планирование',
-    'res_comp_info_analysis': 'Анализ информации',
-    'res_comp_partnership': 'Партнёрство',
-    'res_comp_rules_compliance': 'Соблюдение правил',
-    'res_comp_emotional_intel': 'Эмоциональный интеллект',
-    'res_comp_passive_vocab': 'Пассивный словарь'
-}
-
-
-# ============================================================
-# ENDPOINT 1: AI-интерпретация одной компетенции
-# ============================================================
+# ====== ENDPOINTS ====== #
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -76,7 +53,7 @@ def ai_interpret_competency(request):
         if not competency_field or score is None:
             return JsonResponse({'status': 'error', 'message': 'Параметры competency и score обязательны'}, status=400)
         
-        competency_name = COMPETENCY_NAMES.get(competency_field, competency_field)
+        competency_name = COMP.names[competency_field]
         prediction = predict_competency_level(score, course, other_scores)
         interpretation = generate_interpretation(score, prediction['level'], competency_name, course, prediction['percentile'])
         recommendations = generate_recommendations(competency_field, prediction['level'], course)
@@ -103,10 +80,6 @@ def ai_interpret_competency(request):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 
-# ============================================================
-# ENDPOINT 2: Данные резюме студента (JSON)
-# ============================================================
-
 @csrf_exempt
 @require_http_methods(["GET"])
 def get_student_resume_data(request):
@@ -114,8 +87,6 @@ def get_student_resume_data(request):
     try:
         student_id = request.GET.get('student_id')
         with_ai = request.GET.get('with_ai', 'true').lower() == 'true'
-        
-        print(f"📄 get_student_resume_data для студента {student_id}")
         
         if not student_id:
             return JsonResponse({'status': 'error', 'message': 'student_id обязателен'}, status=400)
@@ -151,7 +122,7 @@ def get_student_resume_data(request):
             'generated_at': datetime.now().isoformat()
         }
         
-        competencies_order = list(COMPETENCY_NAMES.keys())
+        competencies_order = list(COMP.names.keys())
         all_scores = {}
         
         for comp_field in competencies_order:
@@ -164,7 +135,7 @@ def get_student_resume_data(request):
             if not score or score == 0:
                 continue
             
-            comp_name = COMPETENCY_NAMES.get(comp_field, comp_field)
+            comp_name = COMP.names[comp_field]
             comp_data = {
                 'field': comp_field,
                 'name': comp_name,
@@ -193,25 +164,17 @@ def get_student_resume_data(request):
                         'recommendations': recommendations
                     }
                 except Exception as e:
-                    print(f"⚠️ Ошибка для {comp_name}: {str(e)}")
                     comp_data['ai'] = None
             
             resume_data['competencies'].append(comp_data)
         
-        print(f"✅ Данные сформированы: {len(resume_data['competencies'])} компетенций")
-        
         return JsonResponse({'status': 'success', 'data': resume_data}, json_dumps_params={'ensure_ascii': False})
         
     except Exception as e:
-        print(f"❌ Ошибка: {str(e)}")
         import traceback
         traceback.print_exc()
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
-
-# ============================================================
-# ENDPOINT 3: Генерация DOCX резюме (БЕЗ УПОМИНАНИЙ AI)
-# ============================================================
 
 @csrf_exempt
 @require_http_methods(["GET"])
@@ -293,7 +256,7 @@ def generate_docx_resume(request):
         # Компетенции
         doc.add_heading('💼 ПРОФЕССИОНАЛЬНЫЕ КОМПЕТЕНЦИИ', level=1)
         
-        competencies_order = list(COMPETENCY_NAMES.keys())
+        competencies_order = list(COMP.names.keys())
         all_scores = {}
         
         for comp_field in competencies_order:
@@ -304,7 +267,7 @@ def generate_docx_resume(request):
         course = latest_result.res_course_num or 1
         
         for comp_field, score in all_scores.items():
-            comp_name = COMPETENCY_NAMES[comp_field]
+            comp_name = COMP.names[comp_field]
             
             # Получаем аналитику (БЕЗ УПОМИНАНИЯ AI!)
             other_scores = [s for cf, s in all_scores.items() if cf != comp_field]
@@ -343,7 +306,6 @@ def generate_docx_resume(request):
                 doc.add_paragraph()
                 
             except Exception as e:
-                print(f"⚠️ Ошибка: {e}")
                 continue
         
         # Футер
@@ -366,12 +328,9 @@ def generate_docx_resume(request):
         filename = f"Resume_{participant.part_name.replace(' ', '_')}_{student_id}.docx"
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         
-        print(f"✅ DOCX отправлен: {filename}")
-        
         return response
         
     except Exception as e:
-        print(f"❌ Ошибка DOCX: {str(e)}")
         import traceback
         traceback.print_exc()
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
