@@ -6,8 +6,7 @@ import {
   getAvailableProfiles, getAvailableCategories, getAvailableYears, getCategoryDataForYear 
 } from "../../utilities";
 import ChartSwitcher from "../../components/charts/ChartSwitcher";
-import Header from "../../components/Header"
-import { Sidebar, SidebarLayout, SidebarLayoutContent } from "../../components/SidebarLayout";
+import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 import Title from "../../components/Title";
 import Dropdown from "../../components/ui/Dropdown";
 
@@ -192,11 +191,11 @@ function StudentMainView() {
 
     return (
         <div className="StudentMainView">
-            <Header title="Профиль" name={`${studResults?.student?.stud_name}`} />
-            <Title title="Главная страница" />
-            <SidebarLayout>
+            <SidebarLayout style={LAYOUT_STYLE.NORMAL}>
+                <Header title="Профиль" name={`${studResults?.student?.stud_name}`} />
                 <Sidebar links={linkList} />
-                <SidebarLayoutContent>
+                <Content>
+                    <Title title="Главная страница" />
                     <div className="main-controls">
                         {availableYears.length > 0 && (
                             <div className="year-selector">
@@ -334,7 +333,7 @@ function StudentMainView() {
                             </div>
                         )}
                     </div>
-                </SidebarLayoutContent>
+                </Content>
             </SidebarLayout>
         </div>
     );

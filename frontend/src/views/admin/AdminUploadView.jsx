@@ -1,6 +1,5 @@
 import { useState } from "react";
-import Header from "../../components/Header";
-import { Sidebar, SIDEBAR_STYLE, SidebarLayout, SidebarLayoutContent } from "../../components/SidebarLayout";
+import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 
 import "./AdminUploadView.scss";
 
@@ -203,88 +202,86 @@ function AdminUploadView() {
 
     return (
         <div className="AdminUploadView">
-            <Header title="Админ: Загрузка данных" name="Администратор1" style="modeus" />
-            <div className="main-area">
-                <SidebarLayout style={SIDEBAR_STYLE.MODEUS}>
-                    <Sidebar links={linkList} />
-                    <SidebarLayoutContent>
-                        <div className="upload-form-container">
-                            <h2 className="upload-form-title">
-                                Загрузка данных результатов тестирования "Россия - страна возможностей"
-                            </h2>
+            <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
+                <Header title="Админ: Загрузка данных" name="Администратор1" />
+                <Sidebar links={linkList} />
+                <Content>
+                    <div className="upload-form-container">
+                        <h2 className="upload-form-title">
+                            Загрузка данных результатов тестирования "Россия - страна возможностей"
+                        </h2>
+                        
+                        <form className="upload-form" onSubmit={handleSubmit}>
+                            <div className="form-group">
+                                <label htmlFor="excel-file" className="file-label">
+                                    Выберите Excel файл
+                                </label>
+                                <input
+                                    type="file"
+                                    id="excel-file"
+                                    className="file-input"
+                                    accept=".xlsx, .xls"
+                                    onChange={handleFileChange}
+                                    disabled={uploading}
+                                />
+                                {selectedFile && (
+                                    <div className="selected-file">
+                                        ✓ Выбран файл: <strong>{selectedFile.name}</strong>
+                                    </div>
+                                )}
+                                <div className="file-hint">
+                                    Поддерживаемые форматы: .xlsx, .xls
+                                </div>
+                            </div>
+
+                            {/* Информация о структуре файла */}
+                            <div className="info-block">
+                                <h3>📋 Требования к структуре файла:</h3>
+                                <ul>
+                                    <li>Лист "Сравнение по компетенциям" (данные с 3 строки)</li>
+                                    <li>Лист "Мотивационный профиль" (данные с 3 строки)</li>
+                                    <li>Лист "Образовательные курсы" (данные с 3 строки)</li>
+                                    <li>Лист "Итоги успеваемости участников" (данные с 3 строки)</li>
+                                </ul>
+                            </div>
                             
-                            <form className="upload-form" onSubmit={handleSubmit}>
-                                <div className="form-group">
-                                    <label htmlFor="excel-file" className="file-label">
-                                        Выберите Excel файл
-                                    </label>
-                                    <input
-                                        type="file"
-                                        id="excel-file"
-                                        className="file-input"
-                                        accept=".xlsx, .xls"
-                                        onChange={handleFileChange}
-                                        disabled={uploading}
-                                    />
-                                    {selectedFile && (
-                                        <div className="selected-file">
-                                            ✓ Выбран файл: <strong>{selectedFile.name}</strong>
+                            {/* Результат загрузки */}
+                            {uploadResult && (
+                                <div className="upload-success">
+                                    <div className="success-icon">✅</div>
+                                    <h3>Данные успешно загружены!</h3>
+                                    <div className="upload-stats">
+                                        <div className="stat">
+                                            <span className="stat-label">Создано записей:</span>
+                                            <span className="stat-value">{uploadResult.created}</span>
                                         </div>
-                                    )}
-                                    <div className="file-hint">
-                                        Поддерживаемые форматы: .xlsx, .xls
-                                    </div>
-                                </div>
-
-                                {/* Информация о структуре файла */}
-                                <div className="info-block">
-                                    <h3>📋 Требования к структуре файла:</h3>
-                                    <ul>
-                                        <li>Лист "Сравнение по компетенциям" (данные с 3 строки)</li>
-                                        <li>Лист "Мотивационный профиль" (данные с 3 строки)</li>
-                                        <li>Лист "Образовательные курсы" (данные с 3 строки)</li>
-                                        <li>Лист "Итоги успеваемости участников" (данные с 3 строки)</li>
-                                    </ul>
-                                </div>
-                                
-                                {/* Результат загрузки */}
-                                {uploadResult && (
-                                    <div className="upload-success">
-                                        <div className="success-icon">✅</div>
-                                        <h3>Данные успешно загружены!</h3>
-                                        <div className="upload-stats">
-                                            <div className="stat">
-                                                <span className="stat-label">Создано записей:</span>
-                                                <span className="stat-value">{uploadResult.created}</span>
-                                            </div>
-                                            <div className="stat">
-                                                <span className="stat-label">Обновлено записей:</span>
-                                                <span className="stat-value">{uploadResult.updated}</span>
-                                            </div>
+                                        <div className="stat">
+                                            <span className="stat-label">Обновлено записей:</span>
+                                            <span className="stat-value">{uploadResult.updated}</span>
                                         </div>
                                     </div>
-                                )}
+                                </div>
+                            )}
 
-                                {/* Ошибка */}
-                                {error && (
-                                    <div className="upload-error">
-                                        <div className="error-icon">❌</div>
-                                        <div className="error-message">{error}</div>
-                                    </div>
-                                )}
-                                
-                                <button
-                                    type="submit"
-                                    className="submit-button"
-                                    disabled={uploading || !selectedFile}
-                                >
-                                    {uploading ? '⏳ Загрузка...' : '📤 Загрузить данные'}
-                                </button>
-                            </form>
-                        </div>
-                    </SidebarLayoutContent>
-                </SidebarLayout>
-            </div>
+                            {/* Ошибка */}
+                            {error && (
+                                <div className="upload-error">
+                                    <div className="error-icon">❌</div>
+                                    <div className="error-message">{error}</div>
+                                </div>
+                            )}
+                            
+                            <button
+                                type="submit"
+                                className="submit-button"
+                                disabled={uploading || !selectedFile}
+                            >
+                                {uploading ? '⏳ Загрузка...' : '📤 Загрузить данные'}
+                            </button>
+                        </form>
+                    </div>
+                </Content>
+            </SidebarLayout>
         </div>
     );
 }

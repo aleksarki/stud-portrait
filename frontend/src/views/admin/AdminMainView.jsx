@@ -1,5 +1,4 @@
-import Header from "../../components/Header";
-import { Sidebar, SIDEBAR_STYLE, SidebarLayout, SidebarLayoutContent } from "../../components/SidebarLayout";
+import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 import Title from "../../components/Title";
 import "./AdminMainView.scss";
 
@@ -14,15 +13,13 @@ function AdminMainView() {
     ];
     return (
         <div className="AdminMainView">
-            <Header title="Админ: Главная" name="Администратор1" style="modeus" />
-            <div className="main-area">
-                <SidebarLayout style={SIDEBAR_STYLE.MODEUS}>
-                    <Sidebar links={linkList} />
-                    <SidebarLayoutContent>
-                        <span>content</span>
-                    </SidebarLayoutContent>
-                </SidebarLayout>
-            </div>
+            <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
+                <Header title="Админ: Главная" name="Администратор1" />
+                <Sidebar links={linkList} />
+                <Content>
+                    <span>content</span>
+                </Content>
+            </SidebarLayout>
         </div>
     );
 }
