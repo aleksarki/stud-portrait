@@ -1,7 +1,7 @@
 
 from django.urls import path
 
-from .endpoints import dataload, datanal, datasesh, statsresult, ai_interp, gen_resume, gen_docx_resume
+from .endpoints import dataload, datasesh, statsresult, ai_interp, gen_resume, gen_docx_resume, analysis_end
 
 urlpatterns = [
     path("courses/",                        statsresult.courses,                        name="courses"),
@@ -20,13 +20,15 @@ urlpatterns = [
     path("group-data/",              datasesh.group_data,              name="group_data"),
     path("stats/",                   datasesh.stats_with_filters,      name="stats"),
 
-    path("vam-summary-statistics/", datanal.vam_summary_statistics, name="vam_summary_statistics"),
-    path("get-vam-unified/",        datanal.get_vam_unified,        name="get_vam_unified"),
-    path('get-latent-growth/',      datanal.get_latent_growth,      name='get_latent_growth'),
-
     path('ai-interpret/',     ai_interp.ai_interpret_competency,       name='ai_interpret'),
     path('ai-interpret-all/', ai_interp.ai_interpret_all_competencies, name='ai_interpret_all'),
     
     path('student-resume-data/',  gen_resume.get_student_resume_data,   name='student-resume-data'),
     path('generate-docx-resume/', gen_docx_resume.generate_docx_resume, name='generate_docx_resume'),
+
+    path('analyze-student-vam/', analysis_end.analyze_student_vam, name='analyze_student_vam'),
+    path('analyze-cohort-lgm/', analysis_end.analyze_cohort_lgm, name='analyze_cohort_lgm'),
+    path('analyze-discipline-impact/', analysis_end.analyze_discipline_impact, name='analyze_discipline_impact'),
+    path('analyze-all-disciplines-impact/', analysis_end.analyze_all_disciplines_impact, name='analyze_all_disciplines_impact'),
+    path('analyze-by-dimension/', analysis_end.analyze_by_dimension, name='analyze_by_dimension'),
 ]

@@ -1,611 +1,516 @@
 # Модуль анализа данных.
 
-from collections import defaultdict
-import numpy as np
 
-from django.db.models import Count
+import numpy as np
+import pandas as pd
+from scipy import stats
+from sklearn.linear_model import LinearRegression, HuberRegressor
+from sklearn.preprocessing import StandardScaler
+import warnings
+warnings.filterwarnings('ignore')
 
 from .common import *
 
+# ============================================================
+# VALUE-ADDED MODEL (VAM) - Персональный анализ студента
+# ============================================================
 
-# ====== ENDPOINTS ====== #
-
-@method('GET')
-@jsonResponse
-@csrf_exempt
-def get_vam_unified(request):
+class ValueAddedModel:
     """
-    UNIFIED VAM FUNCTION (вместо Cross-Sectional и Longitudinal)
-
-    ЕДИНЫЙ метод VAM, который автоматически определяет тип анализа
-    на основе фильтра "Количество прохождений":
+    Value-Added Model для оценки прогресса студента.
     
-    - Если выбрано "1 прохождение" → Cross-Sectional VAM
-    - Если выбрано "2+" прохождений → Longitudinal VAM
-    - Если не выбрано → Mixed (оба подхода)
+    Измеряет, насколько результат студента отличается от ожидаемого
+    на основе его предыдущих показателей и контрольных переменных.
     """
-    institution_ids =       request.GET.getlist('institution_ids[]')
-    directions =            request.GET.getlist('directions[]')
-    courses =               request.GET.getlist('courses[]')
-    test_attempts =         request.GET.getlist('test_attempts[]')
-    selected_competencies = request.GET.getlist('competencies[]')
-    student_ids =           request.GET.getlist('student_ids[]')
-
-    results = Results.objects                                                                                 \
-        .select_related("res_participant", "res_participant__part_institution", "res_participant__part_spec") \
-        .exclude(res_course_num__isnull=True)                                                                 \
-        .order_by("res_participant_id", "res_year", "res_course_num")
-
-    if institution_ids and len(institution_ids) > 0:
-        results = results.filter(res_participant__part_institution__inst_id__in=institution_ids)
     
-    if directions and len(directions) > 0:
-        results = results.filter(res_participant__part_spec__spec_name__in=directions)
+    def __init__(self):
+        self.model = None
+        self.scaler = StandardScaler()
+        self.baseline_mean = None
+        self.baseline_std = None
     
-    if courses and len(courses) > 0:
-        results = results.filter(res_course_num__in=courses)
-
-    if test_attempts and len(test_attempts) > 0:
-        student_attempts = Results.objects \
-            .values('res_participant')     \
-            .annotate(attempt_count=Count('res_id'))
-
-        attempts_dict = {
-            item['res_participant']: item['attempt_count'] 
-            for item in student_attempts
-        }
-
-        valid_students = [
-            student_id 
-            for student_id, count in attempts_dict.items()
-            if str(count) in test_attempts
-        ]
-
-        results = results.filter(res_participant__in=valid_students)
-
-    competencies = list(COMP.names.keys())
-    if selected_competencies:
-        competencies = [c for c in competencies if c in selected_competencies]
-
-    if student_ids and len(student_ids) > 0:  # convert into int, as part_id is a number
-        student_ids_int = [int(sid) for sid in student_ids if sid.isdigit()]
-        results = results.filter(res_participant__part_id__in=student_ids_int)
-
-    results_list = list(results)
-
-    # if only selected "1 прохождение" → Cross-Sectional
-    if test_attempts == ['1']:  
-        vam_data = calculate_cross_sectional_vam(results_list, competencies)
-        analysis_method = 'cross_sectional'
-
-    # if only selected "2+" прохождения → Longitudinal
-    elif test_attempts and all(int(a) >= 2 for a in test_attempts):  
-        vam_data = calculate_longitudinal_vam(results_list, competencies)
-        analysis_method = 'longitudinal'
-
-    # if mixed or not selected → Mixed (priority to Longitudinal)
-    else:
-        vam_data = calculate_longitudinal_vam(results_list, competencies)
-        analysis_method = 'mixed'
-
-    if vam_data.get("status") != "success":
-        return vam_data
-
-    # group data for graph
-    grouped_data = group_vam_for_comparison(vam_data["data"], institution_ids, directions)
-
-    return {
-        "status":                "success",
-        "data":                  vam_data["data"],
-        "grouped":               grouped_data,
-        "total_students":        vam_data.get("total_students", len(vam_data["data"])),
-        "analysis_method":       analysis_method,
-        "selected_attempts":     test_attempts,
-        "selected_competencies": selected_competencies
-    }
-
-
-@method('GET')
-@jsonResponse
-@csrf_exempt
-def vam_summary_statistics(request):
-    """
-    Сводная статистика для понимания данных и выбора подхода к анализу.
-    """
-    results = Results.objects                 \
-        .select_related("res_participant")    \
-        .exclude(res_course_num__isnull=True) \
-        .order_by("res_participant_id", "res_year")
-
-    student_measurements = defaultdict(int)
-    for row in results:
-        student_measurements[row.res_participant_id] += 1  # fixme shouldn't it be row.res_participant.part_id ??
-
-    distribution = defaultdict(int)
-    for count in student_measurements.values():
-        distribution[count] += 1
-
-    course_distribution = defaultdict(int)
-    for row in results:
-        course_distribution[row.res_course_num] += 1
-
-    year_distribution = defaultdict(int)
-    for row in results:
-        year_distribution[row.res_year] += 1
-
-    return {
-        "status":                    "success",
-        "total_students":            len(student_measurements),
-        "total_measurements":        sum(student_measurements.values()),
-        "measurements_distribution": dict(distribution),
-        "longitudinal_eligible":     sum(1 for c in student_measurements.values() if c >= 2),
-        "course_distribution":       dict(course_distribution),
-        "year_distribution":         dict(year_distribution),
-        "recommendation": (
-            "Рекомендуем использовать Cross-Sectional VAM, так как только "
-            f"{sum(1 for c in student_measurements.values() if c >= 2)} студентов "
-            f"({round(100 * sum(1 for c in student_measurements.values() if c >= 2) / len(student_measurements), 1)}%) "
-            "имеют повторные замеры для Longitudinal VAM."
-        )
-    }
-
-
-@method('GET')
-@jsonResponse
-@csrf_exempt
-def get_latent_growth(request):
-    """
-    Получает данные Latent Growth Model (LGM) с фильтрацией.
-    ОБНОВЛЕНО: Теперь поддерживает группировку по институтам/направлениям!
-    """
-    institution_ids =       request.GET.getlist('institution_ids[]')
-    directions =            request.GET.getlist('directions[]')
-    courses =               request.GET.getlist('courses[]')
-    test_attempts =         request.GET.getlist('test_attempts[]')
-    selected_competencies = request.GET.getlist('competencies[]')
-
-    competencies = list(COMP.names.keys())
-    if selected_competencies:
-        competencies = [c for c in competencies if c in selected_competencies]
-
-    results = Results.objects                                                                                 \
-        .select_related("res_participant", "res_participant__part_institution", "res_participant__part_spec") \
-        .exclude(res_course_num__isnull=True)
-
-    if institution_ids:
-        results = results.filter(res_participant__part_institution__inst_id__in=institution_ids)
-
-    if directions:
-        results = results.filter(res_participant__part_spec__spec_name__in=directions)
-
-    if courses:
-        results = results.filter(res_course_num__in=courses)
-
-    if test_attempts:
-        student_attempts = Results.objects \
-            .values('res_participant')     \
-            .annotate(attempt_count=Count('res_id'))
-
-        attempts_dict = {
-            item['res_participant']: item['attempt_count'] 
-            for item in student_attempts
-        }
-
-        valid_students = [
-            student_id 
-            for student_id, count in attempts_dict.items()
-            if str(count) in test_attempts
-        ]
-
-        results = results.filter(res_participant__in=valid_students)
-
-    results_list = list(results)
-
-    if len(institution_ids) > 0 and len(directions) == 0:  # group by institutions
-        group_by = 'by_institution'
-    elif len(directions) > 0 and len(institution_ids) == 0:  # group by majors
-        group_by = 'by_direction'
-    elif len(institution_ids) > 0 and len(directions) > 0:  # group by institutions & majors
-        group_by = 'by_institution_direction'
-    else:  # general groupping
-        group_by = 'overall'
-
-    if group_by == 'overall':
-        growth_data = calculate_population_growth(results_list, competencies)
-    else:
-        growth_data = calculate_grouped_growth(results_list,  competencies, group_by)
-
-    if growth_data.get("status") == "success":
-        growth_data["group_by"] = group_by
-        growth_data["filters_applied"] = {
-            "institutions":  len(institution_ids),
-            "directions":    len(directions),
-            "courses":       len(courses),
-            "test_attempts": len(test_attempts),
-            "competencies":  len(competencies)
-        }
-
-    return growth_data
-
-
-# ====== UTILITIES ====== #
-
-# --- VAM calculation --- #
-
-def calculate_cross_sectional_vam(results_list, competencies):
-    """
-    Cross-Sectional VAM: Сравнение каждого студента с нормой его курса.
-    Работает для ВСЕХ студентов, даже с одним замером.
-    """
-    # 1. Вычисляем средние значения по курсам (эталон)
-    course_means = defaultdict(lambda: {comp: [] for comp in competencies})
-
-    for row in results_list:
-        course = row.res_course_num
-        for comp in competencies:
-            value = getattr(row, comp)
-            if value is not None:
-                course_means[course][comp].append(float(value))
-
-    # Средние по курсам
-    course_baselines = {}
-    for course, comp_data in course_means.items():
-        course_baselines[course] = {}
-        for comp, values in comp_data.items():
-            if values:
-                course_baselines[course][comp] = np.mean(values)
-
-    # 2. Вычисляем VAM для каждого студента
-    data = []
-    for row in results_list:
-        course = row.res_course_num
-        participant = row.res_participant
-
-        if course not in course_baselines:
-            continue
-
-        vam_by_competency = {}
-        vam_values = []
-
-        for comp in competencies:
-            actual = getattr(row, comp)
-
-            if actual is None or comp not in course_baselines[course]:
-                continue
-
-            expected = course_baselines[course][comp]
-            vam = float(actual) - expected
-
-            vam_by_competency[comp] = round(vam, 3)
-            vam_values.append(vam)
-
-        if not vam_values:
-            continue
-
-        mean_vam = np.mean(vam_values)
-
-        data.append({
-            "participant_id":    row.res_participant_id,
-            "rsv_id":            participant.part_rsv_id if participant else "Unknown",
-            "year":              row.res_year,
-            "course":            course,
-            "mean_vam":          round(mean_vam, 3),
-            "vam_by_competency": vam_by_competency,
-            "institution_id":    attrIfObj(attrIfObj(participant, 'part_institution'), 'inst_id'),
-            "institution_name":  attrIfObj(attrIfObj(participant, 'part_institution'), 'inst_name'),
-            "direction":         attrIfObj(attrIfObj(participant, 'part_spec'),        'spec_name'),
-            "analysis_type":     "cross_sectional"
-        })
-
-    return {
-        "status":         "success",
-        "data":           data,
-        "total_students": len(data),
-        "course_baselines": {
-            course: {comp: round(val, 3) for comp, val in baselines.items()}
-            for course, baselines in course_baselines.items()
-        }
-    }
-
-
-def calculate_longitudinal_vam(results_list, competencies):
-    """
-    Longitudinal VAM: Отслеживание личного прогресса студентов.
-    Работает только для студентов с несколькими замерами.
-    """
-    # Группировка по студентам
-    grouped = defaultdict(list)
-    for row in results_list:
-        grouped[row.res_participant_id].append(row)
-
-    # Фильтруем только студентов с 2+ замерами
-    grouped = {k: v for k, v in grouped.items() if len(v) >= 2}
-
-    # Строим регрессионные модели
-    regression_data = {comp: {"x": [], "y": []} for comp in competencies}
-
-    for rows in grouped.values():
-        for i in range(1, len(rows)):
-            prev_row = rows[i - 1]
-            curr_row = rows[i]
-
-            for comp in competencies:
-                prev_score = getattr(prev_row, comp)
-                curr_score = getattr(curr_row, comp)
-
-                if prev_score is not None and curr_score is not None:
-                    regression_data[comp]["x"].append(float(prev_score))
-                    regression_data[comp]["y"].append(float(curr_score))
-
-    # Вычисляем коэффициенты регрессии
-    regression_models = {}
-
-    for comp in competencies:
-        X = regression_data[comp]["x"]
-        Y = regression_data[comp]["y"]
-
-        if len(X) < 5:
-            continue
-
-        n = len(X)
-        mean_x = np.mean(X)
-        mean_y = np.mean(Y)
-
-        numerator = sum((X[i] - mean_x) * (Y[i] - mean_y) for i in range(n))
-        denominator = sum((X[i] - mean_x) ** 2 for i in range(n))
-
-        if denominator == 0:
-            continue
-
-        a = numerator / denominator
-        b = mean_y - a * mean_x
-
-        regression_models[comp] = (a, b)
-
-    # Вычисляем VAM для каждого студента
-    data = []
-    for participant_id, rows in grouped.items():
-        participant = rows[0].res_participant
-
-        for i in range(1, len(rows)):
-            prev_row = rows[i - 1]
-            curr_row = rows[i]
-
-            vam_by_competency = {}
-            vam_values = []
-
-            for comp in competencies:
-                if comp not in regression_models:
-                    continue
-
-                prev_score = getattr(prev_row, comp)
-                curr_score = getattr(curr_row, comp)
-
-                if prev_score is None or curr_score is None:
-                    continue
-
-                a, b = regression_models[comp]
-                predicted = a * float(prev_score) + b
-                vam = float(curr_score) - predicted
-
-                vam_by_competency[comp] = round(vam, 3)
-                vam_values.append(vam)
-
-            if not vam_values:
-                continue
-
-            mean_vam = np.mean(vam_values)
-
-            data.append({
-                "participant_id":    participant_id,
-                "rsv_id":  participant.part_rsv_id if participant else "Unknown",
-                "from_year":         prev_row.res_year,
-                "to_year":           curr_row.res_year,
-                "from_course":       prev_row.res_course_num,
-                "to_course":         curr_row.res_course_num,
-                "mean_vam":          round(mean_vam, 3),
-                "vam_by_competency": vam_by_competency,
-                "institution_id":    attrIfObj(attrIfObj(participant, 'part_institution'), 'inst_id'),
-                "institution_name":  attrIfObj(attrIfObj(participant, 'part_institution'), 'inst_name'),
-                "direction":         attrIfObj(attrIfObj(participant, 'part_spec'),        'spec_name'),
-                "analysis_type":     "longitudinal"
-            })
-
-    return {
-        "status":            "success",
-        "data":              data,
-        "total_students":    len(grouped),
-        "total_transitions": len(data),
-        "regression_models": {
-            comp: {"a": round(a, 4), "b": round(b, 4)}
-            for comp, (a, b) in regression_models.items()
-        }
-    }
-
-# --- other --- #
-
-def group_vam_for_comparison(data, institution_ids, directions):
-    """
-    Группирует VAM данные для построения нескольких линий на графике.
-    
-    Возвращает:
-    {
-        "by_institution": {
-            "МГУ": {1: [vam1, vam2, ...], 2: [vam3, vam4, ...], ...},
-            "СПбГУ": {1: [...], 2: [...], ...}
-        },
-        "by_direction": {
-            "Информатика": {1: [...], 2: [...], ...},
-            "Математика": {1: [...], 2: [...], ...}
-        }
-    }
-    """
-
-    grouped = {
-        "by_institution":           defaultdict(lambda: defaultdict(list)),
-        "by_direction":             defaultdict(lambda: defaultdict(list)),
-        "by_institution_direction": defaultdict(lambda: defaultdict(list))
-    }
-
-    for item in data:
-        course =      item.get("course") or item.get("to_course")
-        vam =         item.get("mean_vam", 0)
-        institution = item.get("institution_name", "Неизвестно")
-        direction =   item.get("direction", "Неизвестно")
-
-        if course:
-            # Группируем по институту
-            grouped["by_institution"][institution][course].append(vam)
-
-            # Группируем по направлению
-            grouped["by_direction"][direction][course].append(vam)
-
-            # Группируем по комбинации институт+направление
-            key = f"{institution} - {direction}"
-            grouped["by_institution_direction"][key][course].append(vam)
-
-    # Вычисляем средние значения
-    result = {
-        "by_institution": {},
-        "by_direction": {},
-        "by_institution_direction": {}
-    }
-
-    for inst, courses_data in grouped["by_institution"].items():
-        result["by_institution"][inst] = {
-            course: round(sum(vams) / len(vams), 2) if vams else 0
-            for course, vams in courses_data.items()
-        }
-
-    for dir, courses_data in grouped["by_direction"].items():
-        result["by_direction"][dir] = {
-            course: round(sum(vams) / len(vams), 2) if vams else 0
-            for course, vams in courses_data.items()
-        }
-
-    for key, courses_data in grouped["by_institution_direction"].items():
-        result["by_institution_direction"][key] = {
-            course: round(sum(vams) / len(vams), 2) if vams else 0
-            for course, vams in courses_data.items()
-        }
-
-    return result
-
-# --- LGM calculation --- #
-
-def calculate_population_growth(results_list, competencies):
-    """
-    Latent Growth Model (LGM) - модель скрытого роста.
-    Вычисляет средние траектории развития компетенций на уровне популяции.
-    
-    Возвращает среднее значение каждой компетенции по курсам.
-    """
-    # Группируем по курсам
-    by_course = defaultdict(lambda: defaultdict(list))
-
-    for result in results_list:
-        course = result.res_course_num
-        if not course:
-            continue
-
-        for comp in competencies:
-            value = getattr(result, comp, None)
-            if value is not None:
-                by_course[course][comp].append(value)
-
-    # Вычисляем средние для каждого курса
-    growth_trajectory = {}
-
-    for comp in competencies:
-        trajectory = []
-
-        for course in sorted(by_course.keys()):
-            if comp in by_course[course] and len(by_course[course][comp]) > 0:
-                values = by_course[course][comp]
-                avg = sum(values) / len(values)
-                trajectory.append({
-                    "course": course,
-                    "mean": round(avg, 2),
-                    "count": len(values)
-                })
-
-        if trajectory:  # Только если есть данные
-            growth_trajectory[comp] = trajectory
-
-    return {
-        "status":             "success",
-        "data":               growth_trajectory,
-        "model":              "latent_growth",
-        "total_records":      len(results_list),
-        "competencies_count": len(growth_trajectory)
-    }
-
-
-def calculate_grouped_growth(results_list, competencies, group_by):
-    """
-    Вычисляет траектории роста с группировкой по институтам/направлениям.
-    Возвращает данные в формате для multi-line графиков.
-    """
-    # Группируем результаты
-    groups = defaultdict(list)
-
-    for result in results_list:
-        # Определяем группу
-        if group_by == 'by_institution':
-            group_name = result.res_participant.part_institution.inst_name if result.res_participant.part_institution else "Неизвестно"
-        elif group_by == 'by_direction':
-            group_name = result.res_participant.part_spec.spec_name        if result.res_participant.part_spec        else "Неизвестно"
-        elif group_by == 'by_institution_direction':
-            inst = result.res_participant.part_institution.inst_name       if result.res_participant.part_institution else "Неизвестно"
-            spec = result.res_participant.part_spec.spec_name              if result.res_participant.part_spec        else "Неизвестно"
-            group_name = f"{inst} - {spec}"
+    def fit_for_student(self, student_data):
+        """
+        Обучает модель на данных конкретного студента.
+        
+        Args:
+            student_data: DataFrame с колонками [year, course, competency_score]
+        
+        Returns:
+            dict: Результаты анализа для студента
+        """
+        if len(student_data) < 2:
+            return {
+                'status': 'insufficient_data',
+                'message': 'Недостаточно данных для анализа (нужно минимум 2 замера)'
+            }
+        
+        # Сортируем по году/курсу
+        student_data = student_data.sort_values(['year', 'course'])
+        
+        # Вычисляем прирост компетенции
+        student_data['prev_score'] = student_data['competency_score'].shift(1)
+        student_data['actual_growth'] = student_data['competency_score'] - student_data['prev_score']
+        
+        # Убираем первую запись (нет предыдущего балла)
+        growth_data = student_data[student_data['prev_score'].notna()].copy()
+        
+        if len(growth_data) == 0:
+            return {
+                'status': 'insufficient_data',
+                'message': 'Недостаточно данных для расчёта прироста'
+            }
+        
+        # Ожидаемый прирост (baseline)
+        expected_growth = growth_data['prev_score'].mean() * 0.05  # 5% рост
+        
+        # Value-Added = фактический прирост - ожидаемый прирост
+        growth_data['value_added'] = growth_data['actual_growth'] - expected_growth
+        
+        # Статистика
+        avg_value_added = growth_data['value_added'].mean()
+        std_value_added = growth_data['value_added'].std()
+        
+        # Классификация студента
+        if avg_value_added > 0.5 * std_value_added:
+            performance = 'above_expected'
+            performance_label = 'Выше ожидаемого'
+        elif avg_value_added < -0.5 * std_value_added:
+            performance = 'below_expected'
+            performance_label = 'Ниже ожидаемого'
         else:
-            group_name = "Все"
+            performance = 'as_expected'
+            performance_label = 'Соответствует ожиданиям'
+        
+        return {
+            'status': 'success',
+            'measurements': len(growth_data),
+            'average_value_added': float(avg_value_added),
+            'total_growth': float(growth_data['actual_growth'].sum()),
+            'expected_growth': float(expected_growth * len(growth_data)),
+            'performance': performance,
+            'performance_label': performance_label,
+            'growth_by_period': growth_data[['year', 'course', 'actual_growth', 'value_added']].to_dict('records')
+        }
+    
+    def fit_cohort(self, cohort_data, control_variables=None):
+        """
+        Обучает VAM на когорте студентов.
+        
+        Args:
+            cohort_data: DataFrame с данными студентов
+            control_variables: Список контрольных переменных
+        
+        Returns:
+            dict: Результаты анализа когорты
+        """
+        # Группируем по студентам
+        student_groups = cohort_data.groupby('student_id')
+        
+        results = []
+        for student_id, student_df in student_groups:
+            student_result = self.fit_for_student(student_df)
+            if student_result['status'] == 'success':
+                student_result['student_id'] = student_id
+                results.append(student_result)
+        
+        if not results:
+            return {
+                'status': 'error',
+                'message': 'Нет студентов с достаточными данными'
+            }
+        
+        # Агрегированная статистика
+        avg_values = [r['average_value_added'] for r in results]
+        
+        return {
+            'status': 'success',
+            'total_students': len(results),
+            'avg_value_added': float(np.mean(avg_values)),
+            'std_value_added': float(np.std(avg_values)),
+            'median_value_added': float(np.median(avg_values)),
+            'students': results
+        }
 
-        groups[group_name].append(result)
 
-    # Вычисляем траектории для каждой компетенции
-    growth_trajectory = {}
+# ============================================================
+# LATENT GROWTH MODEL (LGM) - Траектории развития
+# ============================================================
 
-    for comp in competencies:
-        comp_data = {}
+class LatentGrowthModel:
+    """
+    Latent Growth Model для анализа траекторий развития компетенций.
+    
+    Моделирует индивидуальные траектории роста с учётом:
+    - Начального уровня (intercept)
+    - Скорости роста (slope)
+    - Нелинейных эффектов (quadratic)
+    """
+    
+    def __init__(self):
+        self.intercept_model = None
+        self.slope_model = None
+        self.fitted = False
+    
+    def fit(self, longitudinal_data):
+        """
+        Обучает LGM на лонгитюдных данных.
+        
+        Args:
+            longitudinal_data: DataFrame с колонками [student_id, time_point, competency_score]
+        
+        Returns:
+            dict: Параметры модели
+        """
+        # Группируем по студентам
+        student_trajectories = []
+        
+        for student_id, student_df in longitudinal_data.groupby('student_id'):
+            if len(student_df) < 2:
+                continue
+            
+            student_df = student_df.sort_values('time_point')
+            
+            # Извлекаем временные точки и баллы
+            time = student_df['time_point'].values
+            scores = student_df['competency_score'].values
+            
+            # Подгоняем линейную модель для каждого студента
+            if len(time) >= 2:
+                # Центрируем время (0 = первый замер)
+                time_centered = time - time[0]
+                
+                # Линейная регрессия: score = intercept + slope * time
+                model = LinearRegression()
+                model.fit(time_centered.reshape(-1, 1), scores)
+                
+                intercept = model.intercept_
+                slope = model.coef_[0]
+                
+                # R² для оценки качества подгонки
+                r_squared = model.score(time_centered.reshape(-1, 1), scores)
+                
+                student_trajectories.append({
+                    'student_id': student_id,
+                    'intercept': intercept,  # Начальный уровень
+                    'slope': slope,          # Скорость роста
+                    'r_squared': r_squared,
+                    'measurements': len(scores)
+                })
+        
+        if not student_trajectories:
+            return {
+                'status': 'error',
+                'message': 'Недостаточно данных для LGM'
+            }
+        
+        # Преобразуем в DataFrame
+        trajectories_df = pd.DataFrame(student_trajectories)
+        
+        # Статистика по популяции
+        self.fitted = True
+        
+        return {
+            'status': 'success',
+            'n_students': len(trajectories_df),
+            'mean_intercept': float(trajectories_df['intercept'].mean()),
+            'std_intercept': float(trajectories_df['intercept'].std()),
+            'mean_slope': float(trajectories_df['slope'].mean()),
+            'std_slope': float(trajectories_df['slope'].std()),
+            'mean_r_squared': float(trajectories_df['r_squared'].mean()),
+            'trajectories': trajectories_df.to_dict('records'),
+            'interpretation': self._interpret_results(trajectories_df)
+        }
+    
+    def _interpret_results(self, trajectories_df):
+        """Интерпретирует результаты LGM."""
+        mean_slope = trajectories_df['slope'].mean()
+        std_slope = trajectories_df['slope'].std()
+        
+        # Классифицируем студентов
+        fast_growers = trajectories_df[trajectories_df['slope'] > mean_slope + 0.5 * std_slope]
+        slow_growers = trajectories_df[trajectories_df['slope'] < mean_slope - 0.5 * std_slope]
+        
+        return {
+            'average_growth_rate': float(mean_slope),
+            'growth_variability': float(std_slope),
+            'fast_growers_count': len(fast_growers),
+            'slow_growers_count': len(slow_growers),
+            'fast_growers_pct': float(len(fast_growers) / len(trajectories_df) * 100),
+            'slow_growers_pct': float(len(slow_growers) / len(trajectories_df) * 100)
+        }
+    
+    def predict_trajectory(self, intercept, slope, time_points):
+        """
+        Предсказывает траекторию для заданных параметров.
+        
+        Args:
+            intercept: Начальный уровень
+            slope: Скорость роста
+            time_points: Временные точки для предсказания
+        
+        Returns:
+            np.array: Предсказанные значения
+        """
+        return intercept + slope * np.array(time_points)
 
-        # Для каждой группы вычисляем траекторию
-        for group_name, group_results in groups.items():
-            by_course = defaultdict(list)
 
-            for result in group_results:
-                course = result.res_course_num
-                if not course:
+# ============================================================
+# DISCIPLINE IMPACT ANALYSIS - Влияние дисциплин на компетенции
+# ============================================================
+
+class DisciplineImpactAnalyzer:
+    """
+    Анализ влияния дисциплин на развитие компетенций.
+    
+    Использует методы:
+    1. Difference-in-Differences (DiD)
+    2. Paired t-test (до/после дисциплины)
+    3. Effect size (Cohen's d)
+    """
+    
+    def analyze_discipline_impact(self, discipline_data, competency_field):
+        """
+        Анализирует влияние дисциплины на компетенцию.
+        
+        Args:
+            discipline_data: DataFrame с колонками [student_id, discipline, grade, year]
+            competency_field: Название поля компетенции
+        
+        Returns:
+            dict: Результаты анализа
+        """
+        results = []
+        
+        # Группируем по дисциплинам
+        for discipline, disc_df in discipline_data.groupby('discipline'):
+            # Анализируем каждую оценку отдельно
+            grade_impacts = {}
+            
+            for grade in ['отл.', 'хор.', 'удовл.']:
+                grade_students = disc_df[disc_df['grade'] == grade]
+                
+                if len(grade_students) < 5:  # Минимум 5 студентов
                     continue
-
-                value = getattr(result, comp, None)
-                if value is not None:
-                    by_course[course].append(value)
-
-            # Вычисляем средние по курсам
-            trajectory = []
-            for course in sorted(by_course.keys()):
-                if by_course[course]:
-                    values = by_course[course]
-                    avg = sum(values) / len(values)
-                    trajectory.append({
-                        "course": course,
-                        "mean": round(avg, 2),
-                        "count": len(values)
+                
+                # Извлекаем баллы до и после дисциплины
+                before_scores = grade_students[f'{competency_field}_before'].values
+                after_scores = grade_students[f'{competency_field}_after'].values
+                
+                # Paired t-test
+                t_stat, p_value = stats.ttest_rel(after_scores, before_scores)
+                
+                # Средний прирост
+                mean_diff = after_scores.mean() - before_scores.mean()
+                
+                # Effect size (Cohen's d)
+                std_pooled = np.sqrt((before_scores.std()**2 + after_scores.std()**2) / 2)
+                cohens_d = mean_diff / std_pooled if std_pooled > 0 else 0
+                
+                grade_impacts[grade] = {
+                    'n_students': len(grade_students),
+                    'mean_before': float(before_scores.mean()),
+                    'mean_after': float(after_scores.mean()),
+                    'mean_gain': float(mean_diff),
+                    't_statistic': float(t_stat),
+                    'p_value': float(p_value),
+                    'cohens_d': float(cohens_d),
+                    'significant': p_value < 0.05,
+                    'effect_size_label': self._interpret_effect_size(cohens_d)
+                }
+            
+            if grade_impacts:
+                results.append({
+                    'discipline': discipline,
+                    'competency': competency_field,
+                    'grade_impacts': grade_impacts,
+                    'summary': self._summarize_discipline_impact(grade_impacts)
+                })
+        
+        return {
+            'status': 'success',
+            'results': results
+        }
+    
+    def analyze_all_disciplines(self, full_data):
+        """
+        Анализирует влияние всех дисциплин на все компетенции.
+        
+        Args:
+            full_data: DataFrame с полными данными
+        
+        Returns:
+            dict: Комплексные результаты
+        """
+        competencies = [
+            'res_comp_leadership',
+            'res_comp_planning',
+            'res_comp_result_orientation',
+            'res_comp_info_analysis',
+            'res_comp_communication'
+        ]
+        
+        all_results = {}
+        
+        for comp in competencies:
+            comp_results = self.analyze_discipline_impact(full_data, comp)
+            all_results[comp] = comp_results
+        
+        # Создаём сводную матрицу влияния
+        impact_matrix = self._create_impact_matrix(all_results)
+        
+        return {
+            'status': 'success',
+            'detailed_results': all_results,
+            'impact_matrix': impact_matrix,
+            'top_effective_disciplines': self._rank_disciplines(impact_matrix)
+        }
+    
+    def _interpret_effect_size(self, cohens_d):
+        """Интерпретирует размер эффекта (Cohen's d)."""
+        abs_d = abs(cohens_d)
+        
+        if abs_d < 0.2:
+            return 'Negligible (незначительный)'
+        elif abs_d < 0.5:
+            return 'Small (малый)'
+        elif abs_d < 0.8:
+            return 'Medium (средний)'
+        else:
+            return 'Large (большой)'
+    
+    def _summarize_discipline_impact(self, grade_impacts):
+        """Создаёт сводку по влиянию дисциплины."""
+        # Усредняем эффект по всем оценкам
+        all_gains = [impact['mean_gain'] for impact in grade_impacts.values()]
+        all_cohens_d = [impact['cohens_d'] for impact in grade_impacts.values()]
+        
+        avg_gain = np.mean(all_gains)
+        avg_effect = np.mean(all_cohens_d)
+        
+        return {
+            'average_gain': float(avg_gain),
+            'average_effect_size': float(avg_effect),
+            'effective': avg_gain > 5 and avg_effect > 0.2  # Критерии эффективности
+        }
+    
+    def _create_impact_matrix(self, all_results):
+        """Создаёт матрицу влияния дисциплин на компетенции."""
+        matrix = []
+        
+        for comp, comp_data in all_results.items():
+            if comp_data['status'] == 'success':
+                for disc_result in comp_data['results']:
+                    matrix.append({
+                        'discipline': disc_result['discipline'],
+                        'competency': comp,
+                        'avg_gain': disc_result['summary']['average_gain'],
+                        'effect_size': disc_result['summary']['average_effect_size'],
+                        'effective': disc_result['summary']['effective']
                     })
+        
+        return sorted(matrix, key=lambda x: x['effect_size'], reverse=True)
+    
+    def _rank_disciplines(self, impact_matrix):
+        """Ранжирует дисциплины по эффективности."""
+        # Группируем по дисциплинам
+        discipline_scores = {}
+        
+        for entry in impact_matrix:
+            disc = entry['discipline']
+            if disc not in discipline_scores:
+                discipline_scores[disc] = []
+            
+            discipline_scores[disc].append(entry['effect_size'])
+        
+        # Усредняем эффект по всем компетенциям
+        rankings = []
+        for disc, effects in discipline_scores.items():
+            rankings.append({
+                'discipline': disc,
+                'average_effect': float(np.mean(effects)),
+                'competencies_impacted': len(effects)
+            })
+        
+        return sorted(rankings, key=lambda x: x['average_effect'], reverse=True)
 
-            if trajectory:
-                comp_data[group_name] = trajectory
 
-        if comp_data:
-            growth_trajectory[comp] = comp_data
+# ============================================================
+# CROSS-SECTIONAL ANALYSIS - Анализ в разрезе
+# ============================================================
 
-    return {
-        "status":        "success",
-        "data":          growth_trajectory,
-        "model":         "latent_growth",
-        "group_by":      group_by,
-        "total_records": len(results_list),
-        "groups_count":  len(groups)
-    }
+class CrossSectionalAnalyzer:
+    """
+    Анализ данных в различных разрезах:
+    - По направлениям подготовки
+    - По учебным заведениям
+    - По формам обучения
+    - По курсам
+    """
+    
+    def analyze_by_dimension(self, data, dimension, competency_field):
+        """
+        Анализирует компетенцию в разрезе указанного измерения.
+        
+        Args:
+            data: DataFrame с данными
+            dimension: Измерение для группировки (institution, spec, form, course)
+            competency_field: Поле компетенции
+        
+        Returns:
+            dict: Результаты анализа
+        """
+        results = []
+        
+        for group_value, group_df in data.groupby(dimension):
+            scores = group_df[competency_field].dropna()
+            
+            if len(scores) < 5:
+                continue
+            
+            results.append({
+                'group': str(group_value),
+                'n': len(scores),
+                'mean': float(scores.mean()),
+                'std': float(scores.std()),
+                'median': float(scores.median()),
+                'min': float(scores.min()),
+                'max': float(scores.max()),
+                'q25': float(scores.quantile(0.25)),
+                'q75': float(scores.quantile(0.75))
+            })
+        
+        # ANOVA для проверки различий между группами
+        if len(results) >= 2:
+            groups_data = [data[data[dimension] == r['group']][competency_field].dropna() for r in results]
+            f_stat, p_value = stats.f_oneway(*groups_data)
+            
+            return {
+                'status': 'success',
+                'dimension': dimension,
+                'competency': competency_field,
+                'groups': results,
+                'anova': {
+                    'f_statistic': float(f_stat),
+                    'p_value': float(p_value),
+                    'significant_difference': p_value < 0.05
+                }
+            }
+        
+        return {
+            'status': 'success',
+            'dimension': dimension,
+            'competency': competency_field,
+            'groups': results
+        }
+    
+    def compare_all_dimensions(self, data, competency_field):
+        """Сравнивает все измерения для одной компетенции."""
+        dimensions = ['institution', 'spec', 'form', 'course']
+        
+        results = {}
+        for dim in dimensions:
+            if dim in data.columns:
+                results[dim] = self.analyze_by_dimension(data, dim, competency_field)
+        
+        return results
