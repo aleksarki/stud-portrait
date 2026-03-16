@@ -164,7 +164,7 @@ class TableParticipants:
     """ Columns of Participants database table.
     """
     ID =          'part_id'
-    NAME =        'part_name'
+    RSV_ID =      'part_rsv_id'
     GENDER =      'part_gender'
     INSTITUTION = 'part_institution'
     EDU_SPEC =    'part_spec'

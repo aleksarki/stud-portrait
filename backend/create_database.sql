@@ -1,5 +1,9 @@
+-- ═══════════════════════════════════════════════════════════
+-- ОБНОВЛЁННАЯ СХЕМА БД (с part_rsv_id и таблицей связи)
+-- ═══════════════════════════════════════════════════════════
 
 -- Удаляем старые таблицы (если они были)
+DROP TABLE IF EXISTS StudentMapping CASCADE;
 DROP TABLE IF EXISTS Course CASCADE;
 DROP TABLE IF EXISTS Results CASCADE;
 DROP TABLE IF EXISTS Participants CASCADE;
@@ -33,30 +37,48 @@ CREATE TABLE EducationLevels
 
 -- Форма обучения (Очная, Заочная, Очно-заочная)
 CREATE TABLE StudyForms
-(1
-    form_id    INTEGER PRIMARY KEY  GENERATED ALWAYS AS IDENTITY,
-    form_name  VARCHAR(256)         NOT NULL
+(
+    form_id    INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    form_name  VARCHAR(256)  NOT NULL
 );
 
 -- Специальность
 CREATE TABLE Specialties
 (
-    spec_id    INTEGER PRIMARY KEY  GENERATED ALWAYS AS IDENTITY,
-    spec_name  VARCHAR(512)         NOT NULL
+    spec_id    INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    spec_name  VARCHAR(512)  NOT NULL
 );
+
+-- НОВАЯ ТАБЛИЦА: Связь ID РСВ → ФИО студента
+CREATE TABLE StudentMapping
+(
+    mapping_id      INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    rsv_id          VARCHAR(512)  NOT NULL UNIQUE,  -- ID из тестирования РСВ
+    student_name    VARCHAR(512)  NOT NULL,         -- Полное ФИО студента
+    student_gender  VARCHAR(16),                    -- Пол студента
+    created_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Индекс для быстрого поиска по RSV ID
+CREATE INDEX idx_student_mapping_rsv_id ON StudentMapping(rsv_id);
 
 -- Участник
 CREATE TABLE Participants
 (
     part_id           INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    part_name         VARCHAR(512)  NOT NULL,
+    part_rsv_id       VARCHAR(512)  NOT NULL,  -- ID из тестирования РСВ (не ФИО!)
     part_gender       VARCHAR(16),
     part_institution  INT           REFERENCES Institutions(inst_id)         ON DELETE RESTRICT ON UPDATE CASCADE,
     part_spec         INT           REFERENCES Specialties(spec_id)          ON DELETE RESTRICT ON UPDATE CASCADE,
     part_edu_level    INT           REFERENCES EducationLevels(edu_level_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     part_form         INT           REFERENCES StudyForms(form_id)           ON DELETE RESTRICT ON UPDATE CASCADE,
-    part_course_num   INT
+    part_course_num   INT,
+    
+    UNIQUE(part_rsv_id)  -- Уникальность по RSV ID
 );
+
+-- Индекс для быстрого поиска
+CREATE INDEX idx_participants_rsv_id ON Participants(part_rsv_id);
 
 -- Результаты участников
 CREATE TABLE Results
@@ -111,7 +133,10 @@ CREATE TABLE Results
     res_val_patriotism       INT,
     res_val_family           INT,
     res_val_health           INT,
-    res_val_environment      INT
+    res_val_environment      INT,
+    
+    -- Уникальность: один результат на участника + год + курс
+    UNIQUE(res_participant, res_year, res_course_num)
 );
 
 -- Результаты участников по курсам
@@ -121,28 +146,28 @@ CREATE TABLE Course
     course_participant  INT      NOT NULL REFERENCES Participants(part_id) ON DELETE CASCADE ON UPDATE CASCADE,
 
     -- === Курсы (оценки по каждому курсу, от 0.00 до 1.00) ===
-    course_an_dec                  DECIMAL(5,2),  -- Анализ информации для принятия решений
-    course_client_focus            DECIMAL(5,2),  -- Клиентоориентированность
-    course_communication           DECIMAL(5,2),  -- Коммуникативная грамотность
-    course_leadership              DECIMAL(5,2),  -- Лидерство: основы
-    course_result_orientation      DECIMAL(5,2),  -- Ориентация на результат
-    course_planning_org            DECIMAL(5,2),  -- Планирование и организация
-    course_rules_culture           DECIMAL(5,2),  -- Роль культуры правил...
-    course_self_dev                DECIMAL(5,2),  -- Саморазвитие
-    course_collaboration           DECIMAL(5,2),  -- Сотрудничество
-    course_stress_resistance       DECIMAL(5,2),  -- Стрессоустойчивость
-    course_emotions_communication  DECIMAL(5,2),  -- Эмоции и коммуникация
-    course_negotiations            DECIMAL(5,2),  -- Искусство деловых переговоров
-    course_digital_comm            DECIMAL(5,2),  -- Коммуникация в цифровой среде
-    course_effective_learning      DECIMAL(5,2),  -- Навыки эффективного обучения
-    course_entrepreneurship        DECIMAL(5,2),  -- Предпринимательское мышление
-    course_creativity_tech         DECIMAL(5,2),  -- Технологии креативности
-    course_trendwatching           DECIMAL(5,2),  -- Трендвотчинг
-    course_conflict_management     DECIMAL(5,2),  -- Управление конфликтами
-    course_career_management       DECIMAL(5,2),  -- Управляй своей карьерой
-    course_burnout                 DECIMAL(5,2),  -- Эмоциональное выгорание
-    course_cross_cultural_comm     DECIMAL(5,2),  -- Межкультурные коммуникации
-    course_mentoring               DECIMAL(5,2)   -- Я — наставник
+    course_an_dec                  DECIMAL(5,2),
+    course_client_focus            DECIMAL(5,2),
+    course_communication           DECIMAL(5,2),
+    course_leadership              DECIMAL(5,2),
+    course_result_orientation      DECIMAL(5,2),
+    course_planning_org            DECIMAL(5,2),
+    course_rules_culture           DECIMAL(5,2),
+    course_self_dev                DECIMAL(5,2),
+    course_collaboration           DECIMAL(5,2),
+    course_stress_resistance       DECIMAL(5,2),
+    course_emotions_communication  DECIMAL(5,2),
+    course_negotiations            DECIMAL(5,2),
+    course_digital_comm            DECIMAL(5,2),
+    course_effective_learning      DECIMAL(5,2),
+    course_entrepreneurship        DECIMAL(5,2),
+    course_creativity_tech         DECIMAL(5,2),
+    course_trendwatching           DECIMAL(5,2),
+    course_conflict_management     DECIMAL(5,2),
+    course_career_management       DECIMAL(5,2),
+    course_burnout                 DECIMAL(5,2),
+    course_cross_cultural_comm     DECIMAL(5,2),
+    course_mentoring               DECIMAL(5,2)
 );
 
 -- Итоги успеваемости участников
@@ -151,16 +176,20 @@ CREATE TABLE AcademicPerformance
     perf_id       INTEGER  PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     perf_part_id  INT      NOT NULL REFERENCES Participants(part_id) ON DELETE CASCADE ON UPDATE CASCADE,
 
-    perf_year  VARCHAR(9)  NOT NULL,   -- формат "2023/2024"
+    perf_year        VARCHAR(9)   NOT NULL,      -- формат "2023/2024"
+    perf_discipline  VARCHAR(200) NOT NULL,      -- НОВОЕ: название дисциплины
 
-    perf_current_avg      DECIMAL(4,1),  -- итог текущей успеваемости (одна цифра после запятой)
-    perf_digital_culture  DECIMAL(5,2),  -- цифровая культура (две цифры после запятой)
+    perf_current_avg      DECIMAL(5,2),  -- итог текущей успеваемости
+    perf_digital_culture  DECIMAL(5,2),  -- цифровая культура
 
     perf_main_attestation   VARCHAR(16),
     perf_first_retake       VARCHAR(16),
     perf_second_retake      VARCHAR(16),
     perf_high_grade_retake  VARCHAR(16),
     perf_final_grade        VARCHAR(16),
+
+    -- Уникальность: один результат на студента + год + дисциплина
+    UNIQUE(perf_part_id, perf_year, perf_discipline),
 
     -- Ограничение допустимых значений аттестаций
     CONSTRAINT chk_attestation_values CHECK (
@@ -179,3 +208,54 @@ CREATE TABLE AcademicPerformance
         perf_final_grade IN ('отл.', 'хор.', 'удовл.', 'неудовл.', 'не явился') OR perf_final_grade IS NULL
     )
 );
+
+-- Индекс для быстрого поиска
+CREATE INDEX idx_academic_performance_discipline ON AcademicPerformance(perf_discipline);
+
+-- ═══════════════════════════════════════════════════════════
+-- ПРЕДСТАВЛЕНИЯ (VIEWS) ДЛЯ УДОБСТВА
+-- ═══════════════════════════════════════════════════════════
+
+-- VIEW: Участники с их ФИО
+CREATE OR REPLACE VIEW participants_with_names AS
+SELECT 
+    p.part_id,
+    p.part_rsv_id,
+    COALESCE(sm.student_name, 'Участник ' || p.part_rsv_id) as student_name,
+    p.part_gender,
+    p.part_institution,
+    p.part_spec,
+    p.part_edu_level,
+    p.part_form,
+    p.part_course_num
+FROM Participants p
+LEFT JOIN StudentMapping sm ON p.part_rsv_id = sm.rsv_id;
+
+-- VIEW: Результаты с ФИО студентов
+CREATE OR REPLACE VIEW results_with_names AS
+SELECT 
+    r.*,
+    COALESCE(sm.student_name, 'Участник ' || p.part_rsv_id) as student_name
+FROM Results r
+JOIN Participants p ON r.res_participant = p.part_id
+LEFT JOIN StudentMapping sm ON p.part_rsv_id = sm.rsv_id;
+
+-- VIEW: Успеваемость с ФИО студентов
+CREATE OR REPLACE VIEW academic_performance_with_names AS
+SELECT 
+    ap.*,
+    COALESCE(sm.student_name, 'Участник ' || p.part_rsv_id) as student_name
+FROM AcademicPerformance ap
+JOIN Participants p ON ap.perf_part_id = p.part_id
+LEFT JOIN StudentMapping sm ON p.part_rsv_id = sm.rsv_id;
+
+-- ═══════════════════════════════════════════════════════════
+-- КОММЕНТАРИИ К ТАБЛИЦАМ
+-- ═══════════════════════════════════════════════════════════
+
+COMMENT ON TABLE StudentMapping IS 'Связь между ID РСВ и ФИО студента';
+COMMENT ON COLUMN StudentMapping.rsv_id IS 'ID участника из тестирования РСВ';
+COMMENT ON COLUMN StudentMapping.student_name IS 'Полное ФИО студента';
+
+COMMENT ON COLUMN Participants.part_rsv_id IS 'ID из тестирования РСВ (НЕ ФИО!)';
+COMMENT ON COLUMN AcademicPerformance.perf_discipline IS 'Название учебной дисциплины';

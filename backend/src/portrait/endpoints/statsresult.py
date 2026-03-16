@@ -21,7 +21,7 @@ def courses(request):
             "course_id": course.course_id,
             "participant": {
                 "part_id":     course.course_participant.part_id,
-                "part_name":   course.course_participant.part_name,
+                "part_rsv_id":   course.course_participant.part_rsv_id,
                 "part_gender": course.course_participant.part_gender,
                 "institution": attrIfObj(course.course_participant.part_institution, 'inst_name'),
                 "specialty":   attrIfObj(course.course_participant.part_spec,        'spec_name'),
@@ -93,7 +93,7 @@ def student_results(request):
     return {
         "student": {
             "stud_id":     participant.part_id,
-            "stud_name":   participant.part_name,
+            "stud_rsv_id":   participant.part_rsv_id,
             "stud_gender": participant.part_gender,
             "institution": attrIfObj(participant.part_institution, 'inst_name'),
             "specialty":   attrIfObj(participant.part_spec,        'spec_name'),
@@ -336,13 +336,13 @@ def get_filter_options_with_counts(request):
     students_query = Participants.objects         \
         .annotate(results_count=Count('results')) \
         .filter(results_count__gt=0)              \
-        .order_by('part_name')[:1000]  # limit by 1000 for performance
+        .order_by('part_rsv_id')[:1000]  # limit by 1000 for performance
 
     students_list = [
         {
-            "id":    student.part_id,
-            "name":  f"{student.part_name} (ID: {student.part_id})",
-            "count": student.results_count
+            "id":     student.part_id,
+            "rsv_id": f"{student.part_rsv_id} (ID: {student.part_id})",
+            "count":  student.results_count
         }
         for student in students_query
     ]

@@ -70,7 +70,7 @@ def get_student_resume_data(request):
         # Формируем базовые данные
         resume_data = {
             'personal_info': {
-                'name': participant.part_name or '',
+                'name': participant.part_rsv_id or '',
                 'gender': participant.part_gender or '',
                 'student_id': student_id
             },

@@ -473,7 +473,7 @@ def format_result_data(result, visible_columns=None):
         "res_id": result.res_id,
         "participant": {
             "part_id":        result.res_participant.part_id,
-            "part_name":      result.res_participant.part_name,
+            "part_rsv_id":      result.res_participant.part_rsv_id,
             "part_gender":    result.res_participant.part_gender,
         },
         "center":             result.res_center.center_name       if result.res_center      else None,
@@ -523,7 +523,7 @@ def format_result_for_export(result, visible_columns=None):  # analogous to form
     """
     row = {
         "ID результата":       result.res_id,
-        "ФИО участника":       result.res_participant.part_name,
+        "ID РСВ результата":   result.res_participant.part_rsv_id,
         "Пол":                 result.res_participant.part_gender,
         "Центр компетенций":   result.res_center.center_name       if result.res_center      else "",
         "Учебное заведение":   result.res_institution.inst_name    if result.res_institution else "",

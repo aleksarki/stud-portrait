@@ -286,7 +286,7 @@ def calculate_cross_sectional_vam(results_list, competencies):
 
         data.append({
             "participant_id":    row.res_participant_id,
-            "participant_name":  participant.part_name if participant else "Unknown",
+            "rsv_id":            participant.part_rsv_id if participant else "Unknown",
             "year":              row.res_year,
             "course":            course,
             "mean_vam":          round(mean_vam, 3),
@@ -398,7 +398,7 @@ def calculate_longitudinal_vam(results_list, competencies):
 
             data.append({
                 "participant_id":    participant_id,
-                "participant_name":  participant.part_name if participant else "Unknown",
+                "rsv_id":  participant.part_rsv_id if participant else "Unknown",
                 "from_year":         prev_row.res_year,
                 "to_year":           curr_row.res_year,
                 "from_course":       prev_row.res_course_num,
