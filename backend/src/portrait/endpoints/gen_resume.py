@@ -1,9 +1,9 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods
-from ..models import Participants, Results
+
 from datetime import datetime
 
+from .common import *
 from .ml_utils import (
     predict_competency_level,
     generate_interpretation,
@@ -12,25 +12,11 @@ from .ml_utils import (
     get_level_color
 )
 
-# Маппинг полей компетенций на русские названия
-COMPETENCY_NAMES = {
-    'res_comp_leadership': 'Лидерство',
-    'res_comp_communication': 'Коммуникация',
-    'res_comp_self_development': 'Саморазвитие',
-    'res_comp_result_orientation': 'Ориентация на результат',
-    'res_comp_stress_resistance': 'Стрессоустойчивость',
-    'res_comp_client_focus': 'Клиентоориентированность',
-    'res_comp_planning': 'Планирование',
-    'res_comp_info_analysis': 'Анализ информации',
-    'res_comp_partnership': 'Партнёрство',
-    'res_comp_rules_compliance': 'Соблюдение правил',
-    'res_comp_emotional_intel': 'Эмоциональный интеллект',
-    'res_comp_passive_vocab': 'Пассивный словарь'
-}
 
+# ====== ENDPOINTS ====== #
 
+@method('GET')
 @csrf_exempt
-@require_http_methods(["GET"])
 def get_student_resume_data(request):
     """
     Возвращает данные для резюме студента в формате JSON.
@@ -51,8 +37,6 @@ def get_student_resume_data(request):
         student_id = request.GET.get('student_id')
         with_ai = request.GET.get('with_ai', 'true').lower() == 'true'
         
-        print(f"📄 Генерация данных резюме для студента {student_id}")
-        
         if not student_id:
             return JsonResponse({
                 'status': 'error',
@@ -61,12 +45,9 @@ def get_student_resume_data(request):
         
         # Получаем данные студента
         try:
-            participant = Participants.objects.select_related(
-                'part_institution',
-                'part_spec',
-                'part_form',
-                'part_edu_level'
-            ).get(part_id=student_id)
+            participant = Participants.objects                                                  \
+                .select_related('part_institution', 'part_spec', 'part_form', 'part_edu_level') \
+                .get(part_id=student_id)
         except Participants.DoesNotExist:
             return JsonResponse({
                 'status': 'error',
@@ -74,9 +55,9 @@ def get_student_resume_data(request):
             }, status=404)
         
         # Получаем результаты студента (последние сверху)
-        results = Results.objects.filter(
-            res_participant=participant
-        ).order_by('-res_year', '-res_course_num')
+        results = Results.objects                \
+            .filter(res_participant=participant) \
+            .order_by('-res_year', '-res_course_num')
         
         if not results.exists():
             return JsonResponse({
@@ -134,7 +115,7 @@ def get_student_resume_data(request):
             if not score or score == 0:
                 continue
             
-            comp_name = COMPETENCY_NAMES.get(comp_field, comp_field)
+            comp_name = COMP.names[comp_field]
             
             # Базовые данные компетенции
             comp_data = {
@@ -181,12 +162,9 @@ def get_student_resume_data(request):
                     }
                     
                 except Exception as e:
-                    print(f"   ⚠️ Ошибка AI для {comp_name}: {str(e)}")
                     comp_data['ai'] = None
             
             resume_data['competencies'].append(comp_data)
-        
-        print(f"   ✅ Данные резюме сформированы: {len(resume_data['competencies'])} компетенций")
         
         return JsonResponse({
             'status': 'success',
@@ -194,7 +172,6 @@ def get_student_resume_data(request):
         }, json_dumps_params={'ensure_ascii': False})
         
     except Exception as e:
-        print(f"❌ Ошибка генерации резюме: {str(e)}")
         import traceback
         traceback.print_exc()
         

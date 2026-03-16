@@ -3,9 +3,8 @@ import { useParams } from "react-router-dom";
 import { getPortraitStudentResults } from "../../api";
 import { getAvailableProfiles, getAvailableCategories, prepareCategoryTableData, RESULT_PROFILES } from "../../utilities";
 
-import Header from "../../components/Header";
 import ResultTable from "../../components/ResultTable";
-import { Sidebar, SidebarLayout, SidebarLayoutContent } from "../../components/SidebarLayout";
+import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 import Subtitle from "../../components/Subtitle";
 import Title from "../../components/Title";
 
@@ -93,11 +92,11 @@ function StudentReportView() {
 
     return (
         <div className="StudentReportView">
-            <Header title="Результаты" name={`${studResults?.student?.stud_name}`} />
-            <Title title={reportTitle} />
-            <SidebarLayout>
+            <SidebarLayout style={LAYOUT_STYLE.NORMAL}>
+                <Header title="Результаты" name={`${studResults?.student?.stud_name}`} />
                 <Sidebar links={linkList} />
-                <SidebarLayoutContent>
+                <Content>
+                    <Title title={reportTitle} />
                     <div className="report-container">
                         {loading ? (
                             <div className="loading">Загрузка данных...</div>
@@ -115,7 +114,7 @@ function StudentReportView() {
                             <div className="no-data">Нет данных для отображения</div>
                         )}
                     </div>
-                </SidebarLayoutContent>
+                </Content>
             </SidebarLayout>
         </div>
     );

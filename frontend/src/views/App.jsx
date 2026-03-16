@@ -1,11 +1,15 @@
-import Header from '../components/Header';
+import { Content, Header, SidebarLayout } from '../components/SidebarLayout';
 import './App.scss';
 
 function App() {
   return (
     <div className="App">
-      <Header />
-      <span>First steps</span>
+      <SidebarLayout>
+        <Header />
+        <Content>
+          <span>First steps</span>
+        </Content>
+      </SidebarLayout>
     </div>
   );
 }

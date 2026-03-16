@@ -4,8 +4,7 @@ import {
     CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from "recharts";
 
-import Header from "../../components/Header";
-import { Sidebar, SIDEBAR_STYLE, SidebarLayout, SidebarLayoutContent } from "../../components/SidebarLayout";
+import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 import Button from '../../components/ui/Button.jsx';
 import MultiSelect from '../../components/ui/MultiSelect';
 import {
@@ -863,220 +862,213 @@ function AdminAnalysisView() {
 
     return (
         <div className="AdminAnalysisView">
-            <Header
-                title="Админ: Анализ данных"
-                name="Администратор1"
-                style="modeus"
-            />
+            <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
+                <Header title="Админ: Анализ данных" name="Администратор1" />
+                <Sidebar links={linkList} />
+                <Content>
+                    <h2>Анализ развития компетенций</h2>
 
-            <div className="main-area">
-                <SidebarLayout style={SIDEBAR_STYLE.MODEUS}>
-                    <Sidebar links={linkList} />
-                    <SidebarLayoutContent>
-                        <h2>Анализ развития компетенций</h2>
-
-                        {/* Сводная статистика */}
-                        {summaryStats && (
-                            <div className="summary-stats">
-                                <div className="stat-card">
-                                    <div className="stat-value">{summaryStats.total_students}</div>
-                                    <div className="stat-label">Всего студентов</div>
-                                </div>
-                                <div className="stat-card">
-                                    <div className="stat-value">{summaryStats.total_measurements}</div>
-                                    <div className="stat-label">Всего замеров</div>
-                                </div>
-                                <div className="stat-card">
-                                    <div className="stat-value">{summaryStats.longitudinal_eligible}</div>
-                                    <div className="stat-label">С повторными замерами</div>
-                                </div>
+                    {/* Сводная статистика */}
+                    {summaryStats && (
+                        <div className="summary-stats">
+                            <div className="stat-card">
+                                <div className="stat-value">{summaryStats.total_students}</div>
+                                <div className="stat-label">Всего студентов</div>
                             </div>
-                        )}
+                            <div className="stat-card">
+                                <div className="stat-value">{summaryStats.total_measurements}</div>
+                                <div className="stat-label">Всего замеров</div>
+                            </div>
+                            <div className="stat-card">
+                                <div className="stat-value">{summaryStats.longitudinal_eligible}</div>
+                                <div className="stat-label">С повторными замерами</div>
+                            </div>
+                        </div>
+                    )}
 
-                        {/* КНОПКИ VAM/LGM (ДОБАВЛЕНО!) */}
-                        <div className="analysis-method-section">
-                            <h3>Метод анализа</h3>
-                            <div className="analysis-method-buttons">
+                    {/* КНОПКИ VAM/LGM (ДОБАВЛЕНО!) */}
+                    <div className="analysis-method-section">
+                        <h3>Метод анализа</h3>
+                        <div className="analysis-method-buttons">
+                            <Button
+                                text="Value-Added Model (VAM)"
+                                onClick={() => setAnalysisMethod("vam")}
+                                fg={analysisMethod === "vam" ? "white" : "#1976d2"}
+                                bg={analysisMethod === "vam" ? "#1976d2" : "white"}
+                                border="1px solid #1976d2"
+                            />
+                            <Button
+                                text="Latent Growth Model (LGM)"
+                                onClick={() => setAnalysisMethod("lgm")}
+                                fg={analysisMethod === "lgm" ? "white" : "#1976d2"}
+                                bg={analysisMethod === "lgm" ? "#1976d2" : "white"}
+                                border="1px solid #1976d2"
+                            />
+                        </div>
+                        <p className="method-description">
+                            {analysisMethod === "vam" 
+                                ? "VAM показывает отклонение результата студента от ожидаемого уровня."
+                                : "LGM показывает средние траектории развития компетенций на уровне популяции."}
+                        </p>
+                    </div>
+
+                    {/* Data Quality Warning */}
+                    {renderDataQualityWarning()}
+
+                    {/* Контролы */}
+                    <div className="controls">
+                        <div className="control-section">
+                            <h3>Тип визуализации</h3>
+                            <div className="button-group">
                                 <Button
-                                    text="Value-Added Model (VAM)"
-                                    onClick={() => setAnalysisMethod("vam")}
-                                    fg={analysisMethod === "vam" ? "white" : "#1976d2"}
-                                    bg={analysisMethod === "vam" ? "#1976d2" : "white"}
-                                    border="1px solid #1976d2"
+                                    text="📊 Распределение"
+                                    onClick={() => setVisualizationType("bar")}
+                                    fg={visualizationType === "bar" ? "white" : "#666"}
+                                    bg={visualizationType === "bar" ? "#28a745" : "white"}
+                                    border="1px solid #28a745"
                                 />
                                 <Button
-                                    text="Latent Growth Model (LGM)"
-                                    onClick={() => setAnalysisMethod("lgm")}
-                                    fg={analysisMethod === "lgm" ? "white" : "#1976d2"}
-                                    bg={analysisMethod === "lgm" ? "#1976d2" : "white"}
-                                    border="1px solid #1976d2"
+                                    text="📈 Динамика"
+                                    onClick={() => setVisualizationType("line")}
+                                    fg={visualizationType === "line" ? "white" : "#666"}
+                                    bg={visualizationType === "line" ? "#28a745" : "white"}
+                                    border="1px solid #28a745"
+                                />
+                                <Button
+                                    text="⚖️ Сравнение групп"
+                                    onClick={() => setVisualizationType("comparison")}
+                                    fg={visualizationType === "comparison" ? "white" : "#666"}
+                                    bg={visualizationType === "comparison" ? "#28a745" : "white"}
+                                    border="1px solid #28a745"
                                 />
                             </div>
-                            <p className="method-description">
-                                {analysisMethod === "vam" 
-                                    ? "VAM показывает отклонение результата студента от ожидаемого уровня."
-                                    : "LGM показывает средние траектории развития компетенций на уровне популяции."}
-                            </p>
                         </div>
 
-                        {/* Data Quality Warning */}
-                        {renderDataQualityWarning()}
+                        <div className="control-section">
+                            <h3>Фильтры</h3>
 
-                        {/* Контролы */}
-                        <div className="controls">
-                            <div className="control-section">
-                                <h3>Тип визуализации</h3>
-                                <div className="button-group">
+                            <div className="filters-grid">
+                                <MultiSelect
+                                    options={filterOptions.institutions}
+                                    value={selectedInstitutions}
+                                    onChange={setSelectedInstitutions}
+                                    placeholder="Все ВУЗы"
+                                    searchPlaceholder="Поиск ВУЗов..."
+                                    label="Учебные заведения"
+                                    withSearch={true}
+                                    showCounts={true}
+                                />
+
+                                <MultiSelect
+                                    options={filterOptions.directions}
+                                    value={selectedDirections}
+                                    onChange={setSelectedDirections}
+                                    placeholder="Все направления"
+                                    searchPlaceholder="Поиск направлений..."
+                                    label="Направления подготовки"
+                                    withSearch={true}
+                                    showCounts={true}
+                                />
+
+                                <MultiSelect
+                                    options={filterOptions.courses}
+                                    value={selectedCourses}
+                                    onChange={setSelectedCourses}
+                                    placeholder="Все курсы"
+                                    label="Курсы"
+                                    withSearch={false}
+                                    showCounts={true}
+                                />
+
+                                <MultiSelect
+                                    options={filterOptions.testAttempts}
+                                    value={selectedTestAttempts}
+                                    onChange={setSelectedTestAttempts}
+                                    placeholder="Все прохождения"
+                                    label="Количество прохождений"
+                                    withSearch={false}
+                                    showCounts={true}
+                                />
+
+                                {/* ФИЛЬТР КОМПЕТЕНЦИЙ (ДОБАВЛЕНО!) */}
+                                <MultiSelect
+                                    options={filterOptions.competencies}
+                                    value={selectedCompetencies}
+                                    onChange={setSelectedCompetencies}
+                                    placeholder="Все компетенции"
+                                    searchPlaceholder="Поиск компетенций..."
+                                    label="Компетенции"
+                                    withSearch={true}
+                                    showCounts={true}  // ← ИЗМЕНИТЕ С false НА true!
+                                />
+
+                                <MultiSelect
+                                    options={filterOptions.students}
+                                    value={selectedStudents}
+                                    onChange={setSelectedStudents}
+                                    placeholder="Все студенты"
+                                    searchPlaceholder="Поиск по имени или ID..."
+                                    label="Студенты (индивидуальный анализ)"
+                                    withSearch={true}
+                                    showCounts={true}
+                                    maxHeight="400px"
+                                />
+
+                                <div className="filter-actions">
                                     <Button
-                                        text="📊 Распределение"
-                                        onClick={() => setVisualizationType("bar")}
-                                        fg={visualizationType === "bar" ? "white" : "#666"}
-                                        bg={visualizationType === "bar" ? "#28a745" : "white"}
-                                        border="1px solid #28a745"
+                                        text={`${loading ? '⏳' : '🔄'} Обновить`}
+                                        onClick={() => analysisMethod === "vam" ? loadVAMData() : loadLGMData()}
+                                        disabled={!sessionId || loading}
+                                        fg="white"
+                                        bg="#17a2b8"
+                                        hoverBg="#138496"
+                                        disabledBg="#6c757d"
                                     />
+                                    
+                                    {/* НОВАЯ КНОПКА ОЧИСТКИ! */}
                                     <Button
-                                        text="📈 Динамика"
-                                        onClick={() => setVisualizationType("line")}
-                                        fg={visualizationType === "line" ? "white" : "#666"}
-                                        bg={visualizationType === "line" ? "#28a745" : "white"}
-                                        border="1px solid #28a745"
-                                    />
-                                    <Button
-                                        text="⚖️ Сравнение групп"
-                                        onClick={() => setVisualizationType("comparison")}
-                                        fg={visualizationType === "comparison" ? "white" : "#666"}
-                                        bg={visualizationType === "comparison" ? "#28a745" : "white"}
-                                        border="1px solid #28a745"
+                                        text="🗑️ Очистить фильтры"
+                                        onClick={clearAllFilters}
+                                        fg="#666"
+                                        bg="white"
+                                        border="1px solid #ddd"
+                                        hoverBg="#f5f5f5"
                                     />
                                 </div>
                             </div>
-
-                            <div className="control-section">
-                                <h3>Фильтры</h3>
-
-                                <div className="filters-grid">
-                                    <MultiSelect
-                                        options={filterOptions.institutions}
-                                        value={selectedInstitutions}
-                                        onChange={setSelectedInstitutions}
-                                        placeholder="Все ВУЗы"
-                                        searchPlaceholder="Поиск ВУЗов..."
-                                        label="Учебные заведения"
-                                        withSearch={true}
-                                        showCounts={true}
-                                    />
-
-                                    <MultiSelect
-                                        options={filterOptions.directions}
-                                        value={selectedDirections}
-                                        onChange={setSelectedDirections}
-                                        placeholder="Все направления"
-                                        searchPlaceholder="Поиск направлений..."
-                                        label="Направления подготовки"
-                                        withSearch={true}
-                                        showCounts={true}
-                                    />
-
-                                    <MultiSelect
-                                        options={filterOptions.courses}
-                                        value={selectedCourses}
-                                        onChange={setSelectedCourses}
-                                        placeholder="Все курсы"
-                                        label="Курсы"
-                                        withSearch={false}
-                                        showCounts={true}
-                                    />
-
-                                    <MultiSelect
-                                        options={filterOptions.testAttempts}
-                                        value={selectedTestAttempts}
-                                        onChange={setSelectedTestAttempts}
-                                        placeholder="Все прохождения"
-                                        label="Количество прохождений"
-                                        withSearch={false}
-                                        showCounts={true}
-                                    />
-
-                                    {/* ФИЛЬТР КОМПЕТЕНЦИЙ (ДОБАВЛЕНО!) */}
-                                    <MultiSelect
-                                        options={filterOptions.competencies}
-                                        value={selectedCompetencies}
-                                        onChange={setSelectedCompetencies}
-                                        placeholder="Все компетенции"
-                                        searchPlaceholder="Поиск компетенций..."
-                                        label="Компетенции"
-                                        withSearch={true}
-                                        showCounts={true}  // ← ИЗМЕНИТЕ С false НА true!
-                                    />
-
-                                    <MultiSelect
-                                        options={filterOptions.students}
-                                        value={selectedStudents}
-                                        onChange={setSelectedStudents}
-                                        placeholder="Все студенты"
-                                        searchPlaceholder="Поиск по имени или ID..."
-                                        label="Студенты (индивидуальный анализ)"
-                                        withSearch={true}
-                                        showCounts={true}
-                                        maxHeight="400px"
-                                    />
-
-                                    <div className="filter-actions">
-                                        <Button
-                                            text={`${loading ? '⏳' : '🔄'} Обновить`}
-                                            onClick={() => analysisMethod === "vam" ? loadVAMData() : loadLGMData()}
-                                            disabled={!sessionId || loading}
-                                            fg="white"
-                                            bg="#17a2b8"
-                                            hoverBg="#138496"
-                                            disabledBg="#6c757d"
-                                        />
-                                        
-                                        {/* НОВАЯ КНОПКА ОЧИСТКИ! */}
-                                        <Button
-                                            text="🗑️ Очистить фильтры"
-                                            onClick={clearAllFilters}
-                                            fg="#666"
-                                            bg="white"
-                                            border="1px solid #ddd"
-                                            hoverBg="#f5f5f5"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
                         </div>
+                    </div>
 
-                        {/* СЕТКА ГРАФИКОВ (ОБНОВЛЕНО!) */}
-                        {renderChartsGrid()}
+                    {/* СЕТКА ГРАФИКОВ (ОБНОВЛЕНО!) */}
+                    {renderChartsGrid()}
 
-                        {/* Интерпретация (ОБНОВЛЕНО!) */}
-                        <div className="interpretation">
-                            <h3>💡 Интерпретация результатов</h3>
-                            <div className="interpretation-content">
-                                {analysisMethod === "vam" ? (
-                                    <>
-                                        <p><strong>VAM (Value-Added Measure)</strong> показывает:</p>
-                                        <ul>
-                                            <li><strong>Положительное значение (+)</strong> - студент развивается быстрее ожидаемого</li>
-                                            <li><strong>Ноль (0)</strong> - развитие соответствует ожиданиям</li>
-                                            <li><strong>Отрицательное значение (-)</strong> - развитие медленнее ожидаемого</li>
-                                        </ul>
-                                    </>
-                                ) : (
-                                    <>
-                                        <p><strong>LGM (Latent Growth Model)</strong> показывает:</p>
-                                        <ul>
-                                            <li>Средние траектории развития компетенций на уровне популяции</li>
-                                            <li>Общую динамику изменения компетенций от курса к курсу</li>
-                                            <li>Тенденции роста или снижения показателей</li>
-                                        </ul>
-                                    </>
-                                )}
-                            </div>
+                    {/* Интерпретация (ОБНОВЛЕНО!) */}
+                    <div className="interpretation">
+                        <h3>💡 Интерпретация результатов</h3>
+                        <div className="interpretation-content">
+                            {analysisMethod === "vam" ? (
+                                <>
+                                    <p><strong>VAM (Value-Added Measure)</strong> показывает:</p>
+                                    <ul>
+                                        <li><strong>Положительное значение (+)</strong> - студент развивается быстрее ожидаемого</li>
+                                        <li><strong>Ноль (0)</strong> - развитие соответствует ожиданиям</li>
+                                        <li><strong>Отрицательное значение (-)</strong> - развитие медленнее ожидаемого</li>
+                                    </ul>
+                                </>
+                            ) : (
+                                <>
+                                    <p><strong>LGM (Latent Growth Model)</strong> показывает:</p>
+                                    <ul>
+                                        <li>Средние траектории развития компетенций на уровне популяции</li>
+                                        <li>Общую динамику изменения компетенций от курса к курсу</li>
+                                        <li>Тенденции роста или снижения показателей</li>
+                                    </ul>
+                                </>
+                            )}
                         </div>
-                    </SidebarLayoutContent>
-                </SidebarLayout>
-            </div>
+                    </div>
+                </Content>
+            </SidebarLayout>
         </div>
     );
 }

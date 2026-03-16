@@ -1,22 +1,4 @@
 .AdminCoursesView {
-    .main-area {
-        padding-top: 50px;
-        font-size: 13px;
-        line-height: 1.5384616;
-        color: #333333;
-        
-        .sidebar-layout {
-            display: flex;
-            width: 100%;
-            
-            .sidebar-content {
-                flex: 1;
-                padding: 20px;
-                margin-left: 0;
-            }
-        }
-    }
-
     .courses-container {
         display: flex;
         flex-direction: column;

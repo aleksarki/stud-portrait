@@ -1,24 +1,7 @@
-import json
-import numpy as np
-from pathlib import Path
-from django.conf import settings
+from .common import *
 
-# Маппинг компетенций
-COMPETENCY_NAMES = {
-    'res_comp_leadership': 'Лидерство',
-    'res_comp_communication': 'Коммуникация',
-    'res_comp_self_development': 'Саморазвитие',
-    'res_comp_result_orientation': 'Ориентация на результат',
-    'res_comp_stress_resistance': 'Стрессоустойчивость',
-    'res_comp_client_focus': 'Клиентоориентированность',
-    'res_comp_planning': 'Планирование',
-    'res_comp_info_analysis': 'Анализ информации',
-    'res_comp_partnership': 'Партнёрство',
-    'res_comp_rules_compliance': 'Соблюдение правил',
-    'res_comp_emotional_intel': 'Эмоциональный интеллект',
-    'res_comp_passive_vocab': 'Пассивный словарь'
-}
 
+# ====== UTILITIES ====== #
 
 def predict_competency_level(score, course=None, other_scores=None):
     """
@@ -135,7 +118,7 @@ def generate_recommendations(competency_field, level, course):
         list: Список рекомендаций
     """
     
-    comp_name = COMPETENCY_NAMES.get(competency_field, 'Компетенция')
+    comp_name = COMP.names.get(competency_field, 'Компетенция')
     
     # База рекомендаций
     recommendations_db = {
