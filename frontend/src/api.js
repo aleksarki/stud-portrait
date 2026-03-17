@@ -197,3 +197,81 @@ export function getPortraitGetLatentGrowth(
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-latent-growth/?${params}`);
     return new AsyncChain(promise);
 }
+
+/* *** Advanced Analysis *** */
+
+/** POST /portrait/analyze-discipline-impact-advanced/ */
+export function postPortraitAnalyzeDisciplineImpactAdvanced(
+    competencies, disciplines, institutionIds, directionIds, minStudents
+) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/analyze-discipline-impact-advanced/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            competencies: competencies || ['res_comp_leadership'],
+            disciplines: disciplines || [],
+            institution_ids: institutionIds || [],
+            direction_ids: directionIds || [],
+            min_students: minStudents || 5
+        })
+    });
+    return new AsyncChain(promise);
+}
+
+/** POST /portrait/get-discipline-heatmap-data/ */
+export function postPortraitGetDisciplineHeatmapData(institutionIds, directionIds) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-discipline-heatmap-data/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            institution_ids: institutionIds || [],
+            direction_ids: directionIds || []
+        })
+    });
+    return new AsyncChain(promise);
+}
+
+/** POST /portrait/get-vam-dotplot-data/ */
+export function postPortraitGetVamDotplotData(groupBy, competency, filterInstitutions) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-vam-dotplot-data/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            group_by: groupBy || 'institution',
+            competency: competency || 'res_comp_leadership',
+            filter_institutions: filterInstitutions || []
+        })
+    });
+    return new AsyncChain(promise);
+}
+
+/** POST /portrait/get-lgm-spaghetti-data/ */
+export function postPortraitGetLgmSpaghettiData(
+    competency, groupBy, includeTrend, filterInstitutions
+) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-lgm-spaghetti-data/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            competency: competency || 'res_comp_leadership',
+            group_by: groupBy || null,
+            include_trend: includeTrend !== false,
+            filter_institutions: filterInstitutions || []
+        })
+    });
+    return new AsyncChain(promise);
+}
+
+/** POST /portrait/get-waterfall-decomposition/ */
+export function postPortraitGetWaterfallDecomposition(institutionId, directionId, competency) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-waterfall-decomposition/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            institution_id: institutionId,
+            direction_id: directionId,
+            competency: competency || 'res_comp_leadership'
+        })
+    });
+    return new AsyncChain(promise);
+}

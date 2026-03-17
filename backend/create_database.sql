@@ -1,7 +1,3 @@
--- ═══════════════════════════════════════════════════════════
--- ОБНОВЛЁННАЯ СХЕМА БД (с part_rsv_id и таблицей связи)
--- ═══════════════════════════════════════════════════════════
-
 -- Удаляем старые таблицы (если они были)
 DROP TABLE IF EXISTS StudentMapping CASCADE;
 DROP TABLE IF EXISTS Course CASCADE;
@@ -248,14 +244,3 @@ SELECT
 FROM AcademicPerformance ap
 JOIN Participants p ON ap.perf_part_id = p.part_id
 LEFT JOIN StudentMapping sm ON p.part_rsv_id = sm.rsv_id;
-
--- ═══════════════════════════════════════════════════════════
--- КОММЕНТАРИИ К ТАБЛИЦАМ
--- ═══════════════════════════════════════════════════════════
-
-COMMENT ON TABLE StudentMapping IS 'Связь между ID РСВ и ФИО студента';
-COMMENT ON COLUMN StudentMapping.rsv_id IS 'ID участника из тестирования РСВ';
-COMMENT ON COLUMN StudentMapping.student_name IS 'Полное ФИО студента';
-
-COMMENT ON COLUMN Participants.part_rsv_id IS 'ID из тестирования РСВ (НЕ ФИО!)';
-COMMENT ON COLUMN AcademicPerformance.perf_discipline IS 'Название учебной дисциплины';

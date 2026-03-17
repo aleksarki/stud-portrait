@@ -12,6 +12,9 @@ import {
     getPortraitGetVamUnified, getPortraitVamSummaryStatistics, postPortraitCreateDataSession 
 } from "../../api.js";
 
+import { DisciplineAnalysisSection } from '../../components/DisciplineAnalysisSection';
+import { AdvancedVisualizationSection } from '../../components/AdvancedVisualizationSection';
+
 import "./AdminAnalysisView.scss";
 
 const COLORS = [
@@ -33,6 +36,7 @@ function AdminAnalysisView() {
     const [selectedStudents, setSelectedStudents] = useState([]);
 
     const [visualizationType, setVisualizationType] = useState("bar");
+    
 
     // Multi-select фильтры
     const [selectedInstitutions, setSelectedInstitutions] = useState([]);
@@ -42,6 +46,8 @@ function AdminAnalysisView() {
 
     const [selectedCompetencies, setSelectedCompetencies] = useState([]);
     const [analysisMethod, setAnalysisMethod] = useState("vam"); // "vam" или "lgm"
+
+    const [analysisTabs, setAnalysisTabs] = useState('vam_lgm');
 
     // ← ДОБАВЛЕНО: Словарь названий компетенций
     const competencyLabels = {
@@ -1067,10 +1073,59 @@ function AdminAnalysisView() {
                             )}
                         </div>
                     </div>
-                </Content>
-            </SidebarLayout>
-        </div>
-    );
-}
+
+                    <div className="analysis-tabs">
+                        <div className="tab-buttons">
+                            <Button
+                                text="🎯 VAM / LGM"
+                                onClick={() => setAnalysisTabs('vam_lgm')}
+                                fg={analysisTabs === 'vam_lgm' ? 'white' : '#666'}
+                                bg={analysisTabs === 'vam_lgm' ? '#1976d2' : 'white'}
+                                border="1px solid #1976d2"
+                            />
+                            <Button
+                                text="📚 Анализ дисциплин"
+                                onClick={() => setAnalysisTabs('disciplines')}
+                                fg={analysisTabs === 'disciplines' ? 'white' : '#666'}
+                                bg={analysisTabs === 'disciplines' ? '#1976d2' : 'white'}
+                                border="1px solid #1976d2"
+                            />
+                            <Button
+                                text="📈 Продвинутые визуализации"
+                                onClick={() => setAnalysisTabs('advanced')}
+                                fg={analysisTabs === 'advanced' ? 'white' : '#666'}
+                                bg={analysisTabs === 'advanced' ? '#1976d2' : 'white'}
+                                border="1px solid #1976d2"
+                            />
+                        </div>
+                    </div>
+
+                    {analysisTabs === 'vam_lgm' && (
+                        <>
+                            {/* Existing VAM/LGM content */}
+                        </>
+                    )}
+
+                    {analysisTabs === 'disciplines' && (
+                        <DisciplineAnalysisSection
+                            filterOptions={filterOptions}
+                            selectedInstitutions={selectedInstitutions}
+                            selectedDirections={selectedDirections}
+                            selectedCompetencies={selectedCompetencies}
+                        />
+                    )}
+
+                    {analysisTabs === 'advanced' && (
+                        <AdvancedVisualizationSection
+                            filterOptions={filterOptions}
+                            selectedInstitutions={selectedInstitutions}
+                            selectedCompetencies={selectedCompetencies}
+                        />
+                    )}
+                                    </Content>
+                                </SidebarLayout>
+                            </div>
+                        );
+                    }
 
 export default AdminAnalysisView;
