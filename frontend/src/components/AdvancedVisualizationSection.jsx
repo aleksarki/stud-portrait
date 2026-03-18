@@ -94,30 +94,79 @@ export function AdvancedVisualizationSection({
         const chartData = groups.map(g => ({
             name: g.dimension_value,
             mean: g.mean,
+            median: g.median,
+            min: g.min,
+            max: g.max,
             n: g.n,
             std: g.std
-        })).sort((a, b) => b.mean - a.mean).slice(0, 15); // Топ-15 групп
+        })).slice(0, 30);
+
+        console.log('Chart data:', chartData); // отладка
 
         return (
             <div className="dimension-container">
                 <h4>Анализ по измерению: {dimension}</h4>
                 <p className="info-text">Компетенция: {competencyLabels[competency] || competency}</p>
                 
+                {/* Отладочная таблица */}
+                <table style={{ margin: '10px 0', borderCollapse: 'collapse', width: '100%' }}>
+                    <thead>
+                        <tr>
+                            <th>Группа</th>
+                            <th>Среднее</th>
+                            <th>Медиана</th>
+                            <th>Мин</th>
+                            <th>Макс</th>
+                            <th>n</th>
+                            <th>Стд.откл.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {chartData.slice(0, 10).map((g, idx) => (
+                            <tr key={idx}>
+                                <td>{g.name}</td>
+                                <td>{g.mean?.toFixed(1) ?? '–'}</td>
+                                <td>{g.median?.toFixed(1) ?? '–'}</td>
+                                <td>{g.min?.toFixed(1) ?? '–'}</td>
+                                <td>{g.max?.toFixed(1) ?? '–'}</td>
+                                <td>{g.n}</td>
+                                <td>{g.std?.toFixed(1) ?? '–'}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+
                 <ResponsiveContainer width="100%" height={400}>
-                    <BarChart data={chartData} layout="vertical" margin={{ left: 150 }}>
+                    <BarChart
+                        data={chartData}
+                        layout="vertical"
+                        margin={{ top: 20, right: 30, bottom: 20, left: 250 }}
+                    >
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis type="number" />
-                        <YAxis type="category" dataKey="name" width={140} />
+                        <YAxis
+                            type="category"
+                            dataKey="name"
+                            width={230}
+                            tick={{ fontSize: 11 }}
+                        />
                         <Tooltip
                             content={({ active, payload }) => {
                                 if (active && payload && payload.length) {
                                     const data = payload[0].payload;
+                                    const se = data.std / Math.sqrt(data.n);
+                                    const ciLower = data.mean - 1.96 * se;
+                                    const ciUpper = data.mean + 1.96 * se;
                                     return (
-                                        <div className="custom-tooltip">
+                                        <div className="custom-tooltip" style={{ background: 'white', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}>
                                             <p><strong>{data.name}</strong></p>
                                             <p>Среднее: {data.mean.toFixed(1)}</p>
+                                            <p>Медиана: {data.median?.toFixed(1) || '–'}</p>
                                             <p>Стд.откл.: {data.std.toFixed(1)}</p>
                                             <p>n: {data.n}</p>
+                                            <p>Мин: {data.min?.toFixed(1) || '–'}</p>
+                                            <p>Макс: {data.max?.toFixed(1) || '–'}</p>
+                                            <p>95% ДИ: [{ciLower.toFixed(1)}; {ciUpper.toFixed(1)}]</p>
                                         </div>
                                     );
                                 }
@@ -130,7 +179,30 @@ export function AdvancedVisualizationSection({
 
                 {dimensionData.anova && (
                     <div className="anova-results">
-                        <h5>ANOVA тест</h5>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <h5 style={{ margin: 0 }}>ANOVA тест</h5>
+                            <span
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '18px',
+                                    height: '18px',
+                                    borderRadius: '50%',
+                                    backgroundColor: '#1976d2',
+                                    color: 'white',
+                                    fontSize: '12px',
+                                    cursor: 'help',
+                                    fontWeight: 'bold'
+                                }}
+                                title="ANOVA (дисперсионный анализ) проверяет, есть ли статистически значимые различия между средними значениями нескольких групп. 
+                        F-статистика – отношение межгрупповой дисперсии к внутригрупповой. 
+                        p-value – вероятность ошибиться, утверждая, что различия есть. 
+                        Если p < 0.05, различия считаются значимыми."
+                            >
+                                ?
+                            </span>
+                        </div>
                         <p>
                             F-статистика: {dimensionData.anova.f_statistic.toFixed(3)} | 
                             p-value: {dimensionData.anova.p_value.toFixed(4)}
@@ -142,6 +214,18 @@ export function AdvancedVisualizationSection({
                         </p>
                     </div>
                 )}
+
+                <details style={{ marginTop: '20px', padding: '10px', background: '#f5f5f5', borderRadius: '4px' }}>
+                    <summary style={{ cursor: 'pointer', fontWeight: 'bold' }}>📘 Как интерпретировать результаты?</summary>
+                    <div style={{ marginTop: '10px', lineHeight: '1.6' }}>
+                        <p><strong>Среднее</strong> – средний балл по группе. Позволяет сравнить группы между собой.</p>
+                        <p><strong>Медиана</strong> – значение, которое делит группу пополам: половина студентов имеет балл ниже медианы, половина – выше. Медиана менее чувствительна к выбросам, чем среднее.</p>
+                        <p><strong>Стандартное отклонение</strong> – показывает, насколько значения разбросаны. Чем больше отклонение, тем разнороднее группа.</p>
+                        <p><strong>n</strong> – количество студентов в группе. Чем больше n, тем надёжнее статистика.</p>
+                        <p><strong>Минимум и максимум</strong> – самый низкий и самый высокий результат в группе.</p>
+                        <p><strong>95% доверительный интервал</strong> – диапазон, в котором с 95% вероятностью находится истинное среднее значение для всей генеральной совокупности (а не только для данной выборки). Если доверительные интервалы двух групп не пересекаются, можно говорить о статистически значимом различии.</p>
+                    </div>
+                </details>
             </div>
         );
     };

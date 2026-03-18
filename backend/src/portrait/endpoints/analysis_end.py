@@ -21,6 +21,34 @@ from .datanal import (
     CrossSectionalAnalyzer
 )
 
+# Ключ: название дисциплины, значение: множество кодов компетенций
+DISCIPLINE_COMPETENCY_MAP = {
+    'Проектно-исследовательская работа': {
+        'res_comp_leadership',
+        'res_comp_result_orientation',
+        'res_comp_passive_vocab',
+        'res_comp_planning'
+    },
+    'Управление проектами': {
+        'res_comp_client_focus',
+        'res_comp_leadership',
+        'res_comp_result_orientation',
+        'res_comp_planning'
+    },
+    'Эксплуатационная практика': {
+        'res_comp_info_analysis',
+        'res_comp_leadership',
+        'res_comp_passive_vocab',
+        'res_comp_planning'
+    },
+    'Преддипломная практика': {
+        'res_comp_client_focus',
+        'res_comp_leadership',
+        'res_comp_result_orientation',
+        'res_comp_passive_vocab',
+        'res_comp_planning'
+    }
+}
 
 # ============================================================
 # VAM для конкретного студента
@@ -427,13 +455,36 @@ def analyze_by_dimension(request):
             ('max', 'max')
         ]).reset_index()
         
-        return JsonResponse({
+        grouped = grouped.sort_values('mean', ascending=False)
+        
+        anova_result = None
+        if len(grouped) >= 2:
+            groups_data = []
+            for group_value in grouped['dimension_value']:
+                group_scores = df[df['dimension_value'] == group_value]['comp_score'].dropna()
+                if len(group_scores) > 0:
+                    groups_data.append(group_scores)
+            if len(groups_data) >= 2:
+                f_stat, p_value = stats.f_oneway(*groups_data)
+                anova_result = {
+                    'f_statistic': float(f_stat),
+                    'p_value': float(p_value),
+                    'significant_difference': p_value < 0.05
+                }
+        
+        response_data = {
             'status': 'success',
             'dimension': dimension,
             'competency': competency,
-            'groups': grouped.to_dict('records')
-        })
+            'groups': grouped.to_dict('records'),
+            'anova': anova_result
+        }
+        
+        return JsonResponse(_convert_numpy_types(response_data))
+        
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 # ============================================================
@@ -512,8 +563,8 @@ def analyze_discipline_impact_advanced(request):
                 after_year = f"{year_start+1}/{year_start+2}"
                 after_result = Results.objects.filter(
                     res_participant=student,
-                    res_year=after_year
-                ).first()
+                    res_year=year
+                ).order_by('-res_course_num').first()
                 
                 if before_result and after_result:
                     before_score = getattr(before_result, competency, None)
@@ -533,8 +584,20 @@ def analyze_discipline_impact_advanced(request):
             
             if not perf_data:
                 continue
+            print(f"[{competency}] Всего записей: {len(perf_data)}")
+            print(f"[{competency}] Дисциплины: {set(d['discipline'] for d in perf_data)}")
             
-            df = pd.DataFrame(perf_data)
+            filtered_perf_data = [
+                record for record in perf_data
+                if record['discipline'] in DISCIPLINE_COMPETENCY_MAP and
+                competency in DISCIPLINE_COMPETENCY_MAP[record['discipline']]
+            ]
+
+            if not filtered_perf_data:
+                continue
+
+            df = pd.DataFrame(filtered_perf_data)
+
             analyzer = DisciplineImpactAnalyzer()
             analysis = analyzer.analyze_discipline_impact(df, competency)
             
@@ -622,7 +685,10 @@ def get_discipline_heatmap_data(request):
         perf_query = Academicperformance.objects.select_related('perf_part')
         
         if institution_ids:
-            perf_query = perf_query.filter(perf_part__part_institution_id__in=institution_ids)
+            # Преобразуем в числа
+            inst_ids = [int(id) for id in institution_ids if str(id).isdigit()]
+            if inst_ids:
+                perf_query = perf_query.filter(perf_part__part_institution_id__in=inst_ids)
         
         if direction_ids:
             dir_ids = []
@@ -630,7 +696,7 @@ def get_discipline_heatmap_data(request):
                 if str(dir_id).isdigit():
                     dir_ids.append(int(dir_id))
                 else:
-                    # Ищем ID по названию
+                    # Ищем ID по названию направления
                     try:
                         spec = Specialties.objects.filter(spec_name=dir_id).first()
                         if spec:
@@ -654,20 +720,16 @@ def get_discipline_heatmap_data(request):
             year = perf.perf_year
             student = perf.perf_part
             
-            try:
-                year_start = int(year.split('/')[0])
-            except:
-                continue
-            
+            # Результат до (предыдущий год)
             before_result = Results.objects.filter(
                 res_participant=student
             ).filter(Q(res_year__lt=year)).order_by('-res_year', '-res_course_num').first()
             
-            after_year = f"{year_start+1}/{year_start+2}"
+            # Результат после – за тот же год, самая поздняя запись
             after_result = Results.objects.filter(
                 res_participant=student,
-                res_year=after_year
-            ).first()
+                res_year=year
+            ).order_by('-res_course_num').first()
             
             if before_result and after_result:
                 for comp in competencies:
@@ -716,10 +778,33 @@ def get_discipline_heatmap_data(request):
         
         heatmap_data = _convert_numpy_types(heatmap_data)
         
+        full_heatmap = []
+        for disc, expected_comps in DISCIPLINE_COMPETENCY_MAP.items():
+            for comp in competencies:
+                # Проверяем, ожидаема ли эта компетенция для дисциплины
+                if comp not in expected_comps:
+                    continue
+                # Ищем существующую запись
+                existing = next((item for item in heatmap_data if item['discipline'] == disc and item['competency'] == comp), None)
+                if existing:
+                    full_heatmap.append(existing)
+                else:
+                    full_heatmap.append({
+                        'discipline': disc,
+                        'competency': comp,
+                        'competency_label': _get_competency_label(comp),
+                        'effect_size': None,
+                        'mean_gain': None,
+                        'p_value': None,
+                        'significant': False,
+                        'n_students': 0
+                    })
+
+        # Используем full_heatmap в ответе
         return JsonResponse({
             'status': 'success',
-            'data': heatmap_data,
-            'disciplines': list(disciplines),
+            'data': full_heatmap,
+            'disciplines': list(DISCIPLINE_COMPETENCY_MAP.keys()),  # возвращаем все дисциплины из словаря
             'competencies': competencies
         })
         
