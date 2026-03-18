@@ -29,9 +29,6 @@ urlpatterns = [
     # VAM и LGM базовые
     path('analyze-student-vam/', analysis_end.analyze_student_vam, name='analyze_student_vam'),
     path('analyze-cohort-lgm/', analysis_end.analyze_cohort_lgm, name='analyze_cohort_lgm'),
-    # path('vam-summary-statistics/', analysis_end.vam_summary_statistics, name='vam_summary_statistics'),
-    # path('get-vam-unified/', analysis_end.get_vam_unified, name='get_vam_unified'),
-    # path('get-latent-growth/', analysis_end.get_latent_growth, name='get_latent_growth'),
     
     # Анализ дисциплин
     path('analyze-discipline-impact/', analysis_end.analyze_discipline_impact, name='analyze_discipline_impact'),
@@ -46,4 +43,7 @@ urlpatterns = [
     path('get-vam-dotplot-data/', analysis_end.get_vam_dotplot_data, name='get_vam_dotplot_data'),
     path('get-lgm-spaghetti-data/', analysis_end.get_lgm_spaghetti_data, name='get_lgm_spaghetti_data'),
     path('get-waterfall-decomposition/', analysis_end.get_waterfall_decomposition, name='get_waterfall_decomposition'),
+
+
+    path('get-disciplines/', analysis_end.get_disciplines, name='get-disciplines'),
 ]

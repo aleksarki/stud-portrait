@@ -1,9 +1,15 @@
-// frontend/src/views/admin/components/DisciplineAnalysisSection.jsx
-
 import { useState } from "react";
+import {
+    BarChart, Bar, // Добавлено
+    XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+} from "recharts";
 import Button from './ui/Button';
 import MultiSelect from './ui/MultiSelect';
-import { postPortraitAnalyzeDisciplineImpactAdvanced, postPortraitGetDisciplineHeatmapData } from '../api';
+import { 
+    postAnalyzeDisciplineImpactAdvanced, 
+    postGetDisciplineHeatmapData,
+    getAnalyzeAllDisciplinesImpact 
+} from '../api';
 
 const COLORS = ['#1976d2', '#d32f2f', '#388e3c', '#f57c00', '#7b1fa2'];
 
@@ -15,6 +21,7 @@ export function DisciplineAnalysisSection({
 }) {
     const [disciplineData, setDisciplineData] = useState(null);
     const [heatmapData, setHeatmapData] = useState(null);
+    const [allDisciplinesData, setAllDisciplinesData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [selectedDisciplines, setSelectedDisciplines] = useState([]);
     const [activeTab, setActiveTab] = useState('impact');
@@ -34,26 +41,53 @@ export function DisciplineAnalysisSection({
         "res_comp_passive_vocab": "Пассивный словарь"
     };
 
+    // Загрузка комплексного анализа всех дисциплин
+    const loadAllDisciplinesImpact = async () => {
+        setLoading(true);
+        setActiveTab('all');
+
+        getAnalyzeAllDisciplinesImpact()
+            .onSuccess(async response => {
+                const data = await response.json();
+                if (data.status === 'success') {
+                    setAllDisciplinesData(data);
+                } else {
+                    alert('Ошибка при загрузке данных: ' + (data.message || 'Неизвестная ошибка'));
+                }
+            })
+            .onError(error => {
+                console.error(error);
+                alert('Ошибка при загрузке данных: ' + error.message);
+            })
+            .finally(() => setLoading(false));
+    };
+
     const loadDisciplineImpact = async () => {
         setLoading(true);
         setActiveTab('impact');
 
-        postPortraitAnalyzeDisciplineImpactAdvanced(
-            selectedCompetencies.length > 0 ? selectedCompetencies : ['res_comp_leadership'],
+        const competencies = selectedCompetencies.length > 0 
+            ? selectedCompetencies 
+            : Object.keys(competencyLabels).slice(0, 3); // По умолчанию первые 3 компетенции
+
+        postAnalyzeDisciplineImpactAdvanced(
+            competencies,
             selectedDisciplines,
             selectedInstitutions,
             selectedDirections,
-            5
+            1
         )
             .onSuccess(async response => {
                 const data = await response.json();
                 if (data.status === 'success') {
                     setDisciplineData(data.results);
+                } else {
+                    alert('Ошибка при загрузке данных: ' + (data.message || 'Неизвестная ошибка'));
                 }
             })
             .onError(error => {
                 console.error(error);
-                alert('Ошибка при загрузке данных');
+                alert('Ошибка при загрузке данных: ' + error.message);
             })
             .finally(() => setLoading(false));
     };
@@ -62,18 +96,80 @@ export function DisciplineAnalysisSection({
         setLoading(true);
         setActiveTab('heatmap');
 
-        postPortraitGetDisciplineHeatmapData(selectedInstitutions, selectedDirections)
+        postGetDisciplineHeatmapData(selectedInstitutions, selectedDirections)
             .onSuccess(async response => {
                 const data = await response.json();
                 if (data.status === 'success') {
                     setHeatmapData(data.data);
+                } else {
+                    alert('Ошибка при загрузке данных тепловой карты: ' + (data.message || 'Неизвестная ошибка'));
                 }
             })
             .onError(error => {
                 console.error(error);
-                alert('Ошибка при загрузке данных тепловой карты');
+                alert('Ошибка при загрузке данных: ' + error.message);
             })
             .finally(() => setLoading(false));
+    };
+
+    const renderAllDisciplinesImpact = () => {
+        if (!allDisciplinesData) {
+            return <div className="no-data">Нет данных для отображения</div>;
+        }
+
+        const { impact_matrix, competencies_analyzed } = allDisciplinesData;
+
+        if (!impact_matrix || impact_matrix.length === 0) {
+            return <div className="no-data">Нет данных о влиянии дисциплин</div>;
+        }
+
+        // Группируем по компетенциям
+        const byCompetency = {};
+        impact_matrix.forEach(item => {
+            if (!byCompetency[item.competency]) {
+                byCompetency[item.competency] = [];
+            }
+            byCompetency[item.competency].push(item);
+        });
+
+        return (
+            <div className="all-disciplines-results">
+                <h4>Комплексный анализ всех дисциплин</h4>
+                <p className="info-text">Проанализировано компетенций: {competencies_analyzed}</p>
+                
+                {Object.entries(byCompetency).map(([comp, items]) => (
+                    <div key={comp} className="competency-group">
+                        <h5>{competencyLabels[comp] || comp}</h5>
+                        <table className="impact-table">
+                            <thead>
+                                <tr>
+                                    <th>Дисциплина</th>
+                                    <th>Effect Size</th>
+                                    <th>Эффективность</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {items.map((item, idx) => (
+                                    <tr key={idx}>
+                                        <td>{item.discipline}</td>
+                                        <td>
+                                            <span className={`effect-badge ${
+                                                Math.abs(item.impact_data?.average_effect_size || 0) > 0.5 ? 'large' : 'small'
+                                            }`}>
+                                                {(item.impact_data?.average_effect_size || 0).toFixed(3)}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {item.impact_data?.effective ? '✅' : '⚠️'}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ))}
+            </div>
+        );
     };
 
     const renderHeatmap = () => {
@@ -116,7 +212,7 @@ export function DisciplineAnalysisSection({
                                         <td
                                             key={`${disc}-${comp}`}
                                             style={{ backgroundColor: color, border }}
-                                            title={`Effect size: ${effectSize.toFixed(2)}, p=${cell?.p_value?.toFixed(3)}, n=${cell?.n_students}`}
+                                            title={`Effect size: ${effectSize?.toFixed(2) || '0'}, p=${cell?.p_value?.toFixed(3) || 'N/A'}, n=${cell?.n_students || 0}`}
                                         >
                                             {cell ? effectSize.toFixed(2) : '-'}
                                         </td>
@@ -174,19 +270,19 @@ export function DisciplineAnalysisSection({
                                                 <tr key={grade}>
                                                     <td className="grade-cell">{grade}</td>
                                                     <td>{impact.n_students}</td>
-                                                    <td>{impact.mean_before.toFixed(1)}</td>
-                                                    <td>{impact.mean_after.toFixed(1)}</td>
+                                                    <td>{impact.mean_before?.toFixed(1) || '0.0'}</td>
+                                                    <td>{impact.mean_after?.toFixed(1) || '0.0'}</td>
                                                     <td className={`gain-cell ${impact.mean_gain > 0 ? 'positive' : 'negative'}`}>
-                                                        {impact.mean_gain > 0 ? '+' : ''}{impact.mean_gain.toFixed(1)}
+                                                        {impact.mean_gain > 0 ? '+' : ''}{impact.mean_gain?.toFixed(1) || '0.0'}
                                                     </td>
                                                     <td>
                                                         <span className={`effect-badge ${
                                                             Math.abs(impact.cohens_d) > 0.5 ? 'large' : 'small'
                                                         }`}>
-                                                            {impact.cohens_d.toFixed(3)}
+                                                            {impact.cohens_d?.toFixed(3) || '0.000'}
                                                         </span>
                                                     </td>
-                                                    <td>{impact.p_value.toFixed(4)}</td>
+                                                    <td>{impact.p_value?.toFixed(4) || '0.0000'}</td>
                                                     <td>{impact.significant ? '✓' : '✗'}</td>
                                                 </tr>
                                             ))}
@@ -195,8 +291,8 @@ export function DisciplineAnalysisSection({
 
                                     {disc.summary && (
                                         <div className="disc-summary-stats">
-                                            <span>Средний эффект: <strong>{disc.summary.average_effect_size.toFixed(3)}</strong></span>
-                                            <span>Средний прирост: <strong>{disc.summary.average_gain.toFixed(1)}</strong></span>
+                                            <span>Средний эффект: <strong>{disc.summary.average_effect_size?.toFixed(3) || '0.000'}</strong></span>
+                                            <span>Средний прирост: <strong>{disc.summary.average_gain?.toFixed(1) || '0.0'}</strong></span>
                                         </div>
                                     )}
                                 </div>
@@ -244,6 +340,14 @@ export function DisciplineAnalysisSection({
                         bg="#ff9800"
                         hoverBg="#e68900"
                     />
+                    <Button
+                        text={`${loading ? '⏳' : '📈'} Все дисциплины`}
+                        onClick={loadAllDisciplinesImpact}
+                        disabled={loading}
+                        fg="white"
+                        bg="#4CAF50"
+                        hoverBg="#45a049"
+                    />
                 </div>
             </div>
 
@@ -254,7 +358,7 @@ export function DisciplineAnalysisSection({
                 </div>
             )}
 
-            {!loading && (disciplineData || heatmapData) && (
+            {!loading && (disciplineData || heatmapData || allDisciplinesData) && (
                 <div className="tab-container">
                     <div className="tab-buttons">
                         {disciplineData && (
@@ -273,11 +377,20 @@ export function DisciplineAnalysisSection({
                                 🔥 Тепловая карта
                             </button>
                         )}
+                        {allDisciplinesData && (
+                            <button
+                                className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('all')}
+                            >
+                                📈 Комплексный анализ
+                            </button>
+                        )}
                     </div>
 
                     <div className="tab-content">
                         {activeTab === 'impact' && renderDisciplineImpact()}
                         {activeTab === 'heatmap' && renderHeatmap()}
+                        {activeTab === 'all' && renderAllDisciplinesImpact()}
                     </div>
                 </div>
             )}

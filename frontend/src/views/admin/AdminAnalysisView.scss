@@ -962,3 +962,43 @@
 .border-left-danger {
   border-left: 4px solid #F44336 !important;
 }
+
+// Главные табы
+.main-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+  padding: 15px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  
+  .main-tab {
+    padding: 10px 20px;
+    border: 1px solid #1976d2;
+    background: white;
+    color: #666;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+    
+    &:hover {
+      background: #f0f7ff;
+    }
+    
+    &.active {
+      background: #1976d2;
+      color: white;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    
+    .main-tab {
+      width: 100%;
+    }
+  }
+}

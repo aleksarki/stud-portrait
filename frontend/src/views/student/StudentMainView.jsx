@@ -28,6 +28,12 @@ function StudentMainView() {
     const [resumeGenerating, setResumeGenerating] = useState(false);
 
     useEffect(() => {
+        if (showAnalytics && selectedYear) {
+            loadAnalytics(selectedYear);
+        }
+    }, [selectedYear, showAnalytics]);
+
+    useEffect(() => {
         const fetchData = async () => {
             getPortraitStudentResults(studentId)
                 .onSuccess(async response => {
@@ -138,7 +144,7 @@ function StudentMainView() {
             console.log('🔄 Загрузка аналитики для студента:', studentId);
             
             const response = await fetch(
-                `http://localhost:8000/portrait/student-resume-data/?student_id=${studentId}&with_ai=true`
+                `http://localhost:8000/portrait/student-resume-data/?student_id=${studentId}&year=${selectedYear}&with_ai=true`
             );
             
             console.log('📡 Ответ получен:', response.status);

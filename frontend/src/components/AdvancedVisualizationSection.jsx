@@ -1,14 +1,12 @@
 import { useState } from "react";
 import {
-    ScatterChart, Scatter, LineChart, Line,
-    XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine,
-    BarChart, Bar
+    BarChart, Bar, LineChart, Line, // Добавлено BarChart, Bar
+    XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from "recharts";
 import Button from './ui/Button';
 import {
-    postPortraitGetVamDotplotData,
-    postPortraitGetLgmSpaghettiData,
-    postPortraitGetWaterfallDecomposition
+    getAnalyzeByDimension,
+    getAnalyzeCohortLgm
 } from '../api';
 
 const COLORS = ['#1976d2', '#d32f2f', '#388e3c', '#f57c00', '#7b1fa2', '#00796b', '#fbc02d'];
@@ -19,13 +17,11 @@ export function AdvancedVisualizationSection({
     selectedDirections,
     selectedCompetencies
 }) {
-    const [dotplotData, setDotplotData] = useState(null);
-    const [spaghettiData, setSpaghettiData] = useState(null);
-    const [waterfallData, setWaterfallData] = useState(null);
+    const [dimensionData, setDimensionData] = useState(null);
+    const [lgmCohortData, setLgmCohortData] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [activeVisualization, setActiveVisualization] = useState('dotplot');
-    const [groupByDotplot, setGroupByDotplot] = useState('institution');
-    const [groupBySpagetti, setGroupBySpagetti] = useState(null);
+    const [activeVisualization, setActiveVisualization] = useState('dimension');
+    const [selectedDimension, setSelectedDimension] = useState('institution');
 
     const competencyLabels = {
         "res_comp_info_analysis": "Анализ информации",
@@ -42,394 +38,231 @@ export function AdvancedVisualizationSection({
         "res_comp_passive_vocab": "Пассивный словарь"
     };
 
-    const loadDotplotData = async () => {
+    const loadDimensionData = async () => {
         setLoading(true);
         const competency = selectedCompetencies[0] || 'res_comp_leadership';
 
-        postPortraitGetVamDotplotData(groupByDotplot, competency, selectedInstitutions)
+        getAnalyzeByDimension(selectedDimension, competency)
             .onSuccess(async response => {
                 const data = await response.json();
                 if (data.status === 'success') {
-                    setDotplotData(data.data);
+                    setDimensionData(data);
+                } else {
+                    alert('Ошибка при загрузке данных: ' + (data.message || 'Неизвестная ошибка'));
                 }
             })
             .onError(error => {
                 console.error(error);
-                alert('Ошибка при загрузке данных точечного графика');
+                alert('Ошибка при загрузке данных: ' + error.message);
             })
             .finally(() => setLoading(false));
     };
 
-    const loadSpaghettiData = async () => {
+    const loadLGMCohortData = async () => {
         setLoading(true);
         const competency = selectedCompetencies[0] || 'res_comp_leadership';
+        const institutionId = selectedInstitutions[0] || null;
+        const specId = selectedDirections[0] || null;
 
-        postPortraitGetLgmSpaghettiData(competency, groupBySpagetti, true, selectedInstitutions)
+        getAnalyzeCohortLgm(competency, institutionId, specId)
             .onSuccess(async response => {
                 const data = await response.json();
                 if (data.status === 'success') {
-                    setSpaghettiData(data.data);
+                    setLgmCohortData(data);
+                } else {
+                    alert('Ошибка при загрузке данных: ' + (data.message || 'Неизвестная ошибка'));
                 }
             })
             .onError(error => {
                 console.error(error);
-                alert('Ошибка при загрузке данных паутинного графика');
+                alert('Ошибка при загрузке данных: ' + error.message);
             })
             .finally(() => setLoading(false));
     };
 
-    const loadWaterfallData = async () => {
-        setLoading(true);
-        const competency = selectedCompetencies[0] || 'res_comp_leadership';
-        const instId = selectedInstitutions[0];
-
-        if (!instId) {
-            alert('Выберите ВУЗ для анализа ватерфалла');
-            setLoading(false);
-            return;
+    const renderDimensionAnalysis = () => {
+        if (!dimensionData) {
+            return <div className="no-data">Нет данных для отображения</div>;
         }
 
-        postPortraitGetWaterfallDecomposition(instId, null, competency)
-            .onSuccess(async response => {
-                const data = await response.json();
-                if (data.status === 'success') {
-                    setWaterfallData(data.data);
-                }
-            })
-            .onError(error => {
-                console.error(error);
-                alert('Ошибка при загрузке данных ватерфалла');
-            })
-            .finally(() => setLoading(false));
-    };
+        const { groups, dimension, competency } = dimensionData;
 
-    const renderDotplot = () => {
-        if (!dotplotData || dotplotData.length === 0) {
-            return <div className="no-data">Нет данных для отображения точечного графика</div>;
+        if (!groups || groups.length === 0) {
+            return <div className="no-data">Нет данных по выбранному измерению</div>;
         }
 
-        const sortedData = [...dotplotData].sort((a, b) => b.value_added - a.value_added);
+        const chartData = groups.map(g => ({
+            name: g.dimension_value,
+            mean: g.mean,
+            n: g.n,
+            std: g.std
+        })).sort((a, b) => b.mean - a.mean).slice(0, 15); // Топ-15 групп
 
         return (
-            <div className="dotplot-container">
-                <div className="dotplot-chart">
-                    <ResponsiveContainer width="100%" height={Math.max(400, dotplotData.length * 40)}>
-                        <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 150 }}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis
-                                dataKey="value_added"
-                                name="Value-Added"
-                                type="number"
-                                label={{ value: 'Value-Added (баллы)', position: 'insideBottomRight', offset: -10 }}
-                            />
-                            <YAxis
-                                dataKey="group"
-                                name="Группа"
-                                type="category"
-                                width={140}
-                            />
-                            <Tooltip
-                                cursor={{ strokeDasharray: '3 3' }}
-                                content={({ active, payload }) => {
-                                    if (active && payload && payload.length) {
-                                        const data = payload[0].payload;
-                                        return (
-                                            <div className="custom-tooltip">
-                                                <p><strong>{data.group}</strong></p>
-                                                <p>Value-Added: {data.value_added.toFixed(1)}</p>
-                                                <p>CI: [{data.ci_lower.toFixed(1)}, {data.ci_upper.toFixed(1)}]</p>
-                                                <p>n: {data.n}</p>
-                                            </div>
-                                        );
-                                    }
-                                    return null;
-                                }}
-                            />
-                            <Scatter name="Группы" data={sortedData} fill="#1976d2" />
-                            <ReferenceLine x={0} stroke="#999" strokeDasharray="5 5" />
-                        </ScatterChart>
-                    </ResponsiveContainer>
-                </div>
-
-                <div className="dotplot-with-ci">
-                    <h4>Доверительные интервалы (95%)</h4>
-                    {sortedData.map((item, idx) => {
-                        const range = item.ci_upper - item.ci_lower;
-                        const offset = item.ci_lower;
-                        const percentLeft = Math.max(0, (-200 - offset) / range * 100);
-
-                        return (
-                            <div key={idx} className="ci-row">
-                                <span className="group-name">{item.group}</span>
-                                <div className="ci-bar-wrapper">
-                                    <div className="ci-bar">
-                                        <div
-                                            className="ci-line"
-                                            style={{
-                                                marginLeft: `${Math.max(0, percentLeft)}%`,
-                                                width: `${Math.min(100 - Math.max(0, percentLeft), 100)}%`,
-                                                borderColor: item.significant ? '#4CAF50' : '#999'
-                                            }}
-                                        >
-                                            <div
-                                                className="ci-point"
-                                                style={{
-                                                    left: `${((item.value_added - item.ci_lower) / range) * 100}%`,
-                                                    backgroundColor: item.significant ? '#4CAF50' : '#1976d2'
-                                                }}
-                                                title={`${item.value_added.toFixed(1)}`}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                                <span className="value">
-                                    {item.value_added.toFixed(1)}
-                                    <small> (n={item.n})</small>
-                                </span>
-                            </div>
-                        );
-                    })}
-                </div>
-
-                <div className="dotplot-legend">
-                    <p>✓ Зелёные точки: статистически значимо выше нулевого эффекта (p &lt; 0.05)</p>
-                    <p>○ Синие точки: эффект не значим</p>
-                    <p>Усы показывают 95% доверительный интервал</p>
-                </div>
-            </div>
-        );
-    };
-
-    const renderSpaghetti = () => {
-        if (!spaghettiData) {
-            return <div className="no-data">Нет данных для паутинного графика</div>;
-        }
-
-        const { individual_trajectories, trend_lines } = spaghettiData;
-
-        if (individual_trajectories.length === 0) {
-            return <div className="no-data">Недостаточно траекторий для визуализации</div>;
-        }
-
-        // Подготовка данных для графика
-        const allCourses = new Set();
-        individual_trajectories.forEach(traj => {
-            traj.points.forEach(p => allCourses.add(p.course));
-        });
-
-        const chartData = Array.from(allCourses)
-            .sort((a, b) => a - b)
-            .map(course => ({
-                course: `${course} курс`,
-                courseNum: course
-            }));
-
-        // Добавляем индивидуальные данные
-        individual_trajectories.forEach((traj, idx) => {
-            traj.points.forEach(point => {
-                const chartPoint = chartData.find(cp => cp.courseNum === point.course);
-                if (chartPoint) {
-                    chartPoint[`student_${idx}`] = point.score;
-                }
-            });
-        });
-
-        // Добавляем тренд-линии
-        trend_lines.forEach((trend, tIdx) => {
-            trend.points.forEach(point => {
-                const chartPoint = chartData.find(cp => cp.courseNum === point.course);
-                if (chartPoint) {
-                    chartPoint[`trend_${tIdx}`] = point.score;
-                }
-            });
-        });
-
-        return (
-            <div className="spaghetti-container">
-                <ResponsiveContainer width="100%" height={500}>
-                    <LineChart data={chartData} margin={{ top: 20, right: 20, bottom: 20, left: 60 }}>
+            <div className="dimension-container">
+                <h4>Анализ по измерению: {dimension}</h4>
+                <p className="info-text">Компетенция: {competencyLabels[competency] || competency}</p>
+                
+                <ResponsiveContainer width="100%" height={400}>
+                    <BarChart data={chartData} layout="vertical" margin={{ left: 150 }}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="course" />
-                        <YAxis
-                            domain={[200, 800]}
-                            label={{ value: 'Баллы', angle: -90, position: 'insideLeft' }}
-                        />
+                        <XAxis type="number" />
+                        <YAxis type="category" dataKey="name" width={140} />
                         <Tooltip
-                            contentStyle={{
-                                backgroundColor: 'rgba(255,255,255,0.95)',
-                                border: '1px solid #ccc',
-                                borderRadius: '4px',
-                                padding: '8px'
+                            content={({ active, payload }) => {
+                                if (active && payload && payload.length) {
+                                    const data = payload[0].payload;
+                                    return (
+                                        <div className="custom-tooltip">
+                                            <p><strong>{data.name}</strong></p>
+                                            <p>Среднее: {data.mean.toFixed(1)}</p>
+                                            <p>Стд.откл.: {data.std.toFixed(1)}</p>
+                                            <p>n: {data.n}</p>
+                                        </div>
+                                    );
+                                }
+                                return null;
                             }}
                         />
-                        <Legend wrapperStyle={{ paddingTop: '20px' }} />
-
-                        {/* Индивидуальные траектории */}
-                        {individual_trajectories.slice(0, 100).map((_, idx) => (
-                            <Line
-                                key={`student_${idx}`}
-                                type="monotone"
-                                dataKey={`student_${idx}`}
-                                stroke="#bbb"
-                                opacity={0.2}
-                                isAnimationActive={false}
-                                dot={false}
-                                strokeWidth={1}
-                            />
-                        ))}
-
-                        {/* Тренд-линии */}
-                        {trend_lines.map((trend, idx) => (
-                            <Line
-                                key={`trend_${idx}`}
-                                type="monotone"
-                                dataKey={`trend_${idx}`}
-                                stroke={COLORS[idx % COLORS.length]}
-                                strokeWidth={3}
-                                name={trend.group}
-                                isAnimationActive={false}
-                                dot={{ r: 4 }}
-                            />
-                        ))}
-                    </LineChart>
-                </ResponsiveContainer>
-
-                <div className="spaghetti-legend">
-                    <p>🌫️ Светлые линии: траектории отдельных студентов/групп</p>
-                    <p>🔴 Яркие линии: тренд-линии (средние траектории развития)</p>
-                </div>
-            </div>
-        );
-    };
-
-    const renderWaterfall = () => {
-        if (!waterfallData) {
-            return <div className="no-data">Нет данных для ватерфалльной диаграммы</div>;
-        }
-
-        const { initial, stages, final, total_gain } = waterfallData;
-
-        // Подготовка данных для графика
-        const chartData = [
-            { name: 'Начальный', value: initial, fill: '#1976d2' }
-        ];
-
-        stages.forEach((stage, idx) => {
-            chartData.push({
-                name: `Курс ${stage.course}`,
-                value: Math.abs(stage.increment),
-                fill: stage.increment > 0 ? '#4CAF50' : '#F44336'
-            });
-        });
-
-        return (
-            <div className="waterfall-container">
-                <ResponsiveContainer width="100%" height={350}>
-                    <BarChart data={chartData} margin={{ top: 20, right: 20, bottom: 20, left: 60 }}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis
-                            domain={[0, Math.max(...chartData.map(d => d.value), 200)]}
-                            label={{ value: 'Баллы', angle: -90, position: 'insideLeft' }}
-                        />
-                        <Tooltip
-                            formatter={(value) => value.toFixed(1)}
-                            labelFormatter={(label) => `${label}`}
-                        />
-                        <Bar dataKey="value" shape={<WaterfallBar />} />
+                        <Bar dataKey="mean" fill="#1976d2" name="Средний балл" />
                     </BarChart>
                 </ResponsiveContainer>
 
-                <div className="waterfall-summary">
-                    <div className="summary-row">
-                        <div className="summary-item">
-                            <span className="label">Начальный уровень:</span>
-                            <strong className="value">{initial.toFixed(1)}</strong>
-                        </div>
-                        {stages.map((stage, idx) => (
-                            <div key={idx} className="summary-item">
-                                <span className="label">После курса {stage.course}:</span>
-                                <strong className={`value ${stage.increment > 0 ? 'positive' : 'negative'}`}>
-                                    {stage.increment > 0 ? '+' : ''}{stage.increment.toFixed(1)}
-                                </strong>
-                            </div>
-                        ))}
-                        <div className="summary-item total">
-                            <span className="label">Итоговый уровень:</span>
-                            <strong className="value total-value">{final.toFixed(1)}</strong>
-                        </div>
-                        <div className="summary-item total">
-                            <span className="label">Общий прирост:</span>
-                            <strong className={`value total-value ${total_gain > 0 ? 'positive' : 'negative'}`}>
-                                {total_gain > 0 ? '+' : ''}{total_gain.toFixed(1)}
-                            </strong>
-                        </div>
+                {dimensionData.anova && (
+                    <div className="anova-results">
+                        <h5>ANOVA тест</h5>
+                        <p>
+                            F-статистика: {dimensionData.anova.f_statistic.toFixed(3)} | 
+                            p-value: {dimensionData.anova.p_value.toFixed(4)}
+                        </p>
+                        <p className={dimensionData.anova.significant_difference ? 'significant' : 'not-significant'}>
+                            {dimensionData.anova.significant_difference 
+                                ? '✓ Статистически значимые различия между группами' 
+                                : '✗ Нет статистически значимых различий'}
+                        </p>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    const renderLGMCohort = () => {
+        if (!lgmCohortData) {
+            return <div className="no-data">Нет данных для отображения</div>;
+        }
+
+        const { mean_intercept, mean_slope, n_students, interpretation, trajectories } = lgmCohortData;
+
+        // Подготовка данных для графика
+        const chartData = [];
+        for (let course = 1; course <= 4; course++) {
+            chartData.push({
+                course: `${course} курс`,
+                value: mean_intercept + mean_slope * (course - 1)
+            });
+        }
+
+        return (
+            <div className="lgm-cohort-container">
+                <h4>Latent Growth Model - Когортный анализ</h4>
+                
+                <div className="lgm-stats">
+                    <div className="stat-card">
+                        <div className="stat-value">{n_students}</div>
+                        <div className="stat-label">Студентов</div>
+                    </div>
+                    <div className="stat-card">
+                        <div className="stat-value">{mean_intercept?.toFixed(1) || '0'}</div>
+                        <div className="stat-label">Средний начальный уровень</div>
+                    </div>
+                    <div className="stat-card">
+                        <div className="stat-value">{mean_slope?.toFixed(3) || '0'}</div>
+                        <div className="stat-label">Средняя скорость роста</div>
                     </div>
                 </div>
+
+                {interpretation && (
+                    <div className="interpretation-box">
+                        <h5>Интерпретация</h5>
+                        <p>Средняя скорость роста: <strong>{interpretation.average_growth_rate?.toFixed(3) || '0'}</strong></p>
+                        <p>Вариабельность роста: <strong>{interpretation.growth_variability?.toFixed(3) || '0'}</strong></p>
+                        <p>Быстрорастущие: {interpretation.fast_growers_count || 0} ({interpretation.fast_growers_pct?.toFixed(1) || 0}%)</p>
+                        <p>Медленнорастущие: {interpretation.slow_growers_count || 0} ({interpretation.slow_growers_pct?.toFixed(1) || 0}%)</p>
+                    </div>
+                )}
+
+                <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={chartData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="course" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Line
+                            type="monotone"
+                            dataKey="value"
+                            stroke="#1976d2"
+                            strokeWidth={2}
+                            name="Средняя траектория"
+                        />
+                    </LineChart>
+                </ResponsiveContainer>
             </div>
         );
     };
 
     return (
         <div className="advanced-visualization-section">
-            <h3>📈 Продвинутые визуализации анализа</h3>
+            <h3>📈 Продвинутые визуализации</h3>
 
             <div className="viz-controls">
                 <div className="button-group">
                     <Button
-                        text="📊 Точечный график VAM"
+                        text="📊 Анализ по измерениям"
                         onClick={() => {
-                            setActiveVisualization('dotplot');
-                            loadDotplotData();
+                            setActiveVisualization('dimension');
+                            loadDimensionData();
                         }}
-                        fg={activeVisualization === 'dotplot' ? 'white' : '#666'}
-                        bg={activeVisualization === 'dotplot' ? '#1976d2' : 'white'}
+                        fg={activeVisualization === 'dimension' ? 'white' : '#666'}
+                        bg={activeVisualization === 'dimension' ? '#1976d2' : 'white'}
                         border="1px solid #1976d2"
                     />
                     <Button
-                        text="🕷️ Паутинный график LGM"
+                        text="📈 LGM Когорта"
                         onClick={() => {
-                            setActiveVisualization('spaghetti');
-                            loadSpaghettiData();
+                            setActiveVisualization('lgm');
+                            loadLGMCohortData();
                         }}
-                        fg={activeVisualization === 'spaghetti' ? 'white' : '#666'}
-                        bg={activeVisualization === 'spaghetti' ? '#ff9800' : 'white'}
+                        fg={activeVisualization === 'lgm' ? 'white' : '#666'}
+                        bg={activeVisualization === 'lgm' ? '#ff9800' : 'white'}
                         border="1px solid #ff9800"
-                    />
-                    <Button
-                        text="💧 Ватерфалльная диаграмма"
-                        onClick={() => {
-                            setActiveVisualization('waterfall');
-                            loadWaterfallData();
-                        }}
-                        fg={activeVisualization === 'waterfall' ? 'white' : '#666'}
-                        bg={activeVisualization === 'waterfall' ? '#4CAF50' : 'white'}
-                        border="1px solid #4CAF50"
                     />
                 </div>
 
-                {activeVisualization === 'dotplot' && (
+                {activeVisualization === 'dimension' && (
                     <div className="sub-controls">
-                        <label>Группировать по:</label>
-                        <select value={groupByDotplot} onChange={(e) => setGroupByDotplot(e.target.value)}>
+                        <label>Измерение:</label>
+                        <select value={selectedDimension} onChange={(e) => setSelectedDimension(e.target.value)}>
                             <option value="institution">ВУЗы</option>
-                            <option value="direction">Направления</option>
+                            <option value="spec">Направления</option>
+                            <option value="form">Формы обучения</option>
                             <option value="course">Курсы</option>
                         </select>
+                        <Button
+                            text="Загрузить"
+                            onClick={loadDimensionData}
+                            disabled={loading}
+                        />
                     </div>
                 )}
 
-                {activeVisualization === 'spaghetti' && (
+                {activeVisualization === 'lgm' && (
                     <div className="sub-controls">
-                        <label>Группировать по:</label>
-                        <select
-                            value={groupBySpagetti || ''}
-                            onChange={(e) => setGroupBySpagetti(e.target.value || null)}
-                        >
-                            <option value="">Без группировки</option>
-                            <option value="institution">ВУЗы</option>
-                            <option value="direction">Направления</option>
-                        </select>
+                        <Button
+                            text="Загрузить LGM данные"
+                            onClick={loadLGMCohortData}
+                            disabled={loading}
+                        />
                     </div>
                 )}
             </div>
@@ -442,26 +275,9 @@ export function AdvancedVisualizationSection({
             )}
 
             <div className="visualization-container">
-                {activeVisualization === 'dotplot' && renderDotplot()}
-                {activeVisualization === 'spaghetti' && renderSpaghetti()}
-                {activeVisualization === 'waterfall' && renderWaterfall()}
+                {activeVisualization === 'dimension' && renderDimensionAnalysis()}
+                {activeVisualization === 'lgm' && renderLGMCohort()}
             </div>
         </div>
-    );
-}
-
-// Вспомогательный компонент для ватерфалла
-function WaterfallBar(props) {
-    const { fill, x, y, width, height } = props;
-    return (
-        <rect
-            x={x}
-            y={y}
-            width={width}
-            height={height}
-            fill={fill}
-            stroke="#666"
-            strokeWidth={1}
-        />
     );
 }
