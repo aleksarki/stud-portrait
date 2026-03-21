@@ -16,6 +16,7 @@ import {
 } from "../../api.js";
 
 import VamDotPlot from '../../components/charts/VamDotPlot';
+import LgmSpaghettiPlot from '../../components/charts/LgmSpaghettiPlot';
 import { DisciplineAnalysisSection } from '../../components/DisciplineAnalysisSection';
 import { AdvancedVisualizationSection } from '../../components/AdvancedVisualizationSection';
 
@@ -244,40 +245,10 @@ function AdminAnalysisViewV2() {
 
     const renderLGMChart = (comp) => {
         const data = lgmDataByCompetency[comp];
-        if (!data || !data.trend_lines) return <div className="no-data">Нет данных</div>;
-        const { trend_lines } = data;
-        // Собираем все курсы
-        const allCourses = new Set();
-        trend_lines.forEach(t => t.points.forEach(p => allCourses.add(p.course)));
-        const chartData = Array.from(allCourses).sort((a, b) => a - b).map(course => {
-            const point = { course: `${course} курс` };
-            trend_lines.forEach(t => {
-                const p = t.points.find(p => p.course === course);
-                point[t.group] = p ? p.score : null;
-            });
-            return point;
-        });
-        return (
-            <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={chartData} margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="course" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    {trend_lines.map((trend, idx) => (
-                        <Line
-                            key={trend.group}
-                            type="monotone"
-                            dataKey={trend.group}
-                            stroke={COLORS[idx % COLORS.length]}
-                            strokeWidth={2}
-                            name={trend.group}
-                        />
-                    ))}
-                </LineChart>
-            </ResponsiveContainer>
-        );
+        if (!data || !data.trend_lines) {
+            return <div className="no-data">Нет данных</div>;
+        }
+        return <LgmSpaghettiPlot data={data} />;
     };
 
     const renderChartsGrid = () => {

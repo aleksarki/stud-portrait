@@ -21,6 +21,21 @@ from .datanal import (
     CrossSectionalAnalyzer
 )
 
+COMPETENCIES = [
+    'res_comp_info_analysis',
+    'res_comp_planning',
+    'res_comp_result_orientation',
+    'res_comp_stress_resistance',
+    'res_comp_partnership',
+    'res_comp_rules_compliance',
+    'res_comp_self_development',
+    'res_comp_leadership',
+    'res_comp_emotional_intel',
+    'res_comp_client_focus',
+    'res_comp_communication',
+    'res_comp_passive_vocab'
+]
+
 # Ключ: название дисциплины, значение: множество кодов компетенций
 DISCIPLINE_COMPETENCY_MAP = {
     'Проектно-исследовательская работа': {
@@ -57,65 +72,62 @@ DISCIPLINE_COMPETENCY_MAP = {
 @csrf_exempt
 @require_http_methods(["GET"])
 def analyze_student_vam(request):
-    """
-    Value-Added Model для конкретного студента.
-    
-    GET /portrait/analyze-student-vam/?student_id=123&competency=res_comp_leadership
-    """
     try:
         student_id = request.GET.get('student_id')
         competency = request.GET.get('competency', 'res_comp_leadership')
-        
         if not student_id:
             return JsonResponse({'status': 'error', 'message': 'student_id required'}, status=400)
-        
-        # Получаем все результаты студента
-        results = Results.objects.filter(
-            res_participant_id=student_id
-        ).order_by('res_year', 'res_course_num').values(
-            'res_year', 'res_course_num',
-            comp_score=f'{competency}'
-        )
-        
+
+        # Получаем все результаты студента, сортируем по году/курсу
+        results = Results.objects.filter(res_participant_id=student_id).order_by('res_year', 'res_course_num')
         if not results:
+            return JsonResponse({'status': 'error', 'message': 'Нет данных для студента'}, status=404)
+
+        data = []
+        for r in results:
+            score = getattr(r, competency, None)
+            if score is not None:
+                data.append({
+                    'year': r.res_year,
+                    'course': r.res_course_num,
+                    'competency_score': score
+                })
+
+        if len(data) < 2:
             return JsonResponse({
-                'status': 'error',
-                'message': 'Нет данных для студента'
-            }, status=404)
-        
-        # Преобразуем в DataFrame
-        df = pd.DataFrame(list(results))
-        df['year'] = df['res_year']
-        df['course'] = df['res_course_num']
-        
-        # Применяем VAM
+                'status': 'insufficient_data',
+                'message': 'Недостаточно данных для VAM (нужно минимум 2 замера)'
+            }, status=400)
+
+        df = pd.DataFrame(data)
         vam = ValueAddedModel()
         analysis = vam.fit_for_student(df)
-        
-        # Добавляем информацию о студенте
+
+        if analysis['status'] != 'success':
+            return JsonResponse({
+                'status': 'error',
+                'message': analysis.get('message', 'Ошибка расчёта VAM')
+            })
+
         participant = Participants.objects.get(part_id=student_id)
-        
-        # Получаем ФИО из маппинга
         try:
             mapping = Studentmapping.objects.get(rsv_id=participant.part_rsv_id)
             student_name = mapping.student_name
         except:
             student_name = f"Участник {participant.part_rsv_id}"
-        
+
         analysis['student_info'] = {
             'student_id': student_id,
             'rsv_id': participant.part_rsv_id,
             'name': student_name,
             'competency': competency
         }
-        
         return JsonResponse(analysis)
-        
+
     except Exception as e:
-        return JsonResponse({
-            'status': 'error',
-            'message': str(e)
-        }, status=500)
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 
 # ============================================================
@@ -1188,3 +1200,75 @@ def get_disciplines(request):
             'status': 'error',
             'message': str(e)
         }, status=500)
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def analyze_student_discipline_impact(request):
+    """
+    Возвращает для студента список дисциплин с баллами компетенций до и после.
+
+    GET /portrait/analyze-student-discipline-impact/?student_id=123
+    """
+    try:
+        student_id = request.GET.get('student_id')
+        if not student_id:
+            return JsonResponse({'status': 'error', 'message': 'student_id required'}, status=400)
+
+        # Получаем участника
+        try:
+            participant = Participants.objects.get(part_id=student_id)
+        except Participants.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Студент не найден'}, status=404)
+
+        # Получаем все дисциплины студента, отсортированные по году
+        disciplines = Academicperformance.objects.filter(perf_part=participant).order_by('perf_year')
+
+        results = []
+        for disc in disciplines:
+            year = disc.perf_year
+            # Результат до (предыдущий год)
+            before_result = Results.objects.filter(
+                res_participant=participant,
+                res_year__lt=year
+            ).order_by('-res_year', '-res_course_num').first()
+
+            # Результат после (тот же год)
+            after_result = Results.objects.filter(
+                res_participant=participant,
+                res_year=year
+            ).order_by('-res_course_num').first()
+
+            if not before_result or not after_result:
+                continue  # недостаточно данных для этой дисциплины
+
+            # Собираем баллы по всем компетенциям
+            competencies_before = {}
+            competencies_after = {}
+            for comp in COMPETENCIES:
+                before_score = getattr(before_result, comp, None)
+                after_score = getattr(after_result, comp, None)
+                if before_score is not None and after_score is not None:
+                    competencies_before[comp] = before_score
+                    competencies_after[comp] = after_score
+
+            if not competencies_before or not competencies_after:
+                continue  # нет данных по компетенциям
+
+            # Формируем запись
+            results.append({
+                'discipline': disc.perf_discipline,
+                'year': year,
+                'grade': disc.perf_final_grade,
+                'competencies_before': competencies_before,
+                'competencies_after': competencies_after,
+            })
+
+        return JsonResponse({
+            'status': 'success',
+            'data': results
+        }, json_dumps_params={'ensure_ascii': False})
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

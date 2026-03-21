@@ -288,3 +288,10 @@ export function getPortraitGetDisciplines() {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-disciplines/`);
     return new AsyncChain(promise);
 }
+
+/** GET /portrait/analyze-student-discipline-impact/ - влияние дисциплин на студента */
+export function getStudentDisciplineImpact(studentId) {
+    const params = new URLSearchParams({student_id: studentId});
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/analyze-student-discipline-impact/?${params}`);
+    return new AsyncChain(promise);
+}

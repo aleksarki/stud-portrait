@@ -36,6 +36,8 @@ urlpatterns = [
     path('analyze-discipline-impact-advanced/', analysis_end.analyze_discipline_impact_advanced, name='analyze_discipline_impact_advanced'),
     path('get-discipline-heatmap-data/', analysis_end.get_discipline_heatmap_data, name='get_discipline_heatmap_data'),
     
+    path('analyze-student-discipline-impact/', analysis_end.analyze_student_discipline_impact, name='analyze_student_discipline_impact'),
+
     # Кросс-секционный анализ
     path('analyze-by-dimension/', analysis_end.analyze_by_dimension, name='analyze_by_dimension'),
     
@@ -43,7 +45,6 @@ urlpatterns = [
     path('get-vam-dotplot-data/', analysis_end.get_vam_dotplot_data, name='get_vam_dotplot_data'),
     path('get-lgm-spaghetti-data/', analysis_end.get_lgm_spaghetti_data, name='get_lgm_spaghetti_data'),
     path('get-waterfall-decomposition/', analysis_end.get_waterfall_decomposition, name='get_waterfall_decomposition'),
-
 
     path('get-disciplines/', analysis_end.get_disciplines, name='get-disciplines'),
 ]

@@ -75,7 +75,7 @@ export function DisciplineAnalysisSection({
             selectedDisciplines,
             selectedInstitutions,
             selectedDirections,
-            
+            5
         )
             .onSuccess(async response => {
                 const data = await response.json();

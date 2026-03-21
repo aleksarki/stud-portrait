@@ -22,10 +22,11 @@ def get_student_resume_data(request):
     Возвращает данные для резюме студента в формате JSON.
     Frontend сам решит как их отображать (HTML, PDF через браузер, и т.д.)
     
-    GET /portrait/student-resume-data/?student_id=123&with_ai=true
+    GET /portrait/student-resume-data/?student_id=123&year=2021/2022&with_ai=true
     
     Query params:
         student_id (required): ID студента
+        year (optional): учебный год (формат "2021/2022")
         with_ai (optional): true | false (default: true) - включать AI-интерпретации
     
     Returns:
@@ -35,6 +36,7 @@ def get_student_resume_data(request):
     try:
         # Получаем параметры
         student_id = request.GET.get('student_id')
+        year = request.GET.get('year')
         with_ai = request.GET.get('with_ai', 'true').lower() == 'true'
         
         if not student_id:
@@ -54,15 +56,16 @@ def get_student_resume_data(request):
                 'message': f'Студент с ID {student_id} не найден'
             }, status=404)
         
-        # Получаем результаты студента (последние сверху)
-        results = Results.objects                \
-            .filter(res_participant=participant) \
-            .order_by('-res_year', '-res_course_num')
+        # Получаем результаты студента с фильтрацией по году, если указан
+        results = Results.objects.filter(res_participant=participant)
+        if year:
+            results = results.filter(res_year=year)
+        results = results.order_by('-res_year', '-res_course_num')
         
         if not results.exists():
             return JsonResponse({
                 'status': 'error',
-                'message': 'У студента нет результатов тестирования'
+                'message': f'Нет результатов тестирования за {year}' if year else 'У студента нет результатов тестирования'
             }, status=404)
         
         latest_result = results.first()
@@ -82,7 +85,8 @@ def get_student_resume_data(request):
                 'course': participant.part_course_num
             },
             'competencies': [],
-            'generated_at': datetime.now().isoformat()
+            'generated_at': datetime.now().isoformat(),
+            'year': year or latest_result.res_year  # возвращаем год, по которому загружены данные
         }
         
         # Собираем компетенции
