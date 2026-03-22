@@ -1,246 +1,197 @@
--- Удаляем старые таблицы (если они были)
-DROP TABLE IF EXISTS StudentMapping CASCADE;
-DROP TABLE IF EXISTS Course CASCADE;
-DROP TABLE IF EXISTS Results CASCADE;
-DROP TABLE IF EXISTS Participants CASCADE;
-DROP TABLE IF EXISTS Specialties CASCADE;
-DROP TABLE IF EXISTS Institutions CASCADE;
-DROP TABLE IF EXISTS CompetenceCenters CASCADE;
-DROP TABLE IF EXISTS EducationLevels CASCADE;
-DROP TABLE IF EXISTS StudyForms CASCADE;
-DROP TABLE IF EXISTS AcademicPerformance CASCADE;
 
--- Учебное заведение
-CREATE TABLE Institutions
-(
-    inst_id    INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    inst_name  VARCHAR(512)  NOT NULL
-);
+DROP TABLE IF EXISTS AcademicPerformances CASCADE;
+DROP TABLE IF EXISTS CourseResults        CASCADE;
+DROP TABLE IF EXISTS TestResults          CASCADE;
+DROP TABLE IF EXISTS Participants         CASCADE;
+DROP TABLE IF EXISTS EducationDisciplines CASCADE;
+DROP TABLE IF EXISTS EducationSpecialties CASCADE;
+DROP TABLE IF EXISTS EducationForms       CASCADE;
+DROP TABLE IF EXISTS EducationLevels      CASCADE;
+DROP TABLE IF EXISTS Institutions         CASCADE;
+DROP TABLE IF EXISTS CompetenceCenters    CASCADE;
 
 -- Центр компетенций
 CREATE TABLE CompetenceCenters
 (
-    center_id    INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    center_name  VARCHAR(512)  NOT NULL
+    center_id    INTEGER  PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    center_name  TEXT     NOT NULL
 );
+
+CREATE INDEX competence_centers_name ON CompetenceCenters(center_name);
+
+-- Учебное заведение
+CREATE TABLE Institutions
+(
+    inst_id    INTEGER  PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    inst_name  TEXT     NOT NULL
+);
+
+CREATE INDEX institutions_name ON Institutions(inst_name);
 
 -- Уровень образования (Бакалавриат, Магистратура, Аспирантура и т.д.)
 CREATE TABLE EducationLevels
 (
     edu_level_id    INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    edu_level_name  VARCHAR(256)  NOT NULL
+    edu_level_name  VARCHAR(512)  NOT NULL
 );
+
+CREATE INDEX education_levels_name ON EducationLevels(edu_level_name);
+
+INSERT INTO EducationLevels (edu_level_name) VALUES
+    ('Высшее образование - бакалавриат'),
+    ('Высшее образование - магистратура'),
+    ('Высшее образование - подготовка кадров высшей квалификации'),
+    ('Высшее образование - специалитет'),
+    ('Дополнительное профессиональное образование'),
+    ('Зарубежное образование'),
+    ('Основное общее образование'),
+    ('Пенсионер'),
+    ('Профессиональное обучение'),
+    ('Среднее общее образование'),
+    ('Среднее профессиональное образование');
 
 -- Форма обучения (Очная, Заочная, Очно-заочная)
-CREATE TABLE StudyForms
+CREATE TABLE EducationForms
 (
-    form_id    INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    form_name  VARCHAR(256)  NOT NULL
+    edu_form_id    INTEGER      PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    edu_form_name  VARCHAR(64)  NOT NULL
 );
+
+INSERT INTO EducationForms (edu_form_name) VALUES
+    ('Заочная'),
+    ('Очная'),
+    ('Очно-заочная');
 
 -- Специальность
-CREATE TABLE Specialties
+CREATE TABLE EducationSpecialties
 (
-    spec_id    INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    spec_name  VARCHAR(512)  NOT NULL
+    edu_spec_id    INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    edu_spec_name  VARCHAR(512)  NOT NULL
 );
 
--- НОВАЯ ТАБЛИЦА: Связь ID РСВ → ФИО студента
-CREATE TABLE StudentMapping
+CREATE INDEX education_specialties_name ON EducationSpecialties(edu_spec_name);
+
+-- Учебная дисциплина
+CREATE TABLE EducationDisciplines
 (
-    mapping_id      INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    rsv_id          VARCHAR(512)  NOT NULL UNIQUE,  -- ID из тестирования РСВ
-    student_name    VARCHAR(512)  NOT NULL,         -- Полное ФИО студента
-    student_gender  VARCHAR(16),                    -- Пол студента
-    created_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+    edu_disc_id    INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    edu_disc_name  VARCHAR(512)  NOT NULL
 );
 
--- Индекс для быстрого поиска по RSV ID
-CREATE INDEX idx_student_mapping_rsv_id ON StudentMapping(rsv_id);
-
--- Участник
+-- Участник тестирования
 CREATE TABLE Participants
 (
-    part_id           INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    part_rsv_id       VARCHAR(512)  NOT NULL,  -- ID из тестирования РСВ (не ФИО!)
-    part_gender       VARCHAR(16),
-    part_institution  INT           REFERENCES Institutions(inst_id)         ON DELETE RESTRICT ON UPDATE CASCADE,
-    part_spec         INT           REFERENCES Specialties(spec_id)          ON DELETE RESTRICT ON UPDATE CASCADE,
-    part_edu_level    INT           REFERENCES EducationLevels(edu_level_id) ON DELETE RESTRICT ON UPDATE CASCADE,
-    part_form         INT           REFERENCES StudyForms(form_id)           ON DELETE RESTRICT ON UPDATE CASCADE,
-    part_course_num   INT,
-    
-    UNIQUE(part_rsv_id)  -- Уникальность по RSV ID
+    part_id      INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    part_rsv_id  VARCHAR(512)  UNIQUE NOT NULL,  -- ID участника RSV
+    part_name    VARCHAR(512),
+    part_gender  INT
 );
 
--- Индекс для быстрого поиска
-CREATE INDEX idx_participants_rsv_id ON Participants(part_rsv_id);
+-- CREATE INDEX idx_participants_rsv_id ON Participants(part_rsv_id);
 
--- Результаты участников
-CREATE TABLE Results
+-- Результат прохождения тестирования РСВ
+CREATE TABLE TestResults
 (
-    res_id              INTEGER  PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    res_participant     INT      NOT NULL REFERENCES Participants(part_id)  ON DELETE CASCADE  ON UPDATE CASCADE,
-    res_center          INT      REFERENCES CompetenceCenters(center_id)    ON DELETE RESTRICT ON UPDATE CASCADE,
-    res_institution     INT      REFERENCES Institutions(inst_id)           ON DELETE RESTRICT ON UPDATE CASCADE,
-    res_edu_level       INT      REFERENCES EducationLevels(edu_level_id)   ON DELETE RESTRICT ON UPDATE CASCADE,
-    res_form            INT      REFERENCES StudyForms(form_id)             ON DELETE RESTRICT ON UPDATE CASCADE,
-    res_spec            INT      REFERENCES Specialties(spec_id)            ON DELETE RESTRICT ON UPDATE CASCADE,
-    res_course_num      INT,
-    res_year            TEXT,
-    res_high_potential  TEXT,
-    res_summary_report  TEXT,
-
-    -- === Профиль компетенций ===
-    res_comp_info_analysis       INT,
-    res_comp_planning            INT,
-    res_comp_result_orientation  INT,
-    res_comp_stress_resistance   INT,
-    res_comp_partnership         INT,
-    res_comp_rules_compliance    INT,
-    res_comp_self_development    INT,
-    res_comp_leadership          INT,
-    res_comp_emotional_intel     INT,
-    res_comp_client_focus        INT,
-    res_comp_communication       INT,
-    res_comp_passive_vocab       INT,
-
-    -- === Мотиваторы ===
-    res_mot_autonomy          DECIMAL(5,2),
-    res_mot_altruism          DECIMAL(5,2),
-    res_mot_challenge         DECIMAL(5,2),
-    res_mot_salary            DECIMAL(5,2),
-    res_mot_career            DECIMAL(5,2),
-    res_mot_creativity        DECIMAL(5,2),
-    res_mot_relationships     DECIMAL(5,2),
-    res_mot_recognition       DECIMAL(5,2),
-    res_mot_affiliation       DECIMAL(5,2),
-    res_mot_self_development  DECIMAL(5,2),
-    res_mot_purpose           DECIMAL(5,2),
-    res_mot_cooperation       DECIMAL(5,2),
-    res_mot_stability         DECIMAL(5,2),
-    res_mot_tradition         DECIMAL(5,2),
-    res_mot_management        DECIMAL(5,2),
-    res_mot_work_conditions   DECIMAL(5,2),
-
-    -- === Ценности ===
-    res_val_honesty_justice  INT,
-    res_val_humanism         INT,
-    res_val_patriotism       INT,
-    res_val_family           INT,
-    res_val_health           INT,
-    res_val_environment      INT,
-    
-    -- Уникальность: один результат на участника + год + курс
-    UNIQUE(res_participant, res_year, res_course_num)
+    res_id             INTEGER      PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    res_participant    INT          NOT NULL REFERENCES Participants(part_id)         ON DELETE CASCADE  ON UPDATE CASCADE,
+    res_center         INT          NOT NULL REFERENCES CompetenceCenters(center_id)  ON DELETE RESTRICT ON UPDATE CASCADE,
+    res_institution    INT          REFERENCES Institutions(inst_id)                  ON DELETE RESTRICT ON UPDATE CASCADE,
+    res_edu_level      INT          REFERENCES EducationLevels(edu_level_id)          ON DELETE RESTRICT ON UPDATE CASCADE,
+    res_edu_form       INT          REFERENCES EducationForms(edu_form_id)            ON DELETE RESTRICT ON UPDATE CASCADE,
+    res_edu_specialty  INT          REFERENCES EducationSpecialties(edu_spec_id)      ON DELETE RESTRICT ON UPDATE CASCADE,
+    res_course         INT,
+    res_year           VARCHAR(16)  NOT NULL,
+    res_potential      INT,
+    res_report         VARCHAR(1024),
+    UNIQUE(res_participant, res_year),
+    -- компетенции
+    res_comp_info_analysis       INT  CHECK (res_comp_info_analysis      BETWEEN 200 AND 800),
+    res_comp_planning            INT  CHECK (res_comp_planning           BETWEEN 200 AND 800),
+    res_comp_result_orientation  INT  CHECK (res_comp_result_orientation BETWEEN 200 AND 800),
+    res_comp_stress_resistance   INT  CHECK (res_comp_stress_resistance  BETWEEN 200 AND 800),
+    res_comp_partnership         INT  CHECK (res_comp_partnership        BETWEEN 200 AND 800),
+    res_comp_rules_compliance    INT  CHECK (res_comp_rules_compliance   BETWEEN 200 AND 800),
+    res_comp_self_development    INT  CHECK (res_comp_self_development   BETWEEN 200 AND 800),
+    res_comp_leadership          INT  CHECK (res_comp_leadership         BETWEEN 200 AND 800),
+    res_comp_emotional_intel     INT  CHECK (res_comp_emotional_intel    BETWEEN 200 AND 800),
+    res_comp_client_focus        INT  CHECK (res_comp_client_focus       BETWEEN 200 AND 800),
+    res_comp_communication       INT  CHECK (res_comp_communication      BETWEEN 200 AND 800),
+    res_comp_passive_vocab       INT  CHECK (res_comp_passive_vocab      BETWEEN 200 AND 800),
+    -- мотиваторы
+    res_mot_autonomy          DECIMAL(5,2)  CHECK (res_mot_autonomy         BETWEEN 200 AND 800),
+    res_mot_altruism          DECIMAL(5,2)  CHECK (res_mot_altruism         BETWEEN 200 AND 800),
+    res_mot_challenge         DECIMAL(5,2)  CHECK (res_mot_challenge        BETWEEN 200 AND 800),
+    res_mot_salary            DECIMAL(5,2)  CHECK (res_mot_salary           BETWEEN 200 AND 800),
+    res_mot_career            DECIMAL(5,2)  CHECK (res_mot_career           BETWEEN 200 AND 800),
+    res_mot_creativity        DECIMAL(5,2)  CHECK (res_mot_creativity       BETWEEN 200 AND 800),
+    res_mot_relationships     DECIMAL(5,2)  CHECK (res_mot_relationships    BETWEEN 200 AND 800),
+    res_mot_recognition       DECIMAL(5,2)  CHECK (res_mot_recognition      BETWEEN 200 AND 800),
+    res_mot_affiliation       DECIMAL(5,2)  CHECK (res_mot_affiliation      BETWEEN 200 AND 800),
+    res_mot_self_development  DECIMAL(5,2)  CHECK (res_mot_self_development BETWEEN 200 AND 800),
+    res_mot_purpose           DECIMAL(5,2)  CHECK (res_mot_purpose          BETWEEN 200 AND 800),
+    res_mot_cooperation       DECIMAL(5,2)  CHECK (res_mot_cooperation      BETWEEN 200 AND 800),
+    res_mot_stability         DECIMAL(5,2)  CHECK (res_mot_stability        BETWEEN 200 AND 800),
+    res_mot_tradition         DECIMAL(5,2)  CHECK (res_mot_tradition        BETWEEN 200 AND 800),
+    res_mot_management        DECIMAL(5,2)  CHECK (res_mot_management       BETWEEN 200 AND 800),
+    res_mot_work_conditions   DECIMAL(5,2)  CHECK (res_mot_work_conditions  BETWEEN 200 AND 800),
+    -- ценности
+    res_val_honesty_justice  INT  CHECK (res_val_honesty_justice BETWEEN 200 AND 800),
+    res_val_humanism         INT  CHECK (res_val_humanism        BETWEEN 200 AND 800),
+    res_val_patriotism       INT  CHECK (res_val_patriotism      BETWEEN 200 AND 800),
+    res_val_family           INT  CHECK (res_val_family          BETWEEN 200 AND 800),
+    res_val_health           INT  CHECK (res_val_health          BETWEEN 200 AND 800),
+    res_val_environment      INT  CHECK (res_val_environment     BETWEEN 200 AND 800)
 );
 
--- Результаты участников по курсам
-CREATE TABLE Course
+CREATE INDEX idx_test_results_participant ON TestResults(res_participant);
+
+-- Результат прохождения курсов РСВ
+CREATE TABLE CourseResults
 (
     course_id           INTEGER  PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     course_participant  INT      NOT NULL REFERENCES Participants(part_id) ON DELETE CASCADE ON UPDATE CASCADE,
-
-    -- === Курсы (оценки по каждому курсу, от 0.00 до 1.00) ===
-    course_an_dec                  DECIMAL(5,2),
-    course_client_focus            DECIMAL(5,2),
-    course_communication           DECIMAL(5,2),
-    course_leadership              DECIMAL(5,2),
-    course_result_orientation      DECIMAL(5,2),
-    course_planning_org            DECIMAL(5,2),
-    course_rules_culture           DECIMAL(5,2),
-    course_self_dev                DECIMAL(5,2),
-    course_collaboration           DECIMAL(5,2),
-    course_stress_resistance       DECIMAL(5,2),
-    course_emotions_communication  DECIMAL(5,2),
-    course_negotiations            DECIMAL(5,2),
-    course_digital_comm            DECIMAL(5,2),
-    course_effective_learning      DECIMAL(5,2),
-    course_entrepreneurship        DECIMAL(5,2),
-    course_creativity_tech         DECIMAL(5,2),
-    course_trendwatching           DECIMAL(5,2),
-    course_conflict_management     DECIMAL(5,2),
-    course_career_management       DECIMAL(5,2),
-    course_burnout                 DECIMAL(5,2),
-    course_cross_cultural_comm     DECIMAL(5,2),
-    course_mentoring               DECIMAL(5,2)
+    -- курсы
+    course_an_dec                  DECIMAL(5,2)  CHECK (course_an_dec                 BETWEEN 0 AND 1),
+    course_client_focus            DECIMAL(5,2)  CHECK (course_client_focus           BETWEEN 0 AND 1),
+    course_communication           DECIMAL(5,2)  CHECK (course_communication          BETWEEN 0 AND 1),
+    course_leadership              DECIMAL(5,2)  CHECK (course_leadership             BETWEEN 0 AND 1),
+    course_result_orientation      DECIMAL(5,2)  CHECK (course_result_orientation     BETWEEN 0 AND 1),
+    course_planning_org            DECIMAL(5,2)  CHECK (course_planning_org           BETWEEN 0 AND 1),
+    course_rules_culture           DECIMAL(5,2)  CHECK (course_rules_culture          BETWEEN 0 AND 1),
+    course_self_dev                DECIMAL(5,2)  CHECK (course_self_dev               BETWEEN 0 AND 1),
+    course_collaboration           DECIMAL(5,2)  CHECK (course_collaboration          BETWEEN 0 AND 1),
+    course_stress_resistance       DECIMAL(5,2)  CHECK (course_stress_resistance      BETWEEN 0 AND 1),
+    course_emotions_communication  DECIMAL(5,2)  CHECK (course_emotions_communication BETWEEN 0 AND 1),
+    course_negotiations            DECIMAL(5,2)  CHECK (course_negotiations           BETWEEN 0 AND 1),
+    course_digital_comm            DECIMAL(5,2)  CHECK (course_digital_comm           BETWEEN 0 AND 1),
+    course_effective_learning      DECIMAL(5,2)  CHECK (course_effective_learning     BETWEEN 0 AND 1),
+    course_entrepreneurship        DECIMAL(5,2)  CHECK (course_entrepreneurship       BETWEEN 0 AND 1),
+    course_creativity_tech         DECIMAL(5,2)  CHECK (course_creativity_tech        BETWEEN 0 AND 1),
+    course_trendwatching           DECIMAL(5,2)  CHECK (course_trendwatching          BETWEEN 0 AND 1),
+    course_conflict_management     DECIMAL(5,2)  CHECK (course_conflict_management    BETWEEN 0 AND 1),
+    course_career_management       DECIMAL(5,2)  CHECK (course_career_management      BETWEEN 0 AND 1),
+    course_burnout                 DECIMAL(5,2)  CHECK (course_burnout                BETWEEN 0 AND 1),
+    course_cross_cultural_comm     DECIMAL(5,2)  CHECK (course_cross_cultural_comm    BETWEEN 0 AND 1),
+    course_mentoring               DECIMAL(5,2)  CHECK (course_mentoring              BETWEEN 0 AND 1) 
 );
 
--- Итоги успеваемости участников
-CREATE TABLE AcademicPerformance
+CREATE INDEX idx_course_results_participant ON CourseResults(course_participant);
+
+-- Академическая успеваемость
+CREATE TABLE AcademicPerformances
 (
-    perf_id       INTEGER  PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    perf_part_id  INT      NOT NULL REFERENCES Participants(part_id) ON DELETE CASCADE ON UPDATE CASCADE,
-
-    perf_year        VARCHAR(9)   NOT NULL,      -- формат "2023/2024"
-    perf_discipline  VARCHAR(200) NOT NULL,      -- НОВОЕ: название дисциплины
-
-    perf_current_avg      DECIMAL(5,2),  -- итог текущей успеваемости
-    perf_digital_culture  DECIMAL(5,2),  -- цифровая культура
-
-    perf_main_attestation   VARCHAR(16),
-    perf_first_retake       VARCHAR(16),
-    perf_second_retake      VARCHAR(16),
-    perf_high_grade_retake  VARCHAR(16),
-    perf_final_grade        VARCHAR(16),
-
-    -- Уникальность: один результат на студента + год + дисциплина
-    UNIQUE(perf_part_id, perf_year, perf_discipline),
-
-    -- Ограничение допустимых значений аттестаций
-    CONSTRAINT chk_attestation_values CHECK (
-        perf_main_attestation IN ('отл.', 'хор.', 'удовл.', 'неудовл.', 'не явился') OR perf_main_attestation IS NULL
-    ),
-    CONSTRAINT chk_first_retake CHECK (
-        perf_first_retake IN ('отл.', 'хор.', 'удовл.', 'неудовл.', 'не явился') OR perf_first_retake IS NULL
-    ),
-    CONSTRAINT chk_second_retake CHECK (
-        perf_second_retake IN ('отл.', 'хор.', 'удовл.', 'неудовл.', 'не явился') OR perf_second_retake IS NULL
-    ),
-    CONSTRAINT chk_high_grade_retake CHECK (
-        perf_high_grade_retake IN ('отл.', 'хор.', 'удовл.', 'неудовл.', 'не явился') OR perf_high_grade_retake IS NULL
-    ),
-    CONSTRAINT chk_final_grade CHECK (
-        perf_final_grade IN ('отл.', 'хор.', 'удовл.', 'неудовл.', 'не явился') OR perf_final_grade IS NULL
-    )
+    perf_id              INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    perf_participant     INT           NOT NULL REFERENCES Participants(part_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    perf_edu_discipline  INT           NOT NULL REFERENCES EducationDisciplines(edu_disc_id)  ON DELETE RESTRICT ON UPDATE CASCADE,
+    perf_year            VARCHAR(16)   NOT NULL,
+    perf_current         DECIMAL(5,2), -- todo: CHECK                              -- итог текущей успеваемости
+    perf_digital         DECIMAL(5,2), -- todo: CHECK                              -- цифровая культура ?????
+    perf_main            INT           CHECK (perf_main          BETWEEN 1 AND 5),  -- основная аттестация  -- 1 = 'не явился'
+    perf_first_retake    INT           CHECK (perf_first_retake  BETWEEN 1 AND 5),  -- первая повторная аттестация
+    perf_second_retake   INT           CHECK (perf_second_retake BETWEEN 1 AND 5),  -- вторая повторная аттестация
+    perf_grade_retake    INT           CHECK (perf_grade_retake  BETWEEN 1 AND 5),  -- пересдача на повышенную оценку
+    perf_final           INT           CHECK (perf_final         BETWEEN 1 AND 5),  -- иоговая оценка
+    UNIQUE(perf_participant, perf_year, perf_edu_discipline)
 );
 
--- Индекс для быстрого поиска
-CREATE INDEX idx_academic_performance_discipline ON AcademicPerformance(perf_discipline);
-
--- ═══════════════════════════════════════════════════════════
--- ПРЕДСТАВЛЕНИЯ (VIEWS) ДЛЯ УДОБСТВА
--- ═══════════════════════════════════════════════════════════
-
--- VIEW: Участники с их ФИО
-CREATE OR REPLACE VIEW participants_with_names AS
-SELECT 
-    p.part_id,
-    p.part_rsv_id,
-    COALESCE(sm.student_name, 'Участник ' || p.part_rsv_id) as student_name,
-    p.part_gender,
-    p.part_institution,
-    p.part_spec,
-    p.part_edu_level,
-    p.part_form,
-    p.part_course_num
-FROM Participants p
-LEFT JOIN StudentMapping sm ON p.part_rsv_id = sm.rsv_id;
-
--- VIEW: Результаты с ФИО студентов
-CREATE OR REPLACE VIEW results_with_names AS
-SELECT 
-    r.*,
-    COALESCE(sm.student_name, 'Участник ' || p.part_rsv_id) as student_name
-FROM Results r
-JOIN Participants p ON r.res_participant = p.part_id
-LEFT JOIN StudentMapping sm ON p.part_rsv_id = sm.rsv_id;
-
--- VIEW: Успеваемость с ФИО студентов
-CREATE OR REPLACE VIEW academic_performance_with_names AS
-SELECT 
-    ap.*,
-    COALESCE(sm.student_name, 'Участник ' || p.part_rsv_id) as student_name
-FROM AcademicPerformance ap
-JOIN Participants p ON ap.perf_part_id = p.part_id
-LEFT JOIN StudentMapping sm ON p.part_rsv_id = sm.rsv_id;
+CREATE INDEX idx_academic_performances_participant ON AcademicPerformances(perf_participant);
