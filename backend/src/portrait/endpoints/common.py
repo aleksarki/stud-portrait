@@ -94,7 +94,9 @@ def jsonResponse(func):
         try:
             return successResponse(func(request))
         except ResponseError as e:
+            print(e.message)
             return errorResponse(e.message, e.status)
         except Exception as e:
+            print(str(e))
             return exceptionResponse(str(e))
     return wrapper

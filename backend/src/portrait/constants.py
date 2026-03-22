@@ -17,18 +17,18 @@ class RsvCompetencies:
     PASSIVE_VOCAB = 'res_comp_passive_vocab'
 
     names = {
-        INFO_ANALYSIS: "Анализ информаци",
-        PLANNING:      "Планировани",
-        RESULT_ORIENT: "Ориентация на результа",
-        STRESS_RESIST: "Стрессоустойчивост",
-        PARTNERSHIP:   "Партнерств",
-        RULE_COMPLY:   "Соблюдение прави",
-        SELF_DEVELOP:  "Саморазвити",
-        LEADERSHIP:    "Лидерств",
-        EMOTE_INTEL:   "Эмоциональный интеллек",
-        CLIENT_FOCUS:  "Клиентоориентированност",
-        COMMUNICATION: "Коммуникаци",
-        PASSIVE_VOCAB: "Пассивный словарь"
+        INFO_ANALYSIS: "Анализ информации",
+        PLANNING:      "Планирование",
+        RESULT_ORIENT: "Ориентация на результат",
+        STRESS_RESIST: "Стрессоустойчивость",
+        PARTNERSHIP:   "Партнёрство",
+        RULE_COMPLY:   "Соблюдение правил",
+        SELF_DEVELOP:  "Саморазвитие",
+        LEADERSHIP:    "Лидерство",
+        EMOTE_INTEL:   "Эмоциональный интеллект",
+        CLIENT_FOCUS:  "Клиентоориентированность",
+        COMMUNICATION: "Коммуникация",
+        PASSIVE_VOCAB: "Пассивный словарный запас"
     }
 
 
