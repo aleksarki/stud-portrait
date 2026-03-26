@@ -7,7 +7,8 @@ import {
 
 import { getPortraitStudentResults } from "../../api";
 import {
-    getAvailableProfiles, getAvailableCategories, getAvailableYears, getCategoryDataForYear
+    getAvailableProfiles, getAvailableCategories, getAvailableYears, getCategoryDataForYear,
+    COMPETENCIES_NAMES
 } from "../../utilities";
 import ChartSwitcher from "../../components/charts/ChartSwitcher";
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
@@ -20,21 +21,6 @@ import StudentLgmChart from '../../components/charts/StudentLgmChart';
 import StudentDisciplineImpact from '../../components/charts/StudentDisciplineImpact';
 
 import "./StudentMainView.scss";
-
-const competencyLabels = {
-    "res_comp_info_analysis": "Анализ информации",
-    "res_comp_planning": "Планирование",
-    "res_comp_result_orientation": "Ориентация на результат",
-    "res_comp_stress_resistance": "Стрессоустойчивость",
-    "res_comp_partnership": "Партнёрство",
-    "res_comp_rules_compliance": "Соблюдение правил",
-    "res_comp_self_development": "Саморазвитие",
-    "res_comp_leadership": "Лидерство",
-    "res_comp_emotional_intel": "Эмоциональный интеллект",
-    "res_comp_client_focus": "Клиентоориентированность",
-    "res_comp_communication": "Коммуникация",
-    "res_comp_passive_vocab": "Пассивный словарь"
-};
 
 function StudentMainView() {
     const { studentId } = useParams();
@@ -201,7 +187,7 @@ function StudentMainView() {
             if (!course) return;
             if (!byCourse[course]) byCourse[course] = {};
             // Извлекаем баллы компетенций из полей res_comp_*
-            Object.keys(competencyLabels).forEach(comp => {
+            Object.keys(COMPETENCIES_NAMES).forEach(comp => {
                 const score = res[comp];
                 if (score !== undefined && score !== null) {
                     byCourse[course][comp] = score;
@@ -216,7 +202,7 @@ function StudentMainView() {
         }
         const chartData = courses.map(course => {
             const point = { course: `${course} курс` };
-            Object.keys(competencyLabels).forEach(comp => {
+            Object.keys(COMPETENCIES_NAMES).forEach(comp => {
                 point[comp] = byCourse[course][comp] || null;
             });
             return point;
@@ -378,7 +364,7 @@ function StudentMainView() {
                         <div className="vam-controls">
                             <label>Компетенция:</label>
                             <select value={vamCompetency} onChange={e => setVamCompetency(e.target.value)}>
-                                {Object.entries(competencyLabels).map(([key, name]) => (
+                                {Object.entries(COMPETENCIES_NAMES).map(([key, name]) => (
                                     <option key={key} value={key}>{name}</option>
                                 ))}
                             </select>
@@ -392,7 +378,7 @@ function StudentMainView() {
                         <div className="lgm-controls">
                             <label>Компетенция:</label>
                             <select value={lgmCompetency} onChange={e => setLgmCompetency(e.target.value)}>
-                                {Object.entries(competencyLabels).map(([key, name]) => (
+                                {Object.entries(COMPETENCIES_NAMES).map(([key, name]) => (
                                     <option key={key} value={key}>{name}</option>
                                 ))}
                             </select>
@@ -403,7 +389,7 @@ function StudentMainView() {
                             <StudentLgmChart
                                 data={lgmData}
                                 competency={lgmCompetency}
-                                competencyLabel={competencyLabels[lgmCompetency]}
+                                competencyLabel={COMPETENCIES_NAMES[lgmCompetency]}
                             />
                         )}
                     </div>

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 import Button from '../../components/ui/Button.jsx';
-import { FIELD_NAMES, LINK_TREE } from "../../utilities.js";
+import { COURSES_NAMES, FIELD_NAMES, LINK_TREE } from "../../utilities.js";
 import { getPortraitCourses } from '../../api.js';
 
 import "./AdminCoursesView.scss";
@@ -13,36 +13,10 @@ function AdminCoursesView() {
     const [selectedRows, setSelectedRows] = useState(new Set());
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
-    // Названия курсов
-    const courseNames = {
-        'course_an_dec': 'Анализ информации для принятия решений',
-        'course_client_focus': 'Клиентоориентированность',
-        'course_communication': 'Коммуникативная грамотность',
-        'course_leadership': 'Лидерство: основы',
-        'course_result_orientation': 'Ориентация на результат',
-        'course_planning_org': 'Планирование и организация',
-        'course_rules_culture': 'Роль культуры правил',
-        'course_self_dev': 'Саморазвитие',
-        'course_collaboration': 'Сотрудничество',
-        'course_stress_resistance': 'Стрессоустойчивость',
-        'course_emotions_communication': 'Эмоции и коммуникация',
-        'course_negotiations': 'Искусство деловых переговоров',
-        'course_digital_comm': 'Коммуникация в цифровой среде',
-        'course_effective_learning': 'Навыки эффективного обучения',
-        'course_entrepreneurship': 'Предпринимательское мышление',
-        'course_creativity_tech': 'Технологии креативности',
-        'course_trendwatching': 'Трендвотчинг',
-        'course_conflict_management': 'Управление конфликтами',
-        'course_career_management': 'Управляй своей карьерой',
-        'course_burnout': 'Эмоциональное выгорание',
-        'course_cross_cultural_comm': 'Межкультурные коммуникации',
-        'course_mentoring': 'Я — наставник'
-    };
-
     // Порядок колонок
     const columnOrder = [
         'participant',
-        ...Object.keys(courseNames)
+        ...Object.keys(COURSES_NAMES)
     ];
 
     useEffect(() => {
@@ -144,9 +118,9 @@ function AdminCoursesView() {
     const calculateParticipantStats = (participantId) => {
         const participantCourses = coursesData.filter(c => c.participant?.part_id === participantId);
         const completedCourses = participantCourses.filter(c => 
-            Object.keys(courseNames).some(courseKey => c[courseKey] > 0)
+            Object.keys(COURSES_NAMES).some(courseKey => c[courseKey] > 0)
         ).length;
-        const totalCourses = Object.keys(courseNames).length;
+        const totalCourses = Object.keys(COURSES_NAMES).length;
         
         return {
             completed: completedCourses,
@@ -157,50 +131,11 @@ function AdminCoursesView() {
 
     const calculateActualCompletedCoursesNumber_ = course => {
         let total = 0;
-        if (course.course_an_dec != 0 )
-            ++total;
-        if (course.course_burnout != 0 )
-            ++total;
-        if (course.course_career_management != 0 )
-            ++total;
-        if (course.course_client_focus != 0 )
-            ++total;
-        if (course.course_collaboration != 0 )
-            ++total;
-        if (course.course_communication != 0 )
-            ++total;
-        if (course.course_conflict_management != 0 )
-            ++total;
-        if (course.course_creativity_tech != 0 )
-            ++total;
-        if (course.course_cross_cultural_comm != 0 )
-            ++total;
-        if (course.course_digital_comm != 0 )
-            ++total;
-        if (course.course_effective_learning != 0 )
-            ++total;
-        if (course.course_emotions_communication != 0 )
-            ++total;
-        if (course.course_entrepreneurship != 0 )
-            ++total;
-        if (course.course_leadership != 0 )
-            ++total;
-        if (course.course_mentoring != 0 )
-            ++total;
-        if (course.course_negotiations != 0 )
-            ++total;
-        if (course.course_planning_org != 0 )
-            ++total;
-        if (course.course_result_orientation != 0 )
-            ++total;
-        if (course.course_rules_culture != 0 )
-            ++total;
-        if (course.course_self_dev != 0 )
-            ++total;
-        if (course.course_stress_resistance != 0 )
-            ++total;
-        if (course.course_trendwatching != 0 )
-            ++total;
+        Object.keys(COURSES_NAMES).map(courseKey => {
+            if (course[courseKey] != 0) {
+                ++total;
+            }
+        });
         return total;
     };
 
@@ -261,13 +196,13 @@ function AdminCoursesView() {
                                 <div className="stat-label">Участников</div>
                             </div>
                             <div className="stat-card">
-                                <div className="stat-value">{Object.keys(courseNames).length}</div>
+                                <div className="stat-value">{Object.keys(COURSES_NAMES).length}</div>
                                 <div className="stat-label">Всего курсов</div>
                             </div>
                             {/*<div className="stat-card">
                                 <div className="stat-value">
                                     {coursesData.filter(c => 
-                                        Object.keys(courseNames).some(courseKey => c[courseKey] > 0)
+                                        Object.keys(COURSES_NAMES).some(courseKey => c[courseKey] > 0)
                                     ).length}
                                 </div>
                                 <div className="stat-label">Записей с прогрессом</div>
@@ -293,15 +228,15 @@ function AdminCoursesView() {
                                             >
                                                 Участник {getSortIcon('participant')}
                                             </th>
-                                            {Object.keys(courseNames).map(courseKey => (
+                                            {Object.keys(COURSES_NAMES).map(courseKey => (
                                                 <th 
                                                     key={courseKey}
                                                     onClick={() => handleSort(courseKey)}
-                                                    title={courseNames[courseKey]}
+                                                    title={COURSES_NAMES[courseKey]}
                                                 >
                                                     <div className="course-header">
                                                         <div className="course-short-name">
-                                                            {courseNames[courseKey].split(' ')[0]}
+                                                            {COURSES_NAMES[courseKey].split(' ')[0]}
                                                         </div>
                                                         {getSortIcon(courseKey)}
                                                     </div>
@@ -330,11 +265,11 @@ function AdminCoursesView() {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                {Object.keys(courseNames).map(courseKey => (
+                                                {Object.keys(COURSES_NAMES).map(courseKey => (
                                                     <td 
                                                         key={courseKey}
                                                         className={`course-cell ${getProgressClass(course[courseKey] || 0)}`}
-                                                        title={`${courseNames[courseKey]}: ${course[courseKey] ? (course[courseKey] * 100).toFixed(1) + '%' : 'Не пройден'}`}
+                                                        title={`${COURSES_NAMES[courseKey]}: ${course[courseKey] ? (course[courseKey] * 100).toFixed(1) + '%' : 'Не пройден'}`}
                                                     >
                                                         {renderTableCell(course, courseKey)}
                                                     </td>

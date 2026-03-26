@@ -19,7 +19,7 @@ import VamDotPlot from '../../components/charts/VamDotPlot';
 import LgmSpaghettiPlot from '../../components/charts/LgmSpaghettiPlot';
 import { DisciplineAnalysisSection } from '../../components/DisciplineAnalysisSection';
 import { AdvancedVisualizationSection } from '../../components/AdvancedVisualizationSection';
-import { LINK_TREE } from "../../utilities.js";
+import { COMPETENCIES_NAMES, LINK_TREE } from "../../utilities.js";
 
 import "./AdminAnalysisView.scss";
 
@@ -27,21 +27,6 @@ const COLORS = [
     '#1976d2', '#d32f2f', '#388e3c', '#f57c00', '#7b1fa2',
     '#0288d1', '#c2185b', '#5d4037', '#00796b', '#fbc02d',
 ];
-
-const competencyLabels = {
-    "res_comp_info_analysis": "Анализ информации",
-    "res_comp_planning": "Планирование",
-    "res_comp_result_orientation": "Ориентация на результат",
-    "res_comp_stress_resistance": "Стрессоустойчивость",
-    "res_comp_partnership": "Партнёрство",
-    "res_comp_rules_compliance": "Соблюдение правил",
-    "res_comp_self_development": "Саморазвитие",
-    "res_comp_leadership": "Лидерство",
-    "res_comp_emotional_intel": "Эмоциональный интеллект",
-    "res_comp_client_focus": "Клиентоориентированность",
-    "res_comp_communication": "Коммуникация",
-    "res_comp_passive_vocab": "Пассивный словарь"
-};
 
 function AdminAnalysisViewV2() {
     // -------------------- STATE --------------------
@@ -131,7 +116,7 @@ function AdminAnalysisViewV2() {
                         allDirections: data.data?.directions || [],
                         courses: data.data?.courses || [],
                         testAttempts: data.data?.test_attempts || [],
-                        competencies: data.data?.competencies || Object.keys(competencyLabels).map(c => ({ id: c, name: competencyLabels[c], count: 0 })),
+                        competencies: data.data?.competencies || Object.keys(COMPETENCIES_NAMES).map(c => ({ id: c, name: COMPETENCIES_NAMES[c], count: 0 })),
                         students: data.data?.students || [],
                         disciplines: disciplines
                     });
@@ -251,7 +236,7 @@ function AdminAnalysisViewV2() {
             const comp = selectedCompetencies[0];
             return (
                 <div className="chart-container">
-                    <h3>{competencyLabels[comp]}</h3>
+                    <h3>{COMPETENCIES_NAMES[comp]}</h3>
                     {analysisMethod === 'vam' ? renderVAMChart(comp) : renderLGMChart(comp)}
                 </div>
             );
@@ -260,7 +245,7 @@ function AdminAnalysisViewV2() {
             <div className="charts-grid">
                 {selectedCompetencies.map(comp => (
                     <div key={comp} className="chart-grid-item">
-                        <h4>{competencyLabels[comp]}</h4>
+                        <h4>{COMPETENCIES_NAMES[comp]}</h4>
                         {analysisMethod === 'vam' ? renderVAMChart(comp) : renderLGMChart(comp)}
                     </div>
                 ))}
