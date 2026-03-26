@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import Button from '../../components/ui/Button.jsx';
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
-import { FIELD_NAMES } from "../../utilities.js";
+import { FIELD_NAMES, LINK_TREE } from "../../utilities.js";
 import {
     postPortraitCreateDataSession, postPortraitExportSelectedResults, postPortraitGetSessionData,
     postPortraitLoadMoreData, postPortraitUpdateSessionColumns, postPortraitUpdateSessionFilters
@@ -29,15 +29,6 @@ function AdminResultsView() {
     const [showGroupingModal, setShowGroupingModal] = useState(false);
     const [groupingColumn, setGroupingColumn] = useState('');
     const navigate = useNavigate();
-
-    const linkList = [
-        {to:'/admin/', title: "Главная"},
-        {to:'/admin/stats', title: "Статистика тестирования"},
-        {to:'/admin/results', title: "Результаты тестирования"},
-        {to:'/admin/analysis', title: "Анализ данных"},
-        {to:'/admin/courses', title: "Образовательные курсы"},
-        {to:'/admin/upload', title: "Загрузка данных"},
-    ];
 
     // Базовые поля для фильтрации
     const basicFields = [
@@ -514,7 +505,7 @@ function AdminResultsView() {
         <div className="AdminResultsView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
                 <Header title="Админ: Результаты тестирования" name="Администратор1" />
-                <Sidebar links={linkList} />
+                <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <div className="results-container">
                         <div className="results-header">

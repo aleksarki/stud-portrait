@@ -117,13 +117,24 @@
                 margin-top: 1px;
                 position: relative;
                 display: list-item;
-                
-                a {
-                    padding: 12px 20px;
+
+                span, a {
                     font-weight: 500;
                     font-size: 14px;
+                    color: white;                    
+                }
+
+                $link-ident--modeus: 40px;
+                $cat-ident--modeus: 20px;
+
+                span {
+                    padding: 12px 10px 12px $cat-ident--modeus;
+                    font-variant: small-caps;
+                }
+                
+                a {
+                    padding: 12px 10px 12px $link-ident--modeus;
                     text-decoration: none;
-                    color: white;
                     display: block;
                     transition: background 0.15s linear, color 0.15s linear;
                     cursor: pointer;
@@ -324,13 +335,24 @@
             li {
                 margin-top: 1px;
                 display: list-item;
-                
-                a {
-                    padding: 12px 20px;
+
+                span, a {
+                    color: rgba(255, 255, 255, 0.75);
                     font-weight: 400;
                     font-size: 14px;
+                }
+
+                $link-ident--admin: 40px;
+                $cat-ident--admin: 20px;
+
+                span {
+                    padding: 12px 10px 12px $cat-ident--admin;
+                    font-variant: small-caps;
+                }
+                
+                a {
+                    padding: 12px 10px 12px $link-ident--admin;
                     text-decoration: none;
-                    color: rgba(255, 255, 255, 0.75);
                     display: block;
                     transition: background 0.15s linear, color 0.15s linear;
                     cursor: pointer;

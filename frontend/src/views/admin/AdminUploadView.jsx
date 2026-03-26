@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
+import { LINK_TREE } from "../../utilities";
 
 import "./AdminUploadView.scss";
 
@@ -8,15 +9,6 @@ function AdminUploadView() {
     const [uploading, setUploading] = useState(false);
     const [uploadResult, setUploadResult] = useState(null);
     const [error, setError] = useState(null);
-
-    const linkList = [
-        {to:'/admin/', title: "Главная"},
-        {to:'/admin/stats', title: "Статистика тестирования"},
-        {to:'/admin/results', title: "Результаты тестирования"},
-        {to:'/admin/analysis', title: "Анализ данных"},
-        {to:'/admin/courses', title: "Образовательные курсы"},
-        {to:'/admin/upload', title: "Загрузка данных"},
-    ];
 
     // Конфигурация для парсинга Excel (как в Postman)
     const defaultConfig = {
@@ -204,7 +196,7 @@ function AdminUploadView() {
         <div className="AdminUploadView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
                 <Header title="Админ: Загрузка данных" name="Администратор1" />
-                <Sidebar links={linkList} />
+                <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <div className="upload-form-container">
                         <h2 className="upload-form-title">

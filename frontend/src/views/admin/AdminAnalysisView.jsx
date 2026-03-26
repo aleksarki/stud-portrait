@@ -19,6 +19,7 @@ import VamDotPlot from '../../components/charts/VamDotPlot';
 import LgmSpaghettiPlot from '../../components/charts/LgmSpaghettiPlot';
 import { DisciplineAnalysisSection } from '../../components/DisciplineAnalysisSection';
 import { AdvancedVisualizationSection } from '../../components/AdvancedVisualizationSection';
+import { LINK_TREE } from "../../utilities.js";
 
 import "./AdminAnalysisView.scss";
 
@@ -76,15 +77,6 @@ function AdminAnalysisViewV2() {
         students: [],
         disciplines: [] // добавить
     });
-
-    const linkList = [
-        { to: '/admin/', title: "Главная" },
-        { to: '/admin/stats', title: "Статистика тестирования" },
-        { to: '/admin/results', title: "Результаты тестирования" },
-        { to: '/admin/analysis', title: "Анализ данных" },
-        { to: '/admin/courses', title: "Образовательные курсы" },
-        { to: '/admin/upload', title: "Загрузка данных" },
-    ];
 
     // -------------------- ИНИЦИАЛИЗАЦИЯ СЕССИИ --------------------
     useEffect(() => {
@@ -291,7 +283,7 @@ function AdminAnalysisViewV2() {
         <div className="AdminAnalysisView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
                 <Header title="Админ: Анализ данных" name="Администратор" />
-                <Sidebar links={linkList} />
+                <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <h2>Анализ развития компетенций</h2>
 

@@ -44,7 +44,28 @@ export function Header({ title, name }) {
 }
 
 
-export function Sidebar({ links }) {
+export function Sidebar({ links, linkTree }) {
+    if (linkTree) {
+        return (
+            <nav className="Sidebar">
+                <ul>
+                    {linkTree.map((category, index) => (
+                        <li key={index}>
+                            {category.category && <span>{category.category}</span>}
+                            <ul>
+                                {category.links.map((link, index1) => (
+                                    <li key={index1}>
+                                        <a href={link.to}>{link.title}</a>
+                                    </li>
+                                ))}
+                            </ul>
+                        </li>
+                    ))}
+                </ul>
+            </nav>
+        );
+    }
+
     return (
         <nav className="Sidebar">
             <ul>

@@ -3,7 +3,7 @@ import Chart from 'react-apexcharts';
 
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 import Button from '../../components/ui/Button.jsx';
-import { FIELD_NAMES } from "../../utilities.js";
+import { FIELD_NAMES, LINK_TREE } from "../../utilities.js";
 import { postPortraitCreateDataSession, postPortraitStats, postPortraitUpdateSessionFilters } from '../../api.js';
 
 import "./AdminStatsView.scss";
@@ -19,15 +19,6 @@ function AdminStatsView() {
     const [availableValues, setAvailableValues] = useState({});
     const [showAllCenters, setShowAllCenters] = useState(false);
     const [showAllInstitutions, setShowAllInstitutions] = useState(false);
-
-    const linkList = [
-        {to:'/admin/', title: "Главная"},
-        {to:'/admin/stats', title: "Статистика тестирования"},
-        {to:'/admin/results', title: "Результаты тестирования"},
-        {to:'/admin/analysis', title: "Анализ данных"},
-        {to:'/admin/courses', title: "Образовательные курсы"},
-        {to:'/admin/upload', title: "Загрузка данных"},
-    ];
 
     // Базовые поля для фильтрации
     const basicFields = [
@@ -224,7 +215,7 @@ function AdminStatsView() {
             <div className="AdminStatsView">
                 <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
                     <Header title="Админ: Статистика тестирования" name="Администратор1" />
-                    <Sidebar links={linkList} />
+                    <Sidebar linkTree={LINK_TREE} />
                     <Content>
                         <div className="loading">
                             <div className="spinner"></div>
@@ -240,7 +231,7 @@ function AdminStatsView() {
         <div className="AdminStatsView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
                 <Header title="Админ: Статистика тестирования" name="Администратор1" />
-                <Sidebar links={linkList} />
+                <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <div className="stats-container">
                         <div className="stats-header">

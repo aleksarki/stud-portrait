@@ -1,4 +1,34 @@
 // utilities.js
+
+export const LINK_TREE = [
+    {
+        category: null,
+        links: [
+            {title: "Главная", to: '/admin/'},
+            {title: "Статистика тестирования", to: '/admin/stats'}
+        ]
+    },
+    {
+        category: "Результаты",
+        links: [
+            {title: "Тестирование профилей", to: '/admin/results'},
+            {title: "Образовательные курсы", to: '/admin/courses'}
+        ]
+    },
+    {
+        category: "Анализ данных",
+        links: [
+            {title: "Анализ данных", to: '/admin/analysis'}
+        ]
+    },
+    {
+        category: "Управление данными",
+        links: [
+            {title: "Загрузка данных", to: '/admin/upload'}
+        ]
+    }
+];
+
 export const RESULT_PROFILES = {
     competences: {
         key: 'competences',

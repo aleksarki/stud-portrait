@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 import Button from '../../components/ui/Button.jsx';
-import { FIELD_NAMES } from "../../utilities.js";
+import { FIELD_NAMES, LINK_TREE } from "../../utilities.js";
 import { getPortraitCourses } from '../../api.js';
 
 import "./AdminCoursesView.scss";
@@ -12,15 +12,6 @@ function AdminCoursesView() {
     const [loading, setLoading] = useState(true);
     const [selectedRows, setSelectedRows] = useState(new Set());
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
-
-    const linkList = [
-        {to:'/admin/', title: "Главная"},
-        {to:'/admin/stats', title: "Статистика тестирования"},
-        {to:'/admin/results', title: "Результаты тестирования"},
-        {to:'/admin/analysis', title: "Анализ данных"},
-        {to:'/admin/courses', title: "Образовательные курсы"},
-        {to:'/admin/upload', title: "Загрузка данных"},
-    ];
 
     // Названия курсов
     const courseNames = {
@@ -218,7 +209,7 @@ function AdminCoursesView() {
             <div className="AdminCoursesView">
                 <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
                     <Header title="Админ: Образовательные курсы" name="Администратор1" />
-                    <Sidebar links={linkList} />
+                    <Sidebar linkTree={LINK_TREE} />
                     <Content>
                         <div className="loading">
                             <div className="spinner"></div>
@@ -234,7 +225,7 @@ function AdminCoursesView() {
         <div className="AdminCoursesView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
                 <Header title="Админ: Образовательные курсы" name="Администратор1" />
-                <Sidebar links={linkList} />
+                <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <div className="courses-container">
                         <div className="courses-header">

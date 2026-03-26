@@ -4,7 +4,7 @@ import Chart from 'react-apexcharts';
 
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 import Button from '../../components/ui/Button.jsx';
-import { FIELD_NAMES } from "../../utilities.js";
+import { FIELD_NAMES, LINK_TREE } from "../../utilities.js";
 import { postPortraitGroupData } from '../../api.js';
 
 import "./AdminGroupingView.scss";
@@ -17,16 +17,6 @@ function AdminGroupingView() {
     const [loading, setLoading] = useState(true);
     const [chartType, setChartType] = useState('line'); // 'line', 'bar', 'area'
     const [activeTab, setActiveTab] = useState('competences'); // 'competences', 'motivators', 'values'
-
-    const linkList = [
-        {to:'/admin/', title: "Главная"},
-        {to:'/admin/stats', title: "Статистика тестирования"},
-        {to:'/admin/results', title: "Результаты тестирования"},
-        {to:'/admin/analysis', title: "Анализ данных"},
-        {to:'/admin/courses', title: "Образовательные курсы"},
-        {to:'/admin/upload', title: "Загрузка данных"},
-        {to:'/admin/grouping', title: "Группировка данных"},
-    ];
 
     useEffect(() => {
         if (location.state) {
@@ -101,7 +91,7 @@ function AdminGroupingView() {
             <div className="AdminGroupingView">
                 <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
                     <Header title="Админ: Группировка данных" name="Администратор1" />
-                    <Sidebar links={linkList} />
+                    <Sidebar linkTree={LINK_TREE} />
                     <Content>
                         <div className="loading">
                             <div className="spinner"></div>
@@ -117,7 +107,7 @@ function AdminGroupingView() {
         <div className="AdminGroupingView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
                 <Header title="Админ: Группировка данных" name="Администратор1" />
-                <Sidebar links={linkList} />
+                <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <div className="grouping-container">
                         <div className="grouping-header">
