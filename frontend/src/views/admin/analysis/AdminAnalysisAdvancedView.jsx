@@ -438,7 +438,7 @@ function AdminAnalysisAdvancedView() {
                                     text="Загрузить"
                                     onClick={loadDimensionData}
                                     disabled={loading}
-                                    palette={BUTTON_PALETTE.SEA}
+                                    palette={BUTTON_PALETTE.CYAN}
                                 />
                             </div>
                         )}
@@ -449,7 +449,7 @@ function AdminAnalysisAdvancedView() {
                                     text="Загрузить LGM данные"
                                     onClick={loadLGMCohortData}
                                     disabled={loading}
-                                    palette={BUTTON_PALETTE.SEA}
+                                    palette={BUTTON_PALETTE.CYAN}
                                 />
                             </div>
                         )}

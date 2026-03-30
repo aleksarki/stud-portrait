@@ -178,7 +178,7 @@ function AdminCoursesView() {
                                         text="Обновить"
                                         onClick={fetchCoursesData}
                                         disabled={loading}
-                                        palette={BUTTON_PALETTE.SEA}
+                                        palette={BUTTON_PALETTE.CYAN}
                                     />
                                 </div>
                             </div>

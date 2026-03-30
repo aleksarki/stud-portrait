@@ -1,55 +1,16 @@
 import "./Button.scss";
 
 export const BUTTON_PALETTE = {
-    SEA: {
+    GRAY: {
         normal: {
-            fg: "rgb(32, 63, 68)",
-            bg: "#bfebf0",
-            border: "solid 1px rgba(62, 122, 133, 0.8)",
+            fg: "rgb(71, 71, 71)",
+            bg: "#f0f0f0",
+            border: "solid 1px rgba(126, 126, 126, 0.8)",
             textShadow: "0 1px 1px rgba(255, 255, 255, .75)",
             boxShadow: "inset 0 1px #fff3, 0 1px 2px #0000000d"
         },
         hover: {
-            bg: "#75d7e2"
-        },
-        active: {
-            bg: "#b4e7ec"
-        }
-    },
-    GREEN: {
-        normal: {
-            fg: "rgb(32, 68, 38)",
-            bg: "#b9f8c7",
-            border: "solid 1px rgba(64, 133, 62, 0.8)",
-            textShadow: "0 1px 1px rgba(255, 255, 255, .75)",
-            boxShadow: "inset 0 1px #fff3, 0 1px 2px #0000000d"
-        },
-        hover: {
-            bg: "#80ec9a"
-        }
-    },
-    PURPLE: {
-        normal: {
-            fg: "rgb(57, 32, 68)",
-            bg: "#dcbff0",
-            border: "solid 1px rgba(95, 62, 133, 0.8)",
-            textShadow: "0 1px 1px rgba(255, 255, 255, .75)",
-            boxShadow: "inset 0 1px #fff3, 0 1px 2px #0000000d"
-        },
-        hover: {
-            bg: "#c595e5"
-        }
-    },
-    YELLOW: {
-        normal: {
-            fg: "rgb(68, 66, 32)",
-            bg: "#f7f19e",
-            border: "solid 1px rgba(133, 128, 62, 0.8)",
-            textShadow: "0 1px 1px rgba(255, 255, 255, .75)",
-            boxShadow: "inset 0 1px #fff3, 0 1px 2px #0000000d"
-        },
-        hover: {
-            bg: "#d8cf4f"
+            bg: "#cacaca"
         }
     },
     RED: {
@@ -64,6 +25,57 @@ export const BUTTON_PALETTE = {
             bg: "#dd9292"
         }
     },
+    BROWN: {
+        normal: {
+            fg: "rgb(68, 58, 32)",
+            bg: "#f0e5bf",
+            border: "solid 1px rgba(133, 111, 62, 0.8)",
+            textShadow: "0 1px 1px rgba(255, 255, 255, .75)",
+            boxShadow: "inset 0 1px #fff3, 0 1px 2px #0000000d"
+        },
+        hover: {
+            bg: "#dfc771"
+        }
+    },
+    YELLOW: {
+        normal: {
+            fg: "rgb(68, 66, 32)",
+            bg: "#f7f19e",
+            border: "solid 1px rgba(133, 128, 62, 0.8)",
+            textShadow: "0 1px 1px rgba(255, 255, 255, .75)",
+            boxShadow: "inset 0 1px #fff3, 0 1px 2px #0000000d"
+        },
+        hover: {
+            bg: "#d8cf4f"
+        }
+    },
+    GREEN: {
+        normal: {
+            fg: "rgb(32, 68, 38)",
+            bg: "#b9f8c7",
+            border: "solid 1px rgba(64, 133, 62, 0.8)",
+            textShadow: "0 1px 1px rgba(255, 255, 255, .75)",
+            boxShadow: "inset 0 1px #fff3, 0 1px 2px #0000000d"
+        },
+        hover: {
+            bg: "#80ec9a"
+        }
+    },
+    CYAN: {
+        normal: {
+            fg: "rgb(32, 63, 68)",
+            bg: "#bfebf0",
+            border: "solid 1px rgba(62, 122, 133, 0.8)",
+            textShadow: "0 1px 1px rgba(255, 255, 255, .75)",
+            boxShadow: "inset 0 1px #fff3, 0 1px 2px #0000000d"
+        },
+        hover: {
+            bg: "#75d7e2"
+        },
+        active: {
+            bg: "#b4e7ec"
+        }
+    },
     BLUE: {
         normal: {
             fg: "rgb(32, 45, 68)",
@@ -76,28 +88,16 @@ export const BUTTON_PALETTE = {
             bg: "#a5afe9"
         }
     },
-    GRAY: {
+    PURPLE: {
         normal: {
-            fg: "rgb(71, 71, 71)",
-            bg: "#f0f0f0",
-            border: "solid 1px rgba(126, 126, 126, 0.8)",
+            fg: "rgb(57, 32, 68)",
+            bg: "#dcbff0",
+            border: "solid 1px rgba(95, 62, 133, 0.8)",
             textShadow: "0 1px 1px rgba(255, 255, 255, .75)",
             boxShadow: "inset 0 1px #fff3, 0 1px 2px #0000000d"
         },
         hover: {
-            bg: "#cacaca"
-        }
-    },
-    BROWN: {
-        normal: {
-            fg: "rgb(68, 58, 32)",
-            bg: "#f0e5bf",
-            border: "solid 1px rgba(133, 111, 62, 0.8)",
-            textShadow: "0 1px 1px rgba(255, 255, 255, .75)",
-            boxShadow: "inset 0 1px #fff3, 0 1px 2px #0000000d"
-        },
-        hover: {
-            bg: "#dfc771"
+            bg: "#c595e5"
         }
     },
     STUDENT_BLUE: {
@@ -176,7 +176,7 @@ function Button({ text, onClick, palette, disabled = false }) {
                 "--disabledBg":         disabledBg,
                 "--disabledBorder":     disabledBorder,
                 "--disabledTextShadow": disabledTextShadow,
-                "--disabledBoxShadow":  disabledBoxShadow,
+                "--disabledBoxShadow":  disabledBoxShadow
             }}
         >
             {text}

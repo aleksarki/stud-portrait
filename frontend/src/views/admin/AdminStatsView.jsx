@@ -254,7 +254,7 @@ function AdminStatsView() {
                                     text={loading ? "Загрузка..." : "Обновить"}
                                     onClick={() => fetchStats(sessionId)}
                                     disabled={loading}
-                                    palette={BUTTON_PALETTE.SEA}
+                                    palette={BUTTON_PALETTE.CYAN}
                                 />
                             </div>
                         </div>
@@ -535,7 +535,7 @@ function AdminStatsView() {
                                             <Button
                                                 text={showAllCenters ? 'Скрыть' : 'Показать все'}
                                                 onClick={() => setShowAllCenters(!showAllCenters)}
-                                                palette={BUTTON_PALETTE.SEA}
+                                                palette={BUTTON_PALETTE.CYAN}
                                             />
                                         </div>
                                         <div className="centers-list">
@@ -561,7 +561,7 @@ function AdminStatsView() {
                                             <Button
                                                 text={showAllInstitutions ? 'Скрыть' : 'Показать все'}
                                                 onClick={() => setShowAllInstitutions(!showAllInstitutions)}
-                                                palette={BUTTON_PALETTE.SEA}
+                                                palette={BUTTON_PALETTE.CYAN}
                                             />
                                         </div>
                                         <div className="institutions-list">

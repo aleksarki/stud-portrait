@@ -10,6 +10,7 @@ import {
 } from '../../api.js';
 
 import "./AdminResultsView.scss";
+import Label from '../../components/ui/Label.jsx';
 
 function AdminResultsView() {
     const [sessionId, setSessionId] = useState(null);
@@ -511,18 +512,14 @@ function AdminResultsView() {
                         <div className="results-header">
                             <h2>Результаты тестирования</h2>
                             <div className="controls">
-                                <div className="results-info">
-                                    {sessionId ? (
-                                        <span>
-                                            Показано: {results.length} из {totalCount} записей
-                                            {filters.length > 0 && ` • Активных фильтров: ${filters.length}`}
-                                            {hiddenColumns.size > 0 && ` • Скрыто колонок: ${hiddenColumns.size}`}
-                                            {selectedRows.size > 0 && ` • Выбрано: ${selectedRows.size}`}
-                                        </span>
-                                    ) : (
-                                        'Инициализация сессии...'
-                                    )}
-                                </div>
+                                <Label>
+                                    {sessionId ? <>
+                                        Показано: {results.length} из {totalCount} записей
+                                        {filters.length > 0 && ` • Активных фильтров: ${filters.length}`}
+                                        {hiddenColumns.size > 0 && ` • Скрыто колонок: ${hiddenColumns.size}`}
+                                        {selectedRows.size > 0 && ` • Выбрано: ${selectedRows.size}`}
+                                    </> : "Инициализация..."}
+                                </Label>
                                 <div className="control-buttons">
                                     <Button
                                         text={showFilters ? 'Скрыть фильтры' : 'Показать фильтры'}
@@ -551,7 +548,7 @@ function AdminResultsView() {
                                         text={loading ? "Загрузка..." : "Обновить"}
                                         onClick={() => loadSessionData()}
                                         disabled={!sessionId || loading}
-                                        palette={BUTTON_PALETTE.SEA}
+                                        palette={BUTTON_PALETTE.CYAN}
                                     />
                                 </div>
                             </div>
@@ -807,8 +804,8 @@ function AdminResultsView() {
                             <div className="loading">
                                 <div className="spinner"></div>
                                 <div className="loading-text">
-                                    {sessionId ? 'Загрузка данных...' : 'Инициализация сессии...'} 
-                                    <span className="record-count">{totalCount}</span> записей
+                                    <span>{sessionId ? 'Загрузка данных...' : 'Инициализация сессии...'}</span>
+                                    <Label>{totalCount} записей</Label>
                                 </div>
                             </div>
                         ) : (
@@ -874,23 +871,29 @@ function AdminResultsView() {
 
                         {/* Подсказка снизу */}
                         <div className="scroll-hint">
-                            <span className="color-legend">
-                                <span className="legend-title">↸ Категории результатов:</span>
+                            <Label>
                                 <span className="legend-items">
+                                    <span>↸ Категории результатов:</span>
                                     <span className="legend-item">
-                                        <span className="color-box high"></span>
+                                        <span className="color-box high" />
                                         <span>Высокий (600-800)</span>
                                     </span>
                                     <span className="legend-item">
-                                        <span className="color-box medium"></span>
+                                        <span className="color-box medium" />
                                         <span>Средний (400-599)</span>
                                     </span>
                                     <span className="legend-item">
-                                        <span className="color-box low"></span>
+                                        <span className="color-box low" />
                                         <span>Низкий (200-399)</span>
                                     </span>
                                 </span>
-                            </span>
+                            </Label>
+
+                            <Label>
+                                Колонок: {visibleColumns.length}/{columnOrder.length} • 
+                                Записей: {results.length}{hasMore && '+'} •
+                                Выбрано: {selectedRows.size}
+                            </Label>
 
                             {/* Кнопка загрузки дополнительных данных */}
                             {hasMore && (
@@ -901,12 +904,6 @@ function AdminResultsView() {
                                     palette={BUTTON_PALETTE.BLUE}
                                 />
                             )}
-
-                            <span className="record-count">
-                                Колонок: {visibleColumns.length}/{columnOrder.length} • 
-                                Записей: {results.length}{hasMore && '+'} •
-                                Выбрано: {selectedRows.size}
-                            </span>
                         </div>
 
                         {/* Модальное окно выбора столбца для группировки */}

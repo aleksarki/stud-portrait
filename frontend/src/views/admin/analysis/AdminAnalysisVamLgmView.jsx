@@ -343,7 +343,7 @@ function AdminAnalysisVamLgmView() {
                                         text={loading ? "Загрузка..." : "Применить"}
                                         onClick={analysisMethod === 'vam' ? loadVAMData : loadLGMData}
                                         disabled={loading || selectedCompetencies.length === 0}
-                                        palette={BUTTON_PALETTE.SEA}
+                                        palette={BUTTON_PALETTE.CYAN}
                                     />
                                     <Button
                                         text="Очистить"

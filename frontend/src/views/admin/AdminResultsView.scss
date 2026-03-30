@@ -24,16 +24,6 @@
         align-items: center;
         gap: 15px;
         
-        .results-info {
-          font-size: 14px;
-          color: #6c757d;
-          background: #f8f9fa;
-          padding: 6px 12px;
-          border-radius: 4px;
-          border: 1px solid #dee2e6;
-          white-space: nowrap;
-        }
-        
         .control-buttons {
           display: flex;
           gap: 10px;
@@ -581,29 +571,11 @@
       border-top: 1px solid #dee2e6;
       flex-shrink: 0;
 
-      .color-legend {
-        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        padding: 12px 16px;
+      .legend-items {
         display: flex;
-        align-items: center;
         gap: 20px;
-        flex-shrink: 0;
-        
-        .legend-title {
-          font-weight: 600;
-          color: #495057;
-          font-size: 13px;
-          white-space: nowrap;
-        }
-        
-        .legend-items {
-          display: flex;
-          gap: 20px;
-          align-items: center;
-        }
-        
+        align-items: center;
+
         .legend-item {
           display: flex;
           align-items: center;
@@ -630,15 +602,6 @@
             }
           }
         }
-      }
-      
-      .record-count {
-        font-weight: 700;
-        color: #007bff;
-        background: white;
-        padding: 4px 8px;
-        border-radius: 12px;
-        border: 1px solid #007bff;
       }
     }
   }
