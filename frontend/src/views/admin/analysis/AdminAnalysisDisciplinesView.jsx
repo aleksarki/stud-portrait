@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import FlexRow from "../../../components/FlexRow";
+import ColorBox, { BOX_COLOR } from "../../../components/ui/ColorBox";
 import Button, { BUTTON_PALETTE } from '../../../components/ui/Button';
 import Label from "../../../components/ui/Label";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
@@ -322,9 +323,15 @@ function AdminAnalysisDisciplinesView() {
                 <FlexRow margin="20 0 0 0">
                     <Label>
                         <FlexRow gap="20">
-                            <span>🟢 Положительный эффект</span>
-                            <span>🔴 Отрицательный эффект</span>
-                            <span>📊 Жирная граница = статистически значим (p &lt; 0.05)</span>
+                            <FlexRow>
+                                <ColorBox color={BOX_COLOR.GREEN} />
+                                <span>Положительный эффект</span>
+                            </FlexRow>
+                            <FlexRow>
+                                <ColorBox color={BOX_COLOR.RED} />
+                                <span>Отрицательный эффект</span>
+                            </FlexRow>
+                            <span>Жирная граница = статистически значим (p &lt; 0.05)</span>
                         </FlexRow>
                     </Label>
                 </FlexRow>

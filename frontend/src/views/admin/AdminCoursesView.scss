@@ -237,33 +237,6 @@
         }
     }
 
-    .color-box {
-        width: 16px;
-        height: 16px;
-        border-radius: 3px;
-        border: 1px solid rgba(0,0,0,0.1);
-        
-        &.progress-not-started {
-            background: #f8f9fa;
-        }
-        
-        &.progress-low {
-            background: linear-gradient(135deg, #ffe3e3, #ffc9c9);
-        }
-        
-        &.progress-medium {
-            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
-        }
-        
-        &.progress-high {
-            background: linear-gradient(135deg, #d1ecf1, #bee5eb);
-        }
-        
-        &.progress-completed {
-            background: linear-gradient(135deg, #d4edda, #c3e6cb);
-        }
-    }
-
     .loading {
         display: flex;
         flex-direction: column;

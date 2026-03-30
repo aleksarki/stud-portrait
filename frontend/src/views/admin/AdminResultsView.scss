@@ -540,26 +540,6 @@
         }
       }
     }
-
-    .color-box {
-      width: 16px;
-      height: 16px;
-      border-radius: 3px;
-      border: 1px solid rgba(0,0,0,0.1);
-      
-      &.high {
-        background: linear-gradient(135deg, #4caf50, #45a049);
-      }
-      
-      &.medium {
-        background: linear-gradient(135deg, #cddc39, #c0ca33);
-      }
-      
-      &.low {
-        background: linear-gradient(135deg, #ffeb3b, #fdd835);
-      }
-    }
-    
   }
 
   // Модальное окно для группировки

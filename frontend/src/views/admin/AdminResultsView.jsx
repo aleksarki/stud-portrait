@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import FlexRow from '../../components/FlexRow.jsx';
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
+import ColorBox, { BOX_COLOR } from '../../components/ui/ColorBox.jsx';
 import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
 import Label from '../../components/ui/Label.jsx';
 import { FIELD_NAMES, LINK_TREE } from "../../utilities.js";
@@ -875,15 +876,15 @@ function AdminResultsView() {
                                 <FlexRow gap="20">
                                     <span>↸ Категории результатов:</span>
                                     <FlexRow>
-                                        <span className="color-box high" />
+                                        <ColorBox color={BOX_COLOR.GREEN} />
                                         <span>Высокий (600-800)</span>
                                     </FlexRow>
                                     <FlexRow>
-                                        <span className="color-box medium" />
+                                        <ColorBox color={BOX_COLOR.LIME} />
                                         <span>Средний (400-599)</span>
                                     </FlexRow>
                                     <FlexRow>
-                                        <span className="color-box low" />
+                                        <ColorBox color={BOX_COLOR.YELLOW} />
                                         <span>Низкий (200-399)</span>
                                     </FlexRow>
                                 </FlexRow>

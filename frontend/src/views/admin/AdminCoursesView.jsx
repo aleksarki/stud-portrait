@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 
 import FlexRow, { WRAP } from '../../components/FlexRow.jsx';
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
+import ColorBox, { BOX_COLOR } from '../../components/ui/ColorBox.jsx';
 import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
 import Label from '../../components/ui/Label.jsx';
 import { COURSES_NAMES, LINK_TREE } from "../../utilities.js";
@@ -289,25 +290,25 @@ function AdminCoursesView() {
                         <FlexRow margin="15 0 0 0">
                             <Label>
                                 <FlexRow gap="20" wrap={WRAP.DO}>
-                                    <div className="legend-title">↸ Легенда:</div>
+                                    <span>↸ Легенда:</span>
                                     <FlexRow>
-                                        <div className="color-box progress-not-started"></div>
+                                        <ColorBox color={BOX_COLOR.GRAY} />
                                         <span>Не начат (0%)</span>
                                     </FlexRow>
                                     <FlexRow>
-                                        <div className="color-box progress-low"></div>
+                                        <ColorBox color={BOX_COLOR.RED} />
                                         <span>Низкий (1-29%)</span>
                                     </FlexRow>
                                     <FlexRow>
-                                        <div className="color-box progress-medium"></div>
+                                        <ColorBox color={BOX_COLOR.YELLOW} />
                                         <span>Средний (30-69%)</span>
                                     </FlexRow>
                                     <FlexRow>
-                                        <div className="color-box progress-high"></div>
+                                        <ColorBox color={BOX_COLOR.BLUE} />
                                         <span>Высокий (70-89%)</span>
                                     </FlexRow>
                                     <FlexRow>
-                                        <div className="color-box progress-completed"></div>
+                                        <ColorBox color={BOX_COLOR.GREEN} />
                                         <span>Завершен (90-100%)</span>
                                     </FlexRow>
                                 </FlexRow>
