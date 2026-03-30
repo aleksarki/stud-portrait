@@ -27,28 +27,6 @@
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 15px;
         margin-bottom: 20px;
-        
-        .stat-card {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            text-align: center;
-            border-left: 4px solid #007bff;
-            
-            .stat-value {
-                font-size: 28px;
-                font-weight: 700;
-                color: #007bff;
-                margin-bottom: 5px;
-            }
-            
-            .stat-label {
-                font-size: 13px;
-                color: #6c757d;
-                font-weight: 500;
-            }
-        }
     }
 
     .table-scroll-container {

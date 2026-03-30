@@ -9,6 +9,7 @@ import { COURSES_NAMES, LINK_TREE } from "../../utilities.js";
 import { getPortraitCourses } from '../../api.js';
 
 import "./AdminCoursesView.scss";
+import ValueCard from '../../components/ui/ValueCard.jsx';
 
 function AdminCoursesView() {
     const [coursesData, setCoursesData] = useState([]);
@@ -185,24 +186,11 @@ function AdminCoursesView() {
 
                         {/* Общая статистика */}
                         <div className="stats-overview">
-                            <div className="stat-card">
-                                <div className="stat-value">
-                                    {new Set(coursesData.map(c => c.participant?.part_id)).size}
-                                </div>
-                                <div className="stat-label">Участников</div>
-                            </div>
-                            <div className="stat-card">
-                                <div className="stat-value">{Object.keys(COURSES_NAMES).length}</div>
-                                <div className="stat-label">Всего курсов</div>
-                            </div>
-                            {/*<div className="stat-card">
-                                <div className="stat-value">
-                                    {coursesData.filter(c => 
-                                        Object.keys(COURSES_NAMES).some(courseKey => c[courseKey] > 0)
-                                    ).length}
-                                </div>
-                                <div className="stat-label">Записей с прогрессом</div>
-                            </div>*/}
+                            <ValueCard
+                                value={new Set(coursesData.map(c => c.participant?.part_id)).size}
+                                text="Участников"
+                            />
+                            <ValueCard value={Object.keys(COURSES_NAMES).length} text="Всего курсов" />
                         </div>
 
                         {/* Таблица с курсами */}

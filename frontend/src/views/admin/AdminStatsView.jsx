@@ -4,6 +4,7 @@ import Chart from 'react-apexcharts';
 import FlexRow from '../../components/FlexRow.jsx';
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
+import ValueCard from '../../components/ui/ValueCard.jsx';
 import { FIELD_NAMES, LINK_TREE } from "../../utilities.js";
 import { postPortraitCreateDataSession, postPortraitStats, postPortraitUpdateSessionFilters } from '../../api.js';
 
@@ -414,22 +415,10 @@ function AdminStatsView() {
                             <div className="overview-tab">
                                 {/* Карточки с общей статистикой */}
                                 <div className="stats-cards">
-                                    <div className="stat-card">
-                                        <div className="stat-value">{stats?.totalParticipants || 0}</div>
-                                        <div className="stat-label">Всего участников (с 2021 г.)</div>
-                                    </div>
-                                    <div className="stat-card">
-                                        <div className="stat-value">{stats?.totalTests || 0}</div>
-                                        <div className="stat-label">Всего тестирований</div>
-                                    </div>
-                                    <div className="stat-card">
-                                        <div className="stat-value">{stats?.uniqueInstitutions || 0}</div>
-                                        <div className="stat-label">Учебных заведений</div>
-                                    </div>
-                                    <div className="stat-card">
-                                        <div className="stat-value">{stats?.uniqueCenters || 0}</div>
-                                        <div className="stat-label">Центров компетенций</div>
-                                    </div>
+                                    <ValueCard value={stats?.totalParticipants || 0} text="Всего участников (с 2021 г.)" />
+                                    <ValueCard value={stats?.totalTests || 0} text="Всего тестирований" />
+                                    <ValueCard value={stats?.uniqueInstitutions || 0} text="Учебных заведений" />
+                                    <ValueCard value={stats?.uniqueCenters || 0} text="Центров компетенций" />
                                 </div>
 
                                 {/* Первый ряд диаграмм */}
