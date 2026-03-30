@@ -7,8 +7,8 @@ function LoadingSpinner({ loading = true, text }) {
 
     return (
         <div className="LoadingSpinner">
-            <div className="spinner"></div>
-            <div className="loading-text">{text}</div>
+            <div className="spinner" />
+            <div className="text">{text}</div>
         </div>
     );
 }

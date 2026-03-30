@@ -6,7 +6,8 @@ import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../com
 import ColorBox, { BOX_COLOR } from '../../components/ui/ColorBox.jsx';
 import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
 import Label from '../../components/ui/Label.jsx';
-import { FIELD_NAMES, LINK_TREE } from "../../utilities.js";
+import LoadingSpinner from '../../components/ui/LoadingSpinner.jsx';
+import { COMPETENCIES_NAMES, FIELD_NAMES, LINK_TREE, MOTIVATORS_NAMES, VALUES_NAMES } from "../../utilities.js";
 import {
     postPortraitCreateDataSession, postPortraitExportSelectedResults, postPortraitGetSessionData,
     postPortraitLoadMoreData, postPortraitUpdateSessionColumns, postPortraitUpdateSessionFilters
@@ -47,11 +48,9 @@ function AdminResultsView() {
 
     // Числовые поля для фильтрации по диапазону
     const numericFields = [
-        ...Object.keys(FIELD_NAMES).filter(key => 
-            key.startsWith('res_comp_') || 
-            key.startsWith('res_mot_')  || 
-            key.startsWith('res_val_')
-        )
+        ...Object.keys(COMPETENCIES_NAMES),
+        ...Object.keys(MOTIVATORS_NAMES),
+        ...Object.keys(VALUES_NAMES)
     ];
 
     // Порядок колонок в таблице
@@ -66,46 +65,10 @@ function AdminResultsView() {
         'res_course_num',
         'study_form',
         'specialty',
-        
-        // Компетенции
-        'res_comp_info_analysis',
-        'res_comp_planning',
-        'res_comp_result_orientation',
-        'res_comp_stress_resistance',
-        'res_comp_partnership',
-        'res_comp_rules_compliance',
-        'res_comp_self_development',
-        'res_comp_leadership',
-        'res_comp_emotional_intel',
-        'res_comp_client_focus',
-        'res_comp_communication',
-        'res_comp_passive_vocab',
-        
-        // Мотиваторы
-        'res_mot_autonomy',
-        'res_mot_altruism',
-        'res_mot_challenge',
-        'res_mot_salary',
-        'res_mot_career',
-        'res_mot_creativity',
-        'res_mot_relationships',
-        'res_mot_recognition',
-        'res_mot_affiliation',
-        'res_mot_self_development',
-        'res_mot_purpose',
-        'res_mot_cooperation',
-        'res_mot_stability',
-        'res_mot_tradition',
-        'res_mot_management',
-        'res_mot_work_conditions',
-        
-        // Ценности
-        'res_val_honesty_justice',
-        'res_val_humanism',
-        'res_val_patriotism',
-        'res_val_family',
-        'res_val_health',
-        'res_val_environment'
+
+        ...Object.keys(COMPETENCIES_NAMES),
+        ...Object.keys(MOTIVATORS_NAMES),
+        ...Object.keys(VALUES_NAMES)
     ];
 
     // Группы колонок для удобства управления
@@ -801,13 +764,9 @@ function AdminResultsView() {
                         )}
 
                         {/* Таблица с горизонтальной прокруткой */}
-                        {loading && results.length === 0 ? (
+                        {loading || !results.length ? (
                             <div className="loading">
-                                <div className="spinner"></div>
-                                <div className="loading-text">
-                                    <span>{sessionId ? 'Загрузка данных...' : 'Инициализация сессии...'}</span>
-                                    <Label>{totalCount} записей</Label>
-                                </div>
+                                <LoadingSpinner text={sessionId ? 'Загрузка данных...' : 'Инициализация сессии...'} />
                             </div>
                         ) : (
                             <div className="table-scroll-container">
