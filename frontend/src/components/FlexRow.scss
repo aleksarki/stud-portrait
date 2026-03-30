@@ -1,0 +1,10 @@
+.FlexRow {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: var(--wrap);
+    justify-content: var(--justify);
+    align-items: var(--align);
+    align-content: var(--content);
+    gap: var(--gap);
+    margin: var(--margin);
+}

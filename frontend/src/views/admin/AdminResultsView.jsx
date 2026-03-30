@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
+import FlexRow from '../../components/FlexRow.jsx';
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
+import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
+import Label from '../../components/ui/Label.jsx';
 import { FIELD_NAMES, LINK_TREE } from "../../utilities.js";
 import {
     postPortraitCreateDataSession, postPortraitExportSelectedResults, postPortraitGetSessionData,
@@ -10,7 +12,6 @@ import {
 } from '../../api.js';
 
 import "./AdminResultsView.scss";
-import Label from '../../components/ui/Label.jsx';
 
 function AdminResultsView() {
     const [sessionId, setSessionId] = useState(null);
@@ -511,7 +512,7 @@ function AdminResultsView() {
                     <div className="results-container">
                         <div className="results-header">
                             <h2>Результаты тестирования</h2>
-                            <div className="controls">
+                            <FlexRow>
                                 <Label>
                                     {sessionId ? <>
                                         Показано: {results.length} из {totalCount} записей
@@ -520,38 +521,37 @@ function AdminResultsView() {
                                         {selectedRows.size > 0 && ` • Выбрано: ${selectedRows.size}`}
                                     </> : "Инициализация..."}
                                 </Label>
-                                <div className="control-buttons">
-                                    <Button
-                                        text={showFilters ? 'Скрыть фильтры' : 'Показать фильтры'}
-                                        onClick={() => setShowFilters(!showFilters)}
-                                        palette={BUTTON_PALETTE.YELLOW}
-                                    />
-                                    <Button
-                                        text="Колонки"
-                                        onClick={() => setShowColumnSelector(!showColumnSelector)}
-                                        disabled={!sessionId}
-                                        palette={BUTTON_PALETTE.PURPLE}
-                                    />
-                                    <Button
-                                        text="Группировка"
-                                        onClick={handleGrouping}
-                                        disabled={!sessionId || selectedRows.size === 0}
-                                        palette={BUTTON_PALETTE.PURPLE}
-                                    />
-                                    <Button
-                                        text={exportLoading ? "Загрузка..." : `Выгрузить выделенные (${selectedRows.size})`}
-                                        onClick={handleExportSelected}
-                                        disabled={!sessionId || exportLoading || selectedRows.size === 0}
-                                        palette={BUTTON_PALETTE.GREEN}
-                                    />
-                                    <Button
-                                        text={loading ? "Загрузка..." : "Обновить"}
-                                        onClick={() => loadSessionData()}
-                                        disabled={!sessionId || loading}
-                                        palette={BUTTON_PALETTE.CYAN}
-                                    />
-                                </div>
-                            </div>
+                                <Button
+                                    text={showFilters ? 'Скрыть фильтры' : 'Показать фильтры'}
+                                    onClick={() => setShowFilters(!showFilters)}
+                                    palette={BUTTON_PALETTE.YELLOW}
+                                />
+                                <Button
+                                    text="Колонки"
+                                    onClick={() => setShowColumnSelector(!showColumnSelector)}
+                                    disabled={!sessionId}
+                                    palette={BUTTON_PALETTE.PURPLE}
+                                />
+                                <Button
+                                    text="Группировка"
+                                    onClick={handleGrouping}
+                                    disabled={!sessionId || selectedRows.size === 0}
+                                    palette={BUTTON_PALETTE.PURPLE}
+                                />
+                                <Button
+                                    text={exportLoading ? "Загрузка..." : `Выгрузить выделенные (${selectedRows.size})`}
+                                    onClick={handleExportSelected}
+                                    disabled={!sessionId || exportLoading || selectedRows.size === 0}
+                                    palette={BUTTON_PALETTE.GREEN}
+                                />
+                                <Button
+                                    text={loading ? "Загрузка..." : "Обновить"}
+                                    onClick={() => loadSessionData()}
+                                    disabled={!sessionId || loading}
+                                    palette={BUTTON_PALETTE.CYAN}
+                                />
+
+                            </FlexRow>
                         </div>
 
                         {/* Система фильтров */}
@@ -870,23 +870,23 @@ function AdminResultsView() {
                         )}
 
                         {/* Подсказка снизу */}
-                        <div className="scroll-hint">
+                        <FlexRow>
                             <Label>
-                                <span className="legend-items">
+                                <FlexRow gap="20">
                                     <span>↸ Категории результатов:</span>
-                                    <span className="legend-item">
+                                    <FlexRow>
                                         <span className="color-box high" />
                                         <span>Высокий (600-800)</span>
-                                    </span>
-                                    <span className="legend-item">
+                                    </FlexRow>
+                                    <FlexRow>
                                         <span className="color-box medium" />
                                         <span>Средний (400-599)</span>
-                                    </span>
-                                    <span className="legend-item">
+                                    </FlexRow>
+                                    <FlexRow>
                                         <span className="color-box low" />
                                         <span>Низкий (200-399)</span>
-                                    </span>
-                                </span>
+                                    </FlexRow>
+                                </FlexRow>
                             </Label>
 
                             <Label>
@@ -904,7 +904,7 @@ function AdminResultsView() {
                                     palette={BUTTON_PALETTE.BLUE}
                                 />
                             )}
-                        </div>
+                        </FlexRow>
 
                         {/* Модальное окно выбора столбца для группировки */}
                         {showGroupingModal && (

@@ -18,24 +18,6 @@
         font-size: 24px;
         font-weight: 600;
       }
-      
-      .controls {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        
-        .control-buttons {
-          display: flex;
-          gap: 10px;
-          align-items: center;
-          
-          button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none !important;
-          }
-        }
-      }
     }
 
     .filters-system {
@@ -559,51 +541,25 @@
       }
     }
 
-    .scroll-hint {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 20px;
-      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-      color: #495057;
-      font-size: 13px;
-      font-weight: 500;
-      border-top: 1px solid #dee2e6;
-      flex-shrink: 0;
-
-      .legend-items {
-        display: flex;
-        gap: 20px;
-        align-items: center;
-
-        .legend-item {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 12px;
-          color: #6c757d;
-          
-          .color-box {
-            width: 16px;
-            height: 16px;
-            border-radius: 3px;
-            border: 1px solid rgba(0,0,0,0.1);
-            
-            &.high {
-              background: linear-gradient(135deg, #4caf50, #45a049);
-            }
-            
-            &.medium {
-              background: linear-gradient(135deg, #cddc39, #c0ca33);
-            }
-            
-            &.low {
-              background: linear-gradient(135deg, #ffeb3b, #fdd835);
-            }
-          }
-        }
+    .color-box {
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+      border: 1px solid rgba(0,0,0,0.1);
+      
+      &.high {
+        background: linear-gradient(135deg, #4caf50, #45a049);
+      }
+      
+      &.medium {
+        background: linear-gradient(135deg, #cddc39, #c0ca33);
+      }
+      
+      &.low {
+        background: linear-gradient(135deg, #ffeb3b, #fdd835);
       }
     }
+    
   }
 
   // Модальное окно для группировки

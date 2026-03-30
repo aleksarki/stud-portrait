@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Chart from 'react-apexcharts';
 
+import FlexRow from '../../components/FlexRow.jsx';
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
 import { FIELD_NAMES, LINK_TREE } from "../../utilities.js";
@@ -244,7 +245,7 @@ function AdminStatsView() {
                                     </div>
                                 )}
                             </div>
-                            <div className="header-controls">
+                            <FlexRow>
                                 <Button
                                     text={showFilters ? 'Скрыть фильтры' : 'Показать фильтры'}
                                     onClick={() => setShowFilters(!showFilters)}
@@ -256,7 +257,7 @@ function AdminStatsView() {
                                     disabled={loading}
                                     palette={BUTTON_PALETTE.CYAN}
                                 />
-                            </div>
+                            </FlexRow>
                         </div>
 
                         {/* Система фильтров */}
@@ -386,32 +387,28 @@ function AdminStatsView() {
                         )}
 
                         {/* Навигация по разделам */}
-                        <div className="stats-tabs">
-                            <button 
-                                className={`tab-button ${activeTab === 'overview' ? 'active' : ''}`}
+                        <FlexRow margin="0 0 30 0">
+                            <Button
+                                text="Обзор"
                                 onClick={() => setActiveTab('overview')}
-                            >
-                                📊 Обзор
-                            </button>
-                            <button 
-                                className={`tab-button ${activeTab === 'competences' ? 'active' : ''}`}
+                                palette={activeTab === 'overview' ? BUTTON_PALETTE.BLUE : BUTTON_PALETTE.GRAY}
+                            />
+                            <Button
+                                text="Компетенции"
                                 onClick={() => setActiveTab('competences')}
-                            >
-                                ⚡ Компетенции
-                            </button>
-                            <button 
-                                className={`tab-button ${activeTab === 'motivators' ? 'active' : ''}`}
+                                palette={activeTab === 'competences' ? BUTTON_PALETTE.BLUE : BUTTON_PALETTE.GRAY}
+                            />
+                            <Button
+                                text="Мотиваторы"
                                 onClick={() => setActiveTab('motivators')}
-                            >
-                                🎯 Мотиваторы
-                            </button>
-                            <button 
-                                className={`tab-button ${activeTab === 'values' ? 'active' : ''}`}
+                                palette={activeTab === 'motivators' ? BUTTON_PALETTE.BLUE : BUTTON_PALETTE.GRAY}
+                            />
+                            <Button
+                                text="Ценности"
                                 onClick={() => setActiveTab('values')}
-                            >
-                                ❤️ Ценности
-                            </button>
-                        </div>
+                                palette={activeTab === 'values' ? BUTTON_PALETTE.BLUE : BUTTON_PALETTE.GRAY}
+                            />
+                        </FlexRow>
 
                         {activeTab === 'overview' && (
                             <div className="overview-tab">

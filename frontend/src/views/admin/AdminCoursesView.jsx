@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 
+import FlexRow, { WRAP } from '../../components/FlexRow.jsx';
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
+import Label from '../../components/ui/Label.jsx';
 import { COURSES_NAMES, LINK_TREE } from "../../utilities.js";
 import { getPortraitCourses } from '../../api.js';
 
@@ -165,23 +167,19 @@ function AdminCoursesView() {
                     <div className="courses-container">
                         <div className="courses-header">
                             <h2>Результаты образовательных курсов</h2>
-                            <div className="controls">
-                                <div className="courses-info">
-                                    <span>
-                                        Участников: {new Set(coursesData.map(c => c.participant?.part_id)).size} • 
-                                        Всего записей: {coursesData.length} • 
-                                        Выбрано: {selectedRows.size}
-                                    </span>
-                                </div>
-                                <div className="control-buttons">
-                                    <Button
-                                        text="Обновить"
-                                        onClick={fetchCoursesData}
-                                        disabled={loading}
-                                        palette={BUTTON_PALETTE.CYAN}
-                                    />
-                                </div>
-                            </div>
+                            <FlexRow>
+                                <Label>
+                                    Участников: {new Set(coursesData.map(c => c.participant?.part_id)).size} • 
+                                    Всего записей: {coursesData.length} • 
+                                    Выбрано: {selectedRows.size}
+                                </Label>
+                                <Button
+                                    text="Обновить"
+                                    onClick={fetchCoursesData}
+                                    disabled={loading}
+                                    palette={BUTTON_PALETTE.CYAN}
+                                />
+                            </FlexRow>
                         </div>
 
                         {/* Общая статистика */}
@@ -288,31 +286,33 @@ function AdminCoursesView() {
                         </div>
 
                         {/* Легенда прогресса */}
-                        <div className="progress-legend">
-                            <div className="legend-title">Легенда прогресса:</div>
-                            <div className="legend-items">
-                                <div className="legend-item">
-                                    <div className="color-box progress-not-started"></div>
-                                    <span>Не начат (0%)</span>
-                                </div>
-                                <div className="legend-item">
-                                    <div className="color-box progress-low"></div>
-                                    <span>Низкий (1-29%)</span>
-                                </div>
-                                <div className="legend-item">
-                                    <div className="color-box progress-medium"></div>
-                                    <span>Средний (30-69%)</span>
-                                </div>
-                                <div className="legend-item">
-                                    <div className="color-box progress-high"></div>
-                                    <span>Высокий (70-89%)</span>
-                                </div>
-                                <div className="legend-item">
-                                    <div className="color-box progress-completed"></div>
-                                    <span>Завершен (90-100%)</span>
-                                </div>
-                            </div>
-                        </div>
+                        <FlexRow margin="15 0 0 0">
+                            <Label>
+                                <FlexRow gap="20" wrap={WRAP.DO}>
+                                    <div className="legend-title">↸ Легенда:</div>
+                                    <FlexRow>
+                                        <div className="color-box progress-not-started"></div>
+                                        <span>Не начат (0%)</span>
+                                    </FlexRow>
+                                    <FlexRow>
+                                        <div className="color-box progress-low"></div>
+                                        <span>Низкий (1-29%)</span>
+                                    </FlexRow>
+                                    <FlexRow>
+                                        <div className="color-box progress-medium"></div>
+                                        <span>Средний (30-69%)</span>
+                                    </FlexRow>
+                                    <FlexRow>
+                                        <div className="color-box progress-high"></div>
+                                        <span>Высокий (70-89%)</span>
+                                    </FlexRow>
+                                    <FlexRow>
+                                        <div className="color-box progress-completed"></div>
+                                        <span>Завершен (90-100%)</span>
+                                    </FlexRow>
+                                </FlexRow>
+                            </Label>
+                        </FlexRow>
                     </div>
                 </Content>
             </SidebarLayout>

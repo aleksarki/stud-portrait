@@ -12,6 +12,7 @@ import {
     getPortraitGetInstitutionDirections,
     postPortraitCreateDataSession
 } from "../../../api";
+import FlexRow from "../../../components/FlexRow";
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
 import Button, { BUTTON_PALETTE } from "../../../components/ui/Button";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
@@ -405,29 +406,26 @@ function AdminAnalysisAdvancedView() {
                 <Content>
                     <h2>Продвинутые визуализации</h2>
 
-                    <div className="viz-controls">
-                        <div className="button-group">
-                            <Button
-                                text="Анализ по измерениям"
-                                onClick={() => {
-                                    setActiveVisualization('dimension');
-                                    loadDimensionData();
-                                }}
-                                palette={activeVisualization === 'dimension' ? BUTTON_PALETTE.BLUE : BUTTON_PALETTE.GRAY}
-                            />
-                            <Button
-                                text="LGM Когорта"
-                                onClick={() => {
-                                    setActiveVisualization('lgm');
-                                    loadLGMCohortData();
-                                }}
-                                palette={activeVisualization === 'lgm' ? BUTTON_PALETTE.BROWN : BUTTON_PALETTE.GRAY}
-                            />
-                        </div>
-
+                    <FlexRow>
+                        <Button
+                            text="Анализ по измерениям"
+                            onClick={() => {
+                                setActiveVisualization('dimension');
+                                loadDimensionData();
+                            }}
+                            palette={activeVisualization === 'dimension' ? BUTTON_PALETTE.BLUE : BUTTON_PALETTE.GRAY}
+                        />
+                        <Button
+                            text="LGM Когорта"
+                            onClick={() => {
+                                setActiveVisualization('lgm');
+                                loadLGMCohortData();
+                            }}
+                            palette={activeVisualization === 'lgm' ? BUTTON_PALETTE.BROWN : BUTTON_PALETTE.GRAY}
+                        />
                         {activeVisualization === 'dimension' && (
-                            <div className="sub-controls">
-                                <label>Измерение:</label>
+                            <>
+                                <span>Измерение:</span>
                                 <select value={selectedDimension} onChange={(e) => setSelectedDimension(e.target.value)}>
                                     <option value="institution">ВУЗы</option>
                                     <option value="spec">Направления</option>
@@ -440,20 +438,17 @@ function AdminAnalysisAdvancedView() {
                                     disabled={loading}
                                     palette={BUTTON_PALETTE.CYAN}
                                 />
-                            </div>
+                            </>
                         )}
-
                         {activeVisualization === 'lgm' && (
-                            <div className="sub-controls">
-                                <Button
-                                    text="Загрузить LGM данные"
-                                    onClick={loadLGMCohortData}
-                                    disabled={loading}
-                                    palette={BUTTON_PALETTE.CYAN}
-                                />
-                            </div>
+                            <Button
+                                text="Загрузить LGM данные"
+                                onClick={loadLGMCohortData}
+                                disabled={loading}
+                                palette={BUTTON_PALETTE.CYAN}
+                            />
                         )}
-                    </div>
+                    </FlexRow>
 
                     <LoadingSpinner loading={loading} text="Загрузка визуализации..." />
 

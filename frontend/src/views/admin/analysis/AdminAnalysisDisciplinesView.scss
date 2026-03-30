@@ -6,11 +6,6 @@
         margin-bottom: 20px;
         align-items: end;
 
-        .button-group {
-            display: flex;
-            gap: 10px;
-        }
-
         @media (max-width: 768px) {
             grid-template-columns: 1fr;
         }
@@ -18,16 +13,6 @@
 
     .tab-container {
         margin: 20px 0;
-
-        .tab-buttons {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            padding: 15px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
     }
 
     .discipline-impact-results {

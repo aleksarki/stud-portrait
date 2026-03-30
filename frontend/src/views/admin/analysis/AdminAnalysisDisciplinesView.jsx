@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 
+import FlexRow from "../../../components/FlexRow";
 import Button, { BUTTON_PALETTE } from '../../../components/ui/Button';
+import Label from "../../../components/ui/Label";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import MultiSelect from '../../../components/ui/MultiSelect';
 import NoData from "../../../components/ui/NoData";
@@ -317,11 +319,15 @@ function AdminAnalysisDisciplinesView() {
                         ))}
                     </tbody>
                 </table>
-                <div className="heatmap-legend">
-                    <span>🟢 Положительный эффект</span>
-                    <span>🔴 Отрицательный эффект</span>
-                    <span>📊 Жирная граница = статистически значим (p &lt; 0.05)</span>
-                </div>
+                <FlexRow margin="20 0 0 0">
+                    <Label>
+                        <FlexRow gap="20">
+                            <span>🟢 Положительный эффект</span>
+                            <span>🔴 Отрицательный эффект</span>
+                            <span>📊 Жирная граница = статистически значим (p &lt; 0.05)</span>
+                        </FlexRow>
+                    </Label>
+                </FlexRow>
             </div>
         );
     };
@@ -422,7 +428,7 @@ function AdminAnalysisDisciplinesView() {
                             maxHeight="300px"
                         />
 
-                        <div className="button-group">
+                        <FlexRow>
                             <Button
                                 text="Анализ влияния"
                                 onClick={loadDisciplineImpact}
@@ -441,14 +447,14 @@ function AdminAnalysisDisciplinesView() {
                                 disabled={loading}
                                 palette={BUTTON_PALETTE.GREEN}
                             />
-                        </div>
+                        </FlexRow>
                     </div>
 
                     <LoadingSpinner loading={loading} text="Загрузка анализа дисциплин..." />
 
                     {!loading && (disciplineData || heatmapData || allDisciplinesData) && (
                         <div className="tab-container">
-                            <div className="tab-buttons">
+                            <FlexRow>
                                 {disciplineData && (
                                     <Button
                                         text="Влияние дисциплин"
@@ -470,7 +476,7 @@ function AdminAnalysisDisciplinesView() {
                                         palette={activeTab === 'all' ? BUTTON_PALETTE.GREEN : BUTTON_PALETTE.GRAY}
                                     />
                                 )}
-                            </div>
+                            </FlexRow>
 
                             <div className="tab-content">
                                 {activeTab === 'impact' && renderDisciplineImpact()}

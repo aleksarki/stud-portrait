@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import FlexRow from "../../../components/FlexRow";
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
 import Button, { BUTTON_PALETTE } from "../../../components/ui/Button";
 import MultiSelect from "../../../components/ui/MultiSelect";
@@ -252,7 +253,7 @@ function AdminAnalysisVamLgmView() {
                     {/* Панель управления */}
                     <div className="analysis-method-section">
                         <h3>Метод анализа</h3>
-                        <div className="analysis-method-buttons">
+                        <FlexRow>
                             <Button
                                 text="Value-Added Model (VAM)"
                                 onClick={() => setAnalysisMethod('vam')}
@@ -263,7 +264,7 @@ function AdminAnalysisVamLgmView() {
                                 onClick={() => setAnalysisMethod('lgm')}
                                 palette={BUTTON_PALETTE.BLUE}
                             />
-                        </div>
+                        </FlexRow>
                         {analysisMethod === 'vam' && (
                             <div className="vam-group-select" style={{ marginTop: 10 }}>
                                 <label>Группировать по: </label>
@@ -338,7 +339,7 @@ function AdminAnalysisVamLgmView() {
                                     showCounts
                                     maxHeight="400px"
                                 />
-                                <div className="filter-actions">
+                                <FlexRow>
                                     <Button
                                         text={loading ? "Загрузка..." : "Применить"}
                                         onClick={analysisMethod === 'vam' ? loadVAMData : loadLGMData}
@@ -350,7 +351,7 @@ function AdminAnalysisVamLgmView() {
                                         onClick={clearFilters}
                                         palette={BUTTON_PALETTE.GRAY}
                                     />
-                                </div>
+                                </FlexRow>
                             </div>
                         </div>
                     </div>
