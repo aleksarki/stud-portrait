@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import Chart from 'react-apexcharts';
 
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
-import Button from '../../components/ui/Button.jsx';
+import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
 import { FIELD_NAMES, LINK_TREE } from "../../utilities.js";
 import { postPortraitCreateDataSession, postPortraitStats, postPortraitUpdateSessionFilters } from '../../api.js';
 
@@ -248,18 +248,13 @@ function AdminStatsView() {
                                 <Button
                                     text={showFilters ? 'Скрыть фильтры' : 'Показать фильтры'}
                                     onClick={() => setShowFilters(!showFilters)}
-                                    fg="#212529"
-                                    bg="#ffc107"
-                                    hoverBg="#e0a800"
+                                    palette={BUTTON_PALETTE.YELLOW}
                                 />
                                 <Button
-                                    text="🔄 Обновить"
+                                    text={loading ? "Загрузка..." : "Обновить"}
                                     onClick={() => fetchStats(sessionId)}
                                     disabled={loading}
-                                    fg="white"
-                                    bg="#17a2b8"
-                                    hoverBg="#138496"
-                                    disabledBg="#6c757d"
+                                    palette={BUTTON_PALETTE.SEA}
                                 />
                             </div>
                         </div>
@@ -296,21 +291,16 @@ function AdminStatsView() {
                                             {(pendingFilters.length > 0 || filters.length > 0) && (
                                                 <>
                                                     <Button
-                                                        text={`${loading ? '⏳' : '✅'} Применить фильтры`}
+                                                        text={loading ? "Загрузка..." :  "Применить"}
                                                         onClick={applyFilters}
                                                         disabled={pendingFilters.length === 0 || !sessionId || loading}
-                                                        fg="white"
-                                                        bg="#28a745"
-                                                        hoverBg="#218838"
-                                                        disabledBg="#6c757d"
+                                                        palette={BUTTON_PALETTE.GREEN}
                                                     />
                                                     <Button
-                                                        text="Очистить все"
+                                                        text="Очистить"
                                                         onClick={clearAllFilters}
                                                         disabled={!sessionId || loading}
-                                                        fg="white"
-                                                        bg="#dc3545"
-                                                        hoverBg="#c82333"
+                                                        palette={BUTTON_PALETTE.RED}
                                                     />
                                                 </>
                                             )}
@@ -545,9 +535,7 @@ function AdminStatsView() {
                                             <Button
                                                 text={showAllCenters ? 'Скрыть' : 'Показать все'}
                                                 onClick={() => setShowAllCenters(!showAllCenters)}
-                                                fg="white"
-                                                bg="#17a2b8"
-                                                hoverBg="#138496"
+                                                palette={BUTTON_PALETTE.SEA}
                                             />
                                         </div>
                                         <div className="centers-list">
@@ -573,9 +561,7 @@ function AdminStatsView() {
                                             <Button
                                                 text={showAllInstitutions ? 'Скрыть' : 'Показать все'}
                                                 onClick={() => setShowAllInstitutions(!showAllInstitutions)}
-                                                fg="white"
-                                                bg="#17a2b8"
-                                                hoverBg="#138496"
+                                                palette={BUTTON_PALETTE.SEA}
                                             />
                                         </div>
                                         <div className="institutions-list">

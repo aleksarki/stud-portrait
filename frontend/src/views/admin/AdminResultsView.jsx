@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import Button from '../../components/ui/Button.jsx';
+import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 import { FIELD_NAMES, LINK_TREE } from "../../utilities.js";
 import {
@@ -527,44 +527,31 @@ function AdminResultsView() {
                                     <Button
                                         text={showFilters ? 'Скрыть фильтры' : 'Показать фильтры'}
                                         onClick={() => setShowFilters(!showFilters)}
-                                        fg="#212529"
-                                        bg="#ffc107"
-                                        hoverBg="#e0a800"
+                                        palette={BUTTON_PALETTE.YELLOW}
                                     />
                                     <Button
                                         text="Колонки"
                                         onClick={() => setShowColumnSelector(!showColumnSelector)}
                                         disabled={!sessionId}
-                                        fg="white"
-                                        bg="#6f42c1"
-                                        hoverBg="#5a32a3"
+                                        palette={BUTTON_PALETTE.PURPLE}
                                     />
                                     <Button
                                         text="Группировка"
                                         onClick={handleGrouping}
                                         disabled={!sessionId || selectedRows.size === 0}
-                                        fg="white"
-                                        bg="#6f42c1"
-                                        hoverBg="#5a32a3"
-                                        disabledBg="#6c757d"
+                                        palette={BUTTON_PALETTE.PURPLE}
                                     />
                                     <Button
-                                        text={`${exportLoading ? '⏳' : '📥'} Выгрузить выделенные (${selectedRows.size})`}
+                                        text={exportLoading ? "Загрузка..." : `Выгрузить выделенные (${selectedRows.size})`}
                                         onClick={handleExportSelected}
                                         disabled={!sessionId || exportLoading || selectedRows.size === 0}
-                                        fg="white"
-                                        bg="#28a745"
-                                        hoverBg="#218838"
-                                        disabledBg="#6c757d"
+                                        palette={BUTTON_PALETTE.GREEN}
                                     />
                                     <Button
-                                        text={`${loading ? '⏳' : '🔄'} Обновить`}
+                                        text={loading ? "Загрузка..." : "Обновить"}
                                         onClick={() => loadSessionData()}
                                         disabled={!sessionId || loading}
-                                        fg="white"
-                                        bg="#17a2b8"
-                                        hoverBg="#138496"
-                                        disabledBg="#6c757d"
+                                        palette={BUTTON_PALETTE.SEA}
                                     />
                                 </div>
                             </div>
@@ -611,21 +598,16 @@ function AdminResultsView() {
                                             {(pendingFilters.length > 0 || filters.length > 0) && (
                                                 <>
                                                     <Button
-                                                        text={`${loading ? '⏳' : '✅'} Применить фильтры`}
+                                                        text={loading ? "Загрузка..." : "Применить"}
                                                         onClick={applyFilters}
                                                         disabled={pendingFilters.length === 0 || !sessionId || loading}
-                                                        fg="white"
-                                                        bg="#28a745"
-                                                        hoverBg="#218838"
-                                                        disabledBg="#6c757d"
+                                                        palette={BUTTON_PALETTE.GREEN}
                                                     />
                                                     <Button
-                                                        text="Очистить все"
+                                                        text="Очистить"
                                                         onClick={clearAllFilters}
                                                         disabled={!sessionId || loading}
-                                                        fg="white"
-                                                        bg="#dc3545"
-                                                        hoverBg="#c82333"
+                                                        palette={BUTTON_PALETTE.RED}
                                                     />
                                                 </>
                                             )}
@@ -641,14 +623,11 @@ function AdminResultsView() {
                                                 <span className="filter-name">
                                                     {FIELD_NAMES[filter.field]}
                                                 </span>
-                                                { /*<Button
+                                                {/* <Button
                                                     text="✕"
                                                     onClick={() => removePendingFilter(filter.id)}
-                                                    fg="#dc3545"
-                                                    bg="none"
-                                                    hoverFg="white"
-                                                    hoverBg="#dc3545"
-                                                />*/ }
+                                                    palette={BUTTON_PALETTE.RED}
+                                                /> */}
                                                 <button
                                                     className="remove-filter-btn"
                                                     onClick={() => removePendingFilter(filter.id)}
@@ -762,33 +741,18 @@ function AdminResultsView() {
                                             text="Показать все"
                                             onClick={showAllColumns}
                                             disabled={!sessionId || loading}
-                                            bg="white"
-                                            border="1px solid #ced4da"
-                                            hoverFg="white"
-                                            hoverBg="#007bff"
-                                            hoverBorder="1px solid #007bff"
-                                            hoverTransform="none"
+                                            palette={BUTTON_PALETTE.BLUE}
                                         />
                                         <Button
                                             text="Скрыть все"
                                             onClick={hideAllColumns}
                                             disabled={!sessionId || loading}
-                                            bg="white"
-                                            border="1px solid #ced4da"
-                                            hoverFg="white"
-                                            hoverBg="#007bff"
-                                            hoverBorder="1px solid #007bff"
-                                            hoverTransform="none"
+                                            palette={BUTTON_PALETTE.BLUE}
                                         />
                                         <Button
-                                            text="✕ Закрыть"
+                                            text="✕"
                                             onClick={() => setShowColumnSelector(false)}
-                                            fg="white"
-                                            bg="#dc3545"
-                                            border="1px solid #dc3545"
-                                            hoverBg="#c82333"
-                                            hoverBorder="1px solid #bd2130"
-                                            hoverTransform="none"
+                                            palette={BUTTON_PALETTE.RED}
                                         />
                                     </div>
                                 </div>
@@ -934,10 +898,7 @@ function AdminResultsView() {
                                     text={loading ? 'Загрузка...' : "Загрузить ещё"}
                                     onClick={loadMoreData}
                                     disabled={loading}
-                                    fg="white"
-                                    bg="#007bff"
-                                    hoverBg="#0056b3"
-                                    disabledBg="#6c757d"
+                                    palette={BUTTON_PALETTE.BLUE}
                                 />
                             )}
 
@@ -988,19 +949,13 @@ function AdminResultsView() {
                                         <Button
                                             text="Отмена"
                                             onClick={() => setShowGroupingModal(false)}
-                                            fg="#6c757d"
-                                            bg="white"
-                                            border="1px solid #6c757d"
-                                            hoverBg="#6c757d"
-                                            hoverFg="white"
+                                            palette={BUTTON_PALETTE.GRAY}
                                         />
                                         <Button
                                             text="Перейти к группировке"
                                             onClick={handleConfirmGrouping}
                                             disabled={!groupingColumn}
-                                            fg="white"
-                                            bg="#007bff"
-                                            hoverBg="#0056b3"
+                                            palette={BUTTON_PALETTE.BLUE}
                                         />
                                     </div>
                                 </div>

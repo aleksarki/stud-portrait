@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
-import Button from "../../../components/ui/Button";
+import Button, { BUTTON_PALETTE } from "../../../components/ui/Button";
 import MultiSelect from "../../../components/ui/MultiSelect";
 import VamDotPlot from "../../../components/charts/VamDotPlot";
 import LgmSpaghettiPlot from "../../../components/charts/LgmSpaghettiPlot";
@@ -256,16 +256,12 @@ function AdminAnalysisVamLgmView() {
                             <Button
                                 text="Value-Added Model (VAM)"
                                 onClick={() => setAnalysisMethod('vam')}
-                                fg={analysisMethod === 'vam' ? 'white' : '#1976d2'}
-                                bg={analysisMethod === 'vam' ? '#1976d2' : 'white'}
-                                border="1px solid #1976d2"
+                                palette={BUTTON_PALETTE.BLUE}
                             />
                             <Button
                                 text="Latent Growth Model (LGM)"
                                 onClick={() => setAnalysisMethod('lgm')}
-                                fg={analysisMethod === 'lgm' ? 'white' : '#1976d2'}
-                                bg={analysisMethod === 'lgm' ? '#1976d2' : 'white'}
-                                border="1px solid #1976d2"
+                                palette={BUTTON_PALETTE.BLUE}
                             />
                         </div>
                         {analysisMethod === 'vam' && (
@@ -344,20 +340,15 @@ function AdminAnalysisVamLgmView() {
                                 />
                                 <div className="filter-actions">
                                     <Button
-                                        text={loading ? '⏳ Загрузка...' : '🔄 Применить'}
+                                        text={loading ? "Загрузка..." : "Применить"}
                                         onClick={analysisMethod === 'vam' ? loadVAMData : loadLGMData}
                                         disabled={loading || selectedCompetencies.length === 0}
-                                        fg="white"
-                                        bg="#17a2b8"
-                                        hoverBg="#138496"
+                                        palette={BUTTON_PALETTE.SEA}
                                     />
                                     <Button
-                                        text="🗑️ Очистить"
+                                        text="Очистить"
                                         onClick={clearFilters}
-                                        fg="#666"
-                                        bg="white"
-                                        border="1px solid #ddd"
-                                        hoverBg="#f5f5f5"
+                                        palette={BUTTON_PALETTE.GRAY}
                                     />
                                 </div>
                             </div>

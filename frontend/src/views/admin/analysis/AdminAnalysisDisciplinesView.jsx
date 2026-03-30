@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import Button from '../../../components/ui/Button';
+import Button, { BUTTON_PALETTE } from '../../../components/ui/Button';
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import MultiSelect from '../../../components/ui/MultiSelect';
 import NoData from "../../../components/ui/NoData";
@@ -424,28 +424,22 @@ function AdminAnalysisDisciplinesView() {
 
                         <div className="button-group">
                             <Button
-                                text={`${loading ? '⏳' : '📊'} Анализ влияния`}
+                                text="Анализ влияния"
                                 onClick={loadDisciplineImpact}
                                 disabled={loading}
-                                fg="white"
-                                bg="#1976d2"
-                                hoverBg="#1565c0"
+                                palette={BUTTON_PALETTE.BLUE}
                             />
                             <Button
-                                text={`${loading ? '⏳' : '🔥'} Тепловая карта`}
+                                text="Тепловая карта"
                                 onClick={loadHeatmapData}
                                 disabled={loading}
-                                fg="white"
-                                bg="#ff9800"
-                                hoverBg="#e68900"
+                                palette={BUTTON_PALETTE.BROWN}
                             />
                             <Button
-                                text={`${loading ? '⏳' : '📈'} Все дисциплины`}
+                                text="Все дисциплины"
                                 onClick={loadAllDisciplinesImpact}
                                 disabled={loading}
-                                fg="white"
-                                bg="#4CAF50"
-                                hoverBg="#45a049"
+                                palette={BUTTON_PALETTE.GREEN}
                             />
                         </div>
                     </div>
@@ -459,27 +453,21 @@ function AdminAnalysisDisciplinesView() {
                                     <Button
                                         text="Влияние дисциплин"
                                         onClick={() => setActiveTab('impact')}
-                                        fg="white"
-                                        bg="#1976d2"
-                                        hoverBg="#1565c0"
+                                        palette={activeTab === 'impact' ? BUTTON_PALETTE.BLUE : BUTTON_PALETTE.GRAY}
                                     />
                                 )}
                                 {heatmapData && (
                                     <Button
                                         text="Тепловая карта"
                                         onClick={() => setActiveTab('heatmap')}
-                                        fg="white"
-                                        bg="#ff9800"
-                                        hoverBg="#e68900"
+                                        palette={activeTab === 'heatmap' ? BUTTON_PALETTE.BROWN : BUTTON_PALETTE.GRAY}
                                     />
                                 )}
                                 {allDisciplinesData && (
                                     <Button
                                         text="Комплексный анализ"
                                         onClick={() => setActiveTab('all')}
-                                        fg="white"
-                                        bg="#4CAF50"
-                                        hoverBg="#45a049"
+                                        palette={activeTab === 'all' ? BUTTON_PALETTE.GREEN : BUTTON_PALETTE.GRAY}
                                     />
                                 )}
                             </div>

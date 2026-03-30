@@ -10,7 +10,7 @@ import ChartSwitcher from "../../components/charts/ChartSwitcher";
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 import Title from "../../components/Title";
 import Dropdown from "../../components/ui/Dropdown";
-import Button from "../../components/ui/Button";
+import Button, { BUTTON_PALETTE } from "../../components/ui/Button";
 
 import StudentVamChart from "../../components/charts/StudentVamChart";
 import StudentLgmChart from '../../components/charts/StudentLgmChart';
@@ -255,20 +255,16 @@ function StudentMainView() {
 
                         <div className="action-buttons">
                             <Button
-                                text={analyticsLoading ? "⏳ Загрузка..." : showAnalytics ? "🔽 Скрыть аналитику" : "📊 Показать аналитику"}
+                                text={analyticsLoading ? "Загрузка..." : showAnalytics ? "Скрыть аналитику" : "Показать аналитику"}
                                 onClick={toggleAnalytics}
                                 disabled={analyticsLoading}
-                                fg="white"
-                                bg="linear-gradient(135deg, #2196f3 0%, #1976d2 100%)"
-                                hoverBg="linear-gradient(135deg, #1976d2 0%, #1565c0 100%)"
+                                palette={BUTTON_PALETTE.STUDENT_BLUE}
                             />
                             <Button
-                                text={resumeGenerating ? "⏳ Генерация..." : "📄 Скачать резюме DOCX"}
+                                text={resumeGenerating ? "Загрузка..." : "Скачать резюме DOCX"}
                                 onClick={generateDocxResume}
                                 disabled={resumeGenerating}
-                                fg="white"
-                                bg="linear-gradient(135deg, #4caf50 0%, #388e3c 100%)"
-                                hoverBg="linear-gradient(135deg, #45a049 0%, #2e7d32 100%)"
+                                palette={BUTTON_PALETTE.STUDENT_GREEN}
                             />
                         </div>
                     </div>

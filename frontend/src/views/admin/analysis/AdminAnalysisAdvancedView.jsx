@@ -13,7 +13,7 @@ import {
     postPortraitCreateDataSession
 } from "../../../api";
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
-import Button from "../../../components/ui/Button";
+import Button, { BUTTON_PALETTE } from "../../../components/ui/Button";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import NoData from "../../../components/ui/NoData";
 import { COMPETENCIES_NAMES, LINK_TREE } from "../../../utilities";
@@ -408,24 +408,20 @@ function AdminAnalysisAdvancedView() {
                     <div className="viz-controls">
                         <div className="button-group">
                             <Button
-                                text="📊 Анализ по измерениям"
+                                text="Анализ по измерениям"
                                 onClick={() => {
                                     setActiveVisualization('dimension');
                                     loadDimensionData();
                                 }}
-                                fg={activeVisualization === 'dimension' ? 'white' : '#666'}
-                                bg={activeVisualization === 'dimension' ? '#1976d2' : 'white'}
-                                border="1px solid #1976d2"
+                                palette={activeVisualization === 'dimension' ? BUTTON_PALETTE.BLUE : BUTTON_PALETTE.GRAY}
                             />
                             <Button
-                                text="📈 LGM Когорта"
+                                text="LGM Когорта"
                                 onClick={() => {
                                     setActiveVisualization('lgm');
                                     loadLGMCohortData();
                                 }}
-                                fg={activeVisualization === 'lgm' ? 'white' : '#666'}
-                                bg={activeVisualization === 'lgm' ? '#ff9800' : 'white'}
-                                border="1px solid #ff9800"
+                                palette={activeVisualization === 'lgm' ? BUTTON_PALETTE.BROWN : BUTTON_PALETTE.GRAY}
                             />
                         </div>
 
@@ -442,6 +438,7 @@ function AdminAnalysisAdvancedView() {
                                     text="Загрузить"
                                     onClick={loadDimensionData}
                                     disabled={loading}
+                                    palette={BUTTON_PALETTE.SEA}
                                 />
                             </div>
                         )}
@@ -452,6 +449,7 @@ function AdminAnalysisAdvancedView() {
                                     text="Загрузить LGM данные"
                                     onClick={loadLGMCohortData}
                                     disabled={loading}
+                                    palette={BUTTON_PALETTE.SEA}
                                 />
                             </div>
                         )}

@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import Chart from 'react-apexcharts';
 
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
-import Button from '../../components/ui/Button.jsx';
+import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
 import { FIELD_NAMES, LINK_TREE } from "../../utilities.js";
 import { postPortraitGroupData } from '../../api.js';
 
@@ -138,9 +138,7 @@ function AdminGroupingView() {
                                 <Button
                                     text="← Назад к результатам"
                                     onClick={() => navigate('/admin/results')}
-                                    fg="white"
-                                    bg="#6c757d"
-                                    hoverBg="#5a6268"
+                                    palette={BUTTON_PALETTE.GRAY}
                                 />
                             </div>
                         </div>

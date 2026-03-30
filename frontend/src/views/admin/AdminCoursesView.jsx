@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
-import Button from '../../components/ui/Button.jsx';
-import { COURSES_NAMES, FIELD_NAMES, LINK_TREE } from "../../utilities.js";
+import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
+import { COURSES_NAMES, LINK_TREE } from "../../utilities.js";
 import { getPortraitCourses } from '../../api.js';
 
 import "./AdminCoursesView.scss";
@@ -175,13 +175,10 @@ function AdminCoursesView() {
                                 </div>
                                 <div className="control-buttons">
                                     <Button
-                                        text="🔄 Обновить"
+                                        text="Обновить"
                                         onClick={fetchCoursesData}
                                         disabled={loading}
-                                        fg="white"
-                                        bg="#17a2b8"
-                                        hoverBg="#138496"
-                                        disabledBg="#6c757d"
+                                        palette={BUTTON_PALETTE.SEA}
                                     />
                                 </div>
                             </div>
