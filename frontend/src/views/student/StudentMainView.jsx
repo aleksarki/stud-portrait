@@ -1,9 +1,5 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import {
-    LineChart, Line, BarChart, Bar,
-    XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
-} from "recharts";
 
 import { getPortraitStudentResults } from "../../api";
 import {
@@ -258,20 +254,22 @@ function StudentMainView() {
                         )}
 
                         <div className="action-buttons">
-                            <button
-                                className="analytics-button"
+                            <Button
+                                text={analyticsLoading ? "⏳ Загрузка..." : showAnalytics ? "🔽 Скрыть аналитику" : "📊 Показать аналитику"}
                                 onClick={toggleAnalytics}
                                 disabled={analyticsLoading}
-                            >
-                                {analyticsLoading ? "⏳ Загрузка..." : showAnalytics ? "🔽 Скрыть аналитику" : "📊 Показать аналитику"}
-                            </button>
-                            <button
-                                className="resume-button"
+                                fg="white"
+                                bg="linear-gradient(135deg, #2196f3 0%, #1976d2 100%)"
+                                hoverBg="linear-gradient(135deg, #1976d2 0%, #1565c0 100%)"
+                            />
+                            <Button
+                                text={resumeGenerating ? "⏳ Генерация..." : "📄 Скачать резюме DOCX"}
                                 onClick={generateDocxResume}
                                 disabled={resumeGenerating}
-                            >
-                                {resumeGenerating ? "⏳ Генерация..." : "📄 Скачать резюме DOCX"}
-                            </button>
+                                fg="white"
+                                bg="linear-gradient(135deg, #4caf50 0%, #388e3c 100%)"
+                                hoverBg="linear-gradient(135deg, #45a049 0%, #2e7d32 100%)"
+                            />
                         </div>
                     </div>
 

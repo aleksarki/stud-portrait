@@ -44,48 +44,6 @@
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
-            
-            button {
-                padding: 10px 20px;
-                border: none;
-                border-radius: 6px;
-                font-size: 14px;
-                font-weight: 500;
-                cursor: pointer;
-                transition: all 0.2s ease;
-                white-space: nowrap;
-                
-                &:disabled {
-                    opacity: 0.6;
-                    cursor: not-allowed;
-                }
-                
-                &:active:not(:disabled) {
-                    transform: scale(0.98);
-                }
-            }
-            
-            .analytics-button {
-                background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
-                color: white;
-                box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3);
-                
-                &:hover:not(:disabled) {
-                    background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
-                    box-shadow: 0 4px 8px rgba(33, 150, 243, 0.4);
-                }
-            }
-            
-            .resume-button {
-                background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
-                color: white;
-                box-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
-                
-                &:hover:not(:disabled) {
-                    background: linear-gradient(135deg, #45a049 0%, #2e7d32 100%);
-                    box-shadow: 0 4px 8px rgba(76, 175, 80, 0.4);
-                }
-            }
         }
     }
 

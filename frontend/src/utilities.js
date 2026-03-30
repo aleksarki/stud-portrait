@@ -18,7 +18,9 @@ export const LINK_TREE = [
     {
         category: "Анализ данных",
         links: [
-            {title: "Анализ данных", to: '/admin/analysis'}
+            {title: "VAM / LGM", to: '/admin/analysis/vam-lgm'},
+            {title: "Анализ дисциплин", to: '/admin/analysis/disciplines'},
+            {title: "Визуализации", to: '/admin/analysis/advanced'}
         ]
     },
     {

@@ -1,45 +1,140 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+import Button from '../../../components/ui/Button';
+import LoadingSpinner from "../../../components/ui/LoadingSpinner";
+import MultiSelect from '../../../components/ui/MultiSelect';
+import NoData from "../../../components/ui/NoData";
+import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
 import {
-    BarChart, Bar, // Добавлено
-    XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
-} from "recharts";
-import Button from './ui/Button';
-import MultiSelect from './ui/MultiSelect';
-import { 
-    postAnalyzeDisciplineImpactAdvanced, 
+    getAnalyzeAllDisciplinesImpact,
+    getPortraitGetDisciplines,
+    getPortraitGetFilterOptionsWithCounts,
+    getPortraitGetInstitutionDirections,
+    postAnalyzeDisciplineImpactAdvanced,
     postGetDisciplineHeatmapData,
-    getAnalyzeAllDisciplinesImpact 
-} from '../api';
+    postPortraitCreateDataSession
+} from "../../../api";
+import { COMPETENCIES_NAMES, LINK_TREE } from "../../../utilities";
 
-const COLORS = ['#1976d2', '#d32f2f', '#388e3c', '#f57c00', '#7b1fa2'];
+import "./AdminAnalysisDisciplinesView.scss";
 
-export function DisciplineAnalysisSection({
-    filterOptions,
-    selectedInstitutions,
-    selectedDirections,
-    selectedCompetencies
-}) {
+function AdminAnalysisDisciplinesView() {
+    // -------------------- STATE --------------------
+    const [sessionId, setSessionId] = useState(null);
+    const [loading, setLoading] = useState(false);
+
+    // Фильтры (значения – ID, для направлений – ID, т.к. бэкенд ожидает числа)
+    const [selectedInstitutions, setSelectedInstitutions] = useState([]);
+    const [selectedDirections, setSelectedDirections] = useState([]);
+    const [selectedCourses, setSelectedCourses] = useState([]);
+    const [selectedTestAttempts, setSelectedTestAttempts] = useState([]);
+    const [selectedCompetencies, setSelectedCompetencies] = useState([]);
+
+    // Опции фильтров (приходят с сервера)
+    const [filterOptions, setFilterOptions] = useState({
+        institutions: [],
+        directions: [],
+        allDirections: [],
+        courses: [],
+        testAttempts: [],
+        competencies: [],
+        students: [],
+        disciplines: [] // добавить
+    });
+
+    // -------------------- ИНИЦИАЛИЗАЦИЯ СЕССИИ --------------------
+    useEffect(() => {
+        const init = async () => {
+            setLoading(true);
+            postPortraitCreateDataSession()
+                .onSuccess(async response => {
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        setSessionId(data.session_id);
+                        await loadFilterOptions(data.session_id);
+                    }
+                })
+                .onError(error => console.error(error))
+                .finally(() => setLoading(false));
+        };
+        init();
+    }, []);
+
+    // -------------------- ЗАГРУЗКА ОПЦИЙ ФИЛЬТРОВ --------------------
+
+    const loadFilterOptions = async (sid, updateCounts = false) => {
+        if (!sid) return;
+        (
+            updateCounts
+            ? getPortraitGetFilterOptionsWithCounts(sid, selectedInstitutions, selectedDirections, selectedCourses, selectedTestAttempts, selectedCompetencies)
+            : getPortraitGetFilterOptionsWithCounts(sid)
+        )
+            .onSuccess(async response => {
+                const data = await response.json();
+                if (data.status === 'success') {
+                    // Загружаем дисциплины
+                    let disciplines = [];
+                    try {
+                        const discRes = getPortraitGetDisciplines();
+                        const discData = await new Promise((resolve) => {
+                            discRes.onSuccess(async d => {
+                                const json = await d.json();
+                                resolve(json);
+                            }).onError(() => resolve({ disciplines: [] }));
+                        });
+                        if (discData.status === 'success') {
+                            disciplines = discData.disciplines || [];
+                        }
+                    } catch (e) {
+                        console.error('Error loading disciplines:', e);
+                    }
+
+                    setFilterOptions({
+                        institutions: data.data?.institutions || [],
+                        directions: data.data?.directions || [],
+                        allDirections: data.data?.directions || [],
+                        courses: data.data?.courses || [],
+                        testAttempts: data.data?.test_attempts || [],
+                        competencies: data.data?.competencies || Object.keys(COMPETENCIES_NAMES).map(c => ({ id: c, name: COMPETENCIES_NAMES[c], count: 0 })),
+                        students: data.data?.students || [],
+                        disciplines: disciplines
+                    });
+                }
+            })
+            .onError(console.error);
+    };
+
+    // Обновление направлений при изменении вузов
+    useEffect(() => {
+        if (!sessionId) return;
+        if (selectedInstitutions.length === 0) {
+            setFilterOptions(prev => ({ ...prev, directions: prev.allDirections }));
+            return;
+        }
+        getPortraitGetInstitutionDirections(selectedInstitutions)
+            .onSuccess(async response => {
+                const data = await response.json();
+                if (data.status === 'success') {
+                    const directions = data.directions.map(name => ({ id: name, name, count: 0 }));
+                    setFilterOptions(prev => ({ ...prev, directions }));
+                    setSelectedDirections(prev => prev.filter(d => data.directions.includes(d)));
+                }
+            })
+            .onError(console.error);
+    }, [selectedInstitutions, sessionId]);
+
+    // Перезагрузка фильтров при изменении выбранных значений
+    useEffect(() => {
+        if (sessionId) loadFilterOptions(sessionId, true);
+    }, [selectedInstitutions, selectedDirections, selectedCourses, selectedTestAttempts, selectedCompetencies]);
+
+    // ======================================= //
+
     const [disciplineData, setDisciplineData] = useState(null);
     const [heatmapData, setHeatmapData] = useState(null);
     const [allDisciplinesData, setAllDisciplinesData] = useState(null);
-    const [loading, setLoading] = useState(false);
     const [selectedDisciplines, setSelectedDisciplines] = useState([]);
     const [activeTab, setActiveTab] = useState('impact');
-
-    const competencyLabels = {
-        "res_comp_info_analysis": "Анализ информации",
-        "res_comp_planning": "Планирование",
-        "res_comp_result_orientation": "Ориентация на результат",
-        "res_comp_stress_resistance": "Стрессоустойчивость",
-        "res_comp_partnership": "Партнёрство",
-        "res_comp_rules_compliance": "Соблюдение правил",
-        "res_comp_self_development": "Саморазвитие",
-        "res_comp_leadership": "Лидерство",
-        "res_comp_emotional_intel": "Эмоциональный интеллект",
-        "res_comp_client_focus": "Клиентоориентированность",
-        "res_comp_communication": "Коммуникация",
-        "res_comp_passive_vocab": "Пассивный словарь"
-    };
 
     // Загрузка комплексного анализа всех дисциплин
     const loadAllDisciplinesImpact = async () => {
@@ -68,7 +163,7 @@ export function DisciplineAnalysisSection({
 
         const competencies = selectedCompetencies.length > 0 
             ? selectedCompetencies 
-            : Object.keys(competencyLabels).slice(0, 3); // По умолчанию первые 3 компетенции
+            : Object.keys(COMPETENCIES_NAMES).slice(0, 3); // По умолчанию первые 3 компетенции
 
         postAnalyzeDisciplineImpactAdvanced(
             competencies,
@@ -114,13 +209,13 @@ export function DisciplineAnalysisSection({
 
     const renderAllDisciplinesImpact = () => {
         if (!allDisciplinesData) {
-            return <div className="no-data">Нет данных для отображения</div>;
+            return <NoData text="Нет данных для отображения" />
         }
 
         const { impact_matrix, competencies_analyzed } = allDisciplinesData;
 
         if (!impact_matrix || impact_matrix.length === 0) {
-            return <div className="no-data">Нет данных о влиянии дисциплин</div>;
+            return <NoData text="Нет данных о влиянии дисциплин" />;
         }
 
         // Группируем по компетенциям
@@ -139,7 +234,7 @@ export function DisciplineAnalysisSection({
                 
                 {Object.entries(byCompetency).map(([comp, items]) => (
                     <div key={comp} className="competency-group">
-                        <h5>{competencyLabels[comp] || comp}</h5>
+                        <h5>{COMPETENCIES_NAMES[comp] || comp}</h5>
                         <table className="impact-table">
                             <thead>
                                 <tr>
@@ -174,7 +269,7 @@ export function DisciplineAnalysisSection({
 
     const renderHeatmap = () => {
         if (!heatmapData || heatmapData.length === 0) {
-            return <div className="no-data">Нет данных для тепловой карты</div>;
+            return <NoData text="Нет данных для тепловой карты" />;
         }
 
         const disciplines = [...new Set(heatmapData.map(d => d.discipline))].sort();
@@ -187,8 +282,8 @@ export function DisciplineAnalysisSection({
                         <tr>
                             <th>Дисциплина</th>
                             {competencies.map(comp => (
-                                <th key={comp} title={competencyLabels[comp]}>
-                                    {competencyLabels[comp]?.substring(0, 12)}
+                                <th key={comp} title={COMPETENCIES_NAMES[comp]}>
+                                    {COMPETENCIES_NAMES[comp]?.substring(0, 12)}
                                 </th>
                             ))}
                         </tr>
@@ -233,14 +328,14 @@ export function DisciplineAnalysisSection({
 
     const renderDisciplineImpact = () => {
         if (!disciplineData || disciplineData.length === 0) {
-            return <div className="no-data">Нет данных для анализа влияния</div>;
+            return <NoData text="Нет данных для анализа влияния" />;
         }
 
         return (
             <div className="discipline-impact-results">
                 {disciplineData.map((result, idx) => (
                     <div key={idx} className="discipline-result-card">
-                        <h5>📊 {competencyLabels[result.competency] || result.competency}</h5>
+                        <h5>📊 {COMPETENCIES_NAMES[result.competency] || result.competency}</h5>
 
                         {result.results && result.results.length > 0 ? (
                             result.results.map((disc, didx) => (
@@ -298,7 +393,7 @@ export function DisciplineAnalysisSection({
                                 </div>
                             ))
                         ) : (
-                            <div className="no-data">Нет результатов для этой компетенции</div>
+                            <NoData text="Нет результатов для этой компетенции" />
                         )}
                     </div>
                 ))}
@@ -307,93 +402,100 @@ export function DisciplineAnalysisSection({
     };
 
     return (
-        <div className="discipline-analysis-section">
-            <h3>📚 Анализ влияния дисциплин на компетенции</h3>
+        <div className="AdminAnalysisDisciplinesView">
+            <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
+                <Header title="Админ: Анализ данных" name="Администратор" />
+                <Sidebar linkTree={LINK_TREE} />
+                <Content>
+                    <h2>Анализ влияния дисциплин на компетенции</h2>
 
-            <div className="analysis-controls">
-                <MultiSelect
-                    options={filterOptions.disciplines || []}
-                    value={selectedDisciplines}
-                    onChange={setSelectedDisciplines}
-                    placeholder="Все дисциплины"
-                    searchPlaceholder="Поиск дисциплин..."
-                    label="Выберите дисциплины"
-                    withSearch={true}
-                    showCounts={true}
-                    maxHeight="300px"
-                />
+                    <div className="analysis-controls">
+                        <MultiSelect
+                            options={filterOptions.disciplines || []}
+                            value={selectedDisciplines}
+                            onChange={setSelectedDisciplines}
+                            placeholder="Все дисциплины"
+                            searchPlaceholder="Поиск дисциплин..."
+                            label="Выберите дисциплины"
+                            withSearch={true}
+                            showCounts={true}
+                            maxHeight="300px"
+                        />
 
-                <div className="button-group">
-                    <Button
-                        text={`${loading ? '⏳' : '📊'} Анализ влияния`}
-                        onClick={loadDisciplineImpact}
-                        disabled={loading}
-                        fg="white"
-                        bg="#1976d2"
-                        hoverBg="#1565c0"
-                    />
-                    <Button
-                        text={`${loading ? '⏳' : '🔥'} Тепловая карта`}
-                        onClick={loadHeatmapData}
-                        disabled={loading}
-                        fg="white"
-                        bg="#ff9800"
-                        hoverBg="#e68900"
-                    />
-                    <Button
-                        text={`${loading ? '⏳' : '📈'} Все дисциплины`}
-                        onClick={loadAllDisciplinesImpact}
-                        disabled={loading}
-                        fg="white"
-                        bg="#4CAF50"
-                        hoverBg="#45a049"
-                    />
-                </div>
-            </div>
-
-            {loading && (
-                <div className="loading">
-                    <div className="spinner"></div>
-                    <div className="loading-text">Загрузка анализа дисциплин...</div>
-                </div>
-            )}
-
-            {!loading && (disciplineData || heatmapData || allDisciplinesData) && (
-                <div className="tab-container">
-                    <div className="tab-buttons">
-                        {disciplineData && (
-                            <button
-                                className={`tab-btn ${activeTab === 'impact' ? 'active' : ''}`}
-                                onClick={() => setActiveTab('impact')}
-                            >
-                                📊 Влияние дисциплин
-                            </button>
-                        )}
-                        {heatmapData && (
-                            <button
-                                className={`tab-btn ${activeTab === 'heatmap' ? 'active' : ''}`}
-                                onClick={() => setActiveTab('heatmap')}
-                            >
-                                🔥 Тепловая карта
-                            </button>
-                        )}
-                        {allDisciplinesData && (
-                            <button
-                                className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`}
-                                onClick={() => setActiveTab('all')}
-                            >
-                                📈 Комплексный анализ
-                            </button>
-                        )}
+                        <div className="button-group">
+                            <Button
+                                text={`${loading ? '⏳' : '📊'} Анализ влияния`}
+                                onClick={loadDisciplineImpact}
+                                disabled={loading}
+                                fg="white"
+                                bg="#1976d2"
+                                hoverBg="#1565c0"
+                            />
+                            <Button
+                                text={`${loading ? '⏳' : '🔥'} Тепловая карта`}
+                                onClick={loadHeatmapData}
+                                disabled={loading}
+                                fg="white"
+                                bg="#ff9800"
+                                hoverBg="#e68900"
+                            />
+                            <Button
+                                text={`${loading ? '⏳' : '📈'} Все дисциплины`}
+                                onClick={loadAllDisciplinesImpact}
+                                disabled={loading}
+                                fg="white"
+                                bg="#4CAF50"
+                                hoverBg="#45a049"
+                            />
+                        </div>
                     </div>
 
-                    <div className="tab-content">
-                        {activeTab === 'impact' && renderDisciplineImpact()}
-                        {activeTab === 'heatmap' && renderHeatmap()}
-                        {activeTab === 'all' && renderAllDisciplinesImpact()}
-                    </div>
-                </div>
-            )}
+                    <LoadingSpinner loading={loading} text="Загрузка анализа дисциплин..." />
+
+                    {!loading && (disciplineData || heatmapData || allDisciplinesData) && (
+                        <div className="tab-container">
+                            <div className="tab-buttons">
+                                {disciplineData && (
+                                    <Button
+                                        text="Влияние дисциплин"
+                                        onClick={() => setActiveTab('impact')}
+                                        fg="white"
+                                        bg="#1976d2"
+                                        hoverBg="#1565c0"
+                                    />
+                                )}
+                                {heatmapData && (
+                                    <Button
+                                        text="Тепловая карта"
+                                        onClick={() => setActiveTab('heatmap')}
+                                        fg="white"
+                                        bg="#ff9800"
+                                        hoverBg="#e68900"
+                                    />
+                                )}
+                                {allDisciplinesData && (
+                                    <Button
+                                        text="Комплексный анализ"
+                                        onClick={() => setActiveTab('all')}
+                                        fg="white"
+                                        bg="#4CAF50"
+                                        hoverBg="#45a049"
+                                    />
+                                )}
+                            </div>
+
+                            <div className="tab-content">
+                                {activeTab === 'impact' && renderDisciplineImpact()}
+                                {activeTab === 'heatmap' && renderHeatmap()}
+                                {activeTab === 'all' && renderAllDisciplinesImpact()}
+                            </div>
+                        </div>
+                    )}
+                    
+                </Content>
+            </SidebarLayout>
         </div>
     );
 }
+
+export default AdminAnalysisDisciplinesView;

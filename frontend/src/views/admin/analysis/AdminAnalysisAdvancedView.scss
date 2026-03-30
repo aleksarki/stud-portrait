@@ -1,0 +1,57 @@
+.AdminAnalysisAdvancedView {
+    .viz-controls {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        align-items: center;
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .sub-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+
+            label {
+                font-weight: 600;
+                color: #333;
+                font-size: 14px;
+            }
+
+            select {
+                padding: 8px 12px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                font-size: 14px;
+                background: white;
+                cursor: pointer;
+                transition: all 0.2s;
+
+                &:hover {
+                    border-color: #1976d2;
+                }
+
+                &:focus {
+                    outline: none;
+                    border-color: #1976d2;
+                    box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+                }
+            }
+        }
+    }
+
+    .visualization-container {
+        background: #fafafa;
+        padding: 20px;
+        border-radius: 6px;
+        min-height: 400px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+}

@@ -1,42 +1,144 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
-    BarChart, Bar, LineChart, Line, // Добавлено BarChart, Bar
-    XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+    ResponsiveContainer, BarChart, CartesianGrid,
+    XAxis, YAxis, Tooltip, Bar, LineChart, Legend, Line
 } from "recharts";
-import Button from './ui/Button';
+
 import {
     getAnalyzeByDimension,
-    getAnalyzeCohortLgm
-} from '../api';
+    getAnalyzeCohortLgm,
+    getPortraitGetDisciplines,
+    getPortraitGetFilterOptionsWithCounts,
+    getPortraitGetInstitutionDirections,
+    postPortraitCreateDataSession
+} from "../../../api";
+import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
+import Button from "../../../components/ui/Button";
+import LoadingSpinner from "../../../components/ui/LoadingSpinner";
+import NoData from "../../../components/ui/NoData";
+import { COMPETENCIES_NAMES, LINK_TREE } from "../../../utilities";
 
-const COLORS = ['#1976d2', '#d32f2f', '#388e3c', '#f57c00', '#7b1fa2', '#00796b', '#fbc02d'];
+import "./AdminAnalysisAdvancedView.scss";
 
-export function AdvancedVisualizationSection({
-    filterOptions,
-    selectedInstitutions,
-    selectedDirections,
-    selectedCompetencies
-}) {
+function AdminAnalysisAdvancedView() {
+    // -------------------- STATE --------------------
+    const [sessionId, setSessionId] = useState(null);
+    const [loading, setLoading] = useState(false);
+
+    // Фильтры (значения – ID, для направлений – ID, т.к. бэкенд ожидает числа)
+    const [selectedInstitutions, setSelectedInstitutions] = useState([]);
+    const [selectedDirections, setSelectedDirections] = useState([]);
+    const [selectedCourses, setSelectedCourses] = useState([]);
+    const [selectedTestAttempts, setSelectedTestAttempts] = useState([]);
+    const [selectedCompetencies, setSelectedCompetencies] = useState([]);
+
+    // Управление вкладками и методом
+    const [activeMainTab, setActiveMainTab] = useState('vam_lgm');
+
+    // Опции фильтров (приходят с сервера)
+    const [filterOptions, setFilterOptions] = useState({
+        institutions: [],
+        directions: [],
+        allDirections: [],
+        courses: [],
+        testAttempts: [],
+        competencies: [],
+        students: [],
+        disciplines: [] // добавить
+    });
+
+    // -------------------- ИНИЦИАЛИЗАЦИЯ СЕССИИ --------------------
+    useEffect(() => {
+        const init = async () => {
+            setLoading(true);
+            postPortraitCreateDataSession()
+                .onSuccess(async response => {
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        setSessionId(data.session_id);
+                        await loadFilterOptions(data.session_id);
+                    }
+                })
+                .onError(error => console.error(error))
+                .finally(() => setLoading(false));
+        };
+        init();
+    }, []);
+    
+    // -------------------- ЗАГРУЗКА ОПЦИЙ ФИЛЬТРОВ --------------------
+
+    const loadFilterOptions = async (sid, updateCounts = false) => {
+        if (!sid) return;
+        (
+            updateCounts
+            ? getPortraitGetFilterOptionsWithCounts(sid, selectedInstitutions, selectedDirections, selectedCourses, selectedTestAttempts, selectedCompetencies)
+            : getPortraitGetFilterOptionsWithCounts(sid)
+        )
+            .onSuccess(async response => {
+                const data = await response.json();
+                if (data.status === 'success') {
+                    // Загружаем дисциплины
+                    let disciplines = [];
+                    try {
+                        const discRes = getPortraitGetDisciplines();
+                        const discData = await new Promise((resolve) => {
+                            discRes.onSuccess(async d => {
+                                const json = await d.json();
+                                resolve(json);
+                            }).onError(() => resolve({ disciplines: [] }));
+                        });
+                        if (discData.status === 'success') {
+                            disciplines = discData.disciplines || [];
+                        }
+                    } catch (e) {
+                        console.error('Error loading disciplines:', e);
+                    }
+
+                    setFilterOptions({
+                        institutions: data.data?.institutions || [],
+                        directions: data.data?.directions || [],
+                        allDirections: data.data?.directions || [],
+                        courses: data.data?.courses || [],
+                        testAttempts: data.data?.test_attempts || [],
+                        competencies: data.data?.competencies || Object.keys(COMPETENCIES_NAMES).map(c => ({ id: c, name: COMPETENCIES_NAMES[c], count: 0 })),
+                        students: data.data?.students || [],
+                        disciplines: disciplines
+                    });
+                }
+            })
+            .onError(console.error);
+    };
+
+    // Обновление направлений при изменении вузов
+    useEffect(() => {
+        if (!sessionId) return;
+        if (selectedInstitutions.length === 0) {
+            setFilterOptions(prev => ({ ...prev, directions: prev.allDirections }));
+            return;
+        }
+        getPortraitGetInstitutionDirections(selectedInstitutions)
+            .onSuccess(async response => {
+                const data = await response.json();
+                if (data.status === 'success') {
+                    const directions = data.directions.map(name => ({ id: name, name, count: 0 }));
+                    setFilterOptions(prev => ({ ...prev, directions }));
+                    setSelectedDirections(prev => prev.filter(d => data.directions.includes(d)));
+                }
+            })
+            .onError(console.error);
+    }, [selectedInstitutions, sessionId]);
+
+    // Перезагрузка фильтров при изменении выбранных значений
+    useEffect(() => {
+        if (sessionId) loadFilterOptions(sessionId, true);
+    }, [selectedInstitutions, selectedDirections, selectedCourses, selectedTestAttempts, selectedCompetencies]);
+
+    // ======================================= //
+
     const [dimensionData, setDimensionData] = useState(null);
     const [lgmCohortData, setLgmCohortData] = useState(null);
-    const [loading, setLoading] = useState(false);
     const [activeVisualization, setActiveVisualization] = useState('dimension');
     const [selectedDimension, setSelectedDimension] = useState('institution');
-
-    const competencyLabels = {
-        "res_comp_info_analysis": "Анализ информации",
-        "res_comp_planning": "Планирование",
-        "res_comp_result_orientation": "Ориентация на результат",
-        "res_comp_stress_resistance": "Стрессоустойчивость",
-        "res_comp_partnership": "Партнёрство",
-        "res_comp_rules_compliance": "Соблюдение правил",
-        "res_comp_self_development": "Саморазвитие",
-        "res_comp_leadership": "Лидерство",
-        "res_comp_emotional_intel": "Эмоциональный интеллект",
-        "res_comp_client_focus": "Клиентоориентированность",
-        "res_comp_communication": "Коммуникация",
-        "res_comp_passive_vocab": "Пассивный словарь"
-    };
 
     const loadDimensionData = async () => {
         setLoading(true);
@@ -82,13 +184,13 @@ export function AdvancedVisualizationSection({
 
     const renderDimensionAnalysis = () => {
         if (!dimensionData) {
-            return <div className="no-data">Нет данных для отображения</div>;
+            return <NoData text="Нет данных для отображения" />;
         }
 
         const { groups, dimension, competency } = dimensionData;
 
         if (!groups || groups.length === 0) {
-            return <div className="no-data">Нет данных по выбранному измерению</div>;
+            return <NoData text="Нет данных по выбранному измерению" />;
         }
 
         const chartData = groups.map(g => ({
@@ -106,7 +208,7 @@ export function AdvancedVisualizationSection({
         return (
             <div className="dimension-container">
                 <h4>Анализ по измерению: {dimension}</h4>
-                <p className="info-text">Компетенция: {competencyLabels[competency] || competency}</p>
+                <p className="info-text">Компетенция: {COMPETENCIES_NAMES[competency] || competency}</p>
                 
                 {/* Отладочная таблица */}
                 <table style={{ margin: '10px 0', borderCollapse: 'collapse', width: '100%' }}>
@@ -232,7 +334,7 @@ export function AdvancedVisualizationSection({
 
     const renderLGMCohort = () => {
         if (!lgmCohortData) {
-            return <div className="no-data">Нет данных для отображения</div>;
+            return <NoData text="Нет данных для отображения" />;
         }
 
         const { mean_intercept, mean_slope, n_students, interpretation, trajectories } = lgmCohortData;
@@ -296,72 +398,75 @@ export function AdvancedVisualizationSection({
     };
 
     return (
-        <div className="advanced-visualization-section">
-            <h3>📈 Продвинутые визуализации</h3>
+        <div className="AdminAnalysisAdvancedView">
+            <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
+                <Header title="Админ: Анализ данных" name="Администратор" />
+                <Sidebar linkTree={LINK_TREE} />
+                <Content>
+                    <h2>Продвинутые визуализации</h2>
 
-            <div className="viz-controls">
-                <div className="button-group">
-                    <Button
-                        text="📊 Анализ по измерениям"
-                        onClick={() => {
-                            setActiveVisualization('dimension');
-                            loadDimensionData();
-                        }}
-                        fg={activeVisualization === 'dimension' ? 'white' : '#666'}
-                        bg={activeVisualization === 'dimension' ? '#1976d2' : 'white'}
-                        border="1px solid #1976d2"
-                    />
-                    <Button
-                        text="📈 LGM Когорта"
-                        onClick={() => {
-                            setActiveVisualization('lgm');
-                            loadLGMCohortData();
-                        }}
-                        fg={activeVisualization === 'lgm' ? 'white' : '#666'}
-                        bg={activeVisualization === 'lgm' ? '#ff9800' : 'white'}
-                        border="1px solid #ff9800"
-                    />
-                </div>
+                    <div className="viz-controls">
+                        <div className="button-group">
+                            <Button
+                                text="📊 Анализ по измерениям"
+                                onClick={() => {
+                                    setActiveVisualization('dimension');
+                                    loadDimensionData();
+                                }}
+                                fg={activeVisualization === 'dimension' ? 'white' : '#666'}
+                                bg={activeVisualization === 'dimension' ? '#1976d2' : 'white'}
+                                border="1px solid #1976d2"
+                            />
+                            <Button
+                                text="📈 LGM Когорта"
+                                onClick={() => {
+                                    setActiveVisualization('lgm');
+                                    loadLGMCohortData();
+                                }}
+                                fg={activeVisualization === 'lgm' ? 'white' : '#666'}
+                                bg={activeVisualization === 'lgm' ? '#ff9800' : 'white'}
+                                border="1px solid #ff9800"
+                            />
+                        </div>
 
-                {activeVisualization === 'dimension' && (
-                    <div className="sub-controls">
-                        <label>Измерение:</label>
-                        <select value={selectedDimension} onChange={(e) => setSelectedDimension(e.target.value)}>
-                            <option value="institution">ВУЗы</option>
-                            <option value="spec">Направления</option>
-                            <option value="form">Формы обучения</option>
-                            <option value="course">Курсы</option>
-                        </select>
-                        <Button
-                            text="Загрузить"
-                            onClick={loadDimensionData}
-                            disabled={loading}
-                        />
+                        {activeVisualization === 'dimension' && (
+                            <div className="sub-controls">
+                                <label>Измерение:</label>
+                                <select value={selectedDimension} onChange={(e) => setSelectedDimension(e.target.value)}>
+                                    <option value="institution">ВУЗы</option>
+                                    <option value="spec">Направления</option>
+                                    <option value="form">Формы обучения</option>
+                                    <option value="course">Курсы</option>
+                                </select>
+                                <Button
+                                    text="Загрузить"
+                                    onClick={loadDimensionData}
+                                    disabled={loading}
+                                />
+                            </div>
+                        )}
+
+                        {activeVisualization === 'lgm' && (
+                            <div className="sub-controls">
+                                <Button
+                                    text="Загрузить LGM данные"
+                                    onClick={loadLGMCohortData}
+                                    disabled={loading}
+                                />
+                            </div>
+                        )}
                     </div>
-                )}
 
-                {activeVisualization === 'lgm' && (
-                    <div className="sub-controls">
-                        <Button
-                            text="Загрузить LGM данные"
-                            onClick={loadLGMCohortData}
-                            disabled={loading}
-                        />
+                    <LoadingSpinner loading={loading} text="Загрузка визуализации..." />
+
+                    <div className="visualization-container">
+                        {activeVisualization === 'dimension' && renderDimensionAnalysis()}
+                        {activeVisualization === 'lgm' && renderLGMCohort()}
                     </div>
-                )}
-            </div>
-
-            {loading && (
-                <div className="loading">
-                    <div className="spinner"></div>
-                    <div className="loading-text">Загрузка визуализации...</div>
-                </div>
-            )}
-
-            <div className="visualization-container">
-                {activeVisualization === 'dimension' && renderDimensionAnalysis()}
-                {activeVisualization === 'lgm' && renderLGMCohort()}
-            </div>
+                </Content>
+            </SidebarLayout>
         </div>
     );
 }
+
+export default AdminAnalysisAdvancedView;

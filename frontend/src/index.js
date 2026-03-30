@@ -2,7 +2,13 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
-import AdminAnalysisView from "./views/admin/AdminAnalysisView";
+import App from "./views/App";
+import ErrorView from "./views/ErrorView";
+
+import AdminAnalysisAdvancedView from "./views/admin/analysis/AdminAnalysisAdvancedView";
+import AdminAnalysisDisciplinesView from "./views/admin/analysis/AdminAnalysisDisciplinesView";
+import AdminAnalysisVamLgmView from "./views/admin/analysis/AdminAnalysisVamLgmView";
+
 import AdminCoursesView from "./views/admin/AdminCoursesView";
 import AdminGroupingView from "./views/admin/AdminGroupingView";
 import AdminHelpView from "./views/admin/AdminHelpView";
@@ -10,13 +16,12 @@ import AdminMainView from "./views/admin/AdminMainView";
 import AdminResultsView from "./views/admin/AdminResultsView";
 import AdminStatsView from "./views/admin/AdminStatsView";
 import AdminUploadView from "./views/admin/AdminUploadView";
-import ErrorView from "./views/ErrorView";
-import App from "./views/App";
+
 import StudentMainView from "./views/student/StudentMainView";
 import StudentReportView from "./views/student/StudentReportView";
 
-import "./index.css";
 import reportWebVitals from "./reportWebVitals";
+import "./index.css";
 
 const router = createBrowserRouter([
   {
@@ -49,8 +54,16 @@ const router = createBrowserRouter([
     element: <AdminResultsView />
   },
   {
-    path: "/admin/analysis",
-    element: <AdminAnalysisView />
+    path: "/admin/analysis/vam-lgm",
+    element: <AdminAnalysisVamLgmView />
+  },
+  {
+    path: "/admin/analysis/disciplines",
+    element: <AdminAnalysisDisciplinesView />
+  },
+  {
+    path: "/admin/analysis/advanced",
+    element: <AdminAnalysisAdvancedView />
   },
   {
     path: "/admin/courses",

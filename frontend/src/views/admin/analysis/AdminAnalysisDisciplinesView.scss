@@ -1,0 +1,138 @@
+.AdminAnalysisDisciplinesView {
+    .analysis-controls {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 15px;
+        margin-bottom: 20px;
+        align-items: end;
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        @media (max-width: 768px) {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .tab-container {
+        margin: 20px 0;
+
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+    }
+
+    .discipline-impact-results {
+        margin-top: 30px;
+
+        h4 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .discipline-result-card {
+            background: #fafafa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            border-left: 4px solid #1976d2;
+
+            h5 {
+                margin: 0 0 15px 0;
+                color: #1976d2;
+                font-size: 14px;
+            }
+
+            .discipline-item {
+                margin-bottom: 15px;
+                padding-bottom: 15px;
+                border-bottom: 1px solid #ddd;
+
+                &:last-child {
+                    border-bottom: none;
+                }
+
+                strong {
+                    display: block;
+                    margin-bottom: 10px;
+                    color: #333;
+                }
+
+                .impact-table {
+                    width: 100%;
+                    font-size: 12px;
+                    border-collapse: collapse;
+
+                    thead {
+                        background: #f0f0f0;
+                    }
+
+                    th, td {
+                        padding: 8px;
+                        text-align: center;
+                        border: 1px solid #ddd;
+                    }
+
+                    tbody tr:hover {
+                        background: #f0f8ff;
+                    }
+                }
+            }
+        }
+    }
+
+    .heatmap-container {
+        margin-top: 20px;
+        overflow-x: auto;
+
+        .heatmap-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+
+            thead {
+                background: #f5f5f5;
+            }
+
+            th, td {
+                padding: 10px;
+                text-align: center;
+                border: 1px solid #ddd;
+            }
+
+            .disc-label {
+                text-align: left;
+                font-weight: 600;
+            }
+
+            tbody tr:hover {
+                background: rgba(0,0,0,0.02);
+            }
+        }
+
+        .heatmap-legend {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+            font-size: 12px;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 5px;
+
+            span {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+            }
+        }
+    }
+}

@@ -1,0 +1,18 @@
+.NoData {
+    text-align: center;
+    padding: 40px 20px;
+    color: #999;
+    font-size: 14px;
+    background: #fafafa;
+    border-radius: 6px;
+
+    p {
+        margin: 10px 0;
+
+        &:first-child {
+        font-weight: 600;
+        color: #333;
+        font-size: 16px;
+        }
+    }
+}
