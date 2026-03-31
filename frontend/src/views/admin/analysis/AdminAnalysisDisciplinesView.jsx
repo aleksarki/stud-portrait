@@ -16,6 +16,8 @@ import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../
 
 import TitledCard from "../../../components/cards/TitledCard";
 
+import Table, { TableHeader, TableItem, TableRow } from "../../../components/tables/Table";
+
 import Button, { BUTTON_PALETTE } from '../../../components/ui/Button';
 import ColorBox, { BOX_COLOR } from "../../../components/ui/ColorBox";
 import Label from "../../../components/ui/Label";
@@ -284,46 +286,44 @@ function AdminAnalysisDisciplinesView() {
 
         return (
             <div className="heatmap-container">
-                <table className="heatmap-table">
-                    <thead>
-                        <tr>
-                            <th>Дисциплина</th>
-                            {competencies.map(comp => (
-                                <th key={comp} title={COMPETENCIES_NAMES[comp]}>
-                                    {COMPETENCIES_NAMES[comp]?.substring(0, 12)}
-                                </th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {disciplines.map(disc => (
-                            <tr key={disc}>
-                                <td className="disc-label">{disc}</td>
-                                {competencies.map(comp => {
-                                    const cell = heatmapData.find(
-                                        d => d.discipline === disc && d.competency === comp
-                                    );
-                                    const effectSize = cell?.effect_size || 0;
-                                    const intensity = Math.min(Math.abs(effectSize) / 1.0, 1);
-                                    const color = effectSize >= 0
-                                        ? `rgba(76, 175, 80, ${intensity * 0.7})`
-                                        : `rgba(244, 67, 54, ${intensity * 0.7})`;
-                                    const border = cell?.significant ? '2px solid #333' : '1px solid #ddd';
-
-                                    return (
-                                        <td
-                                            key={`${disc}-${comp}`}
-                                            style={{ backgroundColor: color, border }}
-                                            title={`Effect size: ${effectSize?.toFixed(2) || '0'}, p=${cell?.p_value?.toFixed(3) || 'N/A'}, n=${cell?.n_students || 0}`}
-                                        >
-                                            {cell ? effectSize.toFixed(2) : '-'}
-                                        </td>
-                                    );
-                                })}
-                            </tr>
+                <Table>
+                    <TableHeader>
+                        <TableItem>Дисциплина</TableItem>
+                        {competencies.map(comp => (
+                            <TableItem>{COMPETENCIES_NAMES[comp]}</TableItem>
                         ))}
-                    </tbody>
-                </table>
+                    </TableHeader>
+                    {disciplines.map(disc => (
+                        <TableRow key={disc}>
+                            <TableItem>{disc}</TableItem>
+                            {competencies.map(comp => {
+                                const cell = heatmapData.find(
+                                    d => d.discipline === disc && d.competency === comp
+                                );
+                                const effectSize = cell?.effect_size || 0;
+                                const intensity = Math.min(Math.abs(effectSize) / 1.0, 1);
+                                const color = (
+                                    effectSize >= 0
+                                    ? `rgba(76, 175, 80, ${intensity * 0.7})`
+                                    : `rgba(244, 67, 54, ${intensity * 0.7})`
+                                );
+                                const border = (
+                                    cell?.significant
+                                    ? '2px solid #333'
+                                    : '1px solid #ddd'
+                                );
+                                return (
+                                    <TableItem
+                                        style={{ backgroundColor: color, border }}
+                                        title={`Effect size: ${effectSize?.toFixed(2) || '0'}, p=${cell?.p_value?.toFixed(3) || 'N/A'}, n=${cell?.n_students || 0}`}
+                                    >
+                                        {cell ? effectSize.toFixed(2) : '-'}
+                                    </TableItem>
+                                );
+                            })}
+                        </TableRow>
+                    ))}
+                </Table>
                 <FlexRow margin="20 0 0 0">
                     <Label>
                         <FlexRow gap="20">
@@ -357,42 +357,30 @@ function AdminAnalysisDisciplinesView() {
                         {result.results && result.results.length > 0 ? (
                             result.results.map((disc, didx) => (
                                 <TitledCard title={disc.discipline}>
-                                    <table className="impact-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Оценка</th>
-                                                <th>n студ.</th>
-                                                <th>Среднее ДО</th>
-                                                <th>Среднее ПОСЛЕ</th>
-                                                <th>Прирост</th>
-                                                <th>Effect Size</th>
-                                                <th>p-value</th>
-                                                <th>Значим</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {Object.entries(disc.grade_impacts || {}).map(([grade, impact]) => (
-                                                <tr key={grade}>
-                                                    <td className="grade-cell">{grade}</td>
-                                                    <td>{impact.n_students}</td>
-                                                    <td>{impact.mean_before?.toFixed(1) || '0.0'}</td>
-                                                    <td>{impact.mean_after?.toFixed(1) || '0.0'}</td>
-                                                    <td className={`gain-cell ${impact.mean_gain > 0 ? 'positive' : 'negative'}`}>
-                                                        {impact.mean_gain > 0 ? '+' : ''}{impact.mean_gain?.toFixed(1) || '0.0'}
-                                                    </td>
-                                                    <td>
-                                                        <span className={`effect-badge ${
-                                                            Math.abs(impact.cohens_d) > 0.5 ? 'large' : 'small'
-                                                        }`}>
-                                                            {impact.cohens_d?.toFixed(3) || '0.000'}
-                                                        </span>
-                                                    </td>
-                                                    <td>{impact.p_value?.toFixed(4) || '0.0000'}</td>
-                                                    <td>{impact.significant ? '✓' : '✗'}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                    <Table>
+                                        <TableHeader>
+                                            <TableItem>Оценка</TableItem>
+                                            <TableItem>n студ.</TableItem>
+                                            <TableItem>Среднее ДО</TableItem>
+                                            <TableItem>Среднее ПОСЛЕ</TableItem>
+                                            <TableItem>Прирост</TableItem>
+                                            <TableItem>Effect Size</TableItem>
+                                            <TableItem>p-value</TableItem>
+                                            <TableItem>Значим</TableItem>
+                                        </TableHeader>
+                                        {Object.entries(disc.grade_impacts || {}).map(([grade, impact]) => (
+                                            <TableRow key={grade}>
+                                                <TableItem>{grade}</TableItem>
+                                                <TableItem>{impact.n_students}</TableItem>
+                                                <TableItem>{impact.mean_before?.toFixed(1) || '0.0'}</TableItem>
+                                                <TableItem>{impact.mean_after?.toFixed(1) || '0.0'}</TableItem>
+                                                <TableItem>{impact.mean_gain > 0 ? '+' : ''}{impact.mean_gain?.toFixed(1) || '0.0'}</TableItem>
+                                                <TableItem>{impact.cohens_d?.toFixed(3) || '0.000'}</TableItem>
+                                                <TableItem>{impact.p_value?.toFixed(4) || '0.0000'}</TableItem>
+                                                <TableItem>{impact.significant ? '✓' : '✗'}</TableItem>
+                                            </TableRow>
+                                        ))}
+                                    </Table>
                                     <FlexRow>
                                         <Label>
                                             <FlexRow gap="15">
@@ -460,39 +448,37 @@ function AdminAnalysisDisciplinesView() {
 
                     <LoadingSpinner loading={loading} text="Загрузка анализа дисциплин..." />
 
-                    {!loading && (disciplineData || heatmapData || allDisciplinesData) && (
-                        <div className="tab-container">
-                            <FlexRow>
-                                {disciplineData && (
-                                    <Button
-                                        text="Влияние дисциплин"
-                                        onClick={() => setActiveTab('impact')}
-                                        palette={activeTab === 'impact' ? BUTTON_PALETTE.BLUE : BUTTON_PALETTE.GRAY}
-                                    />
-                                )}
-                                {heatmapData && (
-                                    <Button
-                                        text="Тепловая карта"
-                                        onClick={() => setActiveTab('heatmap')}
-                                        palette={activeTab === 'heatmap' ? BUTTON_PALETTE.BROWN : BUTTON_PALETTE.GRAY}
-                                    />
-                                )}
-                                {allDisciplinesData && (
-                                    <Button
-                                        text="Комплексный анализ"
-                                        onClick={() => setActiveTab('all')}
-                                        palette={activeTab === 'all' ? BUTTON_PALETTE.GREEN : BUTTON_PALETTE.GRAY}
-                                    />
-                                )}
-                            </FlexRow>
+                    {!loading && (disciplineData || heatmapData || allDisciplinesData) && <>
+                        <FlexRow>
+                            {disciplineData && (
+                                <Button
+                                    text="Влияние дисциплин"
+                                    onClick={() => setActiveTab('impact')}
+                                    palette={activeTab === 'impact' ? BUTTON_PALETTE.BLUE : BUTTON_PALETTE.GRAY}
+                                />
+                            )}
+                            {heatmapData && (
+                                <Button
+                                    text="Тепловая карта"
+                                    onClick={() => setActiveTab('heatmap')}
+                                    palette={activeTab === 'heatmap' ? BUTTON_PALETTE.BROWN : BUTTON_PALETTE.GRAY}
+                                />
+                            )}
+                            {allDisciplinesData && (
+                                <Button
+                                    text="Комплексный анализ"
+                                    onClick={() => setActiveTab('all')}
+                                    palette={activeTab === 'all' ? BUTTON_PALETTE.GREEN : BUTTON_PALETTE.GRAY}
+                                />
+                            )}
+                        </FlexRow>
 
-                            <div className="tab-content">
-                                {activeTab === 'impact' && renderDisciplineImpact()}
-                                {activeTab === 'heatmap' && renderHeatmap()}
-                                {activeTab === 'all' && renderAllDisciplinesImpact()}
-                            </div>
+                        <div className="tab-content">
+                            {activeTab === 'impact' && renderDisciplineImpact()}
+                            {activeTab === 'heatmap' && renderHeatmap()}
+                            {activeTab === 'all' && renderAllDisciplinesImpact()}
                         </div>
-                    )}
+                    </>}
                     
                 </Content>
             </SidebarLayout>

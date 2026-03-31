@@ -1,0 +1,51 @@
+table.Table {
+    $table-bd-radius: 4px;
+    $table-bd-width: 1px;
+    $table-bd-color: #b4b4b4;
+
+    border-collapse: collapse;
+    font-size: 12px;
+    border-radius: $table-bd-radius;
+    border: $table-bd-width solid $table-bd-color;
+    outline: $table-bd-width solid $table-bd-color;
+    outline-offset: -$table-bd-width;
+    overflow: hidden;
+    
+    th, td {
+        border: $table-bd-width solid $table-bd-color;
+        text-align: center;
+        padding: 8px;
+    }
+
+    thead {
+        background: #f0f0f0;
+
+        tr:first-child {
+            th:first-child {
+                border-top-left-radius: $table-bd-radius;
+            }
+
+            th:last-child {
+                border-top-right-radius: $table-bd-radius;
+            }
+        }
+    }
+
+    tbody {
+        tr {
+            &:hover {
+                background: #f0f8ff;
+            }
+
+            &:last-child {
+                td:first-child {
+                    border-bottom-left-radius: $table-bd-radius;
+                }
+
+                td:last-child {
+                    border-bottom-right-radius: $table-bd-radius;
+                }
+            }
+        }
+    }
+}
