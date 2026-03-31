@@ -24,6 +24,8 @@
             font-size: 16px;
         }
 
+        
+
         .discipline-result-card {
             background: #fafafa;
             padding: 15px;
@@ -37,25 +39,14 @@
                 font-size: 14px;
             }
 
-            .discipline-item {
+            .Card {
                 margin-bottom: 15px;
-                padding-bottom: 15px;
-                border-bottom: 1px solid #ddd;
-
-                &:last-child {
-                    border-bottom: none;
-                }
-
-                strong {
-                    display: block;
-                    margin-bottom: 10px;
-                    color: #333;
-                }
 
                 .impact-table {
                     width: 100%;
                     font-size: 12px;
                     border-collapse: collapse;
+                    margin-bottom: 10px;
 
                     thead {
                         background: #f0f0f0;

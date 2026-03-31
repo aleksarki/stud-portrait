@@ -1,11 +1,13 @@
+import Card from "./Card";
+
 import "./ValueCard.scss";
 
 function ValueCard({ value, text }) {
     return (
-        <div className="ValueCard">
+        <Card>
             <div className="value">{value}</div>
             <div className="text">{text}</div>
-        </div>
+        </Card>
     );
 }
 

@@ -1,13 +1,5 @@
 import { useEffect, useState } from "react";
 
-import FlexRow from "../../../components/FlexRow";
-import ColorBox, { BOX_COLOR } from "../../../components/ui/ColorBox";
-import Button, { BUTTON_PALETTE } from '../../../components/ui/Button';
-import Label from "../../../components/ui/Label";
-import LoadingSpinner from "../../../components/ui/LoadingSpinner";
-import MultiSelect from '../../../components/ui/MultiSelect';
-import NoData from "../../../components/ui/NoData";
-import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
 import {
     getAnalyzeAllDisciplinesImpact,
     getPortraitGetDisciplines,
@@ -18,6 +10,18 @@ import {
     postPortraitCreateDataSession
 } from "../../../api";
 import { COMPETENCIES_NAMES, LINK_TREE } from "../../../utilities";
+
+import FlexRow from "../../../components/FlexRow";
+import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
+
+import TitledCard from "../../../components/cards/TitledCard";
+
+import Button, { BUTTON_PALETTE } from '../../../components/ui/Button';
+import ColorBox, { BOX_COLOR } from "../../../components/ui/ColorBox";
+import Label from "../../../components/ui/Label";
+import LoadingSpinner from "../../../components/ui/LoadingSpinner";
+import MultiSelect from '../../../components/ui/MultiSelect';
+import NoData from "../../../components/ui/NoData";
 
 import "./AdminAnalysisDisciplinesView.scss";
 
@@ -352,14 +356,7 @@ function AdminAnalysisDisciplinesView() {
 
                         {result.results && result.results.length > 0 ? (
                             result.results.map((disc, didx) => (
-                                <div key={didx} className="discipline-item">
-                                    <div className="discipline-header">
-                                        <strong>📚 {disc.discipline}</strong>
-                                        <span className="disc-summary">
-                                            {disc.summary?.effective ? '✅ Эффективна' : '⚠️ Неэффективна'}
-                                        </span>
-                                    </div>
-
+                                <TitledCard title={disc.discipline}>
                                     <table className="impact-table">
                                         <thead>
                                             <tr>
@@ -396,14 +393,18 @@ function AdminAnalysisDisciplinesView() {
                                             ))}
                                         </tbody>
                                     </table>
-
-                                    {disc.summary && (
-                                        <div className="disc-summary-stats">
-                                            <span>Средний эффект: <strong>{disc.summary.average_effect_size?.toFixed(3) || '0.000'}</strong></span>
-                                            <span>Средний прирост: <strong>{disc.summary.average_gain?.toFixed(1) || '0.0'}</strong></span>
-                                        </div>
-                                    )}
-                                </div>
+                                    <FlexRow>
+                                        <Label>
+                                            <FlexRow gap="15">
+                                                <span>{disc.summary?.effective ? 'Эффективна' : 'Неэффективна'}</span>
+                                                {disc.summary && <>
+                                                    <span>Средний эффект: {disc.summary.average_effect_size?.toFixed(3) || '0.000'}</span>
+                                                    <span>Средний прирост: {disc.summary.average_gain?.toFixed(1) || '0.0'}</span>
+                                                </>}
+                                            </FlexRow>
+                                        </Label>
+                                    </FlexRow>
+                                </TitledCard>
                             ))
                         ) : (
                             <NoData text="Нет результатов для этой компетенции" />

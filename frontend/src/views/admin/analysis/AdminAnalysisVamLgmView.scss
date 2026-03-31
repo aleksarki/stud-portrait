@@ -1,119 +1,12 @@
 .AdminAnalysisVamLgmView {
-    .analysis-method-section {
+    .Card {
         margin: 20px 0;
-        padding: 20px;
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-
-        h3 {
-            margin: 0 0 15px 0;
-            font-size: 16px;
-            font-weight: 600;
-            color: #333;
-        }
-
-        .method-description {
-            margin: 10px 0 0 0;
-            font-size: 14px;
-            color: #666;
-            line-height: 1.5;
-        }
     }
 
-    .controls {
-        margin-bottom: 30px;
-        
-        .control-section {
-            margin-bottom: 20px;
-            padding: 15px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            
-            h3 {
-                font-size: 14px;
-                margin-bottom: 12px;
-                color: #333;
-                font-weight: 600;
-            }
-        
-            .filters-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 15px;
-                flex-wrap: wrap;
-                gap: 10px;
-                
-                h3 {
-                    margin-bottom: 0;
-                }
-                
-                .filters-summary {
-                    display: flex;
-                    gap: 15px;
-                    flex-wrap: wrap;
-                    
-                    .filter-count {
-                        font-size: 13px;
-                        color: #666;
-                        padding: 4px 10px;
-                        background: #f0f0f0;
-                        border-radius: 12px;
-                        white-space: nowrap;
-                        
-                        strong {
-                            color: #1976d2;
-                            font-weight: 600;
-                        }
-                    }
-                }
-            }
-        
-            .button-group {
-                display: flex;
-                gap: 10px;
-                flex-wrap: wrap;
-            }
-            
-            .filters-row {
-                display: flex;
-                gap: 12px;
-                flex-wrap: wrap;
-                align-items: center;
-                
-                select {
-                    min-width: 180px;
-                    max-width: 250px;
-                    padding: 10px 12px;
-                    border: 1px solid #ced4da;
-                    border-radius: 6px;
-                    font-size: 14px;
-                    background: white;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                    flex: 0 1 auto;
-                    
-                    &:hover {
-                        border-color: #1976d2;
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-                    }
-                    
-                    &:focus {
-                        outline: none;
-                        border-color: #1976d2;
-                        box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
-                    }
-                }
-            }
-            
-            .filters-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-                gap: 20px;
-                align-items: end;
-            }
-        }
+    .filters-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        align-items: end;
     }
 }

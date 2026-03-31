@@ -1,13 +1,25 @@
 import { useEffect, useState } from "react";
 
+import {
+    postGetVamDotplotData,
+    postGetLgmSpaghettiData,
+    postPortraitCreateDataSession,
+    getPortraitGetDisciplines,
+    getPortraitGetFilterOptionsWithCounts,
+    getPortraitGetInstitutionDirections
+} from "../../../api";
+import { COMPETENCIES_NAMES, LINK_TREE } from "../../../utilities";
+
 import FlexRow from "../../../components/FlexRow";
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
-import Button, { BUTTON_PALETTE } from "../../../components/ui/Button";
-import MultiSelect from "../../../components/ui/MultiSelect";
+
+import TitledCard from "../../../components/cards/TitledCard";
+
 import VamDotPlot from "../../../components/charts/VamDotPlot";
 import LgmSpaghettiPlot from "../../../components/charts/LgmSpaghettiPlot";
-import { COMPETENCIES_NAMES, LINK_TREE } from "../../../utilities";
-import { postGetVamDotplotData, postGetLgmSpaghettiData, postPortraitCreateDataSession, getPortraitGetDisciplines, getPortraitGetFilterOptionsWithCounts, getPortraitGetInstitutionDirections } from "../../../api";
+
+import Button, { BUTTON_PALETTE } from "../../../components/ui/Button";
+import MultiSelect from "../../../components/ui/MultiSelect";
 
 import "./AdminAnalysisVamLgmView.scss";
 
@@ -214,19 +226,17 @@ function AdminAnalysisVamLgmView() {
         if (selectedCompetencies.length === 1) {
             const comp = selectedCompetencies[0];
             return (
-                <div className="chart-container">
-                    <h3>{COMPETENCIES_NAMES[comp]}</h3>
+                <TitledCard title={COMPETENCIES_NAMES[comp]}>
                     {analysisMethod === 'vam' ? renderVAMChart(comp) : renderLGMChart(comp)}
-                </div>
+                </TitledCard>
             );
         }
         return (
             <div className="charts-grid">
                 {selectedCompetencies.map(comp => (
-                    <div key={comp} className="chart-grid-item">
-                        <h4>{COMPETENCIES_NAMES[comp]}</h4>
+                    <TitledCard title={COMPETENCIES_NAMES[comp]}>
                         {analysisMethod === 'vam' ? renderVAMChart(comp) : renderLGMChart(comp)}
-                    </div>
+                    </TitledCard>
                 ))}
             </div>
         );
@@ -251,110 +261,106 @@ function AdminAnalysisVamLgmView() {
                     <h2>VAM / LGM</h2>
 
                     {/* Панель управления */}
-                    <div className="analysis-method-section">
-                        <h3>Метод анализа</h3>
+                    <TitledCard title="Метод анализа">
                         <FlexRow>
                             <Button
                                 text="Value-Added Model (VAM)"
                                 onClick={() => setAnalysisMethod('vam')}
-                                palette={BUTTON_PALETTE.BLUE}
+                                palette={analysisMethod === 'vam' ? BUTTON_PALETTE.BLUE : BUTTON_PALETTE.GRAY}
                             />
                             <Button
                                 text="Latent Growth Model (LGM)"
                                 onClick={() => setAnalysisMethod('lgm')}
-                                palette={BUTTON_PALETTE.BLUE}
+                                palette={analysisMethod === 'lgm' ? BUTTON_PALETTE.BLUE : BUTTON_PALETTE.GRAY}
                             />
+                            {analysisMethod === 'vam' && (
+                                <div className="vam-group-select" style={{ marginTop: 10 }}>
+                                    <label>Группировать по: </label>
+                                    <select value={vamGroupBy} onChange={e => setVamGroupBy(e.target.value)}>
+                                        <option value="institution">ВУЗам</option>
+                                        <option value="direction">Направлениям</option>
+                                        <option value="course">Курсам</option>
+                                    </select>
+                                </div>
+                            )}
                         </FlexRow>
-                        {analysisMethod === 'vam' && (
-                            <div className="vam-group-select" style={{ marginTop: 10 }}>
-                                <label>Группировать по: </label>
-                                <select value={vamGroupBy} onChange={e => setVamGroupBy(e.target.value)}>
-                                    <option value="institution">ВУЗам</option>
-                                    <option value="direction">Направлениям</option>
-                                    <option value="course">Курсам</option>
-                                </select>
-                            </div>
-                        )}
-                    </div>
+                    </TitledCard>
 
                     {/* Фильтры */}
-                    <div className="controls">
-                        <div className="control-section">
-                            <h3>Фильтры</h3>
-                            <div className="filters-grid">
-                                <MultiSelect
-                                    options={filterOptions.institutions}
-                                    value={selectedInstitutions}
-                                    onChange={setSelectedInstitutions}
-                                    placeholder="Все ВУЗы"
-                                    searchPlaceholder="Поиск ВУЗов..."
-                                    label="Учебные заведения"
-                                    withSearch
-                                    showCounts
+                    <TitledCard title="Фильтры">
+                        <div className="filters-grid">
+                            <MultiSelect
+                                options={filterOptions.institutions}
+                                value={selectedInstitutions}
+                                onChange={setSelectedInstitutions}
+                                placeholder="Все ВУЗы"
+                                searchPlaceholder="Поиск ВУЗов..."
+                                label="Учебные заведения"
+                                withSearch
+                                showCounts
+                            />
+                            <MultiSelect
+                                options={filterOptions.directions}
+                                value={selectedDirections}
+                                onChange={setSelectedDirections}
+                                placeholder="Все направления"
+                                searchPlaceholder="Поиск направлений..."
+                                label="Направления подготовки"
+                                withSearch
+                                showCounts
+                            />
+                            <MultiSelect
+                                options={filterOptions.courses}
+                                value={selectedCourses}
+                                onChange={setSelectedCourses}
+                                placeholder="Все курсы"
+                                label="Курсы"
+                                showCounts
+                            />
+                            <MultiSelect
+                                options={filterOptions.testAttempts}
+                                value={selectedTestAttempts}
+                                onChange={setSelectedTestAttempts}
+                                placeholder="Все прохождения"
+                                label="Количество прохождений"
+                                showCounts
+                            />
+                            <MultiSelect
+                                options={filterOptions.competencies}
+                                value={selectedCompetencies}
+                                onChange={setSelectedCompetencies}
+                                placeholder="Выберите компетенции"
+                                searchPlaceholder="Поиск компетенций..."
+                                label="Компетенции"
+                                withSearch
+                                showCounts
+                            />
+                            <MultiSelect
+                                options={filterOptions.students}
+                                value={selectedStudents}
+                                onChange={setSelectedStudents}
+                                placeholder="Все студенты"
+                                searchPlaceholder="Поиск по имени или ID..."
+                                label="Студенты (индивидуальный анализ)"
+                                withSearch
+                                showCounts
+                                maxHeight="400px"
+                            />
+                            <FlexRow>
+                                <Button
+                                    text={loading ? "Загрузка..." : "Применить"}
+                                    onClick={analysisMethod === 'vam' ? loadVAMData : loadLGMData}
+                                    disabled={loading || selectedCompetencies.length === 0}
+                                    palette={BUTTON_PALETTE.CYAN}
                                 />
-                                <MultiSelect
-                                    options={filterOptions.directions}
-                                    value={selectedDirections}
-                                    onChange={setSelectedDirections}
-                                    placeholder="Все направления"
-                                    searchPlaceholder="Поиск направлений..."
-                                    label="Направления подготовки"
-                                    withSearch
-                                    showCounts
+                                <Button
+                                    text="Очистить"
+                                    onClick={clearFilters}
+                                    palette={BUTTON_PALETTE.GRAY}
                                 />
-                                <MultiSelect
-                                    options={filterOptions.courses}
-                                    value={selectedCourses}
-                                    onChange={setSelectedCourses}
-                                    placeholder="Все курсы"
-                                    label="Курсы"
-                                    showCounts
-                                />
-                                <MultiSelect
-                                    options={filterOptions.testAttempts}
-                                    value={selectedTestAttempts}
-                                    onChange={setSelectedTestAttempts}
-                                    placeholder="Все прохождения"
-                                    label="Количество прохождений"
-                                    showCounts
-                                />
-                                <MultiSelect
-                                    options={filterOptions.competencies}
-                                    value={selectedCompetencies}
-                                    onChange={setSelectedCompetencies}
-                                    placeholder="Выберите компетенции"
-                                    searchPlaceholder="Поиск компетенций..."
-                                    label="Компетенции"
-                                    withSearch
-                                    showCounts
-                                />
-                                <MultiSelect
-                                    options={filterOptions.students}
-                                    value={selectedStudents}
-                                    onChange={setSelectedStudents}
-                                    placeholder="Все студенты"
-                                    searchPlaceholder="Поиск по имени или ID..."
-                                    label="Студенты (индивидуальный анализ)"
-                                    withSearch
-                                    showCounts
-                                    maxHeight="400px"
-                                />
-                                <FlexRow>
-                                    <Button
-                                        text={loading ? "Загрузка..." : "Применить"}
-                                        onClick={analysisMethod === 'vam' ? loadVAMData : loadLGMData}
-                                        disabled={loading || selectedCompetencies.length === 0}
-                                        palette={BUTTON_PALETTE.CYAN}
-                                    />
-                                    <Button
-                                        text="Очистить"
-                                        onClick={clearFilters}
-                                        palette={BUTTON_PALETTE.GRAY}
-                                    />
-                                </FlexRow>
-                            </div>
+                            </FlexRow>
                         </div>
-                    </div>
+                    </TitledCard>
 
                     {/* Графики */}
                     {renderChartsGrid()}

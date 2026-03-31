@@ -1,12 +1,19 @@
 import { useState, useEffect } from 'react';
 import Chart from 'react-apexcharts';
 
-import FlexRow from '../../components/FlexRow.jsx';
+import FlexRow, { ALIGN, JUSTIFY } from '../../components/FlexRow.jsx';
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
+import Card from '../../components/cards/Card.jsx';
+import TitledCard from '../../components/cards/TitledCard.jsx';
+import ValueCard from '../../components/cards/ValueCard.jsx';
 import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
-import ValueCard from '../../components/ui/ValueCard.jsx';
+import LoadingSpinner from '../../components/ui/LoadingSpinner.jsx';
 import { FIELD_NAMES, LINK_TREE } from "../../utilities.js";
-import { postPortraitCreateDataSession, postPortraitStats, postPortraitUpdateSessionFilters } from '../../api.js';
+import {
+    postPortraitCreateDataSession,
+    postPortraitStats,
+    postPortraitUpdateSessionFilters
+} from '../../api.js';
 
 import "./AdminStatsView.scss";
 
@@ -219,9 +226,8 @@ function AdminStatsView() {
                     <Header title="Админ: Статистика тестирования" name="Администратор1" />
                     <Sidebar linkTree={LINK_TREE} />
                     <Content>
-                        <div className="loading">
-                            <div className="spinner"></div>
-                            <div>Загрузка статистики...</div>
+                        <div className="loading-content">
+                            <LoadingSpinner text="Загрузка статистики..." />
                         </div>
                     </Content>
                 </SidebarLayout>
@@ -423,8 +429,7 @@ function AdminStatsView() {
 
                                 {/* Первый ряд диаграмм */}
                                 <div className="charts-row">
-                                    <div className="chart-container" style={{ gridColumn: '1 / -1' }}>
-                                        <h3>Динамика тестирований по годам</h3>
+                                    <TitledCard title="Динамика тестирований по годам">
                                         <Chart
                                             options={{
                                                 ...barChartOptions,
@@ -466,13 +471,12 @@ function AdminStatsView() {
                                             type="bar"
                                             height={400}
                                         />
-                                    </div>
+                                    </TitledCard>
                                 </div>
 
                                 {/* Второй ряд диаграмм */}
                                 <div className="charts-row">
-                                    <div className="chart-container">
-                                        <h3>Топ-15 учебных заведений</h3>
+                                    <TitledCard title="Топ-15 учебных заведений">
                                         <Chart
                                             options={{
                                                 ...barChartOptions,
@@ -490,9 +494,8 @@ function AdminStatsView() {
                                             type="bar"
                                             height={400}
                                         />
-                                    </div>
-                                    <div className="chart-container">
-                                        <h3>Топ-15 центров компетенций</h3>
+                                    </TitledCard>
+                                    <TitledCard title="Топ-15 центров компетенций">
                                         <Chart
                                             options={{
                                                 ...barChartOptions,
@@ -510,20 +513,20 @@ function AdminStatsView() {
                                             type="bar"
                                             height={400}
                                         />
-                                    </div>
+                                    </TitledCard>
                                 </div>
 
-                                {/* Списки всех центров и учебных заведений */}
+                                {/* Третий ряд диаграмм */}
                                 <div className="charts-row">
-                                    <div className="chart-container">
-                                        <div className="list-header">
-                                            <h3>Все центры компетенций ({stats?.uniqueCenters || 0})</h3>
+                                    <Card>
+                                        <FlexRow margin='0 0 20 0' align={ALIGN.CENTER} justify={JUSTIFY.SPACE_BETWEEN}>
+                                            <span className="card-title">Все центры компетенций ({stats?.uniqueCenters || 0})</span>
                                             <Button
                                                 text={showAllCenters ? 'Скрыть' : 'Показать все'}
                                                 onClick={() => setShowAllCenters(!showAllCenters)}
                                                 palette={BUTTON_PALETTE.CYAN}
                                             />
-                                        </div>
+                                        </FlexRow>
                                         <div className="centers-list">
                                             {stats?.available_values?.center && stats.available_values.center.length > 0 ? (
                                                 <div className={`centers-grid ${showAllCenters ? 'expanded' : 'collapsed'}`}>
@@ -539,17 +542,16 @@ function AdminStatsView() {
                                                 </div>
                                             )}
                                         </div>
-                                    </div>
-
-                                    <div className="chart-container">
-                                        <div className="list-header">
-                                            <h3>Все учебные заведения ({stats?.uniqueInstitutions || 0})</h3>
+                                    </Card>
+                                    <Card>
+                                        <FlexRow margin='0 0 20 0' align={ALIGN.CENTER} justify={JUSTIFY.SPACE_BETWEEN}>
+                                            <span className="card-title">Все учебные заведения ({stats?.uniqueInstitutions || 0})</span>
                                             <Button
                                                 text={showAllInstitutions ? 'Скрыть' : 'Показать все'}
                                                 onClick={() => setShowAllInstitutions(!showAllInstitutions)}
                                                 palette={BUTTON_PALETTE.CYAN}
                                             />
-                                        </div>
+                                        </FlexRow>
                                         <div className="institutions-list">
                                             {stats?.available_values?.institution && stats.available_values.institution.length > 0 ? (
                                                 <div className={`institutions-grid ${showAllInstitutions ? 'expanded' : 'collapsed'}`}>
@@ -565,13 +567,12 @@ function AdminStatsView() {
                                                 </div>
                                             )}
                                         </div>
-                                    </div>
+                                    </Card>
                                 </div>
 
-                                {/* Третий ряд диаграмм */}
+                                {/* Четвёртый ряд диаграмм */}
                                 <div className="charts-row">
-                                    <div className="chart-container">
-                                        <h3>Распределение по специальностям</h3>
+                                    <TitledCard title="Распределение по специальностям">
                                         <Chart
                                             options={{
                                                 ...pieChartOptions,
@@ -581,7 +582,7 @@ function AdminStatsView() {
                                             type="pie"
                                             height={400}
                                         />
-                                    </div>
+                                    </TitledCard>
                                 </div>
                             </div>
                         )}
@@ -591,13 +592,12 @@ function AdminStatsView() {
                                 <h2>Статистика по компетенциям</h2>
                                 {filters.length > 0 && (
                                     <div className="filtered-data-notice">
-                                        Данные отображаются с примененными фильтрами
+                                        Данные отображаются с применёнными фильтрами
                                     </div>
                                 )}
                                 <div className="charts-grid">
                                     {stats?.competencesByYear?.map((competence, index) => (
-                                        <div key={index} className="chart-container">
-                                            <h3>{competence.name}</h3>
+                                        <TitledCard title={competence.name}>
                                             <Chart
                                                 options={{
                                                     ...lineChartOptions,
@@ -615,7 +615,7 @@ function AdminStatsView() {
                                                 type="line"
                                                 height={300}
                                             />
-                                        </div>
+                                        </TitledCard>
                                     ))}
                                 </div>
                             </div>
@@ -631,8 +631,7 @@ function AdminStatsView() {
                                 )}
                                 <div className="charts-grid">
                                     {stats?.motivatorsByYear?.map((motivator, index) => (
-                                        <div key={index} className="chart-container">
-                                            <h3>{motivator.name}</h3>
+                                        <TitledCard title={motivator.name}>
                                             <Chart
                                                 options={{
                                                     ...lineChartOptions,
@@ -650,7 +649,7 @@ function AdminStatsView() {
                                                 type="line"
                                                 height={300}
                                             />
-                                        </div>
+                                        </TitledCard>
                                     ))}
                                 </div>
                             </div>
@@ -666,8 +665,7 @@ function AdminStatsView() {
                                 )}
                                 <div className="charts-grid">
                                     {stats?.valuesByYear?.map((value, index) => (
-                                        <div key={index} className="chart-container">
-                                            <h3>{value.name}</h3>
+                                        <TitledCard title={value.name}>
                                             <Chart
                                                 options={{
                                                     ...lineChartOptions,
@@ -685,7 +683,7 @@ function AdminStatsView() {
                                                 type="line"
                                                 height={300}
                                             />
-                                        </div>
+                                        </TitledCard>
                                     ))}
                                 </div>
                             </div>

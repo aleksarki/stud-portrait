@@ -5,11 +5,11 @@ import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../com
 import ColorBox, { BOX_COLOR } from '../../components/ui/ColorBox.jsx';
 import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
 import Label from '../../components/ui/Label.jsx';
+import ValueCard from '../../components/cards/ValueCard.jsx';
 import { COURSES_NAMES, LINK_TREE } from "../../utilities.js";
 import { getPortraitCourses } from '../../api.js';
 
 import "./AdminCoursesView.scss";
-import ValueCard from '../../components/ui/ValueCard.jsx';
 
 function AdminCoursesView() {
     const [coursesData, setCoursesData] = useState([]);

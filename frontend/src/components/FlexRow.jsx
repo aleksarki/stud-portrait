@@ -8,7 +8,8 @@ export const WRAP = {
 export const JUSTIFY = {
     START: "flex-start",
     END: "flex-end",
-    CENTER: "center"
+    CENTER: "center",
+    SPACE_BETWEEN: "space-between"
 };
 
 export const ALIGN = {
