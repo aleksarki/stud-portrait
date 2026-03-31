@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import FlexRow from '../../components/FlexRow.jsx';
+import ModalWindow, { ModalBody, ModalFooter, useModalWindow } from '../../components/ModalWindow.jsx';
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 import ColorBox, { BOX_COLOR } from '../../components/ui/ColorBox.jsx';
 import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
@@ -30,9 +31,10 @@ function AdminResultsView() {
     const [pendingFilters, setPendingFilters] = useState([]);
     const [hasMore, setHasMore] = useState(false);
     const [exportLoading, setExportLoading] = useState(false);
-    const [showGroupingModal, setShowGroupingModal] = useState(false);
     const [groupingColumn, setGroupingColumn] = useState('');
     const navigate = useNavigate();
+
+    const [GrouppingModalWindow, _, setGrouppingModalVisible] = useModalWindow("Выбор группировки");
 
     // Базовые поля для фильтрации
     const basicFields = [
@@ -445,7 +447,7 @@ function AdminResultsView() {
             alert('Выберите записи для группировки (флажки в первом столбце)');
             return;
         }
-        setShowGroupingModal(true);
+        setGrouppingModalVisible(true);
     };
 
     const handleConfirmGrouping = () => {
@@ -865,62 +867,47 @@ function AdminResultsView() {
                                 />
                             )}
                         </FlexRow>
-
-                        {/* Модальное окно выбора столбца для группировки */}
-                        {showGroupingModal && (
-                            <div className="modal-overlay">
-                                <div className="modal-content">
-                                    <div className="modal-header">
-                                        <h3>Выбор группировки</h3>
-                                        <button 
-                                            className="close-btn"
-                                            onClick={() => setShowGroupingModal(false)}
-                                        >
-                                            ✕
-                                        </button>
-                                    </div>
-                                    <div className="modal-body">
-                                        <div className="form-group">
-                                            <label>Столбец для группировки:</label>
-                                            <select 
-                                                value={groupingColumn}
-                                                onChange={(e) => setGroupingColumn(e.target.value)}
-                                                className="grouping-select"
-                                            >
-                                                <option value="">Выберите столбец...</option>
-                                                <optgroup label="Базовые сведения">
-                                                    {basicFields.map(field => (
-                                                        <option key={field} value={field}>
-                                                            {FIELD_NAMES[field]}
-                                                        </option>
-                                                    ))}
-                                                </optgroup>
-                                            </select>
-                                        </div>
-                                        <div className="selected-info">
-                                            <p>Выбрано записей: <strong>{selectedRows.size}</strong></p>
-                                            <p>Будет выполнена группировка по выбранному столбцу с визуализацией данных.</p>
-                                        </div>
-                                    </div>
-                                    <div className="modal-footer">
-                                        <Button
-                                            text="Отмена"
-                                            onClick={() => setShowGroupingModal(false)}
-                                            palette={BUTTON_PALETTE.GRAY}
-                                        />
-                                        <Button
-                                            text="Перейти к группировке"
-                                            onClick={handleConfirmGrouping}
-                                            disabled={!groupingColumn}
-                                            palette={BUTTON_PALETTE.BLUE}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 </Content>
             </SidebarLayout>
+
+            {/* Модальное окно выбора столбца для группировки */}
+            <GrouppingModalWindow>
+                <ModalBody>
+                    <div className="groupping-modal-body">
+                        <label>Столбец для группировки:</label>
+                        <select 
+                            value={groupingColumn}
+                            onChange={(e) => setGroupingColumn(e.target.value)}
+                            className="grouping-select"
+                        >
+                            <option value="">Выберите столбец...</option>
+                            <optgroup label="Базовые сведения">
+                                {basicFields.map(field => (
+                                    <option key={field} value={field}>
+                                        {FIELD_NAMES[field]}
+                                    </option>
+                                ))}
+                            </optgroup>
+                        </select>
+                        <p>Выбрано записей: <strong>{selectedRows.size}</strong></p>
+                        <p>Будет выполнена группировка по выбранному столбцу с визуализацией данных.</p>
+                    </div>
+                </ModalBody>
+                <ModalFooter>
+                    <Button
+                        text="Отмена"
+                        onClick={() => setGrouppingModalVisible(false)}
+                        palette={BUTTON_PALETTE.GRAY}
+                    />
+                    <Button
+                        text="Перейти к группировке"
+                        onClick={handleConfirmGrouping}
+                        disabled={!groupingColumn}
+                        palette={BUTTON_PALETTE.BLUE}
+                    />
+                </ModalFooter>
+            </GrouppingModalWindow>
         </div>
     );
 }
