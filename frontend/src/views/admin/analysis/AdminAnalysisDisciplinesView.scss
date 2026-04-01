@@ -11,10 +11,6 @@
         }
     }
 
-    .tab-container {
-        margin: 20px 0;
-    }
-
     .discipline-impact-results {
         margin-top: 20px;
 
@@ -48,6 +44,18 @@
 
         table.Table {
             width: 100%;
+
+            td {
+                background-color: var(--bg-color);
+
+                &:first-child {
+                    text-align: left;
+                }
+
+                &.significant {
+                    border: 2px solid #333;
+                }
+            }
         }
     }
 }

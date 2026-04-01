@@ -307,14 +307,10 @@ function AdminAnalysisDisciplinesView() {
                                     ? `rgba(76, 175, 80, ${intensity * 0.7})`
                                     : `rgba(244, 67, 54, ${intensity * 0.7})`
                                 );
-                                const border = (
-                                    cell?.significant
-                                    ? '2px solid #333'
-                                    : '1px solid #ddd'
-                                );
                                 return (
                                     <TableItem
-                                        style={{ backgroundColor: color, border }}
+                                        className={cell?.significant ? "significant" : ''}
+                                        cssVars={{"--bg-color": color}}
                                         title={`Effect size: ${effectSize?.toFixed(2) || '0'}, p=${cell?.p_value?.toFixed(3) || 'N/A'}, n=${cell?.n_students || 0}`}
                                     >
                                         {cell ? effectSize.toFixed(2) : '-'}

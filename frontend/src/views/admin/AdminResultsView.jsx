@@ -1,18 +1,26 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import {
+    postPortraitCreateDataSession,
+    postPortraitExportSelectedResults,
+    postPortraitGetSessionData,
+    postPortraitLoadMoreData,
+    postPortraitUpdateSessionColumns,
+    postPortraitUpdateSessionFilters
+} from '../../api.js';
+import { COMPETENCIES_NAMES, FIELD_NAMES, LINK_TREE, MOTIVATORS_NAMES, VALUES_NAMES } from "../../utilities.js";
+
 import FlexRow from '../../components/FlexRow.jsx';
-import ModalWindow, { ModalBody, ModalFooter, useModalWindow } from '../../components/ModalWindow.jsx';
+import { ModalBody, ModalFooter, useModalWindow } from '../../components/ModalWindow.jsx';
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
-import ColorBox, { BOX_COLOR } from '../../components/ui/ColorBox.jsx';
+
+import Table, { TableHeader, TableItem, TableRow } from '../../components/tables/Table.jsx';
+
 import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
+import ColorBox, { BOX_COLOR } from '../../components/ui/ColorBox.jsx';
 import Label from '../../components/ui/Label.jsx';
 import LoadingSpinner from '../../components/ui/LoadingSpinner.jsx';
-import { COMPETENCIES_NAMES, FIELD_NAMES, LINK_TREE, MOTIVATORS_NAMES, VALUES_NAMES } from "../../utilities.js";
-import {
-    postPortraitCreateDataSession, postPortraitExportSelectedResults, postPortraitGetSessionData,
-    postPortraitLoadMoreData, postPortraitUpdateSessionColumns, postPortraitUpdateSessionFilters
-} from '../../api.js';
 
 import "./AdminResultsView.scss";
 
@@ -84,15 +92,6 @@ function AdminResultsView() {
     // Видимые колонки
     const visibleColumns = columnOrder.filter(col => !hiddenColumns.has(col));
 
-    // Определение категории результата
-    const getResultCategory = (value) => {
-        if (value === null || value === undefined || value === '') return 'no-data';
-        if (value >= 600) return 'high';
-        if (value >= 400) return 'medium';
-        if (value >= 200) return 'low';
-        return 'no-data';
-    };
-
     // Получение класса цвета в зависимости от значения
     const getValueColorClass = (value, fieldKey) => {
         const isNumericField = (
@@ -102,9 +101,22 @@ function AdminResultsView() {
         );
         
         if (!isNumericField) return '';
-        
-        const category = getResultCategory(value);
-        return `value-${category}`;
+
+        if (value === null || value === undefined || value === '') return 'no-value';
+        if (value >= 600) return 'high';
+        if (value >= 400) return 'medium';
+        if (value >= 200) return 'low';
+
+        return 'no-value';
+    };
+
+    // Получение класса цвета в зависимости от профиля
+    const getProfileColorClass = fieldKey => {
+        if (fieldKey.startsWith('res_comp_')) return 'competency';
+        if (fieldKey.startsWith('res_mot_')) return 'motivator';
+        if (fieldKey.startsWith('res_val_')) return 'value';
+
+        return '';
     };
 
     // Инициализация сессии
@@ -218,7 +230,7 @@ function AdminResultsView() {
         setAvailableValues(values);
     };
 
-    // Исправленная функция getFieldValue
+    // Извлечение полей из результата
     const getFieldValue = (result, fieldKey) => {
         // Обработка основных полей
         if (fieldKey === 'res_year') return result.res_year;
@@ -765,59 +777,58 @@ function AdminResultsView() {
                             </div>
                         )}
 
-                        {/* Таблица с горизонтальной прокруткой */}
+                        {/* Таблица с прокруткой */}
                         {loading || !results.length ? (
                             <div className="loading">
                                 <LoadingSpinner text={sessionId ? 'Загрузка данных...' : 'Инициализация сессии...'} />
                             </div>
                         ) : (
                             <div className="table-scroll-container">
-                                <table className="results-table">
-                                    <thead>
-                                        <tr>
-                                            <th className="sticky-col">
+                                <Table>
+                                    <TableHeader>
+                                        <TableItem>
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedRows.size === results.length && results.length > 0}
+                                                onChange={handleSelectAll}
+                                                disabled={!sessionId}
+                                            />
+                                        </TableItem>
+                                        {visibleColumns.map(fieldKey => (
+                                            <TableItem
+                                                onClick={() => handleSort(fieldKey)}
+                                                className={getProfileColorClass(fieldKey)}
+                                                title={FIELD_NAMES[fieldKey]}
+                                            >
+                                                {FIELD_NAMES[fieldKey]} {getSortIcon(fieldKey)}
+                                            </TableItem>
+                                        ))}
+                                    </TableHeader>
+                                    {results.map(result => (
+                                        <TableRow
+                                            key={result.res_id}
+                                            className={selectedRows.has(result.res_id) ? 'selected' : ''}
+                                        >
+                                            <TableItem>
                                                 <input
                                                     type="checkbox"
-                                                    checked={selectedRows.size === results.length && results.length > 0}
-                                                    onChange={handleSelectAll}
+                                                    checked={selectedRows.has(result.res_id)}
+                                                    onChange={() => handleRowSelect(result.res_id)}
                                                     disabled={!sessionId}
                                                 />
-                                            </th>
+                                            </TableItem>
                                             {visibleColumns.map(fieldKey => (
-                                                <th 
-                                                    key={fieldKey} 
-                                                    onClick={() => handleSort(fieldKey)}
-                                                    className={`${getColumnClass(fieldKey)} ${hiddenColumns.has(fieldKey) ? 'hidden' : ''}`}
+                                                <TableItem
+                                                    key={fieldKey}
+                                                    className={getValueColorClass(getFieldValue(result, fieldKey), fieldKey)}
+                                                    title={renderTableCell(result, fieldKey)}
                                                 >
-                                                    {FIELD_NAMES[fieldKey]} {getSortIcon(fieldKey)}
-                                                </th>
+                                                    {renderTableCell(result, fieldKey)}
+                                                </TableItem>
                                             ))}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {results.map((result) => (
-                                            <tr key={result.res_id} className={selectedRows.has(result.res_id) ? 'selected' : ''}>
-                                                <td className="sticky-col">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedRows.has(result.res_id)}
-                                                        onChange={() => handleRowSelect(result.res_id)}
-                                                        disabled={!sessionId}
-                                                    />
-                                                </td>
-                                                {visibleColumns.map(fieldKey => (
-                                                    <td 
-                                                        key={fieldKey}
-                                                        className={`${getColumnClass(fieldKey)} ${getValueColorClass(getFieldValue(result, fieldKey), fieldKey)}`}
-                                                        title={renderTableCell(result, fieldKey)}
-                                                    >
-                                                        {renderTableCell(result, fieldKey)}
-                                                    </td>
-                                                ))}
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                        </TableRow>
+                                    ))}
+                                </Table>
                                 
                                 {results.length === 0 && !loading && sessionId && (
                                     <div className="no-data">
