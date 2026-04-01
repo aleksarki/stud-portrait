@@ -22,6 +22,7 @@ import Button, { BUTTON_PALETTE } from "../../../components/ui/Button";
 import MultiSelect from "../../../components/ui/MultiSelect";
 
 import "./AdminAnalysisVamLgmView.scss";
+import Select, { Option } from "../../../components/ui/Select";
 
 function AdminAnalysisVamLgmView() {
     // -------------------- STATE --------------------
@@ -273,16 +274,14 @@ function AdminAnalysisVamLgmView() {
                                 onClick={() => setAnalysisMethod('lgm')}
                                 palette={analysisMethod === 'lgm' ? BUTTON_PALETTE.BLUE : BUTTON_PALETTE.GRAY}
                             />
-                            {analysisMethod === 'vam' && (
-                                <div className="vam-group-select" style={{ marginTop: 10 }}>
-                                    <label>Группировать по: </label>
-                                    <select value={vamGroupBy} onChange={e => setVamGroupBy(e.target.value)}>
-                                        <option value="institution">ВУЗам</option>
-                                        <option value="direction">Направлениям</option>
-                                        <option value="course">Курсам</option>
-                                    </select>
-                                </div>
-                            )}
+                            {analysisMethod === 'vam' && <>
+                                <label>Группировать по: </label>
+                                <Select value={vamGroupBy} onChange={setVamGroupBy}>
+                                    <Option value="institution" label="ВУЗам" />
+                                    <Option value="direction" label="Направлениям" />
+                                    <Option value="course" label="Курсам" />
+                                </Select>
+                            </>}
                         </FlexRow>
                     </TitledCard>
 

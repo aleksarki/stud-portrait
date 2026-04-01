@@ -12,12 +12,15 @@ import {
     getPortraitGetInstitutionDirections,
     postPortraitCreateDataSession
 } from "../../../api";
+import { COMPETENCIES_NAMES, LINK_TREE } from "../../../utilities";
+
 import FlexRow from "../../../components/FlexRow";
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
+
 import Button, { BUTTON_PALETTE } from "../../../components/ui/Button";
-import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import NoData from "../../../components/ui/NoData";
-import { COMPETENCIES_NAMES, LINK_TREE } from "../../../utilities";
+import LoadingSpinner from "../../../components/ui/LoadingSpinner";
+import Select, { Option } from "../../../components/ui/Select";
 
 import "./AdminAnalysisAdvancedView.scss";
 
@@ -423,23 +426,21 @@ function AdminAnalysisAdvancedView() {
                             }}
                             palette={activeVisualization === 'lgm' ? BUTTON_PALETTE.BROWN : BUTTON_PALETTE.GRAY}
                         />
-                        {activeVisualization === 'dimension' && (
-                            <>
-                                <span>Измерение:</span>
-                                <select value={selectedDimension} onChange={(e) => setSelectedDimension(e.target.value)}>
-                                    <option value="institution">ВУЗы</option>
-                                    <option value="spec">Направления</option>
-                                    <option value="form">Формы обучения</option>
-                                    <option value="course">Курсы</option>
-                                </select>
-                                <Button
-                                    text="Загрузить"
-                                    onClick={loadDimensionData}
-                                    disabled={loading}
-                                    palette={BUTTON_PALETTE.CYAN}
-                                />
-                            </>
-                        )}
+                        {activeVisualization === 'dimension' && <>
+                            <span>Измерение:</span>
+                            <Select value={selectedDimension} onChange={setSelectedDimension}>
+                                <Option value="institution" label="ВУЗы" />
+                                <Option value="spec" label="Направления" />
+                                <Option value="form" label="Формы обучения" />
+                                <Option value="course" label="Курсы" />
+                            </Select>
+                            <Button
+                                text="Загрузить"
+                                onClick={loadDimensionData}
+                                disabled={loading}
+                                palette={BUTTON_PALETTE.CYAN}
+                            />
+                        </>}
                         {activeVisualization === 'lgm' && (
                             <Button
                                 text="Загрузить LGM данные"
