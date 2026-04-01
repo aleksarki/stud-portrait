@@ -8,23 +8,23 @@ const VamDotPlot = ({ data }) => {
     if (!data || data.length === 0) return <div className="no-data">Нет данных</div>;
 
     // Сортируем для наглядности
-    const sortedData = [...data].sort((a, b) => b.value_added - a.value_added);
+    const sortedData = [...data].sort((a, b) => a.value_added - b.value_added);
 
     return (
         <ResponsiveContainer width="100%" height={400}>
-            <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 250 }}>
+            <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                    type="number" 
-                    dataKey="value_added" 
-                    name="Value-Added" 
-                    label={{ value: 'Value-Added', position: 'insideBottomRight', offset: -10 }}
+                <XAxis
+                    type="category"
+                    dataKey="group"
+                    name="Группа"
+                    width={150}
                 />
-                <YAxis 
-                    type="category" 
-                    dataKey="group" 
-                    name="Группа" 
-                    width={150} 
+                <YAxis
+                    type="number"
+                    dataKey="value_added"
+                    name="Value-Added"
+                    // label={{ value: 'Value-Added', position: 'insideBottomRight', offset: -10 }}
                 />
                 <Tooltip
                     cursor={{ strokeDasharray: '3 3' }}

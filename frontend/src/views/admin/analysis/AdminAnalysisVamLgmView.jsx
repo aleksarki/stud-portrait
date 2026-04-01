@@ -209,6 +209,7 @@ function AdminAnalysisVamLgmView() {
     const renderVAMChart = (comp) => {
         const data = vamDataByCompetency[comp];
         if (!data || data.length === 0) return <div className="no-data">Нет данных</div>;
+        console.log(data);
         return <VamDotPlot data={data} />;
     };
 
