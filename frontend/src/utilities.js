@@ -12,7 +12,8 @@ export const LINK_TREE = [
         category: "Результаты",
         links: [
             {title: "Тестирование профилей", to: '/admin/results'},
-            {title: "Образовательные курсы", to: '/admin/courses'}
+            {title: "Образовательные курсы", to: '/admin/courses'},
+            {title: "Мотиваторы", to: '/admin/motivators'}
         ]
     },
     {

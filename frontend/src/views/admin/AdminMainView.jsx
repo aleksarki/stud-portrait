@@ -7,13 +7,6 @@ import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
 import Label from '../../components/ui/Label.jsx';
 import ValueCard from '../../components/cards/ValueCard.jsx';
 import { COURSES_NAMES, LINK_TREE } from "../../utilities.js";
-import { getPortraitCourses } from '../../api.js';
-import {
-    getPortraitGetFilterOptionsWithCounts,
-    getPortraitGetInstitutionDirections,
-    getPortraitGetDisciplines,
-    postPortraitCreateDataSession,
-} from "../../api.js";
 import {
     PieChart, Pie, LabelList, BarChart, Bar, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from "recharts";
