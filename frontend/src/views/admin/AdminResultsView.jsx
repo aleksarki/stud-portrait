@@ -11,7 +11,7 @@ import {
 } from '../../api.js';
 import { COMPETENCIES_NAMES, FIELD_NAMES, LINK_TREE, MOTIVATORS_NAMES, VALUES_NAMES } from "../../utilities.js";
 
-import FlexRow from '../../components/FlexRow.jsx';
+import FlexRow, { WRAP } from '../../components/FlexRow.jsx';
 import { ModalBody, ModalFooter, useModalWindow } from '../../components/ModalWindow.jsx';
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 
@@ -490,7 +490,7 @@ function AdminResultsView() {
                     <div className="results-container">
                         <div className="results-header">
                             <h2>Результаты тестирования</h2>
-                            <FlexRow>
+                            <FlexRow wrap={WRAP.DO}>
                                 <Label>
                                     {sessionId ? <>
                                         Показано: {results.length} из {totalCount} записей
