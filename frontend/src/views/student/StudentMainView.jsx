@@ -279,6 +279,12 @@ function StudentMainView() {
                                 </p>
                             </div>
 
+                            {analyticsData.general_interpretation && (
+                                <div className="general-interpretation">
+                                    <p>{analyticsData.general_interpretation}</p>
+                                </div>
+                            )}
+
                             <div className="analytics-cards-grid">
                                 {analyticsData.competencies?.map((comp) => {
                                     if (!comp.ai) return null;
