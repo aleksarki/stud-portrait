@@ -1,4 +1,5 @@
 import torch
+import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 
 _MODEL = None
@@ -16,19 +17,28 @@ def load_model():
         if _TOKENIZER.pad_token is None:
             _TOKENIZER.pad_token = _TOKENIZER.eos_token
 
-        # 4-битная квантизация
-        bnb_config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_compute_dtype=torch.float16,
-            bnb_4bit_use_double_quant=True,
-        )
-        _MODEL = AutoModelForCausalLM.from_pretrained(
-            model_name,
-            quantization_config=bnb_config,
-            device_map="auto",
-            trust_remote_code=True,
-            torch_dtype=torch.float16,
-        )
+        if device == "cuda":
+            # На GPU используем 4-битную квантизацию
+            bnb_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_compute_dtype=torch.float16,
+                bnb_4bit_use_double_quant=True,
+            )
+            _MODEL = AutoModelForCausalLM.from_pretrained(
+                model_name,
+                quantization_config=bnb_config,
+                device_map="auto",
+                trust_remote_code=True,
+                torch_dtype=torch.float16,
+            )
+        else:
+            # На CPU загружаем без квантизации, в float32
+            _MODEL = AutoModelForCausalLM.from_pretrained(
+                model_name,
+                device_map="cpu",
+                trust_remote_code=True,
+                torch_dtype=torch.float32,
+            )
         _MODEL.eval()
         print("Model loaded.")
     return _MODEL, _TOKENIZER
