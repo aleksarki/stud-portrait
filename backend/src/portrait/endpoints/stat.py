@@ -73,14 +73,22 @@ def get_dashboard_stats(request):
             uni_score = 0
 
         sorted_comps = sorted(curr_data['all_comps'].items(), key=lambda x: x[1], reverse=True)
+        sorted_comps_prev = sorted(prev_data['all_comps'].items(), key=lambda x: x[1], reverse=True)
         
         if not sorted_comps:
-            best_comp = {"name": "Н/Д", "val": 0}
-            worst_comp = {"name": "Н/Д", "val": 0}
+            best_comp = {"name": "-", "val": 0}
+            worst_comp = {"name": "-", "val": 0}
+            best_comp = {"name": "-", "val": 0}
+            worst_comp = {"name": "-", "val": 0}
         else:
+            best_comp_prev = {"name": sorted_comps[0][0], "val": prev_data['all_comps'][sorted_comps[0][0]]}
+            worst_comp_prev = {"name": sorted_comps[-1][0], "val": prev_data['all_comps'][sorted_comps[-1][0]]}
             best_comp = {"name": sorted_comps[0][0], "val": sorted_comps[0][1]}
             worst_comp = {"name": sorted_comps[-1][0], "val": sorted_comps[-1][1]}
-
+        chart=[]
+        for k, v in curr_data['all_comps'].items():
+            chart.append({"name": k, "score": v, "prev_score": prev_data['all_comps'][k]})
+           
         response_data = {
             "status": "success",
             "col1": {
@@ -95,9 +103,11 @@ def get_dashboard_stats(request):
             },
             "col3": {
                 "best": best_comp,
-                "worst": worst_comp
+                "worst": worst_comp,
+                "best_prev": best_comp_prev,
+                "worst_prev": worst_comp_prev
             },
-            "chart": [{"name": k, "score": v} for k, v in curr_data['all_comps'].items()]
+            "chart": chart
         }
         return JsonResponse(response_data)
         

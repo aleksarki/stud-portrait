@@ -49,15 +49,17 @@ const competencyLabels = {
     'res_mot_work_conditions': 'Условия труда'
     
 };
+
+const max_comp=25; //самые длинные названия
+const max_mot=15;
+
 const getLabel = (key) => competencyLabels[key] || competencyLabels[key.replace('res_comp_', '').replace('_', ' ')] || key.replace('res_comp_', '').replace('_', ' ');
 // для сравнения
 
-const Stat = ({ label, value, prev, suffix = "", isGrowth = false }) => {
+const Stat = ({ label, value, prev=0, suffix = "", isGrowth = false }) => {
     if (prev==0){
-        return(
-            <div className="stat-block">
+        return(<div className="stat-block">
             <div className="value">{value}{suffix}</div>
-            <div className="prev-year">прошлый год: - </div>
             <div className="label">{label}</div>
             </div>
         );
@@ -83,14 +85,15 @@ const Stat = ({ label, value, prev, suffix = "", isGrowth = false }) => {
 
 function Dashboard({ data }) {
     if (!data) return null;
-
-        const chartData = data.chart.map(item => {
-        const translatedName = getLabel(item.name);
+    const year = 2026;
+    const fixedSize = (name) => max_comp - name.length <= 0 ? name : ' '.repeat(max_comp - name.length) + name;
+    const chartData = data.chart.map(item => { 
+        const name = getLabel(item.name);
+        console.log(name);
         return {
             ...item,
-            displayName: translatedName
-        };
-    });
+            displayName: name
+    };});
     const pieData = [
         { "name": 'Прошли', "value" : data.col2.participated.amount_in, fill: '#1f66b6'},
         {"name" : "Не прошли", "value" : data.col2.participated.students_all - data.col2.participated.amount_in, fill: 'transparent'}
@@ -106,7 +109,7 @@ function Dashboard({ data }) {
             <div className="col-left">
             <Stat label="студентов прошли доп. курсы" value={data.col1.courses.val} prev={data.col1.courses.prev} suffix="%" />
             <Stat label="средний уровень компетенций" value={data.col1.avg_lvl.val} prev={data.col1.avg_lvl.prev} />
-            <Stat label="общее изменение компетенций за год" value={data.col1.growth.val} prev={data.col1.growth.prev} suffix="%" isGrowth />
+            <Stat label="изменение компетенций за год" value={data.col1.growth.val} prev={data.col1.growth.prev} suffix="%" isGrowth />
             </div>
 
             {/* Центральная колонка */} 
@@ -146,12 +149,12 @@ function Dashboard({ data }) {
             <Stat 
                 label={`Лучшая: ${getLabel(data.col3.best.name)}`} 
                 value={data.col3.best.val} 
-                prev={data.col3.best.prev || 0} 
+                //prev={data.col3.best_prev.val || 0} 
             /> 
             <Stat 
                 label={`Худшая: ${getLabel(data.col3.worst.name)}`} 
                 value={data.col3.worst.val} 
-                prev={data.col3.worst.prev || 0} 
+                //prev={data.col3.worst_prev.val || 0} 
             />
             </div>
         </div>
@@ -160,7 +163,8 @@ function Dashboard({ data }) {
                     <h4 className="section-label">Распределение по компетенциям (средний балл)</h4>
                     <div style={{ width: '100%', height: 400 }}>
                         <ResponsiveContainer>
-                            <BarChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 70 }}>
+                            <BarChart data={chartData} barGap={5} barCategoryGap="25%"
+                                margin={{ top: 20, right: 30, left: 10, bottom: 70 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                             <XAxis 
                                 dataKey="displayName" 
@@ -168,12 +172,12 @@ function Dashboard({ data }) {
                                 angle={-20} 
                                 tick={{
                                     fontSize: 11, 
-                                    fill: '#64748b',
-                                    dy: 10}} 
-                                tickMargin={10}
+                                    fill: ' #64748b',
+                                    dy: 11}} 
+                                tickMargin={12}
                                 tickLine={false}
-                                dx={-40}
-                                height={25}
+                                dx={-50}
+                                height={45}
                                 textAnchor="end"
                             />
                             <YAxis 
@@ -181,21 +185,34 @@ function Dashboard({ data }) {
                                 fontSize={12} 
                                 tickLine={false} 
                                 axisLine={false} 
-                                tick={{fill: '#94a3b8'}} 
+                                tick={{fill: ' #94a3b8'}} 
                             />
                             <Tooltip 
                                 cursor={{fill: '#f8fafc'}}
                                 contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}}
                                 labelFormatter={(label) => `Компетенция: ${label}`}
+                                formatter={(value)=>[value, 'баллы ']}
+                                
                             />
-                            <Bar dataKey="score" fill="#3b82f6" radius={[6, 6, 0, 0]} barSize={45} >
+                            <Bar name={year} dataKey="score" fill="rgb(101, 142, 208)" radius={[6, 6, 0, 0]} barSize={22} >
                                 <LabelList
-                                    
+                                    formatter={(value)=>Math.round(value)}
                                     position="top"
                                     offset={5}
                                     fontSize={12}
-                                    fill="black"
+                                    fill="rgb(81, 87, 110)"
                                 /></Bar>
+                            <Bar name={year-1} dataKey="prev_score" fill=" #904acc" radius={[6, 6, 0, 0]} barSize={22} >
+                                <LabelList
+                                    formatter={(value)=>Math.round(value)}
+                                    position="top"
+                                    offset={5}
+                                    fontSize={11}
+                                    fill="rgb(139, 148, 174)"
+                                /></Bar>
+                            <Legend verticalAlign="top" align="right" fontSize={8} 
+                                formatter={(label)=>`${label-1}/${label}`}>
+                            </Legend>
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
