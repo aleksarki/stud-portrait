@@ -233,3 +233,45 @@ def ai_interpret_all_competencies(request):
             'message': str(e),
             'traceback': traceback.format_exc()
         }, status=500)
+
+@method('POST')
+@csrf_exempt
+def ai_generate_interpretation(request):
+    """
+    Генерирует интерпретацию и рекомендации для компетенции с помощью ruT5.
+    
+    POST /portrait/ai-generate/
+    Body: {
+        "competency": "res_comp_leadership",
+        "score": 678,
+        "course": 3,
+        "other_scores": [...]
+    }
+    """
+    try:
+        data = json.loads(request.body)
+        competency_field = data.get('competency')
+        score = data.get('score')
+        course = data.get('course', 1)
+        other_scores = data.get('other_scores', [])
+
+        if not competency_field or score is None:
+            return JsonResponse({'status': 'error', 'message': 'competency and score required'}, status=400)
+
+        # Импортируем функции генерации (пока заглушка)
+        from .ml_model import generate_text
+
+        comp_name = COMP.names.get(competency_field, competency_field)
+        # Простой промпт
+        prompt = f"Студент {course} курса. Компетенция '{comp_name}' = {score}/800. Напиши интерпретацию уровня (низкий, средний, высокий) и 3 рекомендации по развитию."
+        result = generate_text(prompt, max_length=200)
+
+        return JsonResponse({
+            'status': 'success',
+            'data': {
+                'interpretation': result,
+                'recommendations': []  # пока отдельно, можно парсить из текста
+            }
+        })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
