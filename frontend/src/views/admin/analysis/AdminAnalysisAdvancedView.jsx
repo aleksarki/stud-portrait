@@ -17,7 +17,7 @@ import { COMPETENCIES_NAMES, LINK_TREE } from "../../../utilities";
 
 import { COMPETENCIES_NAMES, LINK_TREE } from "../../../utilities";
 
-import FlexRow, { JUSTIFY }, { JUSTIFY } from "../../../components/FlexRow";
+import FlexRow, { JUSTIFY } from "../../../components/FlexRow";
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
 
 import TitledCard from "../../../components/cards/TitledCard";
@@ -522,14 +522,11 @@ function AdminAnalysisAdvancedView() {
                     <LoadingSpinner loading={loading} text="Загрузка визуализации..." />
 
                     {!loading && (
-                        {!loading && (
                         <div className="visualization-container">
-                                {activeVisualization === 'dimension' && renderDimensionAnalysis()}
-                                {activeVisualization === 'lgm' && renderLGMCohort()}
+                            {activeVisualization === 'dimension' && renderDimensionAnalysis()}
+                            {activeVisualization === 'lgm' && renderLGMCohort()}
                             {activeVisualization === 'flow' && renderFlowAnalysis()}
                         </div>
-                    )}
-                    
                     )}
                     
                 </Content>
