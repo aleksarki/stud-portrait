@@ -1,1 +1,128 @@
-.AdminMainView {}
+.AdminMainView {
+    
+    .dashboard-container {
+        padding: 2rem;
+        background: #ffffff;
+        color: #1e293b;
+        border-radius: 0.75rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 1px solid #f1f5f9;
+        margin-top: 1rem;
+    
+        .dashboard-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+        }
+    
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 3rem;
+    
+        @media (min-width: 1024px) {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+  
+        .col-left {
+            border-right: 1px solid #f1f5f9;
+            padding-right: 2rem;
+        }
+        
+        .col-center{
+            .chart-wrapper {
+                position: relative;
+                width: 100%;
+                max-width: 300px;
+                margin: 0 auto;
+            }
+
+            .absolute-center {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                text-align: center;
+                pointer-events: none; 
+            }
+
+            .absolute-center h2 {
+                margin: 0;
+                font-size: 2.5rem;
+                font-weight: 800;
+                color: #1e293b;
+            }
+
+            .absolute-center p {
+                margin: 0;
+                font-size: 0.7rem;
+                color: #64748b;
+                letter-spacing: 0.05em;
+            }
+
+            :deep(.recharts-tooltip-wrapper) {
+                outline: none;
+            }
+        }
+
+        .col-right {
+            border-left: 1px solid #f1f5f9;
+            padding-left: 2rem;
+        }
+    
+        .stat-block {
+            margin-bottom: 1.5rem;
+    
+            .trend {
+                display: flex;
+                align-items: center;
+                font-size: 0.875rem;
+                font-weight: 700;
+                gap: 4px;
+        
+                &.up { color: #22c55e; }
+                &.down { color: #ef4444; }
+            }
+        
+            .value {
+                font-size: 1.875rem;
+                font-weight: 700;
+                line-height: 1;
+                margin: 0.25rem 0;
+            }
+        
+            .prev-year {
+                color: #94a3b8;
+                font-size: 0.75rem;
+            }
+        
+            .label {
+                color: #64748b;
+                font-size: 0.875rem;
+                margin-top: 0.5rem;
+            }
+        }
+    
+        .dashboard-chart-row {
+            background: #ffffff;
+            border-top: 1px solid #f1f5f9;
+            padding-top: 2rem;
+        
+            .chart-container {
+                min-height: 0px;
+                min-width: 0px;
+                width: 90%;
+                margin-top: 2rem;
+                h4 {
+                    font-size: 0.75rem;
+                    text-transform: uppercase;
+                    font-weight: 700;
+                    color: #94a3b8;
+                    margin-bottom: 1rem;
+                }
+            }
+        }
+    }
+
+}

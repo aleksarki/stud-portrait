@@ -2,3 +2,7 @@
 .vscode/
 
 .env
+backend/start.bat
+backend/src/portrait/management/commands/seed_data.py
+backend/src/portrait/management/__init__.py
+backend/src/portrait/management/commands/__init__.py

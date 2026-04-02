@@ -2,10 +2,17 @@ import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Chart from 'react-apexcharts';
 
-import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
-import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
 import { FIELD_NAMES, LINK_TREE } from "../../utilities.js";
 import { postPortraitGroupData } from '../../api.js';
+
+import FlexRow from "../../components/FlexRow";
+import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
+
+import TitledCard from "../../components/cards/TitledCard";
+
+import Button, { BUTTON_PALETTE } from '../../components/ui/Button';
+import Label from '../../components/ui/Label';
+import Select, { Option } from '../../components/ui/Select.jsx';
 
 import "./AdminGroupingView.scss";
 
@@ -50,14 +57,6 @@ function AdminGroupingView() {
             height: 400,
             toolbar: {
                 show: true
-            }
-        },
-        title: {
-            text: title,
-            align: 'center',
-            style: {
-                fontSize: '16px',
-                fontWeight: 'bold'
             }
         },
         xaxis: {
@@ -111,65 +110,55 @@ function AdminGroupingView() {
                 <Content>
                     <div className="grouping-container">
                         <div className="grouping-header">
-                            <div className="header-left">
-                                <h1>Группировка данных</h1>
-                                {groupingData && (
-                                    <div className="grouping-info">
-                                        <p>
-                                            Группировка по: <strong>{FIELD_NAMES[groupingData.groupingColumn] || groupingData.groupingColumn}</strong> | 
-                                            Записей: <strong>{groupingData.selectedIds.length}</strong> | 
-                                            Фильтров: <strong>{groupingData.filters.length}</strong>
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="header-controls">
-                                <div className="chart-type-selector">
-                                    <label>Тип диаграммы:</label>
-                                    <select 
-                                        value={chartType}
-                                        onChange={(e) => setChartType(e.target.value)}
-                                    >
-                                        <option value="line">Линейная</option>
-                                        <option value="bar">Столбчатая</option>
-                                        <option value="area">Областная</option>
-                                    </select>
-                                </div>
+                            <h1>Группировка данных</h1>
+                            <FlexRow>
+                                <label>Тип диаграммы:</label>
+                                <Select value={chartType} onChange={setChartType}>
+                                    <Option value="line" label="Линейная" />
+                                    <Option value="bar" label="Столбчатая" />
+                                    <Option value="area" label="Областная" />
+                                </Select>
                                 <Button
                                     text="← Назад к результатам"
                                     onClick={() => navigate('/admin/results')}
                                     palette={BUTTON_PALETTE.GRAY}
                                 />
-                            </div>
+                                {groupingData && (
+                                    <Label>
+                                        Группировка по: <strong>{FIELD_NAMES[groupingData.groupingColumn] || groupingData.groupingColumn}</strong> | 
+                                        Записей: <strong>{groupingData.selectedIds.length}</strong> | 
+                                        Фильтров: <strong>{groupingData.filters.length}</strong>
+                                    </Label>
+                                )}
+                            </FlexRow>
                         </div>
 
                         {/* Навигация по типам данных */}
-                        <div className="data-tabs">
-                            <button 
-                                className={`tab-button ${activeTab === 'competences' ? 'active' : ''}`}
+                        <FlexRow>
+                            <Button
+                                text="Компетенции"
                                 onClick={() => setActiveTab('competences')}
-                            >
-                                ⚡ Компетенции
-                            </button>
-                            <button 
-                                className={`tab-button ${activeTab === 'motivators' ? 'active' : ''}`}
+                                palette={activeTab === 'competences' ? BUTTON_PALETTE.BLUE : BUTTON_PALETTE.GRAY}
+                            />
+                            <Button
+                                text="Мотиваторы"
                                 onClick={() => setActiveTab('motivators')}
-                            >
-                                🎯 Мотиваторы
-                            </button>
-                            <button 
-                                className={`tab-button ${activeTab === 'values' ? 'active' : ''}`}
+                                palette={activeTab === 'motivators' ? BUTTON_PALETTE.BLUE : BUTTON_PALETTE.GRAY}
+                            />
+                            <Button
+                                text="Ценности"
                                 onClick={() => setActiveTab('values')}
-                            >
-                                ❤️ Ценности
-                            </button>
+                                palette={activeTab === 'values' ? BUTTON_PALETTE.BLUE : BUTTON_PALETTE.GRAY}
+                            />
+                        </FlexRow>
+                        <div className="data-tabs">
                         </div>
 
                         {/* Компетенции */}
                         {activeTab === 'competences' && chartData?.competences && (
                             <div className="charts-grid">
                                 {Object.entries(chartData.competences).map(([competence, data]) => (
-                                    <div key={competence} className="chart-container">
+                                    <TitledCard title={FIELD_NAMES[competence]}>
                                         <Chart
                                             options={getChartOptions(
                                                 FIELD_NAMES[competence] || competence,
@@ -182,7 +171,7 @@ function AdminGroupingView() {
                                             type={chartType}
                                             height={400}
                                         />
-                                    </div>
+                                    </TitledCard>
                                 ))}
                             </div>
                         )}

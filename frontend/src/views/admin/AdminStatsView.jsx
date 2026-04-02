@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Chart from 'react-apexcharts';
 
-import FlexRow, { ALIGN, JUSTIFY } from '../../components/FlexRow.jsx';
+import FlexRow, { ALIGN, JUSTIFY, WRAP } from '../../components/FlexRow.jsx';
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 import Card from '../../components/cards/Card.jsx';
 import TitledCard from '../../components/cards/TitledCard.jsx';
@@ -252,7 +252,7 @@ function AdminStatsView() {
                                     </div>
                                 )}
                             </div>
-                            <FlexRow>
+                            <FlexRow wrap={WRAP.DO}>
                                 <Button
                                     text={showFilters ? 'Скрыть фильтры' : 'Показать фильтры'}
                                     onClick={() => setShowFilters(!showFilters)}
@@ -394,7 +394,7 @@ function AdminStatsView() {
                         )}
 
                         {/* Навигация по разделам */}
-                        <FlexRow margin="0 0 30 0">
+                        <FlexRow margin="0 0 30 0" wrap={WRAP.DO}>
                             <Button
                                 text="Обзор"
                                 onClick={() => setActiveTab('overview')}
@@ -471,6 +471,8 @@ function AdminStatsView() {
                                             type="bar"
                                             height={400}
                                         />
+                                    </TitledCard>
+                                    <TitledCard title="Прохождение тестирования за текущий период">
                                     </TitledCard>
                                 </div>
 

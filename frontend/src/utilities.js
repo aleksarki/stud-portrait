@@ -5,14 +5,16 @@ export const LINK_TREE = [
         category: null,
         links: [
             {title: "Главная", to: '/admin/'},
-            {title: "Статистика тестирования", to: '/admin/stats'}
+            {title: "Статистика тестирования", to: '/admin/stats'},
+            {title: "География тестирования", to: '/admin/geography'}
         ]
     },
     {
         category: "Результаты",
         links: [
             {title: "Тестирование профилей", to: '/admin/results'},
-            {title: "Образовательные курсы", to: '/admin/courses'}
+            {title: "Образовательные курсы", to: '/admin/courses'},
+            {title: "Мотиваторы", to: '/admin/motivators'}
         ]
     },
     {

@@ -25,6 +25,8 @@ import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import MultiSelect from '../../../components/ui/MultiSelect';
 import NoData from "../../../components/ui/NoData";
 
+import SankeyDiagram from '../../../components/charts/SankeyDiagram';
+
 import "./AdminAnalysisDisciplinesView.scss";
 
 function AdminAnalysisDisciplinesView() {
@@ -144,6 +146,7 @@ function AdminAnalysisDisciplinesView() {
     const [allDisciplinesData, setAllDisciplinesData] = useState(null);
     const [selectedDisciplines, setSelectedDisciplines] = useState([]);
     const [activeTab, setActiveTab] = useState('impact');
+    const [sankeyImpactData, setSankeyImpactData] = useState(null);
 
     // Загрузка комплексного анализа всех дисциплин
     const loadAllDisciplinesImpact = async () => {
@@ -399,6 +402,40 @@ function AdminAnalysisDisciplinesView() {
         );
     };
 
+    // Функция преобразования
+    const prepareSankeyFromHeatmap = (heatmapData) => {
+        if (!heatmapData || heatmapData.length === 0) return null;
+        const disciplines = [...new Set(heatmapData.map(d => d.discipline))];
+        const competencies = [...new Set(heatmapData.map(d => d.competency_label))];
+        const nodes = [
+            ...disciplines.map(d => ({ name: d, type: 'discipline' })),
+            ...competencies.map(c => ({ name: c, type: 'competency' }))
+        ];
+        const nodeIndex = {};
+        nodes.forEach((node, idx) => { nodeIndex[node.name] = idx; });
+
+        const links = heatmapData
+            .filter(d => d.effect_size !== null && d.effect_size !== 0)
+            .map(d => ({
+                source: nodeIndex[d.discipline],
+                target: nodeIndex[d.competency_label],
+                value: Math.abs(d.effect_size)
+            }));
+        return { nodes, links };
+    };
+
+    // Функция показа Санки
+    const showImpactSankey = () => {
+        if (!heatmapData) return;
+        const prepared = prepareSankeyFromHeatmap(heatmapData);
+        if (prepared) {
+            setSankeyImpactData(prepared);
+            setActiveTab('sankey');
+        } else {
+            alert('Не удалось построить диаграмму Санки: недостаточно данных.');
+        }
+    };
+
     return (
         <div className="AdminAnalysisDisciplinesView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
@@ -439,6 +476,12 @@ function AdminAnalysisDisciplinesView() {
                                 disabled={loading}
                                 palette={BUTTON_PALETTE.GREEN}
                             />
+                            <Button
+                                text="Санки влияния"
+                                onClick={showImpactSankey}
+                                disabled={!heatmapData || loading}
+                                palette={BUTTON_PALETTE.PURPLE}
+                            />
                         </FlexRow>
                     </div>
 
@@ -467,12 +510,34 @@ function AdminAnalysisDisciplinesView() {
                                     palette={activeTab === 'all' ? BUTTON_PALETTE.GREEN : BUTTON_PALETTE.GRAY}
                                 />
                             )}
+                            {sankeyImpactData && (
+                                <Button
+                                    text="Санки влияния"
+                                    onClick={() => setActiveTab('sankey')}
+                                    palette={activeTab === 'sankey' ? BUTTON_PALETTE.PURPLE : BUTTON_PALETTE.GRAY}
+                                />
+                            )}
                         </FlexRow>
 
                         <div className="tab-content">
                             {activeTab === 'impact' && renderDisciplineImpact()}
                             {activeTab === 'heatmap' && renderHeatmap()}
                             {activeTab === 'all' && renderAllDisciplinesImpact()}
+                            {activeTab === 'sankey' && sankeyImpactData && (
+                                <>
+                                    <SankeyDiagram data={sankeyImpactData} title="Влияние дисциплин на компетенции" height={500} />
+                                    <details style={{ marginTop: 16, background: '#f8f9fa', borderRadius: 6, padding: '10px 14px', border: '1px solid #e9ecef' }}>
+                                        <summary style={{ cursor: 'pointer', fontWeight: 500, color: '#2c3e50' }}>📖 Что показывает эта диаграмма?</summary>
+                                        <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.5 }}>
+                                            <p><strong>Диаграмма Санки</strong> отображает влияние дисциплин на развитие компетенций.</p>
+                                            <p>🔵 <strong>Левые узлы</strong> — дисциплины, <strong>правые узлы</strong> — компетенции.</p>
+                                            <p>📊 <strong>Толщина потока</strong> пропорциональна величине эффекта (Cohen's d). Чем толще линия, тем сильнее дисциплина влияет на компетенцию.</p>
+                                            <p>🎨 <strong>Цвет узлов</strong>: дисциплины — синий, компетенции — оранжевый.</p>
+                                            <p>💡 <strong>Совет:</strong> Наведите курсор на поток, чтобы увидеть точное значение Effect Size.</p>
+                                        </div>
+                                    </details>
+                                </>
+                            )}
                         </div>
                     </>}
                     

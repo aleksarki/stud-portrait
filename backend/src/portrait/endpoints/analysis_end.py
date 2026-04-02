@@ -1272,3 +1272,112 @@ def analyze_student_discipline_impact(request):
         import traceback
         traceback.print_exc()
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def get_competency_level_flow(request):
+    """
+    POST /portrait/get-competency-level-flow/
+    Body: {
+        "competency": "res_comp_leadership",
+        "institution_ids": [1,2],
+        "direction_ids": [10,20]
+    }
+    Returns: {
+        "nodes": [{"name": "1 курс - Низкий"}, ...],
+        "links": [{"source": 0, "target": 5, "value": 42}, ...]
+    }
+    """
+    try:
+        body = json.loads(request.body)
+        competency = body.get('competency')
+        if not competency:
+            return JsonResponse({'status': 'error', 'message': 'competency required'}, status=400)
+
+        institution_ids = body.get('institution_ids', [])
+        direction_ids = body.get('direction_ids', [])
+
+        # Фильтруем участников
+        participants_qs = Participants.objects.all()
+        if institution_ids:
+            participants_qs = participants_qs.filter(part_institution_id__in=institution_ids)
+        if direction_ids:
+            participants_qs = participants_qs.filter(part_spec_id__in=direction_ids)
+
+        # Получаем все результаты выбранных участников, сортируем по студенту и курсу
+        results = Results.objects.filter(
+            res_participant_id__in=participants_qs.values_list('part_id', flat=True)
+        ).order_by('res_participant_id', 'res_course_num')
+
+        # Группируем по студентам
+        student_data = {}
+        for r in results:
+            sid = r.res_participant_id
+            score = getattr(r, competency, None)
+            if score is None:
+                continue
+            course = r.res_course_num
+            if course not in [1,2,3,4]:
+                continue
+            if sid not in student_data:
+                student_data[sid] = {}
+            student_data[sid][course] = score
+
+        all_scores = [score for d in student_data.values() for score in d.values()]
+        if not all_scores:
+            return JsonResponse({'status': 'error', 'message': 'No scores found'}, status=404)
+
+        # Пороги: низкий < p33, высокий > p66
+        p33 = np.percentile(all_scores, 33)
+        p66 = np.percentile(all_scores, 66)
+
+        def get_level(score):
+            if score <= p33:
+                return 'Низкий'
+            elif score <= p66:
+                return 'Средний'
+            else:
+                return 'Высокий'
+
+        courses = [1,2,3,4]
+        levels = ['Низкий', 'Средний', 'Высокий']
+        nodes = []
+        node_index = {}
+        for course in courses:
+            for level in levels:
+                name = f"{course} курс - {level}"
+                node_index[(course, level)] = len(nodes)
+                nodes.append({'name': name})
+
+        # Подсчёт переходов между последовательными курсами
+        transition_counts = {}
+        for sid, scores in student_data.items():
+            sorted_courses = sorted(scores.keys())
+            for i in range(len(sorted_courses)-1):
+                c_from = sorted_courses[i]
+                c_to = sorted_courses[i+1]
+                if c_to != c_from + 1:
+                    continue
+                level_from = get_level(scores[c_from])
+                level_to = get_level(scores[c_to])
+                key = (c_from, level_from, c_to, level_to)
+                transition_counts[key] = transition_counts.get(key, 0) + 1
+
+        links = []
+        for (c_from, level_from, c_to, level_to), count in transition_counts.items():
+            links.append({
+                'source': node_index[(c_from, level_from)],
+                'target': node_index[(c_to, level_to)],
+                'value': count
+            })
+
+        return JsonResponse({
+            'status': 'success',
+            'nodes': nodes,
+            'links': links
+        }, json_dumps_params={'ensure_ascii': False})
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

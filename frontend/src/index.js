@@ -10,6 +10,7 @@ import AdminAnalysisDisciplinesView from "./views/admin/analysis/AdminAnalysisDi
 import AdminAnalysisVamLgmView from "./views/admin/analysis/AdminAnalysisVamLgmView";
 
 import AdminCoursesView from "./views/admin/AdminCoursesView";
+import AdminGeographyView from "./views/admin/AdminGeographyView";
 import AdminGroupingView from "./views/admin/AdminGroupingView";
 import AdminHelpView from "./views/admin/AdminHelpView";
 import AdminMainView from "./views/admin/AdminMainView";
@@ -22,6 +23,7 @@ import StudentReportView from "./views/student/StudentReportView";
 
 import reportWebVitals from "./reportWebVitals";
 import "./index.css";
+import AdminMotivatorsView from "./views/admin/AdminMotivatorsView";
 
 const router = createBrowserRouter([
   {
@@ -40,6 +42,10 @@ const router = createBrowserRouter([
   {
     path: "/admin/",
     element: <AdminMainView />
+  },
+  {
+    path: "/admin/geography",
+    element: <AdminGeographyView />
   },
   {
     path: "/admin/help",
@@ -76,6 +82,10 @@ const router = createBrowserRouter([
   {
     path: "/admin/grouping",
     element: <AdminGroupingView />
+  },
+  {
+    path: "/admin/motivators",
+    element: <AdminMotivatorsView/>
   }
 ])
 

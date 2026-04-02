@@ -10,14 +10,25 @@ import {
     getPortraitGetDisciplines,
     getPortraitGetFilterOptionsWithCounts,
     getPortraitGetInstitutionDirections,
-    postPortraitCreateDataSession
+    postPortraitCreateDataSession,
+    postGetCompetencyLevelFlow
 } from "../../../api";
-import FlexRow from "../../../components/FlexRow";
-import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
-import Button, { BUTTON_PALETTE } from "../../../components/ui/Button";
-import LoadingSpinner from "../../../components/ui/LoadingSpinner";
-import NoData from "../../../components/ui/NoData";
 import { COMPETENCIES_NAMES, LINK_TREE } from "../../../utilities";
+
+import FlexRow, { JUSTIFY } from "../../../components/FlexRow";
+import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
+
+import TitledCard from "../../../components/cards/TitledCard";
+import ValueCard from "../../../components/cards/ValueCard";
+
+import Table, { TableHeader, TableItem, TableRow } from "../../../components/tables/Table";
+
+import Button, { BUTTON_PALETTE } from "../../../components/ui/Button";
+import NoData from "../../../components/ui/NoData";
+import LoadingSpinner from "../../../components/ui/LoadingSpinner";
+import Select, { Option } from "../../../components/ui/Select";
+
+import SankeyDiagram from '../../../components/charts/SankeyDiagram';
 
 import "./AdminAnalysisAdvancedView.scss";
 
@@ -45,8 +56,12 @@ function AdminAnalysisAdvancedView() {
         testAttempts: [],
         competencies: [],
         students: [],
-        disciplines: [] // добавить
+        disciplines: []
     });
+
+    // Состояния для потока уровней
+    const [flowData, setFlowData] = useState(null);
+    const [flowCompetency, setFlowCompetency] = useState('res_comp_leadership')
 
     // -------------------- ИНИЦИАЛИЗАЦИЯ СЕССИИ --------------------
     useEffect(() => {
@@ -183,6 +198,26 @@ function AdminAnalysisAdvancedView() {
             .finally(() => setLoading(false));
     };
 
+    // Загрузка потока уровней
+    const loadLevelFlow = () => {
+        setLoading(true);
+        setActiveVisualization('flow');
+        postGetCompetencyLevelFlow(flowCompetency, selectedInstitutions, selectedDirections)
+            .onSuccess(async response => {
+                const data = await response.json();
+                if (data.status === 'success') {
+                    setFlowData({ nodes: data.nodes, links: data.links });
+                } else {
+                    alert('Ошибка: ' + (data.message || 'Неизвестная ошибка'));
+                }
+            })
+            .onError(err => {
+                console.error(err);
+                alert('Ошибка при загрузке данных потока');
+            })
+            .finally(() => setLoading(false));
+    };
+
     const renderDimensionAnalysis = () => {
         if (!dimensionData) {
             return <NoData text="Нет данных для отображения" />;
@@ -207,43 +242,15 @@ function AdminAnalysisAdvancedView() {
         console.log('Chart data:', chartData); // отладка
 
         return (
-            <div className="dimension-container">
+            <div>
                 <h4>Анализ по измерению: {dimension}</h4>
-                <p className="info-text">Компетенция: {COMPETENCIES_NAMES[competency] || competency}</p>
-                
-                {/* Отладочная таблица */}
-                <table style={{ margin: '10px 0', borderCollapse: 'collapse', width: '100%' }}>
-                    <thead>
-                        <tr>
-                            <th>Группа</th>
-                            <th>Среднее</th>
-                            <th>Медиана</th>
-                            <th>Мин</th>
-                            <th>Макс</th>
-                            <th>n</th>
-                            <th>Стд.откл.</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {chartData.slice(0, 10).map((g, idx) => (
-                            <tr key={idx}>
-                                <td>{g.name}</td>
-                                <td>{g.mean?.toFixed(1) ?? '–'}</td>
-                                <td>{g.median?.toFixed(1) ?? '–'}</td>
-                                <td>{g.min?.toFixed(1) ?? '–'}</td>
-                                <td>{g.max?.toFixed(1) ?? '–'}</td>
-                                <td>{g.n}</td>
-                                <td>{g.std?.toFixed(1) ?? '–'}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                <p>Компетенция: {COMPETENCIES_NAMES[competency] || competency}</p>
 
                 <ResponsiveContainer width="100%" height={400}>
                     <BarChart
                         data={chartData}
                         layout="vertical"
-                        margin={{ top: 20, right: 30, bottom: 20, left: 250 }}
+                        margin={{ top: 20, right: 30, bottom: 20, left: 30 }}
                     >
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis type="number" />
@@ -279,6 +286,30 @@ function AdminAnalysisAdvancedView() {
                         <Bar dataKey="mean" fill="#1976d2" name="Средний балл" />
                     </BarChart>
                 </ResponsiveContainer>
+                
+                {/* Отладочная таблица */}
+                <Table>
+                    <TableHeader>
+                        <TableItem>Группа</TableItem>
+                        <TableItem>Среднее</TableItem>
+                        <TableItem>Медиана</TableItem>
+                        <TableItem>Мин</TableItem>
+                        <TableItem>Макс</TableItem>
+                        <TableItem>n</TableItem>
+                        <TableItem>Стд.откл.</TableItem>
+                    </TableHeader>
+                    {chartData.slice(0, 10).map((g, idx) => (
+                        <TableRow key={idx}>
+                            <TableItem>{g.name}</TableItem>
+                            <TableItem>{g.mean?.toFixed(1) ?? '–'}</TableItem>
+                            <TableItem>{g.median?.toFixed(1) ?? '–'}</TableItem>
+                            <TableItem>{g.min?.toFixed(1) ?? '–'}</TableItem>
+                            <TableItem>{g.max?.toFixed(1) ?? '–'}</TableItem>
+                            <TableItem>{g.n}</TableItem>
+                            <TableItem>{g.std?.toFixed(1) ?? '–'}</TableItem>
+                        </TableRow>
+                    ))}
+                </Table>
 
                 {dimensionData.anova && (
                     <div className="anova-results">
@@ -352,48 +383,68 @@ function AdminAnalysisAdvancedView() {
         return (
             <div className="lgm-cohort-container">
                 <h4>Latent Growth Model - Когортный анализ</h4>
-                
-                <div className="lgm-stats">
-                    <div className="stat-card">
-                        <div className="stat-value">{n_students}</div>
-                        <div className="stat-label">Студентов</div>
+
+                <FlexRow justify={JUSTIFY.CENTER}>
+                    <ValueCard value={n_students} text="Студентов" />
+                    <ValueCard value={mean_intercept?.toFixed(1) || '0'} text="Средний начальный уровень" />
+                    <ValueCard value={mean_slope?.toFixed(3) || '0'} text="Средняя скорость роста" />
+                </FlexRow>
+
+                <div className="two-columns">
+                    <div>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <LineChart data={chartData}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="course" />
+                                <YAxis />
+                                <Tooltip />
+                                <Legend />
+                                <Line
+                                    type="monotone"
+                                    dataKey="value"
+                                    stroke="#1976d2"
+                                    strokeWidth={2}
+                                    name="Средняя траектория"
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
                     </div>
-                    <div className="stat-card">
-                        <div className="stat-value">{mean_intercept?.toFixed(1) || '0'}</div>
-                        <div className="stat-label">Средний начальный уровень</div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-value">{mean_slope?.toFixed(3) || '0'}</div>
-                        <div className="stat-label">Средняя скорость роста</div>
+                    <div>
+                        {interpretation && (
+                            <TitledCard title="Интерпретация">
+                                <p>Средняя скорость роста: <strong>{interpretation.average_growth_rate?.toFixed(3) || '0'}</strong></p>
+                                <p>Вариабельность роста: <strong>{interpretation.growth_variability?.toFixed(3) || '0'}</strong></p>
+                                <p>Быстрорастущие: {interpretation.fast_growers_count || 0} ({interpretation.fast_growers_pct?.toFixed(1) || 0}%)</p>
+                                <p>Медленнорастущие: {interpretation.slow_growers_count || 0} ({interpretation.slow_growers_pct?.toFixed(1) || 0}%)</p>
+                            </TitledCard>
+                        )}
                     </div>
                 </div>
+            </div>
+        );
+    };
 
-                {interpretation && (
-                    <div className="interpretation-box">
-                        <h5>Интерпретация</h5>
-                        <p>Средняя скорость роста: <strong>{interpretation.average_growth_rate?.toFixed(3) || '0'}</strong></p>
-                        <p>Вариабельность роста: <strong>{interpretation.growth_variability?.toFixed(3) || '0'}</strong></p>
-                        <p>Быстрорастущие: {interpretation.fast_growers_count || 0} ({interpretation.fast_growers_pct?.toFixed(1) || 0}%)</p>
-                        <p>Медленнорастущие: {interpretation.slow_growers_count || 0} ({interpretation.slow_growers_pct?.toFixed(1) || 0}%)</p>
+    // Рендер потока уровней
+    const renderFlowAnalysis = () => {
+        if (!flowData) {
+            return <NoData text="Нет данных. Нажмите 'Поток уровней' для загрузки." />;
+        }
+        return (
+            <div className="flow-container">
+                <SankeyDiagram 
+                    data={flowData} 
+                    title={`Переходы между уровнями компетенции «${COMPETENCIES_NAMES[flowCompetency] || flowCompetency}» по курсам`}
+                    valueLabel="Количество студентов"
+                />
+                <details style={{ marginTop: 16, background: '#f8f9fa', borderRadius: 6, padding: '10px 14px', border: '1px solid #e9ecef' }}>
+                    <summary style={{ cursor: 'pointer', fontWeight: 500, color: '#2c3e50' }}>📖 Что показывает эта диаграмма?</summary>
+                    <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.5 }}>
+                        <p><strong>Диаграмма Санки</strong> показывает, как студенты переходят между уровнями компетенции при переходе с курса на курс.</p>
+                        <p>🎓 <strong>Узлы</strong> представляют собой комбинацию курса и уровня компетенции (Низкий/Средний/Высокий).</p>
+                        <p>📊 <strong>Толщина потока</strong> пропорциональна количеству студентов, переходящих из одного уровня в другой.</p>
+                        <p>💡 <strong>Совет:</strong> Наведите курсор на поток, чтобы увидеть точное количество студентов.</p>
                     </div>
-                )}
-
-                <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="course" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Line
-                            type="monotone"
-                            dataKey="value"
-                            stroke="#1976d2"
-                            strokeWidth={2}
-                            name="Средняя траектория"
-                        />
-                    </LineChart>
-                </ResponsiveContainer>
+                </details>
             </div>
         );
     };
@@ -404,9 +455,27 @@ function AdminAnalysisAdvancedView() {
                 <Header title="Админ: Анализ данных" name="Администратор" />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
-                    <h2>Продвинутые визуализации</h2>
+                    <h2>Визуализации</h2>
 
-                    <FlexRow>
+                    <FlexRow wrap="wrap" gap="10">
+                        <Button
+                            text="Поток уровней"
+                            onClick={loadLevelFlow}
+                            disabled={loading}
+                            palette={activeVisualization === 'flow' ? BUTTON_PALETTE.CYAN : BUTTON_PALETTE.GRAY}
+                        />
+                        {activeVisualization === 'flow' && (
+                            <>
+                                <span>Компетенция:</span>
+                                <select value={flowCompetency} onChange={(e) => setFlowCompetency(e.target.value)}>
+                                    {Object.entries(COMPETENCIES_NAMES).map(([key, name]) => (
+                                        <option key={key} value={key}>{name}</option>
+                                    ))}
+                                </select>
+                                <Button text="Загрузить" onClick={loadLevelFlow} disabled={loading} palette={BUTTON_PALETTE.CYAN} />
+                            </>
+                        )}
+
                         <Button
                             text="Анализ по измерениям"
                             onClick={() => {
@@ -423,23 +492,21 @@ function AdminAnalysisAdvancedView() {
                             }}
                             palette={activeVisualization === 'lgm' ? BUTTON_PALETTE.BROWN : BUTTON_PALETTE.GRAY}
                         />
-                        {activeVisualization === 'dimension' && (
-                            <>
-                                <span>Измерение:</span>
-                                <select value={selectedDimension} onChange={(e) => setSelectedDimension(e.target.value)}>
-                                    <option value="institution">ВУЗы</option>
-                                    <option value="spec">Направления</option>
-                                    <option value="form">Формы обучения</option>
-                                    <option value="course">Курсы</option>
-                                </select>
-                                <Button
-                                    text="Загрузить"
-                                    onClick={loadDimensionData}
-                                    disabled={loading}
-                                    palette={BUTTON_PALETTE.CYAN}
-                                />
-                            </>
-                        )}
+                        {activeVisualization === 'dimension' && <>
+                            <span>Измерение:</span>
+                            <Select value={selectedDimension} onChange={setSelectedDimension}>
+                                <Option value="institution" label="ВУЗы" />
+                                <Option value="spec" label="Направления" />
+                                <Option value="form" label="Формы обучения" />
+                                <Option value="course" label="Курсы" />
+                            </Select>
+                            <Button
+                                text="Загрузить"
+                                onClick={loadDimensionData}
+                                disabled={loading}
+                                palette={BUTTON_PALETTE.CYAN}
+                            />
+                        </>}
                         {activeVisualization === 'lgm' && (
                             <Button
                                 text="Загрузить LGM данные"
@@ -452,10 +519,14 @@ function AdminAnalysisAdvancedView() {
 
                     <LoadingSpinner loading={loading} text="Загрузка визуализации..." />
 
-                    <div className="visualization-container">
-                        {activeVisualization === 'dimension' && renderDimensionAnalysis()}
-                        {activeVisualization === 'lgm' && renderLGMCohort()}
+                    {!loading && (
+                        <div className="visualization-container">
+                            {activeVisualization === 'dimension' && renderDimensionAnalysis()}
+                            {activeVisualization === 'lgm' && renderLGMCohort()}
+                            {activeVisualization === 'flow' && renderFlowAnalysis()}
                     </div>
+                    )}
+                    
                 </Content>
             </SidebarLayout>
         </div>

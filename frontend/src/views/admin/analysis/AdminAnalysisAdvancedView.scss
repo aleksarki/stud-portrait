@@ -47,5 +47,22 @@
         display: flex;
         align-items: center;
         justify-content: center;
+
+        table.Table {
+            width: 100%;
+            margin-bottom: 20px;
+
+            td:first-child {
+                text-align: left;
+            }
+        }
+
+        .two-columns {
+            padding: 20px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
     }
 }
