@@ -10,8 +10,11 @@ import {
     getPortraitGetDisciplines,
     getPortraitGetFilterOptionsWithCounts,
     getPortraitGetInstitutionDirections,
-    postPortraitCreateDataSession
+    postPortraitCreateDataSession,
+    postGetCompetencyLevelFlow
 } from "../../../api";
+import { COMPETENCIES_NAMES, LINK_TREE } from "../../../utilities";
+
 import { COMPETENCIES_NAMES, LINK_TREE } from "../../../utilities";
 
 import FlexRow, { JUSTIFY } from "../../../components/FlexRow";
@@ -26,6 +29,8 @@ import Button, { BUTTON_PALETTE } from "../../../components/ui/Button";
 import NoData from "../../../components/ui/NoData";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import Select, { Option } from "../../../components/ui/Select";
+
+import SankeyDiagram from '../../../components/charts/SankeyDiagram';
 
 import "./AdminAnalysisAdvancedView.scss";
 
@@ -53,8 +58,12 @@ function AdminAnalysisAdvancedView() {
         testAttempts: [],
         competencies: [],
         students: [],
-        disciplines: [] // добавить
+        disciplines: []
     });
+
+    // Состояния для потока уровней
+    const [flowData, setFlowData] = useState(null);
+    const [flowCompetency, setFlowCompetency] = useState('res_comp_leadership')
 
     // -------------------- ИНИЦИАЛИЗАЦИЯ СЕССИИ --------------------
     useEffect(() => {
@@ -187,6 +196,26 @@ function AdminAnalysisAdvancedView() {
             .onError(error => {
                 console.error(error);
                 alert('Ошибка при загрузке данных: ' + error.message);
+            })
+            .finally(() => setLoading(false));
+    };
+
+    // Загрузка потока уровней
+    const loadLevelFlow = () => {
+        setLoading(true);
+        setActiveVisualization('flow');
+        postGetCompetencyLevelFlow(flowCompetency, selectedInstitutions, selectedDirections)
+            .onSuccess(async response => {
+                const data = await response.json();
+                if (data.status === 'success') {
+                    setFlowData({ nodes: data.nodes, links: data.links });
+                } else {
+                    alert('Ошибка: ' + (data.message || 'Неизвестная ошибка'));
+                }
+            })
+            .onError(err => {
+                console.error(err);
+                alert('Ошибка при загрузке данных потока');
             })
             .finally(() => setLoading(false));
     };
@@ -397,6 +426,31 @@ function AdminAnalysisAdvancedView() {
         );
     };
 
+    // Рендер потока уровней
+    const renderFlowAnalysis = () => {
+        if (!flowData) {
+            return <NoData text="Нет данных. Нажмите 'Поток уровней' для загрузки." />;
+        }
+        return (
+            <div className="flow-container">
+                <SankeyDiagram 
+                    data={flowData} 
+                    title={`Переходы между уровнями компетенции «${COMPETENCIES_NAMES[flowCompetency] || flowCompetency}» по курсам`}
+                    valueLabel="Количество студентов"
+                />
+                <details style={{ marginTop: 16, background: '#f8f9fa', borderRadius: 6, padding: '10px 14px', border: '1px solid #e9ecef' }}>
+                    <summary style={{ cursor: 'pointer', fontWeight: 500, color: '#2c3e50' }}>📖 Что показывает эта диаграмма?</summary>
+                    <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.5 }}>
+                        <p><strong>Диаграмма Санки</strong> показывает, как студенты переходят между уровнями компетенции при переходе с курса на курс.</p>
+                        <p>🎓 <strong>Узлы</strong> представляют собой комбинацию курса и уровня компетенции (Низкий/Средний/Высокий).</p>
+                        <p>📊 <strong>Толщина потока</strong> пропорциональна количеству студентов, переходящих из одного уровня в другой.</p>
+                        <p>💡 <strong>Совет:</strong> Наведите курсор на поток, чтобы увидеть точное количество студентов.</p>
+                    </div>
+                </details>
+            </div>
+        );
+    };
+
     return (
         <div className="AdminAnalysisAdvancedView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
@@ -405,7 +459,25 @@ function AdminAnalysisAdvancedView() {
                 <Content>
                     <h2>Визуализации</h2>
 
-                    <FlexRow>
+                    <FlexRow wrap="wrap" gap="10">
+                        <Button
+                            text="Поток уровней"
+                            onClick={loadLevelFlow}
+                            disabled={loading}
+                            palette={activeVisualization === 'flow' ? BUTTON_PALETTE.CYAN : BUTTON_PALETTE.GRAY}
+                        />
+                        {activeVisualization === 'flow' && (
+                            <>
+                                <span>Компетенция:</span>
+                                <select value={flowCompetency} onChange={(e) => setFlowCompetency(e.target.value)}>
+                                    {Object.entries(COMPETENCIES_NAMES).map(([key, name]) => (
+                                        <option key={key} value={key}>{name}</option>
+                                    ))}
+                                </select>
+                                <Button text="Загрузить" onClick={loadLevelFlow} disabled={loading} palette={BUTTON_PALETTE.CYAN} />
+                            </>
+                        )}
+
                         <Button
                             text="Анализ по измерениям"
                             onClick={() => {
@@ -453,6 +525,7 @@ function AdminAnalysisAdvancedView() {
                         <div className="visualization-container">
                             {activeVisualization === 'dimension' && renderDimensionAnalysis()}
                             {activeVisualization === 'lgm' && renderLGMCohort()}
+                            {activeVisualization === 'flow' && renderFlowAnalysis()}
                         </div>
                     )}
                     

@@ -41,6 +41,8 @@ urlpatterns = [
     path('get-discipline-heatmap-data/',        analysis_end.get_discipline_heatmap_data,        name='get_discipline_heatmap_data'),
     path('analyze-student-discipline-impact/', analysis_end.analyze_student_discipline_impact, name='analyze_student_discipline_impact'),
 
+    path('get-competency-level-flow/', analysis_end.get_competency_level_flow, name='get_competency_level_flow'),
+
     # Кросс-секционный анализ
     path('analyze-by-dimension/', analysis_end.analyze_by_dimension, name='analyze_by_dimension'),
     

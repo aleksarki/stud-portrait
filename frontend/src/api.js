@@ -295,3 +295,16 @@ export function getStudentDisciplineImpact(studentId) {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/analyze-student-discipline-impact/?${params}`);
     return new AsyncChain(promise);
 }
+
+export function postGetCompetencyLevelFlow(competency, institutionIds, directionIds) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-competency-level-flow/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            competency,
+            institution_ids: institutionIds,
+            direction_ids: directionIds
+        })
+    });
+    return new AsyncChain(promise);
+}
