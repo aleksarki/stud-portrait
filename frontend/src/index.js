@@ -23,6 +23,7 @@ import StudentReportView from "./views/student/StudentReportView";
 
 import reportWebVitals from "./reportWebVitals";
 import "./index.css";
+import AdminMotivatorsView from "./views/admin/AdminMotivatorsView";
 
 const router = createBrowserRouter([
   {
@@ -81,6 +82,10 @@ const router = createBrowserRouter([
   {
     path: "/admin/grouping",
     element: <AdminGroupingView />
+  },
+  {
+    path: "/admin/motivators",
+    element: <AdminMotivatorsView/>
   }
 ])
 

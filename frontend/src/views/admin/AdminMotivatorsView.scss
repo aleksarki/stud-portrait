@@ -1,0 +1,22 @@
+.AdminMotivatorView{
+
+    .MotChartContainer {
+        display: flex;
+        flex-direction: row;
+        width: 90%;
+        height: 600px;
+        font-family: sans-serif;
+        background-color: #f9f9f9;
+        border-radius: 8px;
+        padding: 20px;
+    }
+    
+    .chooseBoxes { 
+        width: 200px;
+        display: flex;
+        flex-direction: column; 
+        gap: 15px;
+        padding: 20px;
+        border-right: 1px solid #ddd;
+    }
+}
