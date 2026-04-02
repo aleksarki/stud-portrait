@@ -48,7 +48,7 @@ DATA_SESSIONS_VAULT: dict[str, DataViewSession] = {}  # fixme ffs make it redis
 def create_data_session(request):
     """ Start new data session.
     """
-    cleanup_old_sessions()
+    # cleanup_old_sessions()
 
     session = DataViewSession()
     DATA_SESSIONS_VAULT[session.session_id] = session

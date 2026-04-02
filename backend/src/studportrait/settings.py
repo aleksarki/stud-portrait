@@ -58,7 +58,6 @@ ROOT_URLCONF = 'studportrait.urls'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    # "http://26.239.72.204:3000"
     "http://localhost:8000",
     "http://127.0.0.1:8000",
 ]

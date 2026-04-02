@@ -95,8 +95,8 @@ function Dashboard({ data }) {
             displayName: name
     };});
     const pieData = [
-        { "name": 'Прошли', "value" : data.col2.participated.amount_in, fill: '#1f66b6'},
-        {"name" : "Не прошли", "value" : data.col2.participated.students_all - data.col2.participated.amount_in, fill: 'transparent'}
+        { "name": 'Прошли', "value" : data.col2.participated?.amount_in, fill: '#1f66b6'},
+        {"name" : "Не прошли", "value" : data.col2.participated?.students_all - data.col2.participated?.amount_in, fill: 'transparent'}
                                 
     ];
 
@@ -137,7 +137,7 @@ function Dashboard({ data }) {
                     </ResponsiveContainer>
 
                     <div class="absolute-center">
-                        <h2>{Math.round(data.col2.participated.amount_in/data.col2.participated.students_all*100,1) }%</h2>
+                        <h2>{Math.round(data.col2.participated?.amount_in/data.col2.participated?.students_all*100,1) }%</h2>
                         <p>Студентов прошли тестирование</p>
                     </div>
                 </div>

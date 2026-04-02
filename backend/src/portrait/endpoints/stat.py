@@ -99,7 +99,7 @@ def get_dashboard_stats(request):
             "col2": {
                 "uni_name": uni_name,
                 "uni_score": uni_score,
-                "participated": curr_data['participated']
+                # "participated": curr_data['participated']
             },
             "col3": {
                 "best": best_comp,
