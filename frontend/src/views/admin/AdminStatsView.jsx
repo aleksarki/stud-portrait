@@ -472,6 +472,8 @@ function AdminStatsView() {
                                             height={400}
                                         />
                                     </TitledCard>
+                                    <TitledCard title="Прохождение тестирования за текущий период">
+                                    </TitledCard>
                                 </div>
 
                                 {/* Второй ряд диаграмм */}
