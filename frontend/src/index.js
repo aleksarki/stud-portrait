@@ -10,6 +10,7 @@ import AdminAnalysisDisciplinesView from "./views/admin/analysis/AdminAnalysisDi
 import AdminAnalysisVamLgmView from "./views/admin/analysis/AdminAnalysisVamLgmView";
 
 import AdminCoursesView from "./views/admin/AdminCoursesView";
+import AdminGeographyView from "./views/admin/AdminGeographyView";
 import AdminGroupingView from "./views/admin/AdminGroupingView";
 import AdminHelpView from "./views/admin/AdminHelpView";
 import AdminMainView from "./views/admin/AdminMainView";
@@ -40,6 +41,10 @@ const router = createBrowserRouter([
   {
     path: "/admin/",
     element: <AdminMainView />
+  },
+  {
+    path: "/admin/geography",
+    element: <AdminGeographyView />
   },
   {
     path: "/admin/help",
