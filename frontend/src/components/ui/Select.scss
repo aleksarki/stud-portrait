@@ -1,46 +1,120 @@
-select.Select {
-    padding: 8px 16px !important;
-    border-radius: 4px;
-    cursor: pointer;
-    white-space: nowrap;
+.Select {
     font-size: 14px !important;
-    font-weight: 500 !important;
-    transition: all 0.2s ease;
+    // font-weight: 500 !important;
 
-    color: var(--fg);
-    background: var(--bg);
-    border: var(--border);
-    text-shadow: var(--textShadow);
-    box-shadow: var(--boxShadow);
+    min-width: 175px;
 
-    &:hover:not(:disabled) {
-        color: var(--hoverFg);
-        background: var(--hoverBg);
-        border: var(--hoverBorder);
-        text-shadow: var(--hoverTextShadow);
-        box-shadow: var(--hoverBoxShadow);
-        transform: var(--hoverTransform);
-    }
+    .field {
+        padding: 8px 16px !important;
+        border-radius: 4px;
+        white-space: nowrap;
+        user-select: none;
+        cursor: pointer;
 
-    &:active:not(:disabled) {
-        color: var(--activeFg);
-        background: var(--activeBg);
-        border: var(--activeBorder);
-        text-shadow: var(--activeTextShadow);
-        box-shadow: var(--activeBoxShadow);
-        transform: var(--activeTransform);
-    }
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
 
-    &:disabled {
-        cursor: not-allowed;
-        transform: none;
-        // opacity: 0.6;
+        color: var(--fg);
+        background: var(--bg);
+        border: var(--border);
+        text-shadow: var(--textShadow);
+        box-shadow: var(--boxShadow);
+
+        transition: all 0.2s ease;
+
+        &:not(.disabled) {
+            &:hover {
+                color: var(--hoverFg);
+                background: var(--hoverBg);
+                border: var(--hoverBorder);
+                text-shadow: var(--hoverTextShadow);
+                box-shadow: var(--hoverBoxShadow);
+                transform: var(--hoverTransform);
+            }
+
+            &:active {
+                color: var(--activeFg);
+                background: var(--activeBg);
+                border: var(--activeBorder);
+                text-shadow: var(--activeTextShadow);
+                box-shadow: var(--activeBoxShadow);
+                transform: var(--activeTransform);
+            }
+        }
         
-        color: var(--disabledFg);
-        background: var(--disabledBg);
-        border: var(--disabledBorder);
-        text-shadow: var(--disabledTextShadow);
-        box-shadow: var(--disabledBoxShadow);
-        transform: var(--disabledTransform);
+        &.disabled {
+            cursor: not-allowed;
+            transform: none;
+            // opacity: 0.6;
+            
+            color: var(--disabledFg);
+            background: var(--disabledBg);
+            border: var(--disabledBorder);
+            text-shadow: var(--disabledTextShadow);
+            box-shadow: var(--disabledBoxShadow);
+            transform: var(--disabledTransform);
+        }
+    }
+
+    .dropdown {
+        position: absolute;
+        margin-top: 4px;
+        z-index: 1000;
+        overflow: hidden;
+
+        padding: 8px 8px !important;
+        border-radius: 4px;
+
+        color: var(--fg);
+        background: var(--bg);
+        border: var(--border);
+        text-shadow: var(--textShadow);
+        box-shadow: var(--boxShadow);
+
+        &:not(.open), &.disabled {
+            display: none;
+        }
+
+        .option {
+            margin: 1px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            user-select: none;
+            cursor: pointer;
+
+            &.selected {
+                padding: 1px 7px;
+
+                color: var(--activeFg);
+                background: var(--activeBg);
+                border: var(--activeBorder);
+                text-shadow: var(--activeTextShadow);
+                box-shadow: var(--activeBoxShadow);
+                transform: var(--activeTransform);
+            }
+
+            &:hover {
+                padding: 1px 7px;
+
+                color: var(--hoverFg);
+                background: var(--hoverBg);
+                border: var(--hoverBorder);
+                text-shadow: var(--hoverTextShadow);
+                box-shadow: var(--hoverBoxShadow);
+                transform: var(--hoverTransform);
+            }
+
+            &:active {
+                padding: 1px 7px;
+                
+                color: var(--activeFg);
+                background: var(--activeBg);
+                border: var(--activeBorder);
+                text-shadow: var(--activeTextShadow);
+                box-shadow: var(--activeBoxShadow);
+                transform: var(--activeTransform);
+            }
+        }
     }
 }

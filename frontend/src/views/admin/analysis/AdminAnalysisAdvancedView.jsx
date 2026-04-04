@@ -14,7 +14,7 @@ import {
 } from "../../../api";
 import { COMPETENCIES_NAMES, LINK_TREE } from "../../../utilities";
 
-import FlexRow, { JUSTIFY } from "../../../components/FlexRow";
+import FlexRow, { JUSTIFY, WRAP } from "../../../components/FlexRow";
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
 
 import TitledCard from "../../../components/cards/TitledCard";
@@ -404,8 +404,8 @@ function AdminAnalysisAdvancedView() {
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <h2>Визуализации</h2>
-
-                    <FlexRow>
+                    
+                    <FlexRow wrap={WRAP.DO}>
                         <Button
                             text="Анализ по измерениям"
                             onClick={() => {

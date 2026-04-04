@@ -1,4 +1,4 @@
-import React from "react";
+import React, { createContext, useContext, useState } from "react";
 
 import "./Select.scss";
 
@@ -17,8 +17,28 @@ export const SELECT_PALETTE = {
     }
 };
 
-function Select({ children, value, onChange, palette = SELECT_PALETTE.GRAY }) {
+const SelectContext = createContext({
+    selected: undefined,
+    valueSetter: undefined,
+    labelSetter: undefined,
+    onChangeCallback: undefined,
+    isOpenSetter: undefined
+});
+
+function Select({ children, value, onChange, palette = SELECT_PALETTE.GRAY, disabled = false }) {
     const arr = React.Children.toArray(children);
+    
+    const [open, setOpen] = useState(false);
+    const [selected, setSelected] = useState(value);
+    const [label, setLabel] = useState(
+        arr
+            .filter(child => child.type === Option)
+            .find(child => child.props.value === value)
+            ?.props?.label
+    );
+
+    
+
 
     const fg =         palette?.normal?.fg;
     const bg =         palette?.normal?.bg;
@@ -46,10 +66,8 @@ function Select({ children, value, onChange, palette = SELECT_PALETTE.GRAY }) {
     const disabledBoxShadow =  palette?.disabled?.boxShadow ??  palette?.normal?.boxShadow;
 
     return (
-        <select
+        <div
             className="Select"
-            value={value}
-            onChange={e => onChange?.(e.target.value)}
             style={{
                 "--fg":         fg,
                 "--bg":         bg,
@@ -77,14 +95,50 @@ function Select({ children, value, onChange, palette = SELECT_PALETTE.GRAY }) {
                 "--disabledBoxShadow":  disabledBoxShadow
             }}
         >
-            {arr.filter(child => child.type === Option)}
-        </select>
+            <div
+                className={`field ${open ? 'open' : ''} ${disabled ? 'disabled' : ''}`}
+                onClick={() => !disabled && setOpen(!open)}
+            >
+                <span>{label}</span>
+                <span>{open ? "▲" : "▼"}</span>
+            </div>
+            <div className={`dropdown ${open ? 'open' : ''} ${disabled ? 'disabled' : ''}`}>
+                <SelectContext.Provider
+                    value={{
+                        selected: selected,
+                        valueSetter: setSelected,
+                        labelSetter: setLabel,
+                        isOpenSetter: setOpen,
+                        onChangeCallback: onChange
+                    }}
+                >
+                    {arr.filter(child => child.type === Option)}
+                </SelectContext.Provider>
+            </div>
+        </div>
     );
 }
 
 export function Option({ value, label }) {
+    const {
+        selected,
+        valueSetter,
+        labelSetter,
+        onChangeCallback,
+        isOpenSetter
+    } = useContext(SelectContext);
     return (
-        <option value={value}>{label}</option>
+        <div
+            className={`option ${selected === value ? 'selected' : ''}`}
+            onClick={() => {
+                valueSetter?.(value);
+                labelSetter?.(label);
+                onChangeCallback?.(value);
+                isOpenSetter(false);
+            }}
+        >
+            {label}
+        </div>
     );
 }
 

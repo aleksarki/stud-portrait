@@ -10,7 +10,7 @@ import {
 } from "../../../api";
 import { COMPETENCIES_NAMES, LINK_TREE } from "../../../utilities";
 
-import FlexRow from "../../../components/FlexRow";
+import FlexRow, { WRAP } from "../../../components/FlexRow";
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
 
 import TitledCard from "../../../components/cards/TitledCard";
@@ -264,7 +264,7 @@ function AdminAnalysisVamLgmView() {
 
                     {/* Панель управления */}
                     <TitledCard title="Метод анализа">
-                        <FlexRow>
+                        <FlexRow wrap={WRAP.DO}>
                             <Button
                                 text="Value-Added Model (VAM)"
                                 onClick={() => setAnalysisMethod('vam')}
