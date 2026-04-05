@@ -19,4 +19,56 @@
         padding: 20px;
         border-right: 1px solid #ddd;
     }
+    .mot_bar {
+        padding: 24px;
+        background: #fdfdfd;
+        border-radius: 16px;
+        border: 1px solid #eaeaea;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+      
+        .course-filters {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .filter-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: sans-serif;
+            font-weight: 600;
+            color: #555;
+            cursor: pointer;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+        
+        .filter-item:hover {
+            background: #f0f0f0;
+        }
+        
+        .filter-item input {
+            width: 18px;
+            height: 18px;
+            accent-color: #2ecc71;
+        }
+        
+        .chart-container {
+            width: 100%;
+            height: 500px;
+        }
+        
+        .recharts-cartesian-axis-tick-value {
+            font-size: 12px;
+            fill: #666;
+        }
+        
+        .recharts-legend-item-text {
+            font-size: 13px !important;
+            color: #444 !important;
+        }
+    }
 }

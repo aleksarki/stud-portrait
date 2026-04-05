@@ -1,17 +1,11 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 
 import { COURSES_NAMES, LINK_TREE } from "../../utilities.js";
-import { getPortraitCourses } from '../../api.js';
 import {
-    getPortraitGetFilterOptionsWithCounts,
-    getPortraitGetInstitutionDirections,
-    getPortraitGetDisciplines,
-    postPortraitCreateDataSession,
-} from "../../api.js";
-import {
-    LabelList, LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer
+    LabelList, LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
+    BarChart, Bar, CartesianGrid, ReferenceLine,
 } from "recharts";
 
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
@@ -53,7 +47,106 @@ const competencyLabels = {
 };
 const getLabel = (key) => competencyLabels[key] || competencyLabels[key.replace('res_comp_', '').replace('_', ' ')] || key.replace('res_comp_', '').replace('_', ' ');
 
+//до 400 - демотиватор, 600+ мотиватор
 
+function MotivatorChart ({ chart_data }){
+    const [selectedCourses, setSelectedCourses] = useState([1, 2, 3, 4]);
+  
+    const toggleCourse = (course) => {
+      setSelectedCourses(prev => 
+        prev.includes(course) ? prev.filter(c => c !== course) : [...prev, course]
+      );
+    };
+  
+    // Цветовая палитра для 4 курсов 
+    const colors = {
+      1: { high: " #2ecc71", low: "rgb(167, 75, 65)" }, 
+      2: { high: "rgb(47, 205, 173)", low: "rgb(100, 33, 26)" },
+      3: { high: " #27ae60", low: "rgb(184, 61, 27)" },
+      4: { high: "#1a7438", low: "#862663" },
+    };
+    const formatValue = (value) => Math.abs(value);
+    if (!chart_data) {
+        console.log('MotivationBars: ошибка загрузки данных');
+        return <div className="p-4 text-gray-500">Нет данных для отображения</div>;
+    }
+    else{
+        return (
+            <div className="mot_bar">
+                <div className="course-filters">
+                {[1, 2, 3, 4].map(course => (
+                    <label key={course} className="filter-item">
+                    <input
+                        type="checkbox"
+                        checked={selectedCourses.includes(course)}
+                        onChange={() => toggleCourse(course)}
+                    />
+                    <span>{course} Курс</span>
+                    </label>
+                ))}
+                </div>
+        
+                <div className="chart-container">
+                <ResponsiveContainer width="100%" height={500}>
+                    
+                    <BarChart
+                        data={chart_data}
+                        barGap={-35} 
+                        margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                    >
+                    <Legend layout="vertical" align="left" verticalAlign="top" wrapperStyle={{ paddingBottom: '20px' }} />
+                    
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
+                    <XAxis 
+                        dataKey="name" 
+                        tickFormatter={getLabel}
+                        angle={-45} 
+                        tickMargin={20}
+                        textAnchor={"end"} 
+                        interval={0} 
+                        height={80}
+                    />
+                    <YAxis tickFormatter={formatValue} />
+                    <Tooltip 
+                        formatter={(value, course) => [formatValue(value), `${course} у`]}
+                        cursor={{ fill: '#f5f5f5' }}
+                        labelFormatter={(label) => `${getLabel(label)}`}
+                    />
+                   
+                    <ReferenceLine y={0} stroke="#333" strokeWidth={1} />
+        
+                    {selectedCourses.map(course => (
+                        <React.Fragment key={course}>
+                        {/* Верхний бар (>600) */}
+                        <Bar
+                            dataKey={`course_${course}_high`}
+                            fill={colors[course].high}
+                            fillOpacity={0.5}
+                            stroke={colors[course].high}
+                            strokeWidth={1}
+                            name={`Курс ${course}: Мотиваторы`}
+                            barSize={35}
+                        />
+                        <Bar
+                            dataKey={(data) => -(data[`course_${course}_low`] || 0)}
+                            fill={colors[course].low}
+                            fillOpacity={0.5}
+                            stroke={colors[course].low}
+                            strokeWidth={1}
+                            name={`Курс ${course}: Демотиваторы`}
+                            barSize={35}
+                        />
+                        </React.Fragment>
+                    ))}
+                    </BarChart>
+                </ResponsiveContainer>
+                </div>
+            </div>
+    );}
+  };
+
+
+//паутинка пред
 function MotivationRadar({ data }) {
 
     const [hoveredCourse, setHoveredCourse] = useState(null);
@@ -92,8 +185,6 @@ function MotivationRadar({ data }) {
     const handleMouseLeave = () => {
         setHoveredCourse(null);
     };
-
-    const formatName = (name) => getLabel(name);
 
     const toggleCourse = (courseKey) => {
         setVisibleCourses(prev => ({
@@ -170,6 +261,7 @@ function AdminMotivatorsView(){
         const [MotivationData, setMotivationData] = useState(null);
         const [loadingMotDash, setLoadingMotDash] = useState(false);
         const [isLoaded, setStatus] = useState(false);
+        const [isError, setErrorStatus] = useState(false);
     
         const loadMotivationStats = async () => {
             setLoadingMotDash(true)
@@ -191,12 +283,32 @@ function AdminMotivatorsView(){
                 setLoadingMotDash(false); 
             }
         };
+        const loadMotivationCounts = async () => {
+            setLoadingMotDash(true)
+            try {
+                const response = await fetch(`http://localhost:8000/portrait/motivation-counts`);
+                
+                if (!response.ok) {setErrorStatus(true); throw new Error('Ошибка сервера');}
+                
+                const data = await response.json();
+                console.log(data.data)
+                setMotivationData(data); 
+                setStatus(true);
+             
+            } catch (error) {
+                console.error("Ошибка при загрузке мотиваторов:", error);
+                setStatus(false);
+                setErrorStatus(true);
+            } finally {
+                setLoadingMotDash(false); 
+            }
+        };
         useEffect(() => {
             
-            if (isLoaded==false) {
-                loadMotivationStats();
+            if (isLoaded==false && isError==false) {
+                loadMotivationCounts();
             }
-        }); 
+        },[isLoaded]); 
     
 
     return (
@@ -205,12 +317,13 @@ function AdminMotivatorsView(){
                     <Header title="Админ: График мотиваторов" name="Администратор1" />
                     <Sidebar linkTree={LINK_TREE} />
                     <Content>
-                        {loadingMotDash ? (
+                        {isError ? (<div className="p-10 text-center"> Ошибка при загрузке данных </div>) :
+                        (<>{loadingMotDash ? (
                             <div className="p-10 text-center">Загрузка данных...</div>
                                 
-                            ) : (<MotivationRadar data={MotivationData?.data}/>
+                            ) : (<MotivatorChart chart_data={MotivationData?.data}/>
                             
-                        )}
+                        )}</>)}
                     </Content>
                 </SidebarLayout>
             </div>

@@ -8,10 +8,8 @@ import Label from '../../components/ui/Label.jsx';
 import ValueCard from '../../components/cards/ValueCard.jsx';
 import { COURSES_NAMES, LINK_TREE } from "../../utilities.js";
 import {
-    PieChart, Pie, LabelList, BarChart, Bar, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+    PieChart, Pie, ReferenceLine, LabelList, BarChart, Bar, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from "recharts";
-
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 
 import { ArrowUpRight, ArrowDownRight, Award, TrendingUp, ArrowUp, ArrowDown } from "lucide-react";
 
@@ -194,6 +192,7 @@ function Dashboard({ data }) {
                                 formatter={(value)=>[value, 'баллы ']}
                                 
                             />
+                                    
                             <Bar name={year} dataKey="score" fill="rgb(101, 142, 208)" radius={[6, 6, 0, 0]} barSize={22} >
                                 <LabelList
                                     formatter={(value)=>Math.round(value)}

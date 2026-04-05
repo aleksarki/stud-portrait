@@ -142,11 +142,39 @@ def get_motivation_stats(request):
             row = {"name": field}
             for course in courses:
                 val = results[course].get(field) or 0
-                print(val)
                 row[f"course_{course}"] = round(float(val), 2)
             chart_data.append(row)
         
         response_data={"status": "success", "data": chart_data}
+        return JsonResponse(response_data)
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+def get_motivation_counts(request):
+    try:
+        courses = [1, 2, 3, 4]
+        results = {}
+        
+        for course in courses:
+            results[course] = {'low': {f: 0 for f in MOT_FIELDS},
+                                'high': {f: 0 for f in MOT_FIELDS}}
+            for field in MOT_FIELDS:
+                cnt_low = Results.objects.filter(res_course_num=course).filter(**{f"{field}__lt": 400})
+                cnt_high = Results.objects.filter(res_course_num=course).filter(**{f"{field}__gte": 600})
+        
+                if cnt_low.exists():
+                    results[course]['low'][field] = cnt_low.count()
+                if cnt_high.exists():
+                    results[course]['high'][field] = cnt_high.count()
+        bar_data = []
+        for field in MOT_FIELDS:
+            row = {"name": field}
+            for course in courses:
+                row[f"course_{course}_high"] = results[course]['high'].get(field, 0)
+                row[f"course_{course}_low"] = results[course]['low'].get(field, 0)
+            bar_data.append(row)
+        print("DATA:", results)
+        response_data={"status": "success", "data": bar_data}
         return JsonResponse(response_data)
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
