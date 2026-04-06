@@ -1,5 +1,5 @@
 from .common import *
-from ..ml_model import generate_text
+from ..ml_model import is_model_available, generate_text
 
 
 # ====== UTILITIES ====== #
@@ -180,10 +180,12 @@ def generate_recommendations_with_ai(competency_field, level, course):
     return lines[:4]
 
 def generate_general_interpretation_with_ai(student_info, competencies_dict):
-    # Сортируем компетенции по баллам
-    sorted_comps = sorted(competencies_dict.items(), key=lambda x: x[1], reverse=True)
-    strong = [f"{name} ({score})" for name, score in sorted_comps[:3]]
-    weak = [f"{name} ({score})" for name, score in sorted_comps[-3:]]
+    if not is_model_available():
+        sorted_comps = sorted(competencies_dict.items(), key=lambda x: x[1], reverse=True)
+        strong = [name for name, _ in sorted_comps[:2]]
+        weak = [name for name, _ in sorted_comps[-2:]]
+        return (f"Студент демонстрирует сильные стороны в области {', '.join(strong)}. "
+                f"Рекомендуется обратить внимание на развитие {', '.join(weak)}.")
 
     prompt = (
         f"Ты — карьерный консультант. Напиши краткую характеристику студента, используя только данные о компетенциях. "
