@@ -9,7 +9,10 @@ import {
     postPortraitUpdateSessionColumns,
     postPortraitUpdateSessionFilters
 } from '../../api.js';
-import { COMPETENCIES_NAMES, FIELD_NAMES, LINK_TREE, MOTIVATORS_NAMES, VALUES_NAMES } from "../../utilities.js";
+import {
+    COMPETENCIES_NAMES, FIELD_NAMES, LINK_TREE,
+    MOTIVATORS_NAMES, VALUES_NAMES
+} from "../../utilities.js";
 
 import FlexRow, { WRAP } from '../../components/FlexRow.jsx';
 import { ModalBody, ModalFooter, useModalWindow } from '../../components/ModalWindow.jsx';
@@ -21,6 +24,7 @@ import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
 import ColorBox, { BOX_COLOR } from '../../components/ui/ColorBox.jsx';
 import Label from '../../components/ui/Label.jsx';
 import LoadingSpinner from '../../components/ui/LoadingSpinner.jsx';
+import Select, { Option, OptionGroup } from "../../components/ui/Select.jsx";
 
 import "./AdminResultsView.scss";
 
@@ -491,14 +495,6 @@ function AdminResultsView() {
                         <div className="results-header">
                             <h2>Результаты тестирования</h2>
                             <FlexRow wrap={WRAP.DO}>
-                                <Label>
-                                    {sessionId ? <>
-                                        Показано: {results.length} из {totalCount} записей
-                                        {filters.length > 0 && ` • Активных фильтров: ${filters.length}`}
-                                        {hiddenColumns.size > 0 && ` • Скрыто колонок: ${hiddenColumns.size}`}
-                                        {selectedRows.size > 0 && ` • Выбрано: ${selectedRows.size}`}
-                                    </> : "Инициализация..."}
-                                </Label>
                                 <Button
                                     text={showFilters ? 'Скрыть фильтры' : 'Показать фильтры'}
                                     onClick={() => setShowFilters(!showFilters)}
@@ -528,7 +524,14 @@ function AdminResultsView() {
                                     disabled={!sessionId || loading}
                                     palette={BUTTON_PALETTE.CYAN}
                                 />
-
+                                <Label>
+                                    {sessionId ? <>
+                                        Показано: {results.length} из {totalCount} записей
+                                        {filters.length > 0 && ` • Активных фильтров: ${filters.length}`}
+                                        {hiddenColumns.size > 0 && ` • Скрыто колонок: ${hiddenColumns.size}`}
+                                        {selectedRows.size > 0 && ` • Выбрано: ${selectedRows.size}`}
+                                    </> : "Инициализация..."}
+                                </Label>
                             </FlexRow>
                         </div>
 
@@ -539,35 +542,39 @@ function AdminResultsView() {
                                     <h3>Фильтры</h3>
                                     <div className="filters-controls">
                                         <div className="add-filter-dropdown">
-                                            <select 
-                                                className="filter-select"
-                                                onChange={(e) => {
-                                                    const value = e.target.value;
+                                            <Select
+                                                placeholder="+ Добавить фильтр"
+                                                onChange={value => {
                                                     if (value.startsWith('basic:')) {
                                                         addBasicFilter(value.replace('basic:', ''));
                                                     } else if (value.startsWith('numeric:')) {
                                                         addNumericFilter(value.replace('numeric:', ''));
                                                     }
-                                                    e.target.value = '';
+                                                    value = '';
                                                 }}
                                                 disabled={!sessionId}
                                             >
-                                                <option value="">+ Добавить фильтр</option>
-                                                <optgroup label="Базовые сведения">
+                                                <OptionGroup label="Базовые поля">
                                                     {basicFields.map(field => (
-                                                        <option key={field} value={`basic:${field}`}>
-                                                            {FIELD_NAMES[field]}
-                                                        </option>
+                                                        <Option value={`basic:${field}`} label={FIELD_NAMES[field]} />
                                                     ))}
-                                                </optgroup>
-                                                <optgroup label="Компетенции, мотиваторы, ценности">
-                                                    {numericFields.map(field => (
-                                                        <option key={field} value={`numeric:${field}`}>
-                                                            {FIELD_NAMES[field]}
-                                                        </option>
+                                                </OptionGroup>
+                                                <OptionGroup label="Компетенции">
+                                                    {Object.keys(COMPETENCIES_NAMES).map(field => (
+                                                        <Option value={`numeric:${field}`} label={FIELD_NAMES[field]} />
                                                     ))}
-                                                </optgroup>
-                                            </select>
+                                                </OptionGroup>
+                                                <OptionGroup label="Мотиваторы">
+                                                    {Object.keys(MOTIVATORS_NAMES).map(field => (
+                                                        <Option value={`numeric:${field}`} label={FIELD_NAMES[field]} />
+                                                    ))}
+                                                </OptionGroup>
+                                                <OptionGroup label="Ценности">
+                                                    {Object.keys(VALUES_NAMES).map(field => (
+                                                        <Option value={`numeric:${field}`} label={FIELD_NAMES[field]} />
+                                                    ))}
+                                                </OptionGroup>
+                                            </Select>
                                         </div>
                                         <div className="filters-action-buttons">
                                             {(pendingFilters.length > 0 || filters.length > 0) && (

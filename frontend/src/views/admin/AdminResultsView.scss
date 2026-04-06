@@ -60,22 +60,7 @@
           }
         }
       }
-      
-      .filter-select {
-        padding: 8px 12px;
-        border: 1px solid #ced4da;
-        border-radius: 4px;
-        background: white;
-        font-size: 13px;
-        min-width: 200px;
-        
-        &:focus {
-          outline: none;
-          border-color: #007bff;
-          box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
-        }
-      }
-      
+
       .pending-filters,
       .active-filters {
         padding: 15px 20px;

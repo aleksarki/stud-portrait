@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 
 import "./Select.scss";
 
@@ -25,9 +25,12 @@ const SelectContext = createContext({
     isOpenSetter: undefined
 });
 
-function Select({ children, value, onChange, palette = SELECT_PALETTE.GRAY, disabled = false }) {
+function Select({
+    children, value, onChange, placeholder,
+    palette = SELECT_PALETTE.GRAY, disabled = false 
+}) {
     const arr = React.Children.toArray(children);
-    
+
     const [open, setOpen] = useState(false);
     const [selected, setSelected] = useState(value);
     const [label, setLabel] = useState(
@@ -36,6 +39,7 @@ function Select({ children, value, onChange, palette = SELECT_PALETTE.GRAY, disa
             .find(child => child.props.value === value)
             ?.props?.label
     );
+    const dropdownRef = useRef(null);
 
     const fg =         palette?.normal?.fg;
     const bg =         palette?.normal?.bg;
@@ -62,9 +66,21 @@ function Select({ children, value, onChange, palette = SELECT_PALETTE.GRAY, disa
     const disabledTextShadow = palette?.disabled?.textShadow ?? palette?.normal?.textShadow;
     const disabledBoxShadow =  palette?.disabled?.boxShadow ??  palette?.normal?.boxShadow;
 
+    // close on click elsewhere
+    useEffect(() => {
+        const handleClickOutside = event => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     return (
         <div
             className="Select"
+            ref={dropdownRef}
             style={{
                 "--fg":         fg,
                 "--bg":         bg,
@@ -96,7 +112,7 @@ function Select({ children, value, onChange, palette = SELECT_PALETTE.GRAY, disa
                 className={`field ${open ? 'open' : ''} ${disabled ? 'disabled' : ''}`}
                 onClick={() => !disabled && setOpen(!open)}
             >
-                <span>{label}</span>
+                <span>{placeholder ?? label}</span>
                 <span>{open ? "▲" : "▼"}</span>
             </div>
             <div className={`dropdown ${open ? 'open' : ''} ${disabled ? 'disabled' : ''}`}>
@@ -110,6 +126,7 @@ function Select({ children, value, onChange, palette = SELECT_PALETTE.GRAY, disa
                     }}
                 >
                     {arr.filter(child => child.type === Option)}
+                    {arr.filter(child => child.type === OptionGroup)}
                 </SelectContext.Provider>
             </div>
         </div>
@@ -135,6 +152,16 @@ export function Option({ value, label }) {
             }}
         >
             {label}
+        </div>
+    );
+}
+
+export function OptionGroup({ children, label }) {
+    const arr = React.Children.toArray(children);
+    return (
+        <div className="option-group">
+            <span className="group-label">{label}</span>
+            {arr.filter(child => child.type === Option)}
         </div>
     );
 }

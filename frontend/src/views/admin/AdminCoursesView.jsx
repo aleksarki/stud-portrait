@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
 
+import { getPortraitCourses } from '../../api.js';
+import { COURSES_NAMES, LINK_TREE } from "../../utilities.js";
+
 import FlexRow, { WRAP } from '../../components/FlexRow.jsx';
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
-import ColorBox, { BOX_COLOR } from '../../components/ui/ColorBox.jsx';
-import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
-import Label from '../../components/ui/Label.jsx';
+
 import ValueCard from '../../components/cards/ValueCard.jsx';
-import { COURSES_NAMES, LINK_TREE } from "../../utilities.js";
-import { getPortraitCourses } from '../../api.js';
+
+import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
+import ColorBox, { BOX_COLOR } from '../../components/ui/ColorBox.jsx';
+import Label from '../../components/ui/Label.jsx';
 
 import "./AdminCoursesView.scss";
 
@@ -16,12 +19,6 @@ function AdminCoursesView() {
     const [loading, setLoading] = useState(true);
     const [selectedRows, setSelectedRows] = useState(new Set());
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
-
-    // Порядок колонок
-    const columnOrder = [
-        'participant',
-        ...Object.keys(COURSES_NAMES)
-    ];
 
     useEffect(() => {
         fetchCoursesData();

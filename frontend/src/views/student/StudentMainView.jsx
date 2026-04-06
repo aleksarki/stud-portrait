@@ -3,15 +3,17 @@ import { useParams } from "react-router-dom";
 
 import { getPortraitStudentResults } from "../../api";
 import {
-    getAvailableProfiles, getAvailableCategories, getAvailableYears, getCategoryDataForYear,
-    COMPETENCIES_NAMES
+    getAvailableProfiles, getAvailableCategories, getAvailableYears,
+    getCategoryDataForYear, COMPETENCIES_NAMES
 } from "../../utilities";
-import ChartSwitcher from "../../components/charts/ChartSwitcher";
+
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 import Title from "../../components/Title";
-import Dropdown from "../../components/ui/Dropdown";
-import Button, { BUTTON_PALETTE } from "../../components/ui/Button";
 
+import Button, { BUTTON_PALETTE } from "../../components/ui/Button";
+import Select, { Option } from "../../components/ui/Select";
+
+import ChartSwitcher from "../../components/charts/ChartSwitcher";
 import StudentVamChart from "../../components/charts/StudentVamChart";
 import StudentLgmChart from '../../components/charts/StudentLgmChart';
 import StudentDisciplineImpact from '../../components/charts/StudentDisciplineImpact';
@@ -132,10 +134,6 @@ function StudentMainView() {
         setChartsData(charts);
     };
 
-    const handleYearChange = (year) => {
-        setSelectedYear(year);
-    };
-
     // АНАЛИТИКА КОМПЕТЕНЦИЙ
     const loadAnalytics = async (year) => {
         // Если данные уже загружены для этого года, просто показываем
@@ -232,24 +230,12 @@ function StudentMainView() {
                         {availableYears.length > 0 && (
                             <div className="year-selector">
                                 <span className="year-label">Год данных:</span>
-                                <Dropdown
-                                    handle={
-                                        <div className="year-dropdown-handle">
-                                            {selectedYear || "Выберите год"}
-                                            <span className="dropdown-arrow">▼</span>
-                                        </div>
-                                    }
+                                <Select
+                                    placeholder={selectedYear || "Выберите год"}
+                                    onChange={setSelectedYear}
                                 >
-                                    {availableYears.map(year => (
-                                        <div
-                                            key={year}
-                                            className={`year-option ${year === selectedYear ? 'selected' : ''}`}
-                                            onClick={() => handleYearChange(year)}
-                                        >
-                                            {year}
-                                        </div>
-                                    ))}
-                                </Dropdown>
+                                    {availableYears.map(year => <Option value={year} label={year} />)}
+                                </Select>
                             </div>
                         )}
 
@@ -363,11 +349,14 @@ function StudentMainView() {
                         <h3>📈 Value-Added (индивидуальный анализ)</h3>
                         <div className="vam-controls">
                             <label>Компетенция:</label>
-                            <select value={vamCompetency} onChange={e => setVamCompetency(e.target.value)}>
+                            <Select
+                                value={vamCompetency}
+                                onChange={setVamCompetency}
+                            >
                                 {Object.entries(COMPETENCIES_NAMES).map(([key, name]) => (
-                                    <option key={key} value={key}>{name}</option>
+                                    <Option value={key} label={name} />
                                 ))}
-                            </select>
+                            </Select>
                         </div>
                         <StudentVamChart studentId={studentId} competency={vamCompetency} />
                     </div>
@@ -377,11 +366,14 @@ function StudentMainView() {
                         <h3>📈 Динамика развития компетенций (LGM)</h3>
                         <div className="lgm-controls">
                             <label>Компетенция:</label>
-                            <select value={lgmCompetency} onChange={e => setLgmCompetency(e.target.value)}>
+                            <Select
+                                value={lgmCompetency}
+                                onChange={setLgmCompetency}
+                            >
                                 {Object.entries(COMPETENCIES_NAMES).map(([key, name]) => (
-                                    <option key={key} value={key}>{name}</option>
+                                    <Option value={key} label={name} />
                                 ))}
-                            </select>
+                            </Select>
                         </div>
                         {lgmData.length === 0 ? (
                             <div className="no-data">Нет данных для отображения</div>

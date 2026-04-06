@@ -63,11 +63,14 @@
         position: absolute;
         top: calc(100% + 4px);
         left: 0;
+        right: 0;
         z-index: 1000;
         overflow: hidden;
 
         padding: 8px 8px !important;
         border-radius: 4px;
+        max-height: 250px;
+        overflow-y: auto;
 
         color: var(--fg);
         background: var(--bg);
@@ -77,6 +80,19 @@
 
         &:not(.open), &.disabled {
             display: none;
+        }
+
+        animation: slideDown 0.2s ease-out;
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .option {
@@ -118,6 +134,10 @@
                 box-shadow: var(--activeBoxShadow);
                 transform: var(--activeTransform);
             }
+        }
+
+        .option-group .group-label {
+            font-weight: 600 !important;
         }
     }
 }
