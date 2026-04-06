@@ -54,7 +54,7 @@ const SankeyDiagram = ({
 
     // Цвета узлов
     const getNodeColor = (node) => {
-        if (node.name.includes('Низкий')) return '#ff6b6b';
+        if (node.name.includes('Начальный')) return '#ff6b6b';
         if (node.name.includes('Средний')) return '#ffd93d';
         if (node.name.includes('Высокий')) return '#6bcf7f';
         if (node.type === 'discipline') return '#4a90e2';

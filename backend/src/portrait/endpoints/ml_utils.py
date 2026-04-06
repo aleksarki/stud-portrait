@@ -7,7 +7,7 @@ from ..ml_model import is_model_available, generate_text
 def predict_competency_level(score, course=None, other_scores=None):
     # (оставляем без изменений)
     if score < 400:
-        level = "низкий"
+        level = "начальный"
         level_code = 0
     elif score < 600:
         level = "средний"
@@ -22,7 +22,7 @@ def predict_competency_level(score, course=None, other_scores=None):
         "confidence": 1.0,
         "percentile": percentile,
         "probabilities": {
-            "низкий": 1.0 if level_code == 0 else 0.0,
+            "начальный": 1.0 if level_code == 0 else 0.0,
             "средний": 1.0 if level_code == 1 else 0.0,
             "высокий": 1.0 if level_code == 2 else 0.0
         }
@@ -35,7 +35,7 @@ def calculate_percentile(score):
 def generate_interpretation(score, level, competency_name, course, percentile):
     # (оставляем шаблонный метод как fallback)
     level_templates = {
-        'низкий': {
+        'начальный': {
             'intro': f"Ваш результат по компетенции '{competency_name}' находится на начальном уровне развития ({score} баллов).",
             'context': f"Для студента {course} курса это типичный показатель на этапе формирования базовых навыков.",
             'outlook': "У вас есть хороший потенциал для роста! С регулярной практикой и обучением вы сможете значительно улучшить этот показатель.",
@@ -62,7 +62,7 @@ def generate_recommendations(competency_field, level, course):
     comp_name = COMP.names.get(competency_field, 'Компетенция')
     recommendations_db = {
         'Лидерство': {
-            'низкий': [
+            'начальный': [
                 "Примите участие в групповых проектах в роли координатора задач",
                 "Пройдите онлайн-курс по основам лидерства (Coursera, Stepik)",
                 "Присоединитесь к студенческому самоуправлению или волонтёрским проектам",
@@ -82,7 +82,7 @@ def generate_recommendations(competency_field, level, course):
             ]
         },
         'Коммуникация': {
-            'низкий': [
+            'начальный': [
                 "Активно участвуйте в семинарах и групповых дискуссиях",
                 "Тренируйте публичные выступления (начните с коротких докладов)",
                 "Посетите тренинг по эффективной коммуникации",
@@ -102,7 +102,7 @@ def generate_recommendations(competency_field, level, course):
             ]
         },
         'Саморазвитие': {
-            'низкий': [
+            'начальный': [
                 "Составьте план личностного развития на семестр",
                 "Начните читать профессиональную литературу",
                 "Определите 2-3 навыка для развития",
@@ -132,11 +132,11 @@ def generate_recommendations(competency_field, level, course):
     return comp_recs.get(level, default_recs)[:4]
 
 def get_level_emoji(level):
-    emoji_map = {'низкий': '🔴', 'средний': '🟡', 'высокий': '🟢'}
+    emoji_map = {'начальный': '🔴', 'средний': '🟡', 'высокий': '🟢'}
     return emoji_map.get(level, '⚪')
 
 def get_level_color(level):
-    color_map = {'низкий': '#f44336', 'средний': '#ff9800', 'высокий': '#4caf50'}
+    color_map = {'начальный': '#f44336', 'средний': '#ff9800', 'высокий': '#4caf50'}
     return color_map.get(level, '#9e9e9e')
 
 # ===== AI-функции (инструкционные) =====
