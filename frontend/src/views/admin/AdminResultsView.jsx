@@ -25,9 +25,11 @@ import ColorBox, { BOX_COLOR } from '../../components/ui/ColorBox.jsx';
 import Dropdown from '../../components/ui/Dropdown.jsx';
 import Label from '../../components/ui/Label.jsx';
 import LoadingSpinner from '../../components/ui/LoadingSpinner.jsx';
+import MultiSelect from "../../components/ui/MultiSelect.jsx";
 import Select, { Option, OptionGroup } from "../../components/ui/Select.jsx";
 
 import "./AdminResultsView.scss";
+import NumberField from '../../components/ui/NumberField.jsx';
 
 function AdminResultsView() {
     const [sessionId, setSessionId] = useState(null);
@@ -40,14 +42,14 @@ function AdminResultsView() {
     const [showColumnSelector, setShowColumnSelector] = useState(false);
     const [filters, setFilters] = useState([]);
     const [availableValues, setAvailableValues] = useState({});
-    const [showFilters, setShowFilters] = useState(false);
     const [pendingFilters, setPendingFilters] = useState([]);
     const [hasMore, setHasMore] = useState(false);
     const [exportLoading, setExportLoading] = useState(false);
     const [groupingColumn, setGroupingColumn] = useState('');
     const navigate = useNavigate();
 
-    const [GrouppingModalWindow, _, setGrouppingModalVisible] = useModalWindow("Выбор группировки");
+    const [FiltersModalWindow, _1, setFiltersModalWindowVisible] = useModalWindow("Фильтры");
+    const [GrouppingModalWindow, _2, setGrouppingModalVisible] = useModalWindow("Выбор группировки");
 
     // Базовые поля для фильтрации
     const basicFields = [
@@ -497,8 +499,8 @@ function AdminResultsView() {
                             <h2>Результаты тестирования</h2>
                             <FlexRow wrap={WRAP.DO}>
                                 <Button
-                                    text={showFilters ? 'Скрыть фильтры' : 'Показать фильтры'}
-                                    onClick={() => setShowFilters(!showFilters)}
+                                    text="Фильтры..."
+                                    onClick={() => setFiltersModalWindowVisible(filters)}
                                     palette={BUTTON_PALETTE.YELLOW}
                                 />
                                 <Button
@@ -535,189 +537,6 @@ function AdminResultsView() {
                                 </Label>
                             </FlexRow>
                         </div>
-
-                        {/* Система фильтров */}
-                        {showFilters && (
-                            <div className="filters-system">
-                                <div className="filters-header">
-                                    <h3>Фильтры</h3>
-                                    <div className="filters-controls">
-                                        <div className="add-filter-dropdown">
-                                            <Dropdown label="+ Добавить фильтр" disabled={!sessionId}>
-                                                <OptionGroup label="Базовые поля">
-                                                    {basicFields.map(field => (
-                                                        <Option
-                                                            value={field}
-                                                            label={FIELD_NAMES[field]}
-                                                            onClick={addBasicFilter}
-                                                        />
-                                                    ))}
-                                                </OptionGroup>
-                                                <OptionGroup label="Компетенции">
-                                                    {Object.keys(COMPETENCIES_NAMES).map(field => (
-                                                        <Option
-                                                            value={field}
-                                                            label={FIELD_NAMES[field]}
-                                                            onClick={addNumericFilter}
-                                                        />
-                                                    ))}
-                                                </OptionGroup>
-                                                <OptionGroup label="Мотиваторы">
-                                                    {Object.keys(MOTIVATORS_NAMES).map(field => (
-                                                        <Option
-                                                            value={field}
-                                                            label={FIELD_NAMES[field]}
-                                                            onClick={addNumericFilter}
-                                                        />
-                                                    ))}
-                                                </OptionGroup>
-                                                <OptionGroup label="Ценности">
-                                                    {Object.keys(VALUES_NAMES).map(field => (
-                                                        <Option
-                                                            value={field}
-                                                            label={FIELD_NAMES[field]}
-                                                            onClick={addNumericFilter}
-                                                        />
-                                                    ))}
-                                                </OptionGroup>
-                                            </Dropdown>
-                                        </div>
-                                        <div className="filters-action-buttons">
-                                            {(pendingFilters.length > 0 || filters.length > 0) && (
-                                                <>
-                                                    <Button
-                                                        text={loading ? "Загрузка..." : "Применить"}
-                                                        onClick={applyFilters}
-                                                        disabled={pendingFilters.length === 0 || !sessionId || loading}
-                                                        palette={BUTTON_PALETTE.GREEN}
-                                                    />
-                                                    <Button
-                                                        text="Очистить"
-                                                        onClick={clearAllFilters}
-                                                        disabled={!sessionId || loading}
-                                                        palette={BUTTON_PALETTE.RED}
-                                                    />
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Ожидающие применения фильтры */}
-                                <div className="pending-filters">
-                                    {pendingFilters.map(filter => (
-                                        <div key={filter.id} className="filter-item pending">
-                                            <div className="filter-header">
-                                                <span className="filter-name">
-                                                    {FIELD_NAMES[filter.field]}
-                                                </span>
-                                                {/* <Button
-                                                    text="✕"
-                                                    onClick={() => removePendingFilter(filter.id)}
-                                                    palette={BUTTON_PALETTE.RED}
-                                                /> */}
-                                                <button
-                                                    className="remove-filter-btn"
-                                                    onClick={() => removePendingFilter(filter.id)}
-                                                >
-                                                    ✕
-                                                </button>
-                                            </div>
-                                            
-                                            {filter.type === 'basic' && (
-                                                <div className="filter-content">
-                                                    <select 
-                                                        multiple
-                                                        className="multi-select"
-                                                        value={filter.selectedValues}
-                                                        onChange={(e) => {
-                                                            const selected = Array.from(e.target.selectedOptions, option => option.value);
-                                                            updatePendingBasicFilter(filter.id, selected);
-                                                        }}
-                                                    >
-                                                        {availableValues[filter.field]?.map(value => (
-                                                            <option key={value} value={value}>
-                                                                {value}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                    <div className="filter-hint">
-                                                        Выберите значения (удерживайте Ctrl для множественного выбора)
-                                                    </div>
-                                                </div>
-                                            )}
-                                            
-                                            {filter.type === 'numeric' && (
-                                                <div className="filter-content">
-                                                    <div className="range-inputs">
-                                                        <div className="range-input">
-                                                            <label>От:</label>
-                                                            <input
-                                                                type="number"
-                                                                min="200"
-                                                                max="800"
-                                                                value={filter.min}
-                                                                onChange={(e) => updatePendingNumericFilter(filter.id, parseInt(e.target.value), filter.max)}
-                                                            />
-                                                        </div>
-                                                        <div className="range-input">
-                                                            <label>До:</label>
-                                                            <input
-                                                                type="number"
-                                                                min="200"
-                                                                max="800"
-                                                                value={filter.max}
-                                                                onChange={(e) => updatePendingNumericFilter(filter.id, filter.min, parseInt(e.target.value))}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <div className="range-display">
-                                                        Диапазон: {filter.min} - {filter.max}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* Активные фильтры */}
-                                {filters.length > 0 && (
-                                    <div className="active-filters-section">
-                                        <div className="active-filters-header">
-                                            <h4>Активные фильтры:</h4>
-                                        </div>
-                                        <div className="active-filters">
-                                            {filters.map(filter => (
-                                                <div key={filter.id} className="filter-item active">
-                                                    <div className="filter-header">
-                                                        <span className="filter-name">
-                                                            {FIELD_NAMES[filter.field]}
-                                                        </span>
-                                                        <span className="filter-status">✓ Применен</span>
-                                                    </div>
-                                                    
-                                                    {filter.type === 'basic' && (
-                                                        <div className="filter-content">
-                                                            <div className="selected-values">
-                                                                Выбрано значений: {filter.selectedValues.length}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                    
-                                                    {filter.type === 'numeric' && (
-                                                        <div className="filter-content">
-                                                            <div className="range-display">
-                                                                Диапазон: {filter.min} - {filter.max}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
 
                         {/* Селектор колонок */}
                         {showColumnSelector && (
@@ -894,6 +713,156 @@ function AdminResultsView() {
                     </div>
                 </Content>
             </SidebarLayout>
+
+            {/* Модальное окно системы фильтров */}
+            <FiltersModalWindow>
+                <ModalBody>
+                    <div className="filters-modal-body">
+                        <FlexRow wrap={WRAP.DO}>
+                            <Dropdown label="+ Добавить фильтр" disabled={!sessionId}>
+                                <OptionGroup label="Базовые поля">
+                                    {basicFields.map(field => (
+                                        <Option
+                                            value={field}
+                                            label={FIELD_NAMES[field]}
+                                            onClick={addBasicFilter}
+                                        />
+                                    ))}
+                                </OptionGroup>
+                                <OptionGroup label="Компетенции">
+                                    {Object.keys(COMPETENCIES_NAMES).map(field => (
+                                        <Option
+                                            value={field}
+                                            label={FIELD_NAMES[field]}
+                                            onClick={addNumericFilter}
+                                        />
+                                    ))}
+                                </OptionGroup>
+                                <OptionGroup label="Мотиваторы">
+                                    {Object.keys(MOTIVATORS_NAMES).map(field => (
+                                        <Option
+                                            value={field}
+                                            label={FIELD_NAMES[field]}
+                                            onClick={addNumericFilter}
+                                        />
+                                    ))}
+                                </OptionGroup>
+                                <OptionGroup label="Ценности">
+                                    {Object.keys(VALUES_NAMES).map(field => (
+                                        <Option
+                                            value={field}
+                                            label={FIELD_NAMES[field]}
+                                            onClick={addNumericFilter}
+                                        />
+                                    ))}
+                                </OptionGroup>
+                            </Dropdown>
+                            {(pendingFilters.length > 0 || filters.length > 0) && (
+                                <>
+                                    <Button
+                                        text={loading ? "Загрузка..." : "Применить"}
+                                        onClick={applyFilters}
+                                        disabled={pendingFilters.length === 0 || !sessionId || loading}
+                                        palette={BUTTON_PALETTE.GREEN}
+                                    />
+                                    <Button
+                                        text="Очистить"
+                                        onClick={clearAllFilters}
+                                        disabled={!sessionId || loading}
+                                        palette={BUTTON_PALETTE.RED}
+                                    />
+                                </>
+                            )}
+                        </FlexRow>
+
+                        <FlexRow wrap={WRAP.DO}>
+                            {pendingFilters.map(filter => (
+                                filter.type === 'basic' ? (
+                                    <FlexRow>
+                                        <span>{FIELD_NAMES[filter.field]}</span>
+                                        <MultiSelect
+                                            options={availableValues[filter.field]}
+                                            value={filter.selectedValues}
+                                            onChange={selected => updatePendingBasicFilter(filter.id, selected)}
+                                        />
+                                        <Button
+                                            text="✕"
+                                            onClick={() => removePendingFilter(filter.id)}
+                                            palette={BUTTON_PALETTE.RED}
+                                        />
+                                    </FlexRow>
+                                ) : (
+                                    <FlexRow>
+                                        <span>{FIELD_NAMES[filter.field]}</span>
+                                        <span>От:</span>
+                                        <NumberField
+                                            value={filter.min} min="200" max="800"
+                                            onChange={value => updatePendingNumericFilter(filter.id, value, filter.max)}
+                                        />
+                                        <span>До:</span>
+                                        <NumberField
+                                            value={filter.max} min="200" max="800"
+                                            onChange={value => updatePendingNumericFilter(filter.id, filter.min, value)}
+                                        />
+                                        <Button
+                                            text="✕"
+                                            onClick={() => removePendingFilter(filter.id)}
+                                            palette={BUTTON_PALETTE.RED}
+                                        />
+                                    </FlexRow>
+                                )
+                            ))}
+                        </FlexRow>
+
+                        {/* Ожидающие применения фильтры */}
+                        {/* {pendingFilters.map(filter => <div className="filter-item pending" />)} */}
+
+                        {/* Активные фильтры */}
+                        {filters.length > 0 && (
+                            <div className="active-filters-section">
+                                <div className="active-filters-header">
+                                    <h4>Активные фильтры:</h4>
+                                </div>
+                                <div className="active-filters">
+                                    {filters.map(filter => (
+                                        <div key={filter.id} className="filter-item active">
+                                            <div className="filter-header">
+                                                <span className="filter-name">
+                                                    {FIELD_NAMES[filter.field]}
+                                                </span>
+                                                <span className="filter-status">✓ Применен</span>
+                                            </div>
+                                            
+                                            {filter.type === 'basic' && (
+                                                <div className="filter-content">
+                                                    <div className="selected-values">
+                                                        Выбрано значений: {filter.selectedValues.length}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            
+                                            {filter.type === 'numeric' && (
+                                                <div className="filter-content">
+                                                    <div className="range-display">
+                                                        Диапазон: {filter.min} - {filter.max}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </ModalBody>
+                <ModalFooter>
+                    <Button
+                        text="Отмена"
+                        onClick={() => setFiltersModalWindowVisible(false)}
+                        palette={BUTTON_PALETTE.GRAY}
+                    />
+                </ModalFooter>
+            </FiltersModalWindow>
 
             {/* Модальное окно выбора столбца для группировки */}
             <GrouppingModalWindow>
