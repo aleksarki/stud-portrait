@@ -2,7 +2,9 @@
     font-size: 14px !important;
     // font-weight: 500 !important;
 
+    position: relative;
     min-width: 175px;
+    max-width: 400px;
 
     .field {
         padding: 8px 16px !important;
@@ -59,7 +61,8 @@
 
     .dropdown {
         position: absolute;
-        margin-top: 4px;
+        top: calc(100% + 4px);
+        left: 0;
         z-index: 1000;
         overflow: hidden;
 

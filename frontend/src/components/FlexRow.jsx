@@ -27,8 +27,8 @@ export const CONTENT = {
 };
 
 function FlexRow({
-    children, gap = "5", margin = "0", wrap = WRAP.NO, justify = JUSTIFY.START,
-    align = ALIGN.STRETCH, content = CONTENT.STRETCH
+    children, gap = "5", margin = "0", reverse = false, wrap = WRAP.NO,
+    justify = JUSTIFY.START, align = ALIGN.STRETCH, content = CONTENT.STRETCH
 }) {
     return (
         <div
@@ -36,6 +36,7 @@ function FlexRow({
             style={{
                 "--gap": `${gap}px`,
                 "--margin": margin.split(" ").map(value => value + "px").join(" "),
+                "--direction": reverse ? "row-reverse" : "row",
                 "--wrap": wrap,
                 "--justify": justify,
                 "--align": align,

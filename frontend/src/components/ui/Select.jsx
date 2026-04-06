@@ -37,9 +37,6 @@ function Select({ children, value, onChange, palette = SELECT_PALETTE.GRAY, disa
             ?.props?.label
     );
 
-    
-
-
     const fg =         palette?.normal?.fg;
     const bg =         palette?.normal?.bg;
     const border =     palette?.normal?.border;

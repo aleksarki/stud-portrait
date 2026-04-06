@@ -1,6 +1,6 @@
 .FlexRow {
     display: flex;
-    flex-direction: row;
+    flex-direction: var(--direction);
     flex-wrap: var(--wrap);
     justify-content: var(--justify);
     align-items: var(--align);

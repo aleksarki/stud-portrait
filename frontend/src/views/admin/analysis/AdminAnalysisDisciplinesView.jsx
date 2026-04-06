@@ -415,9 +415,7 @@ function AdminAnalysisDisciplinesView() {
                             placeholder="Все дисциплины"
                             searchPlaceholder="Поиск дисциплин..."
                             label="Выберите дисциплины"
-                            withSearch={true}
-                            showCounts={true}
-                            maxHeight="300px"
+                            showCounts
                         />
 
                         <FlexRow>
