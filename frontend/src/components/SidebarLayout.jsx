@@ -35,9 +35,9 @@ export function Header({ title, name }) {
                 <span className="title">{title}</span>
             </div>
             <div className="right-side">
-                {/* <Dropdown handle={<span className="menu-handle">{name}</span>}>
-                    <span style={{cursor: "pointer"}}>Выход</span>
-                </Dropdown> */}
+                <Dropdown label={name}>
+                    <span style={{cursor: "not-allowed"}}>Выход</span>
+                </Dropdown>
             </div>
         </div>
     );

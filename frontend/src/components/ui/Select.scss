@@ -1,143 +1,44 @@
-.Select {
-    font-size: 14px !important;
-    // font-weight: 500 !important;
+.Option {
+    margin: 1px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    user-select: none;
+    cursor: pointer;
 
-    position: relative;
-    min-width: 175px;
-    max-width: 400px;
+    &.selected {
+        padding: 1px 7px;
 
-    .field {
-        padding: 8px 16px !important;
-        border-radius: 4px;
-        white-space: nowrap;
-        user-select: none;
-        cursor: pointer;
+        color: var(--activeFg);
+        background: var(--activeBg);
+        border: var(--activeBorder);
+        text-shadow: var(--activeTextShadow);
+        box-shadow: var(--activeBoxShadow);
+        transform: var(--activeTransform);
+    }
 
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+    &:hover {
+        padding: 1px 7px;
 
-        color: var(--fg);
-        background: var(--bg);
-        border: var(--border);
-        text-shadow: var(--textShadow);
-        box-shadow: var(--boxShadow);
+        color: var(--hoverFg);
+        background: var(--hoverBg);
+        border: var(--hoverBorder);
+        text-shadow: var(--hoverTextShadow);
+        box-shadow: var(--hoverBoxShadow);
+        transform: var(--hoverTransform);
+    }
 
-        transition: all 0.2s ease;
-
-        &:not(.disabled) {
-            &:hover {
-                color: var(--hoverFg);
-                background: var(--hoverBg);
-                border: var(--hoverBorder);
-                text-shadow: var(--hoverTextShadow);
-                box-shadow: var(--hoverBoxShadow);
-                transform: var(--hoverTransform);
-            }
-
-            &:active {
-                color: var(--activeFg);
-                background: var(--activeBg);
-                border: var(--activeBorder);
-                text-shadow: var(--activeTextShadow);
-                box-shadow: var(--activeBoxShadow);
-                transform: var(--activeTransform);
-            }
-        }
+    &:active {
+        padding: 1px 7px;
         
-        &.disabled {
-            cursor: not-allowed;
-            transform: none;
-            // opacity: 0.6;
-            
-            color: var(--disabledFg);
-            background: var(--disabledBg);
-            border: var(--disabledBorder);
-            text-shadow: var(--disabledTextShadow);
-            box-shadow: var(--disabledBoxShadow);
-            transform: var(--disabledTransform);
-        }
+        color: var(--activeFg);
+        background: var(--activeBg);
+        border: var(--activeBorder);
+        text-shadow: var(--activeTextShadow);
+        box-shadow: var(--activeBoxShadow);
+        transform: var(--activeTransform);
     }
+}
 
-    .dropdown {
-        position: absolute;
-        top: calc(100% + 4px);
-        left: 0;
-        right: 0;
-        z-index: 1000;
-        overflow: hidden;
-
-        padding: 8px 8px !important;
-        border-radius: 4px;
-        max-height: 250px;
-        overflow-y: auto;
-
-        color: var(--fg);
-        background: var(--bg);
-        border: var(--border);
-        text-shadow: var(--textShadow);
-        box-shadow: var(--boxShadow);
-
-        &:not(.open), &.disabled {
-            display: none;
-        }
-
-        animation: slideDown 0.2s ease-out;
-
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .option {
-            margin: 1px;
-            padding: 2px 8px;
-            border-radius: 4px;
-            user-select: none;
-            cursor: pointer;
-
-            &.selected {
-                padding: 1px 7px;
-
-                color: var(--activeFg);
-                background: var(--activeBg);
-                border: var(--activeBorder);
-                text-shadow: var(--activeTextShadow);
-                box-shadow: var(--activeBoxShadow);
-                transform: var(--activeTransform);
-            }
-
-            &:hover {
-                padding: 1px 7px;
-
-                color: var(--hoverFg);
-                background: var(--hoverBg);
-                border: var(--hoverBorder);
-                text-shadow: var(--hoverTextShadow);
-                box-shadow: var(--hoverBoxShadow);
-                transform: var(--hoverTransform);
-            }
-
-            &:active {
-                padding: 1px 7px;
-                
-                color: var(--activeFg);
-                background: var(--activeBg);
-                border: var(--activeBorder);
-                text-shadow: var(--activeTextShadow);
-                box-shadow: var(--activeBoxShadow);
-                transform: var(--activeTransform);
-            }
-        }
-
-        .option-group .group-label {
-            font-weight: 600 !important;
-        }
-    }
+.OptionGroup .group-label {
+    font-weight: 600 !important;
 }

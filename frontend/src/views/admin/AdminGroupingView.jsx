@@ -113,7 +113,7 @@ function AdminGroupingView() {
                             <h1>Группировка данных</h1>
                             <FlexRow wrap={WRAP.DO}>
                                 <label>Тип диаграммы:</label>
-                                <Select value={chartType} onChange={setChartType}>
+                                <Select initValue={chartType} onChange={setChartType}>
                                     <Option value="line" label="Линейная" />
                                     <Option value="bar" label="Столбчатая" />
                                     <Option value="area" label="Областная" />

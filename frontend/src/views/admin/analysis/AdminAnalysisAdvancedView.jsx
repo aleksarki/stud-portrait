@@ -424,7 +424,7 @@ function AdminAnalysisAdvancedView() {
                         />
                         {activeVisualization === 'dimension' && <>
                             <span>Измерение:</span>
-                            <Select value={selectedDimension} onChange={setSelectedDimension}>
+                            <Select initValue={selectedDimension} onChange={setSelectedDimension}>
                                 <Option value="institution" label="ВУЗы" />
                                 <Option value="spec" label="Направления" />
                                 <Option value="form" label="Формы обучения" />

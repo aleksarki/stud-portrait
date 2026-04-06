@@ -231,7 +231,7 @@ function StudentMainView() {
                             <div className="year-selector">
                                 <span className="year-label">Год данных:</span>
                                 <Select
-                                    placeholder={selectedYear || "Выберите год"}
+                                    initValue={selectedYear}
                                     onChange={setSelectedYear}
                                 >
                                     {availableYears.map(year => <Option value={year} label={year} />)}
@@ -350,7 +350,7 @@ function StudentMainView() {
                         <div className="vam-controls">
                             <label>Компетенция:</label>
                             <Select
-                                value={vamCompetency}
+                                initValue={vamCompetency}
                                 onChange={setVamCompetency}
                             >
                                 {Object.entries(COMPETENCIES_NAMES).map(([key, name]) => (
@@ -367,7 +367,7 @@ function StudentMainView() {
                         <div className="lgm-controls">
                             <label>Компетенция:</label>
                             <Select
-                                value={lgmCompetency}
+                                initValue={lgmCompetency}
                                 onChange={setLgmCompetency}
                             >
                                 {Object.entries(COMPETENCIES_NAMES).map(([key, name]) => (

@@ -22,6 +22,7 @@ import Table, { TableHeader, TableItem, TableRow } from '../../components/tables
 
 import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
 import ColorBox, { BOX_COLOR } from '../../components/ui/ColorBox.jsx';
+import Dropdown from '../../components/ui/Dropdown.jsx';
 import Label from '../../components/ui/Label.jsx';
 import LoadingSpinner from '../../components/ui/LoadingSpinner.jsx';
 import Select, { Option, OptionGroup } from "../../components/ui/Select.jsx";
@@ -542,39 +543,44 @@ function AdminResultsView() {
                                     <h3>Фильтры</h3>
                                     <div className="filters-controls">
                                         <div className="add-filter-dropdown">
-                                            <Select
-                                                placeholder="+ Добавить фильтр"
-                                                onChange={value => {
-                                                    if (value.startsWith('basic:')) {
-                                                        addBasicFilter(value.replace('basic:', ''));
-                                                    } else if (value.startsWith('numeric:')) {
-                                                        addNumericFilter(value.replace('numeric:', ''));
-                                                    }
-                                                    value = '';
-                                                }}
-                                                disabled={!sessionId}
-                                            >
+                                            <Dropdown label="+ Добавить фильтр" disabled={!sessionId}>
                                                 <OptionGroup label="Базовые поля">
                                                     {basicFields.map(field => (
-                                                        <Option value={`basic:${field}`} label={FIELD_NAMES[field]} />
+                                                        <Option
+                                                            value={field}
+                                                            label={FIELD_NAMES[field]}
+                                                            onClick={addBasicFilter}
+                                                        />
                                                     ))}
                                                 </OptionGroup>
                                                 <OptionGroup label="Компетенции">
                                                     {Object.keys(COMPETENCIES_NAMES).map(field => (
-                                                        <Option value={`numeric:${field}`} label={FIELD_NAMES[field]} />
+                                                        <Option
+                                                            value={field}
+                                                            label={FIELD_NAMES[field]}
+                                                            onClick={addNumericFilter}
+                                                        />
                                                     ))}
                                                 </OptionGroup>
                                                 <OptionGroup label="Мотиваторы">
                                                     {Object.keys(MOTIVATORS_NAMES).map(field => (
-                                                        <Option value={`numeric:${field}`} label={FIELD_NAMES[field]} />
+                                                        <Option
+                                                            value={field}
+                                                            label={FIELD_NAMES[field]}
+                                                            onClick={addNumericFilter}
+                                                        />
                                                     ))}
                                                 </OptionGroup>
                                                 <OptionGroup label="Ценности">
                                                     {Object.keys(VALUES_NAMES).map(field => (
-                                                        <Option value={`numeric:${field}`} label={FIELD_NAMES[field]} />
+                                                        <Option
+                                                            value={field}
+                                                            label={FIELD_NAMES[field]}
+                                                            onClick={addNumericFilter}
+                                                        />
                                                     ))}
                                                 </OptionGroup>
-                                            </Select>
+                                            </Dropdown>
                                         </div>
                                         <div className="filters-action-buttons">
                                             {(pendingFilters.length > 0 || filters.length > 0) && (
@@ -894,20 +900,19 @@ function AdminResultsView() {
                 <ModalBody>
                     <div className="groupping-modal-body">
                         <label>Столбец для группировки:</label>
-                        <select 
-                            value={groupingColumn}
-                            onChange={(e) => setGroupingColumn(e.target.value)}
-                            className="grouping-select"
+                        <Select
+                            initValue={groupingColumn}
+                            onChange={setGroupingColumn}
                         >
-                            <option value="">Выберите столбец...</option>
-                            <optgroup label="Базовые сведения">
+                            <OptionGroup label="Базовые поля">
                                 {basicFields.map(field => (
-                                    <option key={field} value={field}>
-                                        {FIELD_NAMES[field]}
-                                    </option>
+                                    <Option
+                                        value={field}
+                                        label={FIELD_NAMES[field]}
+                                    />
                                 ))}
-                            </optgroup>
-                        </select>
+                            </OptionGroup>
+                        </Select>
                         <p>Выбрано записей: <strong>{selectedRows.size}</strong></p>
                         <p>Будет выполнена группировка по выбранному столбцу с визуализацией данных.</p>
                     </div>

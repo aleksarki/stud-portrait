@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import React, { createContext, useContext, useState } from "react";
+
+import Dropdown, { DropdownContext } from "./Dropdown";
 
 import "./Select.scss";
 
@@ -18,137 +20,67 @@ export const SELECT_PALETTE = {
 };
 
 const SelectContext = createContext({
-    selected: undefined,
+    selectedValue: undefined,
     valueSetter: undefined,
     labelSetter: undefined,
-    onChangeCallback: undefined,
-    isOpenSetter: undefined
+    onChangeCallback: undefined
 });
 
 function Select({
-    children, value, onChange, placeholder,
-    palette = SELECT_PALETTE.GRAY, disabled = false 
+    children, initValue, onChange, placeholder = "Выберите...",
+    palette = SELECT_PALETTE.GRAY, disabled = false
 }) {
     const arr = React.Children.toArray(children);
 
-    const [open, setOpen] = useState(false);
-    const [selected, setSelected] = useState(value);
+    const [value, setValue] = useState(initValue);
     const [label, setLabel] = useState(
-        arr
-            .filter(child => child.type === Option)
-            .find(child => child.props.value === value)
-            ?.props?.label
+        [
+            ...arr.filter(child => child.type === Option),
+            ...arr
+                .filter(child => child.type === OptionGroup)
+                .reduce((acc, group) => [...acc, ...(
+                    React.Children
+                        .toArray(group.props.children)
+                        .filter(child => child.type === Option)
+                )], [])
+        ]
+            .find(child => child.props.value === initValue)?.props?.label
     );
-    const dropdownRef = useRef(null);
-
-    const fg =         palette?.normal?.fg;
-    const bg =         palette?.normal?.bg;
-    const border =     palette?.normal?.border;
-    const textShadow = palette?.normal?.textShadow;
-    const boxShadow =  palette?.normal?.boxShadow;
-
-    const hoverFg =         palette?.hover?.fg ??         palette?.normal?.fg;
-    const hoverBg =         palette?.hover?.bg ??         palette?.normal?.bg;
-    const hoverBorder =     palette?.hover?.border ??     palette?.normal?.border;
-    const hoverTextShadow = palette?.hover?.textShadow ?? palette?.normal?.textShadow;
-    const hoverBoxShadow =  palette?.hover?.boxShadow ??  palette?.normal?.boxShadow;
-    const hoverTransform =  palette?.hover?.transform; // "translateY(-1px)"
-
-    const activeFg =         palette?.active?.fg ??         palette?.normal?.fg ??         palette?.hover?.fg;
-    const activeBg =         palette?.active?.bg ??         palette?.normal?.bg ??         palette?.hover?.bg;
-    const activeBorder =     palette?.active?.border ??     palette?.normal?.border ??     palette?.hover?.border;
-    const activeTextShadow = palette?.active?.textShadow ?? palette?.normal?.textShadow ?? palette?.hover?.textShadow;
-    const activeBoxShadow =  palette?.active?.boxShadow ??  palette?.normal?.boxShadow ??  palette?.hover?.boxShadow;
-
-    const disabledFg =         palette?.disabled?.fg ??         palette?.normal?.fg;
-    const disabledBg =         palette?.disabled?.bg ??         palette?.normal?.bg;
-    const disabledBorder =     palette?.disabled?.border ??     palette?.normal?.border;
-    const disabledTextShadow = palette?.disabled?.textShadow ?? palette?.normal?.textShadow;
-    const disabledBoxShadow =  palette?.disabled?.boxShadow ??  palette?.normal?.boxShadow;
-
-    // close on click elsewhere
-    useEffect(() => {
-        const handleClickOutside = event => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-                setOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
 
     return (
-        <div
-            className="Select"
-            ref={dropdownRef}
-            style={{
-                "--fg":         fg,
-                "--bg":         bg,
-                "--border":     border,
-                "--textShadow": textShadow,
-                "--boxShadow":  boxShadow,
-
-                "--hoverFg":         hoverFg,
-                "--hoverBg":         hoverBg,
-                "--hoverBorder":     hoverBorder,
-                "--hoverTextShadow": hoverTextShadow,
-                "--hoverBoxShadow":  hoverBoxShadow,
-                "--hoverTransform":  hoverTransform,
-
-                "--activeFg":         activeFg,
-                "--activeBg":         activeBg,
-                "--activeBorder":     activeBorder,
-                "--activeTextShadow": activeTextShadow,
-                "--activeBoxShadow":  activeBoxShadow,
-
-                "--disabledFg":         disabledFg,
-                "--disabledBg":         disabledBg,
-                "--disabledBorder":     disabledBorder,
-                "--disabledTextShadow": disabledTextShadow,
-                "--disabledBoxShadow":  disabledBoxShadow
-            }}
-        >
-            <div
-                className={`field ${open ? 'open' : ''} ${disabled ? 'disabled' : ''}`}
-                onClick={() => !disabled && setOpen(!open)}
+        <Dropdown label={label ?? placeholder} palette={palette} disabled={disabled}>
+            <SelectContext.Provider
+                value={{
+                    selectedValue: value,
+                    valueSetter: setValue,
+                    labelSetter: setLabel,
+                    onChangeCallback: onChange
+                }}
             >
-                <span>{placeholder ?? label}</span>
-                <span>{open ? "▲" : "▼"}</span>
-            </div>
-            <div className={`dropdown ${open ? 'open' : ''} ${disabled ? 'disabled' : ''}`}>
-                <SelectContext.Provider
-                    value={{
-                        selected: selected,
-                        valueSetter: setSelected,
-                        labelSetter: setLabel,
-                        isOpenSetter: setOpen,
-                        onChangeCallback: onChange
-                    }}
-                >
-                    {arr.filter(child => child.type === Option)}
-                    {arr.filter(child => child.type === OptionGroup)}
-                </SelectContext.Provider>
-            </div>
-        </div>
+                {arr.filter(child => child.type === Option)}
+                {arr.filter(child => child.type === OptionGroup)}
+            </SelectContext.Provider>
+        </Dropdown>
     );
 }
 
-export function Option({ value, label }) {
+export function Option({ value, label, onClick }) {
     const {
-        selected,
+        selectedValue,
         valueSetter,
         labelSetter,
-        onChangeCallback,
-        isOpenSetter
+        onChangeCallback
     } = useContext(SelectContext);
+    const {setOpen} = useContext(DropdownContext);
     return (
         <div
-            className={`option ${selected === value ? 'selected' : ''}`}
+            className={`Option ${selectedValue === value ? 'selected' : ''}`}
             onClick={() => {
+                onClick?.(value);
                 valueSetter?.(value);
                 labelSetter?.(label);
                 onChangeCallback?.(value);
-                isOpenSetter(false);
+                setOpen(false);
             }}
         >
             {label}
@@ -159,7 +91,7 @@ export function Option({ value, label }) {
 export function OptionGroup({ children, label }) {
     const arr = React.Children.toArray(children);
     return (
-        <div className="option-group">
+        <div className="OptionGroup">
             <span className="group-label">{label}</span>
             {arr.filter(child => child.type === Option)}
         </div>

@@ -277,7 +277,7 @@ function AdminAnalysisVamLgmView() {
                             />
                             {analysisMethod === 'vam' && <>
                                 <label>Группировать по: </label>
-                                <Select value={vamGroupBy} onChange={setVamGroupBy}>
+                                <Select initValue={vamGroupBy} onChange={setVamGroupBy}>
                                     <Option value="institution" label="ВУЗам" />
                                     <Option value="direction" label="Направлениям" />
                                     <Option value="course" label="Курсам" />
