@@ -1284,7 +1284,7 @@ def get_competency_level_flow(request):
         "direction_ids": [10,20]
     }
     Returns: {
-        "nodes": [{"name": "1 курс - Низкий"}, ...],
+        "nodes": [{"name": "1 курс - Начальный"}, ...],
         "links": [{"source": 0, "target": 5, "value": 42}, ...]
     }
     """
@@ -1327,20 +1327,20 @@ def get_competency_level_flow(request):
         if not all_scores:
             return JsonResponse({'status': 'error', 'message': 'No scores found'}, status=404)
 
-        # Пороги: низкий < p33, высокий > p66
+        # Пороги: начальный < p33, высокий > p66
         p33 = np.percentile(all_scores, 33)
         p66 = np.percentile(all_scores, 66)
 
         def get_level(score):
             if score <= p33:
-                return 'Низкий'
+                return 'Начальный'
             elif score <= p66:
                 return 'Средний'
             else:
                 return 'Высокий'
 
         courses = [1,2,3,4]
-        levels = ['Низкий', 'Средний', 'Высокий']
+        levels = ['Начальный', 'Средний', 'Высокий']
         nodes = []
         node_index = {}
         for course in courses:
