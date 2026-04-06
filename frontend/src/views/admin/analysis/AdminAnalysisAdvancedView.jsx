@@ -15,8 +15,6 @@ import {
 } from "../../../api";
 import { COMPETENCIES_NAMES, LINK_TREE } from "../../../utilities";
 
-import { COMPETENCIES_NAMES, LINK_TREE } from "../../../utilities";
-
 import FlexRow, { JUSTIFY } from "../../../components/FlexRow";
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
 
