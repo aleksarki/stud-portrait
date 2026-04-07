@@ -2,7 +2,8 @@ from django.db.models import Avg, Count, Q, F
 from django.http import JsonResponse
 from portrait.models import Results, Participants, Course, Institutions
 import traceback
-        
+from .common import *
+
 comp_fields = [
     'res_comp_info_analysis', 'res_comp_planning', 'res_comp_result_orientation',
     'res_comp_stress_resistance', 'res_comp_partnership', 'res_comp_rules_compliance',
@@ -38,12 +39,27 @@ def get_year_metrics(year):
         "participated" : {"amount_in": total_students, "students_all": students_uni}
     }
 
+def get_filter_options(request):
+    try:
+        institutes = Results.objects.values_list('res_institution__inst_name', flat=True).distinct()
+        specialties = Results.objects.values_list('res_edu_specialty__edu_spec_name', flat=True).distinct()
+        years = Results.objects.values_list('res_year', flat=True).distinct().order_by('-res_year')
+
+        data = {
+            "institutes": [{"value": i, "label": str(i)} for i in institutes if i],
+            "specialties": [{"value": s, "label": str(s)} for s in specialties if s],
+            "years": [{"value": y, "label": str(y)} for y in years if y],
+        }
+        return JsonResponse({"status": "success", "data": data})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
 def get_dashboard_stats(request):
     response_data = {}
 
     try:
-        session_id = request.GET.get('session_id')
-        inst_ids = request.GET.get('institutions', '')
+        #session_id = request.GET.get('session_id')
+        #inst_ids = request.GET.get('institutions', '')
         
         curr_year = "2025/2026"
         prev_year = "2024/2025"
@@ -145,12 +161,22 @@ def get_competency_stats_courses():
             val = results[course].get(field) or 0
             row[f"course_{course}"] = round(float(val), 2)
         chart_data.append(row)
-    
-    #response_data={"status": "success", "data": chart_data}
     return chart_data
 
+@method('GET')
+@jsonResponse
+@csrf_exempt
 def get_motivation_counts(request):
     try:
+        
+        inst_id = request.GET.get('institute')
+        spec_id = request.GET.get('specialty')
+        year = request.GET.get('year')
+
+        base_filter = {}
+        if inst_id: base_filter['res_institution'] = inst_id 
+        if spec_id: base_filter['res_edu_specialty'] = spec_id
+        if year:    base_filter['res_year'] = year
         courses = [1, 2, 3, 4]
         results = {}
         
@@ -158,8 +184,8 @@ def get_motivation_counts(request):
             results[course] = {'low': {f: 0 for f in MOT_FIELDS},
                                 'high': {f: 0 for f in MOT_FIELDS}}
             for field in MOT_FIELDS:
-                cnt_low = Results.objects.filter(res_course_num=course).filter(**{f"{field}__lt": 400})
-                cnt_high = Results.objects.filter(res_course_num=course).filter(**{f"{field}__gte": 600})
+                cnt_low = Results.objects.filter(res_course_num=course, **base_filter).filter(**{f"{field}__lt": 400})
+                cnt_high = Results.objects.filter(res_course_num=course, **base_filter).filter(**{f"{field}__gte": 600})
         
                 if cnt_low.exists():
                     results[course]['low'][field] = cnt_low.count()
@@ -177,9 +203,3 @@ def get_motivation_counts(request):
         return JsonResponse(response_data)
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
-    '''
-@app.route('/portrait/filter-motivators', methods=['GET'])
-def filtered_motivation():
-    year = request.args.get('year') 
-    uni = request.args.get('uni')
-    speciality = request.args.get('spec')'''

@@ -8,8 +8,11 @@ urlpatterns = [
     path("get-institution-directions/",     statsresult.get_institution_directions,     name="get_institution_directions"),
     path("get-filter-options-with-counts/", statsresult.get_filter_options_with_counts, name="get_filter_options_with_counts"),
     path("student-results/",                statsresult.student_results,                name="student_results"),
+    
     path('dashboard-stats/', stat.get_dashboard_stats, name='dashboard_stats'),
     path('motivation-counts/', stat.get_motivation_counts, name='motivation_counts'),
+    path('filter-dash/', stat.get_filter_options, name='filter_dash'),
+    
     path('import_excel/', dataload.import_excel, name="import_excel"),
 
     path("create-data-session/",     datasesh.create_data_session,     name="create_data_session"),

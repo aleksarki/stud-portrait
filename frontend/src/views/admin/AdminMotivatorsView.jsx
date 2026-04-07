@@ -7,7 +7,7 @@ import {
     LabelList, LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
     BarChart, Bar, CartesianGrid, ReferenceLine,
 } from "recharts";
-
+import Select from 'react-select';
 import "./AdminMotivatorsView.scss";
 
 
@@ -45,8 +45,9 @@ const competencyLabels = {
 };
 const getLabel = (key) => competencyLabels[key] || competencyLabels[key.replace('res_comp_', '').replace('_', ' ')] || key.replace('res_comp_', '').replace('_', ' ');
 
-//до 400 - демотиватор, 600+ мотиватор
 
+
+//до 400 - демотиватор, 600+ мотиватор
 function MotivatorChart ({ chart_data }){
     const [selectedCourses, setSelectedCourses] = useState([1, 2, 3, 4]);
   
@@ -142,64 +143,111 @@ function MotivatorChart ({ chart_data }){
                 </div>
             </div>
     );}
-  };
+};
 
 
+  
+const FilterHeader = ({ onFilterChange }) => {
+    const [options, setOptions] = useState({ institutes: [], specialties: [], years: [] });
+    const [loading, setLoading] = useState(true);
+  
+    // Загружаем доступные варианты для фильтров при старте
+    useEffect(() => {
+        fetch(`http://localhost:8000/portrait/filter-dash`)
+        .json()
+        .then(res => {
+          setOptions(res.data.data);
+          setLoading(false);
+        })
+        .catch(err => console.error("Ошибка загрузки опций", err));
+    }, []);
+
+    const handleChange = (selectedOption, action) => {
+        const value = selectedOption ? selectedOption.value : '';
+        onFilterChange(action.name, value);
+    };
+  
+    const customStyles = {
+        container: (base) => ({ ...base, flex: 1, minWidth: '200px' }),
+        control: (base) => ({ ...base, borderRadius: '8px', borderColor: '#ddd' })
+    };
+  
+    if (loading) return <div>Загрузка фильтров...</div>;
+  
+    return (
+        <div className="filter-row">
+            <Select
+            name="institute"
+            placeholder="Институт..."
+            isClearable
+            isSearchable
+            options={options.institutes}
+            onChange={handleChange}
+            styles={customStyles}
+            />
+            
+            <Select
+            name="specialty"
+            placeholder="Направление..."
+            isClearable
+            isSearchable
+            options={options.specialties}
+            onChange={handleChange}
+            styles={customStyles}
+            />
+    
+            <Select
+            name="year"
+            placeholder="Год..."
+            isClearable
+            isSearchable
+            options={options.years}
+            onChange={handleChange}
+            styles={customStyles}
+            />
+        </div>
+    );
+};
+  
 
 
 function AdminMotivatorsView(){
-        const [MotivationData, setMotivationData] = useState(null);
-        const [loadingMotDash, setLoadingMotDash] = useState(false);
-        const [isLoaded, setStatus] = useState(false);
-        const [isError, setErrorStatus] = useState(false);
+    const [MotivationData, setMotivationData] = useState(null);
+    const [loadingMotDash, setLoadingMotDash] = useState(false);
+    const [isLoaded, setStatus] = useState(false);
+    const [isError, setErrorStatus] = useState(false);
+    const [filters, setFilters] = useState({ institute: '', specialty: '', year: '' });
     
-        const loadMotivationStats = async () => {
-            setLoadingMotDash(true)
-            try {
-                const response = await fetch(`http://localhost:8000/portrait/motivation-stats`);
-                //const response = await fetch(`motivation-stats/`);
-                if (!response.ok) throw new Error('Ошибка сервера');
-        
-                const data = await response.json();
-                //console.log('response:', data);
-                setMotivationData(data); 
-                setStatus(true);
-                
-        
-            } catch (error) {
-                console.error("Ошибка при загрузке мотиваторов:", error);
-                setStatus(false);
-            } finally {
-                setLoadingMotDash(false); 
-            }
-        };
-        const loadMotivationCounts = async () => {
-            setLoadingMotDash(true)
-            try {
-                const response = await fetch(`http://localhost:8000/portrait/motivation-counts`);
-                
-                if (!response.ok) {setErrorStatus(true); throw new Error('Ошибка сервера');}
-                
-                const data = await response.json();
-                console.log(data.data)
-                setMotivationData(data); 
-                setStatus(true);
-             
-            } catch (error) {
-                console.error("Ошибка при загрузке мотиваторов:", error);
-                setStatus(false);
-                setErrorStatus(true);
-            } finally {
-                setLoadingMotDash(false); 
-            }
-        };
-        useEffect(() => {
+    const loadMotivationCounts = async () => {
+        setLoadingMotDash(true)
+        try {
+            const response = await fetch(`http://localhost:8000/portrait/motivation-counts`);
             
-            if (isLoaded==false && isError==false) {
-                loadMotivationCounts();
-            }
-        },[isLoaded]); 
+            if (!response.ok) {setErrorStatus(true); throw new Error('Ошибка сервера');}
+            
+            const data = await response.json();
+            console.log(data.data)
+            setMotivationData(data); 
+            setStatus(true);
+            
+        } catch (error) {
+            console.error("Ошибка при загрузке мотиваторов:", error);
+            setStatus(false);
+            setErrorStatus(true);
+        } finally {
+            setLoadingMotDash(false); 
+        }
+    };
+    useEffect(() => {
+        
+        if (isLoaded==false && isError==false) {
+            loadMotivationCounts();
+        }
+    },[isLoaded]); 
     
+    const updateFilter = (name, value) => {
+        setFilters(prev => ({ ...prev, [name]: value }));
+    };
 
     return (
             <div className="AdminMotivatorView">
