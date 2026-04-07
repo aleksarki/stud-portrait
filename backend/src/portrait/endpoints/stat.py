@@ -39,12 +39,12 @@ def get_year_metrics(year):
         "participated" : {"amount_in": total_students, "students_all": students_uni}
     }
 
-def get_filter_options(request):
+def filter_dash(request):
     try:
-        institutes = Results.objects.values_list('res_institution__inst_name', flat=True).distinct()
-        specialties = Results.objects.values_list('res_edu_specialty__edu_spec_name', flat=True).distinct()
-        years = Results.objects.values_list('res_year', flat=True).distinct().order_by('-res_year')
-
+        institutes = list(Results.objects.values_list('res_institution__inst_name', flat=True).distinct())
+        specialties = Results.objects.values_list('res_spec__spec_name', flat=True).distinct()
+        years = Results.objects.values_list('res_year', flat=True).distinct()
+        
         data = {
             "institutes": [{"value": i, "label": str(i)} for i in institutes if i],
             "specialties": [{"value": s, "label": str(s)} for s in specialties if s],
@@ -163,19 +163,17 @@ def get_competency_stats_courses():
         chart_data.append(row)
     return chart_data
 
-@method('GET')
-@jsonResponse
-@csrf_exempt
+
 def get_motivation_counts(request):
     try:
         
-        inst_id = request.GET.get('institute')
-        spec_id = request.GET.get('specialty')
+        inst = request.GET.get('institute')
+        spec = request.GET.get('speciality')
         year = request.GET.get('year')
 
         base_filter = {}
-        if inst_id: base_filter['res_institution'] = inst_id 
-        if spec_id: base_filter['res_edu_specialty'] = spec_id
+        if inst: base_filter['res_institution__inst_name'] = inst
+        if spec: base_filter['res_spec__spec_name'] = spec
         if year:    base_filter['res_year'] = year
         courses = [1, 2, 3, 4]
         results = {}

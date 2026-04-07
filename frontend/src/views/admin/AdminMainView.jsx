@@ -200,7 +200,6 @@ function Dashboard({ data }) {
     const fixedSize = (name) => max_comp - name.length <= 0 ? name : ' '.repeat(max_comp - name.length) + name;
     const chartData = data.chart.map(item => { 
         const name = getLabel(item.name);
-        console.log(name);
         return {
             ...item,
             displayName: name

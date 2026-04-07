@@ -150,18 +150,19 @@ function MotivatorChart ({ chart_data }){
 const FilterHeader = ({ onFilterChange }) => {
     const [options, setOptions] = useState({ institutes: [], specialties: [], years: [] });
     const [loading, setLoading] = useState(true);
-  
+
     // Загружаем доступные варианты для фильтров при старте
     useEffect(() => {
         fetch(`http://localhost:8000/portrait/filter-dash`)
-        .json()
-        .then(res => {
-          setOptions(res.data.data);
-          setLoading(false);
+        .then(response => response.json()) 
+        .then(data => {
+        setOptions(data.data); 
+        console.log(data.data);
+        setLoading(false);
         })
         .catch(err => console.error("Ошибка загрузки опций", err));
     }, []);
-
+    console.log('where filters');
     const handleChange = (selectedOption, action) => {
         const value = selectedOption ? selectedOption.value : '';
         onFilterChange(action.name, value);
@@ -181,7 +182,7 @@ const FilterHeader = ({ onFilterChange }) => {
             placeholder="Институт..."
             isClearable
             isSearchable
-            options={options.institutes}
+            options={options?.institutes || []}
             onChange={handleChange}
             styles={customStyles}
             />
@@ -191,7 +192,7 @@ const FilterHeader = ({ onFilterChange }) => {
             placeholder="Направление..."
             isClearable
             isSearchable
-            options={options.specialties}
+            options={options?.specialties || []}
             onChange={handleChange}
             styles={customStyles}
             />
@@ -201,7 +202,7 @@ const FilterHeader = ({ onFilterChange }) => {
             placeholder="Год..."
             isClearable
             isSearchable
-            options={options.years}
+            options={options?.years || []}
             onChange={handleChange}
             styles={customStyles}
             />
@@ -214,36 +215,41 @@ const FilterHeader = ({ onFilterChange }) => {
 function AdminMotivatorsView(){
     const [MotivationData, setMotivationData] = useState(null);
     const [loadingMotDash, setLoadingMotDash] = useState(false);
-    const [isLoaded, setStatus] = useState(false);
     const [isError, setErrorStatus] = useState(false);
     const [filters, setFilters] = useState({ institute: '', specialty: '', year: '' });
     
-    const loadMotivationCounts = async () => {
+    const loadMotivationCounts = async (currentFilters) => {
         setLoadingMotDash(true)
+        setErrorStatus(false)
         try {
-            const response = await fetch(`http://localhost:8000/portrait/motivation-counts`);
-            
+            console.log(currentFilters);
+            let baseUrl = `http://localhost:8000/portrait/motivation-counts`;
+            const params = new URLSearchParams();
+
+            // Добавляем только существующие фильтры
+            if (currentFilters.institute) params.append('institute', currentFilters.institute);
+            if (currentFilters.specialty) params.append('specialty', currentFilters.specialty);
+            if (currentFilters.year) params.append('year', currentFilters.year);
+
+            const queryString = params.toString();
+            const finalUrl = queryString ? `${baseUrl}?${queryString}` : baseUrl;
+
+            const response = await fetch(finalUrl);
             if (!response.ok) {setErrorStatus(true); throw new Error('Ошибка сервера');}
             
             const data = await response.json();
-            console.log(data.data)
             setMotivationData(data); 
-            setStatus(true);
             
         } catch (error) {
             console.error("Ошибка при загрузке мотиваторов:", error);
-            setStatus(false);
             setErrorStatus(true);
         } finally {
             setLoadingMotDash(false); 
         }
     };
     useEffect(() => {
-        
-        if (isLoaded==false && isError==false) {
-            loadMotivationCounts();
-        }
-    },[isLoaded]); 
+        loadMotivationCounts(filters);
+    }, [filters]);
     
     const updateFilter = (name, value) => {
         setFilters(prev => ({ ...prev, [name]: value }));
@@ -255,6 +261,8 @@ function AdminMotivatorsView(){
                     <Header title="Админ: График мотиваторов" name="Администратор1" />
                     <Sidebar linkTree={LINK_TREE} />
                     <Content>
+                        <FilterHeader onFilterChange={updateFilter} 
+                        currentFilters={filters}/>
                         {isError ? (<div className="p-10 text-center"> Ошибка при загрузке данных </div>) :
                         (<>{loadingMotDash ? (
                             <div className="p-10 text-center">Загрузка данных...</div>

@@ -11,7 +11,7 @@ urlpatterns = [
     
     path('dashboard-stats/', stat.get_dashboard_stats, name='dashboard_stats'),
     path('motivation-counts/', stat.get_motivation_counts, name='motivation_counts'),
-    path('filter-dash/', stat.get_filter_options, name='filter_dash'),
+    path('filter-dash/', stat.filter_dash, name='filter_dash'),
     
     path('import_excel/', dataload.import_excel, name="import_excel"),
 
@@ -24,12 +24,12 @@ urlpatterns = [
     path("group-data/",              datasesh.group_data,              name="group_data"),
     path("stats/",                   datasesh.stats_with_filters,      name="stats"),
 
-    #path('ai-interpret/',     ai_interp.ai_interpret_competency,       name='ai_interpret'),
-    #path('ai-interpret-all/', ai_interp.ai_interpret_all_competencies, name='ai_interpret_all'),
-    #path('ai-generate/', ai_interp.ai_generate_interpretation, name='ai_generate_interpretation'),
+    path('ai-interpret/',     ai_interp.ai_interpret_competency,       name='ai_interpret'),
+    path('ai-interpret-all/', ai_interp.ai_interpret_all_competencies, name='ai_interpret_all'),
+    path('ai-generate/', ai_interp.ai_generate_interpretation, name='ai_generate_interpretation'),
     
-    #path('student-resume-data/',  gen_resume.get_student_resume_data,   name='student-resume-data'),
-    #path('generate-docx-resume/', gen_docx_resume.generate_docx_resume, name='generate_docx_resume'),
+    path('student-resume-data/',  gen_resume.get_student_resume_data,   name='student-resume-data'),
+    path('generate-docx-resume/', gen_docx_resume.generate_docx_resume, name='generate_docx_resume'),
 
     # VAM и LGM базовые
     path('analyze-student-vam/', analysis_end.analyze_student_vam, name='analyze_student_vam'),
