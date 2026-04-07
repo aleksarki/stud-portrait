@@ -1,20 +1,15 @@
 import { useEffect, useState } from "react";
 
-import FlexRow, { WRAP } from '../../components/FlexRow.jsx';
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
-import ColorBox, { BOX_COLOR } from '../../components/ui/ColorBox.jsx';
-import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
-import Label from '../../components/ui/Label.jsx';
-import ValueCard from '../../components/cards/ValueCard.jsx';
+
 import { COURSES_NAMES, LINK_TREE } from "../../utilities.js";
 import {
     PieChart, Pie, ReferenceLine, LabelList, BarChart, Bar, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from "recharts";
 
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
-
+import Select from 'react-select';
 import { ArrowUpRight, ArrowDownRight, Award, TrendingUp, ArrowUp, ArrowDown } from "lucide-react";
-
 import "./AdminMainView.scss";
 
 const competencyLabels = {
@@ -55,6 +50,68 @@ const max_mot=15;
 
 const getLabel = (key) => competencyLabels[key] || competencyLabels[key.replace('res_comp_', '').replace('_', ' ')] || key.replace('res_comp_', '').replace('_', ' ');
 // для сравнения
+
+const FilterHeader = ({ onFilterChange }) => {
+    const [options, setOptions] = useState({ institutes: [], specialties: [], years: [] });
+    const [loading, setLoading] = useState(true);
+
+    //загрузка вариантов
+    useEffect(() => {
+        fetch(`http://localhost:8000/portrait/filter-dash`)
+        .then(response => response.json()) 
+        .then(data => {
+        setOptions(data.data); 
+        console.log(data.data);
+        setLoading(false);
+        })
+        .catch(err => console.error("Ошибка загрузки опций", err));
+    }, []);
+    const handleChange = (selectedOption, action) => {
+        const value = selectedOption ? selectedOption.value : '';
+        onFilterChange(action.name, value);
+    };
+  
+    const customStyles = {
+        container: (base) => ({ ...base, flex: 1, minWidth: '200px' }),
+        control: (base) => ({ ...base, borderRadius: '8px', borderColor: '#ddd' })
+    };
+  
+    if (loading) return <div>Загрузка фильтров...</div>;
+  
+    return (
+        <div className="filter-row">
+            <Select
+            name="institute"
+            placeholder="Институт..."
+            isClearable
+            isSearchable
+            options={options?.institutes || []}
+            onChange={handleChange}
+            styles={customStyles}
+            />
+            
+            <Select
+            name="specialty"
+            placeholder="Направление..."
+            isClearable
+            isSearchable
+            options={options?.specialties || []}
+            onChange={handleChange}
+            styles={customStyles}
+            />
+    
+            <Select
+            name="year"
+            placeholder="Год..."
+            isClearable
+            isSearchable
+            options={options?.years || []}
+            onChange={handleChange}
+            styles={customStyles}
+            />
+        </div>
+    );
+};
 
 const Stat = ({ label, value, prev=0, suffix = "", isGrowth = false }) => {
     if (prev==0){
@@ -115,14 +172,6 @@ function CompRadar({ data }) {
         return hoveredCourse === course ? 1 : 0.1;
     };
 
-    const handleMouseEnter = (o) => {
-        const { dataKey } = o;
-        setHoveredCourse(dataKey);
-    };
-
-    const handleMouseLeave = () => {
-        setHoveredCourse(null);
-    };
 
     const toggleCourse = (courseKey) => {
         setVisibleCourses(prev => ({
@@ -131,7 +180,7 @@ function CompRadar({ data }) {
         }));
     };
 
-    console.log("данные дошли");
+    //console.log("данные дошли");
     return (
         <div className="ChoiceContainer">
             {/*панель с чекбоксами */}
@@ -196,7 +245,7 @@ function CompRadar({ data }) {
 
 function Dashboard({ data }) {
     if (!data) return null;
-    const year = 2026;
+    const year = data.year;
     const fixedSize = (name) => max_comp - name.length <= 0 ? name : ' '.repeat(max_comp - name.length) + name;
     const chartData = data.chart.map(item => { 
         const name = getLabel(item.name);
@@ -342,17 +391,28 @@ function AdminMainView() {
 
     const [dashboardData, setDashboardData] = useState(null);
     const [loadingDash, setLoadingDash] = useState(false);
-    const [isLoaded, setDashStatus] = useState(false);
-    const loadDashboardStats = async () => {
+    const [filters, setFilters] = useState({ institute: '', specialty: '', year: '' });
+             
+    const loadDashboardStats = async (currentFilters) => {
         setLoadingDash(true)
         try {
-            const response = await fetch(`http://localhost:8000/portrait/dashboard-stats/`);
+            console.log(currentFilters);
+            let baseUrl = `http://localhost:8000/portrait/dashboard-stats`;
+            const params = new URLSearchParams();
+
+            if (currentFilters.institute) params.append('institute', currentFilters.institute);
+            if (currentFilters.specialty) params.append('specialty', currentFilters.specialty);
+            if (currentFilters.year) params.append('year', currentFilters.year);
+
+            const queryString = params.toString();
+            const finalUrl = queryString ? `${baseUrl}?${queryString}` : baseUrl;
+
+            const response = await fetch(finalUrl);
             
             if (!response.ok) throw new Error('Ошибка сервера');
     
             const data = await response.json();
             setDashboardData(data); 
-            setDashStatus(true);
     
         } catch (error) {
             console.error("Ошибка при загрузке дашборда:", error);
@@ -361,10 +421,11 @@ function AdminMainView() {
         }
     };
     useEffect(() => {
-            if (isLoaded == false)
-                loadDashboardStats();
-    }, ); 
-
+            loadDashboardStats(filters);
+    }, [filters]); 
+    const updateFilter = (name, value) => {
+        setFilters(prev => ({ ...prev, [name]: value }));
+    };
 
     return (
         <div className="AdminMainView">
@@ -372,6 +433,8 @@ function AdminMainView() {
                 <Header title="Админ: Главная" name="Администратор1" />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
+                    <FilterHeader onFilterChange={updateFilter} 
+                        currentFilters={filters}/>
                     <span><>
                             {loadingDash ? (
                                 <div className="p-20 text-center text-gray-400">Загрузка статистики...</div>

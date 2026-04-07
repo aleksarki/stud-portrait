@@ -11,8 +11,8 @@ comp_fields = [
     'res_comp_client_focus', 'res_comp_communication'
 ]
 
-def get_year_metrics(year):
-    res_queryset = Results.objects.filter(res_year=year)
+def get_year_metrics(year, filter):
+    res_queryset = Results.objects.filter(res_year=year, **filter)
     if not res_queryset.exists():
         return {
             "total_avg": 0,
@@ -58,14 +58,23 @@ def get_dashboard_stats(request):
     response_data = {}
 
     try:
-        #session_id = request.GET.get('session_id')
-        #inst_ids = request.GET.get('institutions', '')
-        
-        curr_year = "2025/2026"
-        prev_year = "2024/2025"
+        inst = request.GET.get('institute')
+        spec = request.GET.get('speciality')
+        year = request.GET.get('year')
 
-        curr_data = get_year_metrics(curr_year)
-        prev_data = get_year_metrics(prev_year)
+        base_filter = {}
+        if inst: base_filter['res_institution__inst_name'] = inst
+        if spec: base_filter['res_spec__spec_name'] = spec
+        
+        if year:
+            curr_year = year
+            prev_year = str(int(year.split('/')[0])-1) + '/' + year.split('/')[0]
+        else:
+            curr_year = "2025/2026"
+            prev_year = "2024/2025"
+
+        curr_data = get_year_metrics(curr_year, base_filter)
+        prev_data = get_year_metrics(prev_year, base_filter)
 
         # прирост компетенций
         growth = 0
@@ -104,7 +113,10 @@ def get_dashboard_stats(request):
         chart=[]
         for k, v in curr_data['all_comps'].items():
             chart.append({"name": k, "score": v, "prev_score": prev_data['all_comps'][k]})
-        radar=get_competency_stats_courses()
+        
+        base_filter['res_year'] = curr_year
+        radar=get_competency_stats_courses(base_filter)
+        
         response_data = {
             "status": "success",
             "col1": {
@@ -123,6 +135,7 @@ def get_dashboard_stats(request):
                 "best_prev": best_comp_prev,
                 "worst_prev": worst_comp_prev
             },
+            "year": curr_year.split('/')[1],
             "chart": chart,
             "radar": radar
         }
@@ -142,12 +155,12 @@ MOT_FIELDS = [
 ]
 
 
-def get_competency_stats_courses():
+def get_competency_stats_courses(filter):
     courses = [1, 2, 3, 4]
     results = {}
-    
+    main = Results.objects.filter(**filter)
     for course in courses:
-        qs = Results.objects.filter(res_course_num=course)
+        qs = main.filter(res_course_num=course)
         if qs.exists():
             avgs = qs.aggregate(**{field: Avg(field) for field in comp_fields})
             results[course] = avgs

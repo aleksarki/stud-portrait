@@ -146,12 +146,12 @@ function MotivatorChart ({ chart_data }){
 };
 
 
-  
+//верх фильтры
 const FilterHeader = ({ onFilterChange }) => {
     const [options, setOptions] = useState({ institutes: [], specialties: [], years: [] });
     const [loading, setLoading] = useState(true);
 
-    // Загружаем доступные варианты для фильтров при старте
+    //загрузка вариантов
     useEffect(() => {
         fetch(`http://localhost:8000/portrait/filter-dash`)
         .then(response => response.json()) 
@@ -162,7 +162,6 @@ const FilterHeader = ({ onFilterChange }) => {
         })
         .catch(err => console.error("Ошибка загрузки опций", err));
     }, []);
-    console.log('where filters');
     const handleChange = (selectedOption, action) => {
         const value = selectedOption ? selectedOption.value : '';
         onFilterChange(action.name, value);
