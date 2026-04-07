@@ -88,7 +88,7 @@ def get_dashboard_stats(request):
         chart=[]
         for k, v in curr_data['all_comps'].items():
             chart.append({"name": k, "score": v, "prev_score": prev_data['all_comps'][k]})
-           
+        radar=get_competency_stats_courses()
         response_data = {
             "status": "success",
             "col1": {
@@ -107,7 +107,8 @@ def get_dashboard_stats(request):
                 "best_prev": best_comp_prev,
                 "worst_prev": worst_comp_prev
             },
-            "chart": chart
+            "chart": chart,
+            "radar": radar
         }
         return JsonResponse(response_data)
         
@@ -124,31 +125,29 @@ MOT_FIELDS = [
     'res_mot_stability', 'res_mot_tradition', 'res_mot_management', 'res_mot_work_conditions'
 ]
 
-def get_motivation_stats(request):
-    try:
-        courses = [1, 2, 3, 4]
-        results = {}
-        
+
+def get_competency_stats_courses():
+    courses = [1, 2, 3, 4]
+    results = {}
+    
+    for course in courses:
+        qs = Results.objects.filter(res_course_num=course)
+        if qs.exists():
+            avgs = qs.aggregate(**{field: Avg(field) for field in comp_fields})
+            results[course] = avgs
+        else:
+            results[course] = {f: 0 for f in comp_fields}
+    #print(results)
+    chart_data = []
+    for field in comp_fields:
+        row = {"name": field}
         for course in courses:
-            qs = Results.objects.filter(res_course_num=course)
-            if qs.exists():
-                avgs = qs.aggregate(**{field: Avg(field) for field in MOT_FIELDS})
-                results[course] = avgs
-            else:
-                results[course] = {f: 0 for f in MOT_FIELDS}
-        #print(results)
-        chart_data = []
-        for field in MOT_FIELDS:
-            row = {"name": field}
-            for course in courses:
-                val = results[course].get(field) or 0
-                row[f"course_{course}"] = round(float(val), 2)
-            chart_data.append(row)
-        
-        response_data={"status": "success", "data": chart_data}
-        return JsonResponse(response_data)
-    except Exception as e:
-        return JsonResponse({"status": "error", "message": str(e)}, status=500)
+            val = results[course].get(field) or 0
+            row[f"course_{course}"] = round(float(val), 2)
+        chart_data.append(row)
+    
+    #response_data={"status": "success", "data": chart_data}
+    return chart_data
 
 def get_motivation_counts(request):
     try:
@@ -173,8 +172,14 @@ def get_motivation_counts(request):
                 row[f"course_{course}_high"] = results[course]['high'].get(field, 0)
                 row[f"course_{course}_low"] = results[course]['low'].get(field, 0)
             bar_data.append(row)
-        print("DATA:", results)
+        #print("DATA:", results)
         response_data={"status": "success", "data": bar_data}
         return JsonResponse(response_data)
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
+    '''
+@app.route('/portrait/filter-motivators', methods=['GET'])
+def filtered_motivation():
+    year = request.args.get('year') 
+    uni = request.args.get('uni')
+    speciality = request.args.get('spec')'''

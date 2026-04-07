@@ -11,6 +11,8 @@ import {
     PieChart, Pie, ReferenceLine, LabelList, BarChart, Bar, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from "recharts";
 
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
+
 import { ArrowUpRight, ArrowDownRight, Award, TrendingUp, ArrowUp, ArrowDown } from "lucide-react";
 
 import "./AdminMainView.scss";
@@ -80,6 +82,117 @@ const Stat = ({ label, value, prev=0, suffix = "", isGrowth = false }) => {
     }
     
 };
+
+
+//паутинка пред
+function CompRadar({ data }) {
+
+    const [hoveredCourse, setHoveredCourse] = useState(null);
+    const [visibleCourses, setVisibleCourses] = useState({
+        course_1: true,
+        course_2: true,
+        course_3: true,
+        course_4: true,
+    });
+
+    const courseConfig = [
+        { key: 'course_1', name: '1 Курс', color: '#8884d8' },
+        { key: 'course_2', name: '2 Курс', color: '#82ca9d' },
+        { key: 'course_3', name: '3 Курс', color: '#ffc658' },
+        { key: 'course_4', name: '4 Курс', color: '#ff8042' },
+    ];
+    if (!data) {
+        console.log('CompRadar: ошибка загрузки данных');
+        return <div className="p-4 text-gray-500">Нет данных для отображения</div>;
+    }
+    const getOpacity = (course) => {
+        if (!hoveredCourse) return 0.2;
+        return hoveredCourse === course ? 0.6 : 0.05;
+    };
+
+    const getStrokeOpacity = (course) => {
+        if (!hoveredCourse) return 1;
+        return hoveredCourse === course ? 1 : 0.1;
+    };
+
+    const handleMouseEnter = (o) => {
+        const { dataKey } = o;
+        setHoveredCourse(dataKey);
+    };
+
+    const handleMouseLeave = () => {
+        setHoveredCourse(null);
+    };
+
+    const toggleCourse = (courseKey) => {
+        setVisibleCourses(prev => ({
+            ...prev,
+            [courseKey]: !prev[courseKey]
+        }));
+    };
+
+    console.log("данные дошли");
+    return (
+        <div className="ChoiceContainer">
+            {/*панель с чекбоксами */}
+            <div className="chooseBoxes">
+                <h3 style={{ fontSize: '14px', marginBottom: '10px' }}>Курсы</h3>
+                {courseConfig.map(course => (
+                <label key={course.key} style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '8px', cursor: 'pointer' }}>
+                    <input 
+                    type="checkbox" 
+                    checked={visibleCourses[course.key]} 
+                    onChange={() => toggleCourse(course.key)}
+                    style={{ accentColor: course.color }}
+                    />
+                    <span style={{ fontSize: '12px' }}>{course.name}</span>
+                </label>
+                ))}
+            </div>
+        
+        <div style={{ flex: 1}}>
+            <ResponsiveContainer width="110%" height="100%" >
+                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data} marginLeft={50}>
+                    <PolarGrid stroke="#e0e0e0" />
+                    <PolarAngleAxis 
+                        dataKey="name" 
+                        tickFormatter={getLabel} 
+                        tick={{fill: '#666', fontSize: 10 }} 
+                    />
+                    <PolarRadiusAxis angle={30} domain={[0, 800]} tick={false} axisLine={false} />
+                    
+                    {courseConfig.map(course => visibleCourses[course.key] && (
+                    <Radar
+                        key={course.key}
+                        name={course.name}
+                        dataKey={course.key}
+                        stroke={course.color}
+                        fill={course.color}
+                        fillOpacity={0.08}
+                        strokeOpacity={getStrokeOpacity(course.key)}
+                        onMouseEnter={() => setHoveredCourse(course.key)}
+                        onMouseLeave={() => setHoveredCourse(null)}
+                        animationDuration={400}
+                    />
+                    ))}
+                    
+                    <Tooltip 
+                        labelFormatter={(label) => getLabel(label)}
+                        // name имя из конфига 
+                        formatter={(value, name) => [value.toFixed(1), name]}
+                        contentStyle={{ 
+                            borderRadius: '8px', 
+                            border: 'none', 
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)' 
+                        }}
+                    />
+                    <Legend verticalAlign="bottom" onMouseEnter={(o) => setHoveredCourse(o.dataKey)} onMouseLeave={() => setHoveredCourse(null)} />
+                </RadarChart>
+            </ResponsiveContainer>
+        </div>
+      </div>
+    );
+}
 
 function Dashboard({ data }) {
     if (!data) return null;
@@ -217,7 +330,11 @@ function Dashboard({ data }) {
                     </div>
                 </div>
             </div>
-        </div>);
+            <div>
+            <CompRadar data={data.radar}/>
+            </div>
+       </div>
+    );
 }
 
 

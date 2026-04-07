@@ -9,7 +9,6 @@ urlpatterns = [
     path("get-filter-options-with-counts/", statsresult.get_filter_options_with_counts, name="get_filter_options_with_counts"),
     path("student-results/",                statsresult.student_results,                name="student_results"),
     path('dashboard-stats/', stat.get_dashboard_stats, name='dashboard_stats'),
-    path('motivation-stats/', stat.get_motivation_stats, name='motivation_stats'),
     path('motivation-counts/', stat.get_motivation_counts, name='motivation_counts'),
     path('import_excel/', dataload.import_excel, name="import_excel"),
 
