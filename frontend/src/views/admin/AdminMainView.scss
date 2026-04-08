@@ -10,10 +10,17 @@
         margin-top: 1rem;
     
         .dashboard-title {
-            font-size: 1.5rem;
+            font-size: 1.8rem;
             font-weight: 700;
             margin-bottom: 2rem;
+            .extra-title{ 
+                margin-top: 5px;
+                font-size: 1rem;
+                font-weight: 400;
+                color:#303c4f;
+            }
         }
+        
     
         .dashboard-grid {
             display: grid;

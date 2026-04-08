@@ -79,23 +79,30 @@ def get_dashboard_stats(request):
         # прирост компетенций
         growth = 0
         if curr_data and prev_data:
-            growth = ((curr_data['total_avg'] - prev_data['total_avg']) / prev_data['total_avg']) * 100
+            growth = ((curr_data['total_avg'] - prev_data['total_avg']) / prev_data['total_avg']) * 100 if prev_data['total_avg']!=0 else 0
 
-        # Лучший ВУЗ
+        
         total_score_expression = sum(F(field) for field in comp_fields) / len(comp_fields)
 
-        best_uni_data = Results.objects.filter(res_year=curr_year) \
+        rate_uni_data = Results.objects.filter(res_year=curr_year) \
             .values(uni_name=F('res_institution__inst_name')) \
             .annotate(overall_avg=Avg(total_score_expression)) \
-            .order_by('-overall_avg') \
-            .first()
-
-        if best_uni_data:
-            uni_name = best_uni_data['uni_name']
-            uni_score = round(best_uni_data['overall_avg'] or 0, 2)
-        else:
-            uni_name = "Нет данных"
-            uni_score = 0
+            .order_by('-overall_avg')
+        rate_list=list(rate_uni_data)
+        if inst: #место выбранного в %
+            uni_place = (next((i for i, item in enumerate(rate_list) if item.get('uni_name') == inst), -1)+1)/len(rate_list) * 100
+            uni_score = curr_data['total_avg']
+            uni_name = inst
+        else: 
+            uni_place = 0
+            best_uni_data = rate_uni_data.first() #Лучший ВУЗ
+        
+            if best_uni_data:
+                uni_name = best_uni_data['uni_name']
+                uni_score = round(best_uni_data['overall_avg'] or 0, 2)
+            else:
+                uni_name = "Нет данных"
+                uni_score = 0
 
         sorted_comps = sorted(curr_data['all_comps'].items(), key=lambda x: x[1], reverse=True)
         sorted_comps_prev = sorted(prev_data['all_comps'].items(), key=lambda x: x[1], reverse=True)
@@ -127,6 +134,7 @@ def get_dashboard_stats(request):
             "col2": {
                 "uni_name": uni_name,
                 "uni_score": uni_score,
+                "uni_place": uni_place,
                 "participated": curr_data['participated']
             },
             "col3": {

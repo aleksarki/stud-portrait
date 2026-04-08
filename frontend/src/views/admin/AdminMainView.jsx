@@ -258,10 +258,17 @@ function Dashboard({ data }) {
         {"name" : "Не прошли", "value" : data.col2.participated.students_all - data.col2.participated.amount_in, fill: 'transparent'}
                                 
     ];
-
+    //col2 uni
+    const col2_data={ 'header': "Лидирующий ВУЗ", 'name': data.col2.uni_name,'score': data.col2.uni_score};
+    console.log(data.col2.uni_place);
+    if (data.col2.uni_place!=0){
+        col2_data['header'] = "Рейтинг ВУЗа";
+        col2_data['name'] = "Топ "+(data.col2.uni_place).toString()+"%";
+    }
     return (
         <div className="dashboard-container">
-        <h2 className="dashboard-title">Статистика</h2>
+        <h2 className="dashboard-title">Статистика
+        <p className="extra-title">  за {year-1}/{year} год</p></h2>
         
         <div className="dashboard-grid">
             {/* Левая колонка */}
@@ -273,11 +280,12 @@ function Dashboard({ data }) {
 
             {/* Центральная колонка */} 
             <div className="col-center">
-                <div className="uni-info mb-6">
-                    <h4 className="text-xs uppercase text-gray-400 font-bold">Лидирующий ВУЗ</h4>
-                    <div className="text-xl font-bold text-blue-600">{data.col2.uni_name}</div>
-                    <div className="text-sm text-gray-500">{data.col2.uni_score} баллов (среднее)</div>
-                </div>
+                {data.col2.uni_place!=0 ? <Stat label={col2_data['header']} value={col2_data['name']} /> :
+                (<div className="uni-info mb-6"> 
+                    <h4 className="text-xs uppercase text-gray-400 font-bold">{col2_data['header']}</h4>
+                    <div className="text-xl font-bold text-blue-600">{col2_data['name']}</div>
+                    <div className="text-sm text-gray-500">{col2_data['score']} баллов (среднее)</div>
+                </div>)}
                 <div class="chart-wrapper">
                     <ResponsiveContainer width="100%" height="300">
                         <PieChart>
