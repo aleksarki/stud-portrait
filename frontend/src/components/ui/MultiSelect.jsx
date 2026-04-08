@@ -72,7 +72,7 @@ function MultiSelect({
 
     // normalize to unified format [{id, name, count}]
     const normalizedOptions = options.map(opt => {
-        if (typeof opt === 'string') {
+        if (typeof opt !== 'object') {
             return { id: opt, name: opt, count: null };
         }
         return { ...opt, count: opt.count || null };
@@ -162,7 +162,7 @@ function MultiSelect({
             }}
         >
             {label && <span className="label">{label}</span>}
-            
+
             <div 
                 className={`field ${open ? 'open' : ''}`}
                 onClick={() => setOpen(!open)}

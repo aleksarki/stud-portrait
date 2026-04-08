@@ -14,7 +14,7 @@ import {
     MOTIVATORS_NAMES, VALUES_NAMES
 } from "../../utilities.js";
 
-import FlexRow, { WRAP } from '../../components/FlexRow.jsx';
+import FlexRow, { JUSTIFY, WRAP } from '../../components/FlexRow.jsx';
 import { ModalBody, ModalFooter, useModalWindow } from '../../components/ModalWindow.jsx';
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 
@@ -30,6 +30,8 @@ import Select, { Option, OptionGroup } from "../../components/ui/Select.jsx";
 
 import "./AdminResultsView.scss";
 import NumberField from '../../components/ui/NumberField.jsx';
+import LabelledBox from '../../components/LabelledBox.jsx';
+import FlexColumn from '../../components/FlexColumn.jsx';
 
 function AdminResultsView() {
     const [sessionId, setSessionId] = useState(null);
@@ -775,84 +777,62 @@ function AdminResultsView() {
                             )}
                         </FlexRow>
 
-                        <FlexRow wrap={WRAP.DO}>
-                            {pendingFilters.map(filter => (
-                                filter.type === 'basic' ? (
-                                    <FlexRow>
-                                        <span>{FIELD_NAMES[filter.field]}</span>
-                                        <MultiSelect
-                                            options={availableValues[filter.field]}
-                                            value={filter.selectedValues}
-                                            onChange={selected => updatePendingBasicFilter(filter.id, selected)}
-                                        />
-                                        <Button
-                                            text="✕"
-                                            onClick={() => removePendingFilter(filter.id)}
-                                            palette={BUTTON_PALETTE.RED}
-                                        />
-                                    </FlexRow>
-                                ) : (
-                                    <FlexRow>
-                                        <span>{FIELD_NAMES[filter.field]}</span>
-                                        <span>От:</span>
-                                        <NumberField
-                                            value={filter.min} min="200" max="800"
-                                            onChange={value => updatePendingNumericFilter(filter.id, value, filter.max)}
-                                        />
-                                        <span>До:</span>
-                                        <NumberField
-                                            value={filter.max} min="200" max="800"
-                                            onChange={value => updatePendingNumericFilter(filter.id, filter.min, value)}
-                                        />
-                                        <Button
-                                            text="✕"
-                                            onClick={() => removePendingFilter(filter.id)}
-                                            palette={BUTTON_PALETTE.RED}
-                                        />
-                                    </FlexRow>
-                                )
-                            ))}
-                        </FlexRow>
-
                         {/* Ожидающие применения фильтры */}
-                        {/* {pendingFilters.map(filter => <div className="filter-item pending" />)} */}
+                        {pendingFilters.length > 0 && <>
+                            <h6>Выбранные фильтры:</h6>
+                            <FlexColumn className="pending-filters-column" wrap={WRAP.DO}>
+                                {pendingFilters.map(filter => (
+                                    <LabelledBox label={FIELD_NAMES[filter.field]} bordered>
+                                        <FlexRow>
+                                            {filter.type === 'basic' ? (
+                                                <MultiSelect
+                                                    options={availableValues[filter.field]}
+                                                    value={filter.selectedValues}
+                                                    onChange={selected => updatePendingBasicFilter(filter.id, selected)}
+                                                />
+                                            ) : <>
+                                                <LabelledBox label="От:" nopad inrow>
+                                                    <NumberField
+                                                        value={filter.min} min="200" max="800"
+                                                        onChange={value => updatePendingNumericFilter(filter.id, value, filter.max)}
+                                                    />
+                                                </LabelledBox>
+                                                <LabelledBox label="До:" nopad inrow>
+                                                    <NumberField
+                                                        value={filter.max} min="200" max="800"
+                                                        onChange={value => updatePendingNumericFilter(filter.id, filter.min, value)}
+                                                    />
+                                                </LabelledBox>
+                                            </>}
+                                            <Button
+                                                text="✕"
+                                                onClick={() => removePendingFilter(filter.id)}
+                                                palette={BUTTON_PALETTE.RED}
+                                            />
+                                        </FlexRow>
+                                    </LabelledBox>
+                                ))}
+                            </FlexColumn>
+                        </>}
 
                         {/* Активные фильтры */}
-                        {filters.length > 0 && (
-                            <div className="active-filters-section">
-                                <div className="active-filters-header">
-                                    <h4>Активные фильтры:</h4>
-                                </div>
-                                <div className="active-filters">
-                                    {filters.map(filter => (
-                                        <div key={filter.id} className="filter-item active">
-                                            <div className="filter-header">
-                                                <span className="filter-name">
-                                                    {FIELD_NAMES[filter.field]}
-                                                </span>
-                                                <span className="filter-status">✓ Применен</span>
-                                            </div>
-                                            
-                                            {filter.type === 'basic' && (
-                                                <div className="filter-content">
-                                                    <div className="selected-values">
-                                                        Выбрано значений: {filter.selectedValues.length}
-                                                    </div>
-                                                </div>
-                                            )}
-                                            
-                                            {filter.type === 'numeric' && (
-                                                <div className="filter-content">
-                                                    <div className="range-display">
-                                                        Диапазон: {filter.min} - {filter.max}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                        {filters.length > 0 && <>
+                            <h6>Активные фильтры:</h6>
+                            <FlexRow className="active-filters-row" wrap={WRAP.DO}>
+                                {filters.map(filter => {
+                                    let text = `${FIELD_NAMES[filter.field]}: `;
+                                    switch (filter.type) {
+                                        case 'basic':
+                                            text += `Выбрано значений: ${filter.selectedValues.length}`;
+                                            break;
+                                        case 'numeric':
+                                            text += `Диапазон: ${filter.min} - ${filter.max}`;
+                                            break;
+                                    }
+                                    return <Label text={text} />;
+                                })}
+                            </FlexRow>
+                        </>}
                     </div>
                 </ModalBody>
                 <ModalFooter>
