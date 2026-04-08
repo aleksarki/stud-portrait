@@ -1,17 +1,20 @@
 .Button {
     padding: 8px 16px !important;
     border-radius: 4px;
-    cursor: pointer;
     white-space: nowrap;
+    user-select: none;
+    cursor: pointer;
+
     font-size: 14px !important;
     font-weight: 500 !important;
-    transition: all 0.2s ease;
-
+    
     color: var(--fg);
     background: var(--bg);
     border: var(--border);
     text-shadow: var(--textShadow);
     box-shadow: var(--boxShadow);
+    
+    transition: all 0.2s ease;
     
     &:hover:not(:disabled) {
         color: var(--hoverFg);

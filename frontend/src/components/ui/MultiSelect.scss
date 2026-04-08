@@ -1,10 +1,12 @@
-.multi-select {
+.MultiSelect {
   position: relative;
   width: 100%;
-  min-width: 200px;
+  min-width: 175px;
   max-width: 400px;
 
-  .multi-select-label {
+  font-size: 14px !important;
+
+  .label {
     display: block;
     margin-bottom: 5px;
     font-size: 14px;
@@ -12,62 +14,79 @@
     color: #333;
   }
 
-  .multi-select-trigger {
+  $count-color: #1976d2;
+
+  .field {
+    padding: 8px 16px !important;
+    border-radius: 4px;
+    white-space: nowrap;
+    user-select: none;
+    cursor: pointer;
+
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 12px;
-    border: 1px solid #ced4da;
-    border-radius: 6px;
-    background: white;
-    cursor: pointer;
-    transition: all 0.2s;
-    user-select: none;
+
+    color: var(--fg);
+    background: var(--bg);
+    border: var(--border);
+    text-shadow: var(--textShadow);
+    box-shadow: var(--boxShadow);
+
+    transition: all 0.2s ease;
 
     &:hover {
-      border-color: #1976d2;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      color: var(--hoverFg);
+      background: var(--hoverBg);
+      border: var(--hoverBorder);
+      text-shadow: var(--hoverTextShadow);
+      box-shadow: var(--hoverBoxShadow);
+      transform: var(--hoverTransform);
     }
 
-    &.open {
-      border-color: #1976d2;
-      box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+    &:active {
+      color: var(--activeFg);
+      background: var(--activeBg);
+      border: var(--activeBorder);
+      text-shadow: var(--activeTextShadow);
+      box-shadow: var(--activeBoxShadow);
+      transform: var(--activeTransform);
     }
 
-    .multi-select-text {
+    .multiselect-text {
       flex: 1;
-      font-size: 14px;
-      color: #333;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      
-      .multi-select-total-count {
-        color: #1976d2;
-        font-weight: 600;
-        margin-left: 4px;
-      }
-    }
 
-    .multi-select-arrow {
-      margin-left: 8px;
-      font-size: 12px;
-      color: #666;
-      transition: transform 0.2s;
+      .count {
+        color: $count-color;
+        font-weight: 600;
+        margin-left: 5px;
+      }
     }
   }
 
-  .multi-select-dropdown {
+  .dropdown {
     position: absolute;
     top: calc(100% + 4px);
     left: 0;
     right: 0;
-    background: white;
-    border: 1px solid #ced4da;
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     z-index: 1000;
     overflow: hidden;
+
+    display: flex;
+    flex-direction: column;
+
+    padding: 8px 8px !important;
+    border-radius: 4px;
+
+    color: var(--fg);
+    background: var(--bg);
+    border: var(--border);
+    text-shadow: var(--textShadow);
+    box-shadow: var(--boxShadow);
+
     animation: slideDown 0.2s ease-out;
 
     @keyframes slideDown {
@@ -80,132 +99,121 @@
         transform: translateY(0);
       }
     }
-  }
 
-  .multi-select-search {
-    padding: 8px;
-    border-bottom: 1px solid #e0e0e0;
+    &:not(.open) {
+      display: none;
+    }
 
-    input {
-      width: 100%;
-      padding: 8px 10px;
-      border: 1px solid #ced4da;
-      border-radius: 4px;
-      font-size: 13px;
-      outline: none;
-      transition: border-color 0.2s;
+    .FlexRow {
+      margin-bottom: 8px;
 
-      &:focus {
-        border-color: #1976d2;
+      .search-area {
+        flex-grow: 1;
+        display: flex;
+        min-width: 0;
+
+        input.search {
+          flex: 1;
+          width: 100%;
+          min-width: 0;
+          
+          padding: 4px 8px !important;
+          border-radius: 4px;
+          font-size: inherit;
+
+          color: var(--fg);
+          border: var(--border);
+          text-shadow: var(--textShadow);
+          box-shadow: var(--boxShadow);
+        }
       }
 
-      &::placeholder {
-        color: #999;
+      button.select-all {
+        border-radius: 4px;
+        font-size: inherit;
+        cursor: pointer;
+
+        flex-shrink: 0;
+
+        color: var(--fg);
+        background: var(--bg);
+        border: var(--border);
+        text-shadow: var(--textShadow);
+        box-shadow: var(--boxShadow);
+
+        transition: all 0.2s ease;
+
+        &:hover {
+          color: var(--hoverFg);
+          background: var(--hoverBg);
+          border: var(--hoverBorder);
+          text-shadow: var(--hoverTextShadow);
+          box-shadow: var(--hoverBoxShadow);
+          transform: var(--hoverTransform);
+        }
+
+        &:active {
+          color: var(--activeFg);
+          background: var(--activeBg);
+          border: var(--activeBorder);
+          text-shadow: var(--activeTextShadow);
+          box-shadow: var(--activeBoxShadow);
+          transform: var(--activeTransform);
+        }
       }
     }
-  }
 
-  .multi-select-actions {
-    padding: 8px;
-    border-bottom: 1px solid #e0e0e0;
-    background: #f8f9fa;
+    .options {
+      max-height: 250px;
+      overflow-y: auto;
 
-    .multi-select-select-all {
-      width: 100%;
-      padding: 6px 10px;
-      border: none;
-      background: transparent;
-      color: #1976d2;
-      font-size: 13px;
-      font-weight: 500;
-      text-align: left;
-      cursor: pointer;
-      transition: background 0.2s;
+      .no-results {
+        padding: 20px;
+        text-align: center;
+      }
 
-      &:hover {
-        background: rgba(25, 118, 210, 0.1);
+      .option {
+        user-select: none;
+
+        display: flex;
+        align-items: center;
+
+        input[type="checkbox"] {
+          flex-shrink: 0;
+          margin-right: 8px;
+          cursor: pointer;
+        }
+
+        .option-text {
+          border-radius: 4px;
+          margin: 1px;
+          padding: 2px 8px 2px 4px;
+          flex-grow: 1;
+          cursor: pointer;
+
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0 5px;
+
+          .option-count {
+            color: $count-color;
+            font-weight: 600;
+          }
+        }
+
+        &:hover .option-text {
+          padding: 1px 7px 1px 3px;
+
+          color: var(--hoverFg);
+          background: var(--hoverBg);
+          border: var(--hoverBorder);
+          text-shadow: var(--hoverTextShadow);
+          box-shadow: var(--hoverBoxShadow);
+          transform: var(--hoverTransform);
+        }
       }
     }
-  }
-
-  .multi-select-options {
-    max-height: 250px;
-    overflow-y: auto;
-    
-    // Кастомный scrollbar
-    &::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: #f1f1f1;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background: #888;
-      border-radius: 4px;
-
-      &:hover {
-        background: #555;
-      }
-    }
-  }
-
-  .multi-select-option {
-    display: flex;
-    align-items: center;
-    padding: 10px 12px;
-    cursor: pointer;
-    transition: background 0.2s;
-    user-select: none;
-
-    &:hover {
-      background: #f5f5f5;
-    }
-
-    input[type="checkbox"] {
-      margin-right: 10px;
-      cursor: pointer;
-      width: 16px;
-      height: 16px;
-      flex-shrink: 0;
-    }
-
-    .multi-select-option-text {
-      flex: 1;
-      font-size: 14px;
-      color: #333;
-      line-height: 1.4;
-      
-      .multi-select-option-count {
-        color: #1976d2;
-        font-weight: 600;
-        font-size: 13px;
-        margin-left: 4px;
-      }
-    }
-  }
-
-  .multi-select-no-results {
-    padding: 20px;
-    text-align: center;
-    color: #999;
-    font-size: 14px;
   }
 }
 
-// Адаптивность
-@media (max-width: 768px) {
-  .multi-select {
-    max-width: none;
 
-    .multi-select-dropdown {
-      position: fixed;
-      top: auto;
-      left: 10px;
-      right: 10px;
-      bottom: 10px;
-      max-height: 50vh;
-    }
-  }
-}

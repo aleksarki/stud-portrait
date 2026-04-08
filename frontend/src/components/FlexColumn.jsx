@@ -1,4 +1,4 @@
-import "./FlexRow.scss";
+import "./FlexColumn.scss";
 
 export const WRAP = {
     NO: "nowrap",
@@ -26,17 +26,15 @@ export const CONTENT = {
     STRETCH: "stretch"
 };
 
-function FlexRow({
-    className, children, gap = "5", margin = "0", reverse = false, wrap = WRAP.NO,
+function FlexColumn({
+    className, children, reverse = false, wrap = WRAP.NO,
     justify = JUSTIFY.START, align = ALIGN.STRETCH, content = CONTENT.STRETCH
 }) {
     return (
         <div
-            className={`FlexRow ${className}`}
+            className={`FlexColumn ${className}`}
             style={{
-                "--gap": `${gap}px`,
-                "--margin": margin.split(" ").map(value => value + "px").join(" "),
-                "--direction": reverse ? "row-reverse" : "row",
+                "--direction": reverse ? "column-reverse" : "column",
                 "--wrap": wrap,
                 "--justify": justify,
                 "--align": align,
@@ -48,4 +46,4 @@ function FlexRow({
     );
 }
 
-export default FlexRow;
+export default FlexColumn;

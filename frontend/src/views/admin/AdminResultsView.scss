@@ -20,209 +20,6 @@
       }
     }
 
-    .filters-system {
-      background: white;
-      border: 1px solid #e9ecef;
-      border-radius: 8px;
-      margin-bottom: 15px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      flex-shrink: 0;
-
-      & button:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-      }
-      
-      .filters-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 15px 20px;
-        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-        border-bottom: 1px solid #dee2e6;
-        border-radius: 8px 8px 0 0;
-        
-        h3 {
-          margin: 0;
-          color: #495057;
-          font-size: 16px;
-          font-weight: 600;
-        }
-        
-        .filters-controls {
-          display: flex;
-          gap: 15px;
-          align-items: center;
-          
-          .filters-action-buttons {
-            display: flex;
-            gap: 10px;
-          }
-        }
-      }
-      
-      .filter-select {
-        padding: 8px 12px;
-        border: 1px solid #ced4da;
-        border-radius: 4px;
-        background: white;
-        font-size: 13px;
-        min-width: 200px;
-        
-        &:focus {
-          outline: none;
-          border-color: #007bff;
-          box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
-        }
-      }
-      
-      .pending-filters,
-      .active-filters {
-        padding: 15px 20px;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 15px;
-      }
-      
-      .active-filters-section {
-        border-top: 1px solid #e9ecef;
-        
-        .active-filters-header {
-          padding: 10px 20px;
-          background: #f8f9fa;
-          
-          h4 {
-            margin: 0;
-            color: #495057;
-            font-size: 14px;
-            font-weight: 600;
-          }
-        }
-      }
-      
-      .filter-item {
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
-        padding: 12px;
-        min-width: 250px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        
-        &.pending {
-          border-left: 4px solid #ffc107;
-          background: #fffbf0;
-        }
-        
-        &.active {
-          border-left: 4px solid #28a745;
-          background: #f0fff4;
-        }
-        
-        .filter-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 10px;
-          padding-bottom: 8px;
-          border-bottom: 1px solid #e9ecef;
-          
-          .filter-name {
-            font-weight: 600;
-            color: #495057;
-            font-size: 13px;
-          }
-          
-          .filter-status {
-            font-size: 11px;
-            color: #28a745;
-            font-weight: 600;
-          }
-          
-          .remove-filter-btn {
-            background: none;
-            border: none;
-            color: #dc3545;
-            cursor: pointer;
-            font-size: 14px;
-            padding: 2px 6px;
-            border-radius: 3px;
-            
-            &:hover {
-              background: #dc3545;
-              color: white;
-            }
-          }
-        }
-        
-        .filter-content {
-          .multi-select {
-            width: 100%;
-            min-height: 100px;
-            padding: 6px;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-            font-size: 12px;
-            background: white;
-            
-            option {
-              padding: 4px 6px;
-              margin: 2px 0;
-            }
-          }
-          
-          .filter-hint {
-            font-size: 11px;
-            color: #6c757d;
-            margin-top: 5px;
-            font-style: italic;
-          }
-          
-          .range-inputs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 8px;
-            
-            .range-input {
-              display: flex;
-              flex-direction: column;
-              gap: 4px;
-              
-              label {
-                font-size: 11px;
-                color: #6c757d;
-                font-weight: 500;
-              }
-              
-              input {
-                padding: 6px 8px;
-                border: 1px solid #ced4da;
-                border-radius: 4px;
-                font-size: 12px;
-                width: 80px;
-                
-                &:focus {
-                  outline: none;
-                  border-color: #007bff;
-                }
-              }
-            }
-          }
-          
-          .range-display,
-          .selected-values {
-            font-size: 12px;
-            color: #495057;
-            background: white;
-            padding: 6px 8px;
-            border-radius: 4px;
-            border: 1px solid #e9ecef;
-            text-align: center;
-            font-weight: 500;
-          }
-        }
-      }
-    }
-
     .column-selector {
       background: white;
       border: 1px solid #e9ecef;
@@ -460,6 +257,20 @@
     }
   }
 
+  .filters-modal-body {
+    h6 {
+      margin: 10px 0 0 10px;
+    }
+
+    .pending-filters-column {
+      margin-top: 10px;
+    }
+
+    .active-filters-row {
+      margin-top: 10px;
+    }
+  }
+
   // Модальное окно для группировки  
   .groupping-modal-body {
     font-size: 16px;
@@ -470,19 +281,6 @@
       font-weight: 500;
       color: #495057;
     }
-    
-    .grouping-select {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #ced4da;
-      border-radius: 4px;
-      
-      &:focus {
-        outline: none;
-        border-color: #007bff;
-        box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
-      }
-    }
 
     p {
       margin: 5px 0;
@@ -490,49 +288,6 @@
       
       strong {
         color: #007bff;
-      }
-    }
-  }
-}
-
-// Адаптивность
-@media (max-width: 1200px) {
-  .AdminResultsView {
-    .filters-system {
-      .filters-header {
-        flex-direction: column;
-        gap: 15px;
-        align-items: flex-start;
-      }
-      
-      .filters-controls {
-        width: 100%;
-        justify-content: space-between;
-      }
-      
-      .pending-filters,
-      .active-filters {
-        flex-direction: column;
-      }
-      
-      .filter-item {
-        min-width: auto;
-      }
-    }
-  }
-}
-
-@media (max-width: 768px) {
-  .AdminResultsView {
-    .filters-system {
-      .filters-controls {
-        flex-direction: column;
-        gap: 10px;
-        
-        .filters-action-buttons {
-          width: 100%;
-          justify-content: space-between;
-        }
       }
     }
   }

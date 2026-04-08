@@ -13,7 +13,8 @@ import {
 } from "../../../api";
 import { COMPETENCIES_NAMES, LINK_TREE } from "../../../utilities";
 
-import FlexRow, { JUSTIFY } from "../../../components/FlexRow";
+import FlexRow, { JUSTIFY, WRAP } from "../../../components/FlexRow";
+import LabelledBox from "../../../components/LabelledBox";
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
 
 import TitledCard from "../../../components/cards/TitledCard";
@@ -22,6 +23,7 @@ import ValueCard from "../../../components/cards/ValueCard";
 import Button, { BUTTON_PALETTE } from "../../../components/ui/Button";
 import NoData from "../../../components/ui/NoData";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
+import Select, { Option } from "../../../components/ui/Select";
 
 import SankeyDiagram from '../../../components/charts/SankeyDiagram';
 
@@ -38,8 +40,6 @@ function AdminAnalysisAdvancedView() {
     const [selectedCourses, setSelectedCourses] = useState([]);
     const [selectedTestAttempts, setSelectedTestAttempts] = useState([]);
     const [selectedCompetencies, setSelectedCompetencies] = useState([]);
-
-    const [activeMainTab, setActiveMainTab] = useState('vam_lgm');
 
     const [filterOptions, setFilterOptions] = useState({
         institutions: [],
@@ -277,26 +277,13 @@ function AdminAnalysisAdvancedView() {
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <h2>Визуализации</h2>
-
-                    <FlexRow wrap="wrap" gap="10">
+                    <FlexRow wrap={WRAP.DO}>
                         <Button
                             text="Поток уровней"
                             onClick={loadLevelFlow}
                             disabled={loading}
                             palette={activeVisualization === 'flow' ? BUTTON_PALETTE.CYAN : BUTTON_PALETTE.GRAY}
                         />
-                        {activeVisualization === 'flow' && (
-                            <>
-                                <span>Компетенция:</span>
-                                <select value={flowCompetency} onChange={(e) => setFlowCompetency(e.target.value)}>
-                                    {Object.entries(COMPETENCIES_NAMES).map(([key, name]) => (
-                                        <option key={key} value={key}>{name}</option>
-                                    ))}
-                                </select>
-                                <Button text="Загрузить" onClick={loadLevelFlow} disabled={loading} palette={BUTTON_PALETTE.CYAN} />
-                            </>
-                        )}
-
                         <Button
                             text="LGM Когорта"
                             onClick={() => {
@@ -305,6 +292,21 @@ function AdminAnalysisAdvancedView() {
                             }}
                             palette={activeVisualization === 'lgm' ? BUTTON_PALETTE.BROWN : BUTTON_PALETTE.GRAY}
                         />
+                        {activeVisualization === 'flow' && (
+                            <>
+                                <LabelledBox label="Компетенция:" inrow nopad>
+                                    <Select
+                                        initValue={flowCompetency}
+                                        onChange={setFlowCompetency}
+                                    >
+                                        {Object.entries(COMPETENCIES_NAMES).map(([key, name]) => (
+                                            <Option value={key} label={name} />
+                                        ))}
+                                    </Select>
+                                </LabelledBox>
+                                <Button text="Загрузить" onClick={loadLevelFlow} disabled={loading} palette={BUTTON_PALETTE.CYAN} />
+                            </>
+                        )}
                         {activeVisualization === 'lgm' && (
                             <Button
                                 text="Загрузить LGM данные"
