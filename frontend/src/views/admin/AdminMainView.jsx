@@ -113,10 +113,19 @@ const FilterHeader = ({ onFilterChange }) => {
     );
 };
 
-const Stat = ({ label, value, prev=0, suffix = "", isGrowth = false }) => {
+const Stat = ({ label, value, prev=0, suffix = "", isGrowth = false, isText=false}) => {
     if (prev==0){
         return(<div className="stat-block">
             <div className="value">{value}{suffix}</div>
+            <div className="label">{label}</div>
+            </div>
+        );
+    }
+    else if(isText){
+        return (
+            <div className="stat-block">
+            <div className="value">{value}{suffix}</div>
+            <div className="prev-year">прошлый год: {prev}{suffix}</div>
             <div className="label">{label}</div>
             </div>
         );
@@ -275,7 +284,7 @@ function Dashboard({ data }) {
             <div className="col-left">
             <Stat label="студентов прошли доп. курсы" value={data.col1.courses.val} prev={data.col1.courses.prev} suffix="%" />
             <Stat label="средний уровень компетенций" value={data.col1.avg_lvl.val} prev={data.col1.avg_lvl.prev} />
-            <Stat label="изменение компетенций за год" value={data.col1.growth.val} prev={data.col1.growth.prev} suffix="%" isGrowth />
+            <Stat label={`Наибольший мотиватор (${data.col1.motiv.count.curr})`} value={getLabel(data.col1.motiv.name.curr)} prev={getLabel(data.col1.motiv.name.prev)+`(${data.col1.motiv.count.prev})`} isText={true} />
             </div>
 
             {/* Центральная колонка */} 

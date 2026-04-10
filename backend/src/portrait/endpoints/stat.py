@@ -29,6 +29,13 @@ def get_year_metrics(year, filter):
     students_with_courses = Course.objects.filter(
         course_participant__results__res_year=year
     ).values('course_participant').distinct().count()
+    
+    max_mot={'name': "", 'count': 0}
+    for f in MOT_FIELDS:
+        cnt_high = res_queryset.filter(**{f"{f}__gte": 600}).count() #!!! нужен наибольший мотиватор. можно взять самый популярный кст
+        if cnt_high>max_mot['count']: 
+            max_mot['count']=cnt_high
+            max_mot['name']=f
 
     course_percent = (students_with_courses / total_students * 100) if total_students > 0 else 0
     students_uni = total_students * 1.2 #тут должны быть обучающиеся в унике вообще
@@ -36,6 +43,7 @@ def get_year_metrics(year, filter):
         "total_avg": round(total_avg, 2),
         "course_percent": round(course_percent, 1),
         "all_comps": {f: round(avgs.get(f'avg_{f}') or 0, 2) for f in comp_fields},
+        "motivator": max_mot,
         "participated" : {"amount_in": total_students, "students_all": students_uni}
     }
 
@@ -122,14 +130,26 @@ def get_dashboard_stats(request):
             chart.append({"name": k, "score": v, "prev_score": prev_data['all_comps'][k]})
         
         base_filter['res_year'] = curr_year
-        radar=get_competency_stats_courses(base_filter)
+        radar=get_competency_stats_courses(base_filter) #radar
         
+        motiv={'same':True, 'name':{'prev': '-', 'curr':'-'}, 'count': {'prev': 0, 'curr': 0}}
+        #топ мотиватор
+        if prev_data['motivator']['name']==curr_data['motivator']['name']:
+            motiv['same']=True
+            motiv['name']={'prev': curr_data['motivator']['name'], 'curr': curr_data['motivator']['name']}
+            motiv['count']={'prev':prev_data['motivator']['count'], 'curr':curr_data['motivator']['count']}
+        else:
+            motiv['same']=False
+            motiv['name']={'prev':prev_data['motivator']['name'], 'curr':curr_data['motivator']['name']}
+            motiv['count']={'prev':prev_data['motivator']['count'], 'curr':curr_data['motivator']['count']}
+
         response_data = {
             "status": "success",
             "col1": {
                 "courses": {"val": curr_data['course_percent'], "prev": prev_data['course_percent']},
                 "avg_lvl": {"val": curr_data['total_avg'], "prev": prev_data['total_avg']},
-                "growth": {"val": round(growth, 1), "prev": 0} 
+                "growth": {"val": round(growth, 1), "prev": 0},
+                "motiv": motiv
             },
             "col2": {
                 "uni_name": uni_name,
