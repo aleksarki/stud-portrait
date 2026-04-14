@@ -34,6 +34,9 @@ function AdminAnalysisVamLgmView() {
     // Группировка: по вузам или по направлениям
     const [groupBy, setGroupBy] = useState('institution');
 
+    // Метод анализа: 'vam' или 'lgm'
+    const [analysisMethod, setAnalysisMethod] = useState('vam');
+
     // Данные для графика (массив точек: group, course, value_added, ci_lower, ci_upper, n)
     const [chartData, setChartData] = useState(null);
 
@@ -110,7 +113,7 @@ function AdminAnalysisVamLgmView() {
         if (sessionId) loadFilterOptions(sessionId, true);
     }, [selectedInstitutions, selectedDirections, selectedCourses, selectedTestAttempts, selectedCompetency]);
 
-    // Загрузка данных для графика
+    // Загрузка данных для графика (сейчас только VAM, LGM можно добавить позже)
     const loadChartData = async () => {
         if (!selectedCompetency) {
             alert('Выберите компетенцию');
@@ -129,7 +132,6 @@ function AdminAnalysisVamLgmView() {
             .onSuccess(async response => {
                 const data = await response.json();
                 if (data.status === 'success' && data.data) {
-                    // Преобразуем в плоский массив точек
                     const points = [];
                     data.data.forEach(group => {
                         group.courses.forEach(course => {
@@ -188,13 +190,15 @@ function AdminAnalysisVamLgmView() {
                                 onClick={() => setAnalysisMethod('lgm')}
                                 palette={analysisMethod === 'lgm' ? BUTTON_PALETTE.BLUE : BUTTON_PALETTE.GRAY}
                             />
-                            {analysisMethod === 'vam' && <>
-                                <label>Группировать по: </label>
-                                <Select initValue={vamGroupBy} onChange={setVamGroupBy}>
-                                    <Option value="institution" label="ВУЗам" />
-                                    <Option value="direction" label="Направлениям" />
-                                </Select>
-                            </div>
+                            {analysisMethod === 'vam' && (
+                                <>
+                                    <label>Группировать по: </label>
+                                    <Select initValue={groupBy} onChange={setGroupBy}>
+                                        <Option value="institution" label="ВУЗам" />
+                                        <Option value="direction" label="Направлениям" />
+                                    </Select>
+                                </>
+                            )}
                             <div style={{ minWidth: 200 }}>
                                 <label>Компетенция: </label>
                                 <select
