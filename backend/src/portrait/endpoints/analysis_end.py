@@ -1,5 +1,5 @@
 # ═══════════════════════════════════════════════════════════
-# portrait/analysis_endpoints.py
+# portrait/analysis_end.py
 # API endpoints для статистического анализа
 # ═══════════════════════════════════════════════════════════
 
@@ -1380,4 +1380,156 @@ def get_competency_level_flow(request):
     except Exception as e:
         import traceback
         traceback.print_exc()
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+# ============================================================
+# VAM TREND DATA - для линейных графиков по курсам
+# ============================================================
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def get_vam_trend_data(request):
+    """
+    Возвращает данные для отображения VAM в разрезе курсов для каждой группы.
+    """
+    try:
+        body = json.loads(request.body)
+        group_by = body.get('group_by', 'institution')
+        competency = body.get('competency', 'res_comp_leadership')
+        selected_groups = body.get('selected_groups', [])
+        
+        filter_institutions = body.get('filter_institutions', [])
+        filter_directions = body.get('filter_directions', [])
+        filter_courses = body.get('filter_courses', [])
+        
+        # Базовый queryset
+        results = Results.objects.select_related('res_institution', 'res_spec')
+        
+        # Применяем фильтры
+        if filter_institutions:
+            results = results.filter(res_institution_id__in=filter_institutions)
+        if filter_directions:
+            # Преобразуем названия в ID
+            dir_ids = []
+            for d in filter_directions:
+                if str(d).isdigit():
+                    dir_ids.append(int(d))
+                else:
+                    spec = Specialties.objects.filter(spec_name=d).first()
+                    if spec:
+                        dir_ids.append(spec.spec_id)
+            if dir_ids:
+                results = results.filter(res_spec_id__in=dir_ids)
+        if filter_courses:
+            results = results.filter(res_course_num__in=filter_courses)
+        
+        # Дополнительно фильтруем по выбранным группам (если они переданы)
+        if selected_groups:
+            if group_by == 'institution':
+                inst_ids = []
+                for g in selected_groups:
+                    if str(g).isdigit():
+                        inst_ids.append(int(g))
+                    # Если нужно поддерживать названия вузов, можно добавить поиск по inst_name
+                if inst_ids:
+                    results = results.filter(res_institution_id__in=inst_ids)
+                else:
+                    results = results.none()
+            else:  # direction
+                spec_ids = []
+                for g in selected_groups:
+                    if str(g).isdigit():
+                        spec_ids.append(int(g))
+                    else:
+                        spec = Specialties.objects.filter(spec_name=g).first()
+                        if spec:
+                            spec_ids.append(spec.spec_id)
+                if spec_ids:
+                    results = results.filter(res_spec_id__in=spec_ids)
+                else:
+                    results = results.none()
+        
+        # Собираем данные
+        data = []
+        for r in results:
+            score = getattr(r, competency, None)
+            if score is None:
+                continue
+            data.append({
+                'group_id': r.res_institution_id if group_by == 'institution' else r.res_spec_id,
+                'group_name': (r.res_institution.inst_name if r.res_institution else 'Неизвестно') if group_by == 'institution' else (r.res_spec.spec_name if r.res_spec else 'Неизвестно'),
+                'course': r.res_course_num,
+                'comp_score': score
+            })
+        
+        if not data:
+            return JsonResponse({'status': 'error', 'message': 'Нет данных'}, status=404)
+        
+        df = pd.DataFrame(data)
+        
+        # Агрегируем по группам и курсам
+        result_data = []
+        for (group_id, group_name), group_df in df.groupby(['group_id', 'group_name']):
+            courses_data = []
+            for course, course_df in group_df.groupby('course'):
+                scores = course_df['comp_score'].dropna()
+                if len(scores) < 3:
+                    continue
+                mean_score = scores.mean()
+                std_score = scores.std()
+                n = len(scores)
+                se = std_score / np.sqrt(n)
+                ci_lower = mean_score - 1.96 * se
+                ci_upper = mean_score + 1.96 * se
+                courses_data.append({
+                    'course': int(course),
+                    'value_added': float(mean_score),
+                    'ci_lower': float(ci_lower),
+                    'ci_upper': float(ci_upper),
+                    'n': int(n)
+                })
+            if courses_data:
+                courses_data.sort(key=lambda x: x['course'])
+                result_data.append({
+                    'group_id': int(group_id),
+                    'group_name': str(group_name),
+                    'courses': courses_data
+                })
+        
+        return JsonResponse({
+            'status': 'success',
+            'group_by': group_by,
+            'competency': competency,
+            'data': _convert_numpy_types(result_data)
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_institutions(request):
+    """Возвращает список всех учебных заведений."""
+    try:
+        institutions = Institutions.objects.all().values('inst_id', 'inst_name')
+        return JsonResponse({
+            'status': 'success',
+            'institutions': list(institutions)
+        })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_directions(request):
+    """Возвращает список всех направлений (специальностей)."""
+    try:
+        directions = Specialties.objects.all().values('spec_id', 'spec_name')
+        return JsonResponse({
+            'status': 'success',
+            'directions': list(directions)
+        })
+    except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

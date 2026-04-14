@@ -180,13 +180,17 @@ def generate_recommendations_with_ai(competency_field, level, course):
     return lines[:4]
 
 def generate_general_interpretation_with_ai(student_info, competencies_dict):
+    # Сортируем компетенции (общая логика для обоих случаев)
+    sorted_comps = sorted(competencies_dict.items(), key=lambda x: x[1], reverse=True)
+    strong = [name for name, _ in sorted_comps[:2]]
+    weak = [name for name, _ in sorted_comps[-2:]]
+
+    # Если модель недоступна — возвращаем шаблонную заглушку
     if not is_model_available():
-        sorted_comps = sorted(competencies_dict.items(), key=lambda x: x[1], reverse=True)
-        strong = [name for name, _ in sorted_comps[:2]]
-        weak = [name for name, _ in sorted_comps[-2:]]
         return (f"Студент демонстрирует сильные стороны в области {', '.join(strong)}. "
                 f"Рекомендуется обратить внимание на развитие {', '.join(weak)}.")
 
+    # Формируем промпт с использованием strong/weak
     prompt = (
         f"Ты — карьерный консультант. Напиши краткую характеристику студента, используя только данные о компетенциях. "
         f"Не добавляй никакой информации о внешности, возрасте или личных качествах, не указанных в данных.\n\n"
@@ -196,12 +200,14 @@ def generate_general_interpretation_with_ai(student_info, competencies_dict):
         f"Зоны роста (наиболее низкие баллы): {', '.join(weak)}\n\n"
         f"Характеристика (2-3 предложения):"
     )
+
     text = generate_text(prompt, max_length=150, temperature=0.6, top_p=0.85)
-    # Если ответ содержит явные признаки галлюцинаций, возвращаем заглушку
+
+    # Если ответ пустой или содержит признаки галлюцинаций — возвращаем заглушку
     if not text or any(phrase in text.lower() for phrase in ['внешность', 'возраст', 'рост', 'характер', 'build']):
-        return "Студент демонстрирует сильные стороны в области {}. Рекомендуется обратить внимание на развитие {}.".format(
-            ', '.join(strong[:2]), ', '.join(weak[:2])
-        )
+        return (f"Студент демонстрирует сильные стороны в области {', '.join(strong[:2])}. "
+                f"Рекомендуется обратить внимание на развитие {', '.join(weak[:2])}.")
+
     # Очистка от лишних символов
     text = text.split('\n')[0].strip()
     if text.endswith(','):
