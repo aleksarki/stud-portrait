@@ -1,10 +1,9 @@
-.FlexRow {
+.FlexColumn {
     display: flex;
     flex-direction: var(--direction);
     flex-wrap: var(--wrap);
     justify-content: var(--justify);
     align-items: var(--align);
     align-content: var(--content);
-    gap: var(--gap);
-    margin: var(--margin);
+    gap: 5px;
 }
