@@ -4,7 +4,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from ..constants import (
     RsvCompetencies as COMP, RsvMotivators as MOT, RsvValues as VAL, RsvCourses as CUR,
-    TableResults as RES, TableParticipants as PART
+    TableResults as RES, TableParticipants as PART, CENTERS_REGIONS
 )
 from ..models import *
 
