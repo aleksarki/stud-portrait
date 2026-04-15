@@ -356,3 +356,48 @@ def get_filter_options_with_counts(request):
         "students":      students_list,
         "max_attempts":  max_attempts
     }}
+
+
+@method('GET')
+@jsonResponse
+@csrf_exempt
+def centers_by_region(request):
+    AVAILABLE_YEARS = '2021/2022', '2022/2023', '2023/2024', '2024/2025', '2025/2026'
+
+    year = request.GET.get('year', '2024/2025')
+    if year not in AVAILABLE_YEARS:
+        raise ResponseError(f"Invalid year. Available years: {AVAILABLE_YEARS}")
+
+    # Получаем все результаты за выбранный год
+    results = Results.objects.filter(res_year=year).select_related('res_center')
+
+    # Считаем количество результатов по центрам
+    center_counts = {}
+    for result in results:
+        if result.res_center:
+            center_name = result.res_center.center_name
+            center_counts[center_name] = center_counts.get(center_name, 0) + 1
+
+    # Группируем по регионам
+    region_stats = {}
+    for center_name, count in center_counts.items():
+        region = CENTERS_REGIONS.get(center_name)
+        if region:  # Игнорируем центры без привязки к региону
+            region_stats[region] = region_stats.get(region, 0) + count
+
+    # Формируем данные для карты
+    map_data = [
+        {'name': region, 'value': count}
+        for region, count in region_stats.items()
+    ]
+
+    # Находим максимальное значение для шкалы
+    max_value = max(region_stats.values()) if region_stats else 0
+
+    return {
+        'year': year,
+        'data': map_data,
+        'max_value': max_value,
+        'total_centers': len(region_stats),
+        'available_years': AVAILABLE_YEARS
+    }

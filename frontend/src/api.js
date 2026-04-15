@@ -146,6 +146,11 @@ export function postPortraitGroupData(sessionId, selectedIds, groupingColumn) {
     return new AsyncChain(promise);
 }
 
+export function getPortraitCentersByRegion(year) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/centers-by-region/?year=${encodeURIComponent(year)}`);
+    return new AsyncChain(promise);
+}
+
 /* ============================================================ */
 /*                    АНАЛИТИЧЕСКИЕ ENDPOINTS                   */
 /* ============================================================ */
