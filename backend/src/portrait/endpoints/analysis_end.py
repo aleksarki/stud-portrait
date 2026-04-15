@@ -135,64 +135,138 @@ def analyze_student_vam(request):
 # ============================================================
 
 @csrf_exempt
-@require_http_methods(["GET"])
+@require_http_methods(["POST"])
 def analyze_cohort_lgm(request):
-    """
-    Latent Growth Model для когорты студентов.
-    
-    GET /portrait/analyze-cohort-lgm/?competency=res_comp_leadership&institution_id=1
-    """
     try:
-        competency = request.GET.get('competency', 'res_comp_leadership')
-        institution_id = request.GET.get('institution_id')
-        spec_id = request.GET.get('spec_id')
-        
-        # Фильтруем результаты
-        query = Q()
-        
-        if institution_id:
-            query &= Q(res_institution_id=institution_id)
-        
-        if spec_id:
-            if str(spec_id).isdigit():
-                query &= Q(res_spec_id=int(spec_id))
+        body = json.loads(request.body)
+        competency = body.get('competency', 'res_comp_leadership')
+        institution_ids = body.get('institution_ids', [])
+        direction_ids = body.get('direction_ids', [])
+        group_by = body.get('group_by', 'institution')  # ← теперь читаем явно от клиента
+
+        # ---- 1. Приведение типов и поддержка названий ----
+        clean_inst_ids = []
+        for id_ in institution_ids:
+            if str(id_).isdigit():
+                clean_inst_ids.append(int(id_))
             else:
-                spec = Specialties.objects.filter(spec_name=spec_id).first()
+                inst = Institutions.objects.filter(inst_name=id_).first()
+                if inst:
+                    clean_inst_ids.append(inst.inst_id)
+
+        clean_dir_ids = []
+        for id_ in direction_ids:
+            if str(id_).isdigit():
+                clean_dir_ids.append(int(id_))
+            else:
+                spec = Specialties.objects.filter(spec_name=id_).first()
                 if spec:
-                    query &= Q(res_spec_id=spec.spec_id)
-        
-        # Получаем лонгитюдные данные
-        results = Results.objects.filter(query).order_by(
-            'res_participant_id', 'res_year', 'res_course_num'
-        )
-        
-        # Собираем данные вручную
-        data = []
-        for result in results:
-            score = getattr(result, competency, None)
-            if score is not None:
-                data.append({
-                    'student_id': result.res_participant_id,  # переименовали сразу
-                    'res_year': result.res_year,
-                    'time_point': result.res_course_num,      # переименовали сразу
-                    'competency_score': score                  # переименовали сразу
+                    clean_dir_ids.append(spec.spec_id)
+
+        # ---- 2. Определяем group_ids в зависимости от group_by ----
+        if not clean_inst_ids and not clean_dir_ids:
+            # Фильтры не выбраны — берём все группы нужного типа
+            if group_by == 'institution':
+                group_ids = list(Results.objects.filter(
+                    **{f'{competency}__isnull': False}
+                ).values_list('res_institution_id', flat=True).distinct())
+            else:
+                group_ids = list(Results.objects.filter(
+                    **{f'{competency}__isnull': False}
+                ).values_list('res_spec_id', flat=True).distinct())
+            group_ids = [gid for gid in group_ids if gid is not None]
+
+        elif group_by == 'direction':
+            if clean_dir_ids:
+                # Пользователь явно выбрал конкретные направления
+                group_ids = clean_dir_ids
+            else:
+                # Направления не выбраны, но группировка по направлениям —
+                # берём все направления в рамках выбранных вузов
+                group_ids = list(Results.objects.filter(
+                    res_institution_id__in=clean_inst_ids,
+                    **{f'{competency}__isnull': False}
+                ).values_list('res_spec_id', flat=True).distinct())
+                group_ids = [gid for gid in group_ids if gid is not None]
+
+        else:  # group_by == 'institution'
+            if clean_inst_ids:
+                group_ids = clean_inst_ids
+            else:
+                # Вузы не выбраны, но группировка по вузам —
+                # берём все вузы в рамках выбранных направлений
+                group_ids = list(Results.objects.filter(
+                    res_spec_id__in=clean_dir_ids,
+                    **{f'{competency}__isnull': False}
+                ).values_list('res_institution_id', flat=True).distinct())
+                group_ids = [gid for gid in group_ids if gid is not None]
+
+        # ---- 3. Сбор данных и расчёт LGM для каждой группы ----
+        results = []
+        for gid in group_ids:
+            query = Q()
+            if group_by == 'institution':
+                query &= Q(res_institution_id=gid)
+            else:
+                query &= Q(res_spec_id=gid)
+                # Если вузы заданы как фильтр выборки — применяем
+                if clean_inst_ids:
+                    query &= Q(res_institution_id__in=clean_inst_ids)
+
+            results_qs = Results.objects.filter(query).order_by(
+                'res_participant_id', 'res_year', 'res_course_num'
+            )
+            data = []
+            for r in results_qs:
+                score = getattr(r, competency, None)
+                if score is not None:
+                    data.append({
+                        'student_id': r.res_participant_id,
+                        'time_point': r.res_course_num,
+                        'competency_score': score
+                    })
+
+            if not data:
+                continue
+
+            df = pd.DataFrame(data)
+            lgm = LatentGrowthModel()
+            analysis = lgm.fit(df)
+
+            if analysis['status'] == 'success':
+                if group_by == 'institution':
+                    inst = Institutions.objects.filter(inst_id=gid).first()
+                    group_name = inst.inst_name if inst else f"ВУЗ {gid}"
+                else:
+                    spec = Specialties.objects.filter(spec_id=gid).first()
+                    group_name = spec.spec_name if spec else f"Направление {gid}"
+
+                results.append({
+                    'group_id': gid,
+                    'group_name': group_name,
+                    'group_type': group_by,
+                    'n_students': analysis['n_students'],
+                    'mean_intercept': analysis['mean_intercept'],
+                    'mean_slope': analysis['mean_slope'],
+                    'std_intercept': analysis['std_intercept'],
+                    'std_slope': analysis['std_slope'],
+                    'interpretation': analysis.get('interpretation'),
+                    'trajectories': analysis.get('trajectories', [])
                 })
-        
-        if not data:
+
+        if not results:
             return JsonResponse({
                 'status': 'error',
-                'message': 'Нет данных для анализа'
+                'message': 'Нет данных для анализа LGM (возможно, недостаточно лонгитюдных измерений)'
             }, status=404)
-        
-        # Преобразуем в DataFrame
-        df = pd.DataFrame(data)
-        
-        # Применяем LGM
-        lgm = LatentGrowthModel()
-        analysis = lgm.fit(df)
-        
-        return JsonResponse(analysis)
-        
+
+        return JsonResponse({
+            'status': 'success',
+            'competency': competency,
+            'group_by': group_by,
+            'data': _convert_numpy_types(results)
+        })
+
     except Exception as e:
         import traceback
         traceback.print_exc()

@@ -1,23 +1,23 @@
-// AdminAnalysisAdvancedView.jsx (добавлена вкладка VAM)
 import { useEffect, useState } from "react";
 import {
-    ResponsiveContainer, LineChart, Legend, Line, Tooltip
+    ResponsiveContainer, LineChart, Legend, Line, Tooltip, XAxis, YAxis, CartesianGrid
 } from "recharts";
 
 import {
-    getAnalyzeCohortLgm,
+    postAnalyzeCohortLgm,
     getPortraitGetDisciplines,
     getPortraitGetFilterOptionsWithCounts,
     getPortraitGetInstitutionDirections,
     postPortraitCreateDataSession,
     postGetCompetencyLevelFlow,
-    postGetVamTrendData          // <-- новый импорт
+    postGetVamTrendData
 } from "../../../api";
 import { COMPETENCIES_NAMES, LINK_TREE } from "../../../utilities";
 
 import FlexRow, { JUSTIFY, WRAP } from "../../../components/FlexRow";
 import LabelledBox from "../../../components/LabelledBox";
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
+import MultiSelect from '../../../components/ui/MultiSelect';
 
 import TitledCard from "../../../components/cards/TitledCard";
 import ValueCard from "../../../components/cards/ValueCard";
@@ -28,7 +28,7 @@ import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import Select, { Option } from "../../../components/ui/Select";
 
 import SankeyDiagram from '../../../components/charts/SankeyDiagram';
-import VamCourseScatter from '../../../components/charts/VamCourseScatter'; // <-- новый импорт
+import VamCourseScatter from '../../../components/charts/VamCourseScatter';
 
 import "./AdminAnalysisAdvancedView.scss";
 
@@ -37,15 +37,14 @@ function AdminAnalysisAdvancedView() {
     const [sessionId, setSessionId] = useState(null);
     const [loading, setLoading] = useState(false);
 
-    // Фильтры
+    // Общие фильтры
     const [selectedInstitutions, setSelectedInstitutions] = useState([]);
     const [selectedDirections, setSelectedDirections] = useState([]);
     const [selectedCourses, setSelectedCourses] = useState([]);
     const [selectedTestAttempts, setSelectedTestAttempts] = useState([]);
     const [selectedCompetencies, setSelectedCompetencies] = useState([]);
 
-    const [activeMainTab, setActiveMainTab] = useState('vam_lgm'); // не используется, оставлено для совместимости
-    const [activeVisualization, setActiveVisualization] = useState('lgm'); // 'lgm', 'flow', 'vam'
+    const [activeVisualization, setActiveVisualization] = useState('lgm');
 
     const [filterOptions, setFilterOptions] = useState({
         institutions: [],
@@ -58,16 +57,22 @@ function AdminAnalysisAdvancedView() {
         disciplines: []
     });
 
-    // Состояния для потока уровней
+    // Поток уровней
     const [flowData, setFlowData] = useState(null);
     const [flowCompetency, setFlowCompetency] = useState('res_comp_leadership');
 
-    // Состояния для LGM
+    // LGM
     const [lgmCohortData, setLgmCohortData] = useState(null);
+    const [lgmCompetency, setLgmCompetency] = useState('res_comp_leadership');
+    const [lgmChartMode, setLgmChartMode] = useState('combined');
+    const [lgmGroupBy, setLgmGroupBy] = useState('institution');
 
-    // Состояния для VAM
+    // VAM
     const [vamData, setVamData] = useState(null);
     const [vamStats, setVamStats] = useState(null);
+    const [vamCompetency, setVamCompetency] = useState('res_comp_leadership');
+    const [vamGroupBy, setVamGroupBy] = useState('institution');
+    const [vamChartMode, setVamChartMode] = useState('combined');
 
     // -------------------- ИНИЦИАЛИЗАЦИЯ СЕССИИ --------------------
     useEffect(() => {
@@ -114,10 +119,23 @@ function AdminAnalysisAdvancedView() {
                         console.error('Error loading disciplines:', e);
                     }
 
+                    // Приводим ID к числам, чтобы избежать дублирования
+                    const institutions = (data.data?.institutions || []).map(i => ({
+                        id: Number(i.id),
+                        name: i.name,
+                        count: i.count
+                    })).filter(i => !isNaN(i.id));
+
+                    const allDirections = (data.data?.directions || []).map(d => ({
+                        id: Number(d.id),
+                        name: d.name,
+                        count: d.count
+                    })).filter(d => !isNaN(d.id));
+
                     setFilterOptions({
-                        institutions: data.data?.institutions || [],
-                        directions: data.data?.directions || [],
-                        allDirections: data.data?.directions || [],
+                        institutions: institutions,
+                        directions: allDirections,
+                        allDirections: allDirections,
                         courses: data.data?.courses || [],
                         testAttempts: data.data?.test_attempts || [],
                         competencies: data.data?.competencies || Object.keys(COMPETENCIES_NAMES).map(c => ({ id: c, name: COMPETENCIES_NAMES[c], count: 0 })),
@@ -129,7 +147,7 @@ function AdminAnalysisAdvancedView() {
             .onError(console.error);
     };
 
-    // Обновление направлений при изменении вузов
+    // Обновление направлений при выборе вузов (как в рабочем VamLgmView)
     useEffect(() => {
         if (!sessionId) return;
         if (selectedInstitutions.length === 0) {
@@ -140,9 +158,12 @@ function AdminAnalysisAdvancedView() {
             .onSuccess(async response => {
                 const data = await response.json();
                 if (data.status === 'success') {
-                    const directions = data.directions.map(name => ({ id: name, name, count: 0 }));
+                    // Предполагаем, что API возвращает массив объектов с полями id и name
+                    const directions = data.directions.map(d => ({ id: d.id, name: d.name, count: 0 }));
                     setFilterOptions(prev => ({ ...prev, directions }));
-                    setSelectedDirections(prev => prev.filter(d => data.directions.includes(d)));
+                    // Оставляем только те выбранные направления, которые есть в новом списке
+                    const newDirectionIds = directions.map(d => d.id);
+                    setSelectedDirections(prev => prev.filter(id => newDirectionIds.includes(id)));
                 }
             })
             .onError(console.error);
@@ -155,23 +176,30 @@ function AdminAnalysisAdvancedView() {
 
     // -------------------- LGM --------------------
     const loadLGMCohortData = async () => {
-        setLoading(true);
-        const competency = selectedCompetencies[0] || 'res_comp_leadership';
-        const institutionId = selectedInstitutions[0] || null;
-        const specId = selectedDirections[0] || null;
+        if (!lgmCompetency) {
+            alert('Выберите компетенцию');
+            return;
+        }
+        // Приводим ID к числам
+        const instIds = selectedInstitutions.map(id => Number(id)).filter(v => !isNaN(v));
+        const dirIds = selectedDirections.map(id => Number(id)).filter(v => !isNaN(v));
 
-        getAnalyzeCohortLgm(competency, institutionId, specId)
+        setLoading(true);
+        setActiveVisualization('lgm');
+        postAnalyzeCohortLgm(lgmCompetency, instIds, dirIds, lgmGroupBy)
             .onSuccess(async response => {
                 const data = await response.json();
                 if (data.status === 'success') {
                     setLgmCohortData(data);
                 } else {
-                    alert('Ошибка при загрузке данных: ' + (data.message || 'Неизвестная ошибка'));
+                    alert('Ошибка: ' + (data.message || 'Неизвестная ошибка'));
+                    setLgmCohortData(null);
                 }
             })
-            .onError(error => {
-                console.error(error);
-                alert('Ошибка при загрузке данных: ' + error.message);
+            .onError(err => {
+                console.error(err);
+                alert('Ошибка при загрузке LGM');
+                setLgmCohortData(null);
             })
             .finally(() => setLoading(false));
     };
@@ -180,7 +208,10 @@ function AdminAnalysisAdvancedView() {
     const loadLevelFlow = () => {
         setLoading(true);
         setActiveVisualization('flow');
-        postGetCompetencyLevelFlow(flowCompetency, selectedInstitutions, selectedDirections)
+        // Для потока уровней направление может быть передано как ID или имя – используем ID
+        const directionIds = selectedDirections.map(id => Number(id)).filter(v => !isNaN(v));
+
+        postGetCompetencyLevelFlow(flowCompetency, selectedInstitutions, directionIds)
             .onSuccess(async response => {
                 const data = await response.json();
                 if (data.status === 'success') {
@@ -196,28 +227,29 @@ function AdminAnalysisAdvancedView() {
             .finally(() => setLoading(false));
     };
 
-    // -------------------- VAM (динамика по курсам) --------------------
+    // -------------------- VAM --------------------
     const loadVAMData = async () => {
-        const competency = selectedCompetencies[0] || 'res_comp_leadership';
-        if (!competency) {
-            alert('Выберите компетенцию в фильтрах');
+        if (!vamCompetency) {
+            alert('Выберите компетенцию');
             return;
         }
+        const cleanInstitutions = selectedInstitutions.map(id => Number(id)).filter(v => !isNaN(v));
+        const cleanDirections = selectedDirections.map(id => Number(id)).filter(v => !isNaN(v));
+
         setLoading(true);
         setActiveVisualization('vam');
         postGetVamTrendData({
-            group_by: 'institution',      // можно сделать выбор, но для простоты группируем по вузам
-            competency: competency,
-            selected_groups: selectedInstitutions,
-            filter_institutions: selectedInstitutions,
-            filter_directions: selectedDirections,
+            group_by: vamGroupBy,
+            competency: vamCompetency,
+            selected_groups: vamGroupBy === 'institution' ? cleanInstitutions : cleanDirections,
+            filter_institutions: cleanInstitutions,
+            filter_directions: cleanDirections,
             filter_courses: selectedCourses,
             filter_test_attempts: selectedTestAttempts
         })
             .onSuccess(async response => {
                 const data = await response.json();
                 if (data.status === 'success' && data.data) {
-                    // Преобразуем в плоский массив точек
                     const points = [];
                     data.data.forEach(group => {
                         group.courses.forEach(course => {
@@ -233,7 +265,7 @@ function AdminAnalysisAdvancedView() {
                     });
                     setVamData(points);
 
-                    // Вычисляем статистику для карточек
+                    // Статистика
                     const groups = new Set(points.map(p => p.group));
                     const coursesMap = new Map();
                     points.forEach(p => {
@@ -242,7 +274,7 @@ function AdminAnalysisAdvancedView() {
                     });
                     const avgByCourse = Array.from(coursesMap.entries()).map(([course, values]) => ({
                         course,
-                        avg: values.reduce((a,b)=>a+b,0)/values.length,
+                        avg: values.reduce((a, b) => a + b, 0) / values.length,
                         count: values.length
                     }));
                     const firstCourse = avgByCourse.find(c => c.course === 1)?.avg || 0;
@@ -273,70 +305,109 @@ function AdminAnalysisAdvancedView() {
 
     // -------------------- Рендер LGM --------------------
     const renderLGMCohort = () => {
-        if (!lgmCohortData) {
+        if (!lgmCohortData || !lgmCohortData.data || lgmCohortData.data.length === 0) {
             return <NoData text="Нет данных для отображения" />;
         }
+        const { competency, group_by, data: groups } = lgmCohortData;
 
-        const { mean_intercept, mean_slope, n_students, interpretation } = lgmCohortData;
-
-        const chartData = [];
+        const combinedData = [];
         for (let course = 1; course <= 4; course++) {
-            chartData.push({
-                course: `${course} курс`,
-                value: mean_intercept + mean_slope * (course - 1)
+            const point = { course: `${course} курс` };
+            groups.forEach(group => {
+                point[group.group_name] = group.mean_intercept + group.mean_slope * (course - 1);
             });
+            combinedData.push(point);
         }
+
+        const colors = ['#1976d2', '#e67e22', '#2ecc71', '#e74c3c', '#9b59b6', '#f1c40f', '#1abc9c', '#e84393'];
 
         return (
             <div className="lgm-cohort-container">
-                <h4>Latent Growth Model - Когортный анализ</h4>
+                <h4>Latent Growth Model – Когортный анализ</h4>
+                <p>Компетенция: {COMPETENCIES_NAMES[competency] || competency}</p>
+                <p>Группировка: {group_by === 'institution' ? 'по ВУЗам' : 'по направлениям'}</p>
 
-                <FlexRow justify={JUSTIFY.CENTER}>
-                    <ValueCard value={n_students} text="Студентов" />
-                    <ValueCard value={mean_intercept?.toFixed(1) || '0'} text="Средний начальный уровень" />
-                    <ValueCard value={mean_slope?.toFixed(3) || '0'} text="Средняя скорость роста" />
-                </FlexRow>
-
-                <div className="two-columns">
-                    <div>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <LineChart data={chartData}>
-                                <Tooltip />
-                                <Legend />
-                                <Line
-                                    type="monotone"
-                                    dataKey="value"
-                                    stroke="#1976d2"
-                                    strokeWidth={2}
-                                    name="Средняя траектория"
-                                />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </div>
-                    <div>
-                        {interpretation && (
-                            <TitledCard title="Интерпретация">
-                                <p>Средняя скорость роста: <strong>{interpretation.average_growth_rate?.toFixed(3) || '0'}</strong></p>
-                                <p>Вариабельность роста: <strong>{interpretation.growth_variability?.toFixed(3) || '0'}</strong></p>
-                                <p>Быстрорастущие: {interpretation.fast_growers_count || 0} ({interpretation.fast_growers_pct?.toFixed(1) || 0}%)</p>
-                                <p>Медленнорастущие: {interpretation.slow_growers_count || 0} ({interpretation.slow_growers_pct?.toFixed(1) || 0}%)</p>
-                            </TitledCard>
-                        )}
-                    </div>
+                <div style={{ marginTop: 16, marginBottom: 16 }}>
+                    <LabelledBox label="Режим отображения:" inrow nopad>
+                        <Select initValue={lgmChartMode} onChange={setLgmChartMode}>
+                            <Option value="combined" label="Сводный график (все группы)" />
+                            <Option value="grid" label="Отдельные графики по группам" />
+                        </Select>
+                    </LabelledBox>
                 </div>
+
+                {lgmChartMode === 'combined' ? (
+                    <ResponsiveContainer width="100%" height={400}>
+                        <LineChart data={combinedData}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="course" />
+                            <YAxis />
+                            <Tooltip />
+                            <Legend />
+                            {groups.map((group, idx) => (
+                                <Line
+                                    key={group.group_id}
+                                    type="monotone"
+                                    dataKey={group.group_name}
+                                    stroke={colors[idx % colors.length]}
+                                    strokeWidth={2}
+                                    name={group.group_name}
+                                />
+                            ))}
+                        </LineChart>
+                    </ResponsiveContainer>
+                ) : (
+                    <div className="lgm-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(450px, 1fr))', gap: 20 }}>
+                        {groups.map(group => {
+                            const chartData = [];
+                            for (let course = 1; course <= 4; course++) {
+                                chartData.push({
+                                    course: `${course} курс`,
+                                    value: group.mean_intercept + group.mean_slope * (course - 1)
+                                });
+                            }
+                            return (
+                                <div key={group.group_id} className="lgm-group-card" style={{ border: '1px solid #e0e0e0', borderRadius: 8, padding: 12, background: '#fafafa' }}>
+                                    <h5 style={{ marginBottom: 12 }}>{group.group_name}</h5>
+                                    <ResponsiveContainer width="100%" height={200}>
+                                        <LineChart data={chartData}>
+                                            <XAxis dataKey="course" />
+                                            <YAxis />
+                                            <Tooltip />
+                                            <Line type="monotone" dataKey="value" stroke="#1976d2" strokeWidth={2} name="Средняя траектория" />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                    <div style={{ fontSize: 12, marginTop: 8 }}>
+                                        <div>Студентов: {group.n_students}</div>
+                                        <div>Начальный уровень: {group.mean_intercept.toFixed(1)}</div>
+                                        <div>Скорость роста: {group.mean_slope.toFixed(3)}</div>
+                                    </div>
+                                    {group.interpretation && (
+                                        <details style={{ marginTop: 8 }}>
+                                            <summary style={{ fontSize: 12, cursor: 'pointer' }}>Интерпретация</summary>
+                                            <div style={{ fontSize: 12, marginTop: 4 }}>
+                                                <p>Средняя скорость роста: <strong>{group.interpretation.average_growth_rate?.toFixed(3)}</strong></p>
+                                                <p>Быстрорастущие: {group.interpretation.fast_growers_count} ({group.interpretation.fast_growers_pct?.toFixed(1)}%)</p>
+                                                <p>Медленнорастущие: {group.interpretation.slow_growers_count} ({group.interpretation.slow_growers_pct?.toFixed(1)}%)</p>
+                                            </div>
+                                        </details>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
         );
     };
 
     // -------------------- Рендер потока уровней --------------------
     const renderFlowAnalysis = () => {
-        if (!flowData) {
-            return <NoData text="Нет данных. Нажмите 'Поток уровней' для загрузки." />;
-        }
+        if (!flowData) return <NoData text="Нет данных. Нажмите 'Поток уровней' для загрузки." />;
         return (
             <div className="flow-container">
-                <SankeyDiagram 
-                    data={flowData} 
+                <SankeyDiagram
+                    data={flowData}
                     title={`Переходы между уровнями компетенции «${COMPETENCIES_NAMES[flowCompetency] || flowCompetency}» по курсам`}
                     valueLabel="Количество студентов"
                 />
@@ -359,12 +430,16 @@ function AdminAnalysisAdvancedView() {
             return <NoData text="Нет данных для отображения. Нажмите 'Загрузить VAM' после выбора фильтров." />;
         }
 
-        const competencyName = COMPETENCIES_NAMES[selectedCompetencies[0]] || selectedCompetencies[0] || 'компетенции';
+        const groupsMap = new Map();
+        vamData.forEach(point => {
+            if (!groupsMap.has(point.group)) groupsMap.set(point.group, []);
+            groupsMap.get(point.group).push(point);
+        });
+        const groups = Array.from(groupsMap.entries()).map(([name, dataPoints]) => ({ name, data: dataPoints }));
 
         return (
             <div className="vam-container">
                 <h4>VAM – Динамика развития компетенции по курсам</h4>
-
                 <FlexRow justify={JUSTIFY.CENTER}>
                     <ValueCard value={vamStats?.groupCount || 0} text="Групп (вузов/направлений)" />
                     <ValueCard value={vamStats?.avgFirstCourse?.toFixed(1) || '0'} text="Средний балл на 1 курсе" />
@@ -373,9 +448,32 @@ function AdminAnalysisAdvancedView() {
                     <ValueCard value={vamStats?.totalStudents || 0} text="Всего студентов" />
                 </FlexRow>
 
-                <div className="vam-chart">
-                    <VamCourseScatter data={vamData} groupBy="institution" />
+                <div style={{ marginTop: 16, marginBottom: 16 }}>
+                    <LabelledBox label="Режим отображения:" inrow nopad>
+                        <Select initValue={vamChartMode} onChange={setVamChartMode}>
+                            <Option value="combined" label="Сводный график (все группы)" />
+                            <Option value="grid" label="Отдельные графики по группам" />
+                        </Select>
+                    </LabelledBox>
                 </div>
+
+                {vamChartMode === 'combined' ? (
+                    <div className="vam-chart">
+                        <VamCourseScatter data={vamData} groupBy={vamGroupBy} />
+                    </div>
+                ) : (
+                    <div className="vam-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(450px, 1fr))', gap: 20 }}>
+                        {groups.map(group => (
+                            <div key={group.name} className="vam-group-card" style={{ border: '1px solid #e0e0e0', borderRadius: 8, padding: 12, background: '#fafafa' }}>
+                                <h5 style={{ marginBottom: 12, fontSize: 14, fontWeight: 600 }}>{group.name}</h5>
+                                <VamCourseScatter data={group.data} groupBy={vamGroupBy} />
+                                <div style={{ fontSize: 12, marginTop: 8, color: '#666' }}>
+                                    Количество точек: {group.data.length}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
 
                 <details style={{ marginTop: 16, background: '#f8f9fa', borderRadius: 6, padding: '10px 14px', border: '1px solid #e9ecef' }}>
                     <summary style={{ cursor: 'pointer', fontWeight: 500, color: '#2c3e50' }}>📖 Что показывает этот график?</summary>
@@ -384,6 +482,7 @@ function AdminAnalysisAdvancedView() {
                         <p>🎨 <strong>Разные цвета</strong> — разные группы.</p>
                         <p>📏 <strong>Вертикальные линии</strong> — 95% доверительные интервалы (чем уже интервал, тем надёжнее оценка).</p>
                         <p>💡 <strong>Совет:</strong> Наведите курсор на точку, чтобы увидеть точные значения и количество студентов.</p>
+                        {vamChartMode === 'grid' && <p>📋 В режиме сетки каждый график соответствует отдельной группе (вузу/направлению).</p>}
                     </div>
                 </details>
             </div>
@@ -398,61 +497,122 @@ function AdminAnalysisAdvancedView() {
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <h2>Визуализации</h2>
-                    <FlexRow wrap={WRAP.DO}>
+
+                    {/* Общие фильтры */}
+                    <div className="filters-section" style={{ marginBottom: 20 }}>
+                        <FlexRow wrap={WRAP.DO} gap="15" alignItems="end">
+                            <MultiSelect
+                                options={filterOptions.institutions || []}
+                                value={selectedInstitutions}
+                                onChange={setSelectedInstitutions}
+                                placeholder="Все вузы"
+                                label="Вузы"
+                                withSearch
+                                showCounts
+                            />
+                            <MultiSelect
+                                options={filterOptions.directions || []}
+                                value={selectedDirections}
+                                onChange={setSelectedDirections}
+                                placeholder="Все направления"
+                                label="Направления"
+                                withSearch
+                                showCounts
+                            />
+                            <Button
+                                text="Применить фильтры"
+                                onClick={() => {
+                                    if (activeVisualization === 'lgm') loadLGMCohortData();
+                                    else if (activeVisualization === 'flow') loadLevelFlow();
+                                    else if (activeVisualization === 'vam') loadVAMData();
+                                }}
+                                palette={BUTTON_PALETTE.CYAN}
+                                disabled={loading}
+                            />
+                            <Button
+                                text="Сбросить фильтры"
+                                onClick={() => {
+                                    setSelectedInstitutions([]);
+                                    setSelectedDirections([]);
+                                    setSelectedCourses([]);
+                                    setSelectedTestAttempts([]);
+                                    setSelectedCompetencies([]);
+                                }}
+                                palette={BUTTON_PALETTE.GRAY}
+                                disabled={loading}
+                            />
+                        </FlexRow>
+                    </div>
+
+                    <FlexRow wrap={WRAP.DO} gap="10">
                         <Button
                             text="Поток уровней"
-                            onClick={loadLevelFlow}
+                            onClick={() => { setActiveVisualization('flow'); loadLevelFlow(); }}
                             disabled={loading}
                             palette={activeVisualization === 'flow' ? BUTTON_PALETTE.CYAN : BUTTON_PALETTE.GRAY}
                         />
                         <Button
                             text="LGM Когорта"
-                            onClick={() => {
-                                setActiveVisualization('lgm');
-                                loadLGMCohortData();
-                            }}
+                            onClick={() => setActiveVisualization('lgm')}
+                            disabled={loading}
                             palette={activeVisualization === 'lgm' ? BUTTON_PALETTE.BROWN : BUTTON_PALETTE.GRAY}
                         />
+                        <Button
+                            text="VAM динамика"
+                            onClick={() => { setActiveVisualization('vam'); loadVAMData(); }}
+                            disabled={loading}
+                            palette={activeVisualization === 'vam' ? BUTTON_PALETTE.CYAN : BUTTON_PALETTE.GRAY}
+                        />
+
                         {activeVisualization === 'flow' && (
                             <>
                                 <LabelledBox label="Компетенция:" inrow nopad>
-                                    <Select
-                                        initValue={flowCompetency}
-                                        onChange={setFlowCompetency}
-                                    >
+                                    <Select initValue={flowCompetency} onChange={setFlowCompetency}>
                                         {Object.entries(COMPETENCIES_NAMES).map(([key, name]) => (
-                                            <Option value={key} label={name} />
+                                            <Option key={key} value={key} label={name} />
                                         ))}
                                     </Select>
                                 </LabelledBox>
                                 <Button text="Загрузить" onClick={loadLevelFlow} disabled={loading} palette={BUTTON_PALETTE.CYAN} />
                             </>
                         )}
+
                         {activeVisualization === 'lgm' && (
-                            <Button
-                                text="Загрузить LGM данные"
-                                onClick={loadLGMCohortData}
-                                disabled={loading}
-                                palette={BUTTON_PALETTE.CYAN}
-                            />
+                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <LabelledBox label="Компетенция:" inrow nopad>
+                                    <Select initValue={lgmCompetency} onChange={setLgmCompetency}>
+                                        {Object.entries(COMPETENCIES_NAMES).map(([key, name]) => (
+                                            <Option key={key} value={key} label={name} />
+                                        ))}
+                                    </Select>
+                                </LabelledBox>
+                                <LabelledBox label="Группировка:" inrow nopad>
+                                    <Select initValue={lgmGroupBy} onChange={setLgmGroupBy}>
+                                        <Option value="institution" label="По ВУЗам" />
+                                        <Option value="direction" label="По направлениям" />
+                                    </Select>
+                                </LabelledBox>
+                                <Button text="Загрузить LGM" onClick={loadLGMCohortData} disabled={loading} palette={BUTTON_PALETTE.CYAN} />
+                            </div>
                         )}
 
-                        {/* Новая кнопка VAM */}
-                        <Button
-                            text="VAM динамика"
-                            onClick={() => {
-                                setActiveVisualization('vam');
-                                loadVAMData();
-                            }}
-                            palette={activeVisualization === 'vam' ? BUTTON_PALETTE.CYAN : BUTTON_PALETTE.GRAY}
-                        />
                         {activeVisualization === 'vam' && (
-                            <Button
-                                text="Загрузить VAM"
-                                onClick={loadVAMData}
-                                disabled={loading}
-                                palette={BUTTON_PALETTE.CYAN}
-                            />
+                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <LabelledBox label="Компетенция:" inrow nopad>
+                                    <Select initValue={vamCompetency} onChange={setVamCompetency}>
+                                        {Object.entries(COMPETENCIES_NAMES).map(([key, name]) => (
+                                            <Option key={key} value={key} label={name} />
+                                        ))}
+                                    </Select>
+                                </LabelledBox>
+                                <LabelledBox label="Группировка:" inrow nopad>
+                                    <Select initValue={vamGroupBy} onChange={setVamGroupBy}>
+                                        <Option value="institution" label="По ВУЗам" />
+                                        <Option value="direction" label="По направлениям" />
+                                    </Select>
+                                </LabelledBox>
+                                <Button text="Загрузить VAM" onClick={loadVAMData} disabled={loading} palette={BUTTON_PALETTE.CYAN} />
+                            </div>
                         )}
                     </FlexRow>
 

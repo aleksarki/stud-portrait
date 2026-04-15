@@ -157,12 +157,18 @@ export function getAnalyzeStudentVam(studentId, competency = 'res_comp_leadershi
     return new AsyncChain(promise);
 }
 
-/** GET /portrait/analyze-cohort-lgm/ - LGM для когорты */
-export function getAnalyzeCohortLgm(competency = 'res_comp_leadership', institutionId = null, specId = null) {
-    const params = new URLSearchParams({competency});
-    if (institutionId) params.append('institution_id', institutionId);
-    if (specId) params.append('spec_id', specId);
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/analyze-cohort-lgm/?${params}`);
+/** POST /portrait/analyze-cohort-lgm/ - LGM для когорты */
+export function postAnalyzeCohortLgm(competency, institutionIds = [], directionIds = [], groupBy = 'institution') {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/analyze-cohort-lgm/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            competency,
+            institution_ids: institutionIds,
+            direction_ids: directionIds,
+            group_by: groupBy
+        })
+    });
     return new AsyncChain(promise);
 }
 
