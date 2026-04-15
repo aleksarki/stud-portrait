@@ -313,3 +313,12 @@ export function postGetCompetencyLevelFlow(competency, institutionIds, direction
     });
     return new AsyncChain(promise);
 }
+
+export function postGetVamTrendData(body) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-vam-trend-data/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body)
+    });
+    return new AsyncChain(promise);
+}
