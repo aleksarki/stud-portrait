@@ -16,14 +16,14 @@ const PlanetaryChart = ({
     const getLevelConfig = (type, score) => {
         if (type === "competency") {
             // Компетенции: 200-399 низкий, 400-599 средний, 600-800 высокий
-            if (score >= 600) return { name: "Высокий (600-800)", key: "high", colorRange: ["#c8e6c9", "#a5d6a7", "#4caf50"], textColor: "#1b5e20" };
-            if (score >= 400) return { name: "Средний (400-599)", key: "medium", colorRange: ["#fff9c4", "#fff176", "#ffeb3b"], textColor: "#f57f17" };
-            return { name: "Низкий (200-399)", key: "low", colorRange: ["#ffcdd2", "#ef9a9a", "#e57373"], textColor: "#c62828" };
+            if (score >= 600) return { name: "Высокий", key: "high", colorRange: ["#c8e6c9", "#a5d6a7", "#4caf50"], textColor: "#1b5e20" };
+            if (score >= 400) return { name: "Средний", key: "medium", colorRange: ["#fff9c4", "#fff176", "#ffeb3b"], textColor: "#f57f17" };
+            return { name: "Низкий", key: "low", colorRange: ["#ffcdd2", "#ef9a9a", "#e57373"], textColor: "#c62828" };
         } else {
             // Мотиваторы: 200-399 демотиватор, 400-599 не проявлено, 600-800 мотиватор
-            if (score >= 600) return { name: "Мотиватор (600-800)", key: "high", colorRange: ["#c8e6c9", "#a5d6a7", "#4caf50"], textColor: "#1b5e20" };
-            if (score >= 400) return { name: "Не проявлено (400-599)", key: "medium", colorRange: ["#fff9c4", "#fff176", "#ffeb3b"], textColor: "#f57f17" };
-            return { name: "Демотиватор (200-399)", key: "low", colorRange: ["#ffcdd2", "#ef9a9a", "#e57373"], textColor: "#c62828" };
+            if (score >= 600) return { name: "Мотиватор", key: "high", colorRange: ["#c8e6c9", "#a5d6a7", "#4caf50"], textColor: "#1b5e20" };
+            if (score >= 400) return { name: "Не проявлено", key: "medium", colorRange: ["#fff9c4", "#fff176", "#ffeb3b"], textColor: "#f57f17" };
+            return { name: "Демотиватор", key: "low", colorRange: ["#ffcdd2", "#ef9a9a", "#e57373"], textColor: "#c62828" };
         }
     };
 
@@ -143,16 +143,15 @@ const PlanetaryChart = ({
                 borderWidth: 1,
                 textStyle: { color: "#333" },
                 formatter: (params) => {
-                    if (params.treePathInfo.length === 3) {
+                    if (params.treePathInfo.length === 4) {
                         // Конкретный элемент
                         const originalValue = params.value;
                         return `
                             <strong>${params.name}</strong><br/>
-                            🎯 Значение: <b>${originalValue}</b> баллов<br/>
-                            📊 Уровень: ${params.treePathInfo[1].name}
+                            <b>${originalValue}</b> баллов<br/>
                         `;
-                    } else if (params.treePathInfo.length === 2) {
-                        return `<strong>${params.name}</strong><br/>💪 Суммарный вес: ${params.value}`;
+                    } else if (params.treePathInfo.length === 3) {
+                        return `<strong>${params.name}</strong>`;
                     }
                     return `<strong>${params.name}</strong>`;
                 }
