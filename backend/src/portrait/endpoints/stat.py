@@ -27,8 +27,7 @@ def get_year_metrics(year, filter):
     participant_ids = list(res_queryset.values_list('res_participant__part_id', flat=True).distinct())
     total_students = res_queryset.values('res_participant').distinct().count()
     students_with_courses = Course.objects.filter(
-        #course_participant__results__res_year=year,
-        course_participant__in=participant_ids #пофикси
+        course_participant__in=participant_ids 
     ).count()
     
     max_mot={'name': "", 'count': 0}
