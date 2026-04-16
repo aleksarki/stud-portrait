@@ -24,11 +24,12 @@ def get_year_metrics(year, filter):
     valid_values = [v for v in avgs.values() if v is not None]
     total_avg = sum(valid_values) / len(comp_fields) if valid_values else 0
 
+    participant_ids = list(res_queryset.values_list('res_participant__part_id', flat=True).distinct())
     total_students = res_queryset.values('res_participant').distinct().count()
-    
     students_with_courses = Course.objects.filter(
-        course_participant__results__res_year=year
-    ).values('course_participant').distinct().count()
+        #course_participant__results__res_year=year,
+        course_participant__in=participant_ids #пофикси
+    ).count()
     
     max_mot={'name': "", 'count': 0}
     for f in MOT_FIELDS:
@@ -36,7 +37,6 @@ def get_year_metrics(year, filter):
         if cnt_high>max_mot['count']: 
             max_mot['count']=cnt_high
             max_mot['name']=f
-
     course_percent = (students_with_courses / total_students * 100) if total_students > 0 else 0
     students_uni = total_students * 1.2 #тут должны быть обучающиеся в унике вообще
     return {
@@ -50,9 +50,9 @@ def get_year_metrics(year, filter):
 def filter_dash(request):
     try:
         institutes = list(Results.objects.values_list('res_institution__inst_name', flat=True).distinct())
-        specialties = Results.objects.values_list('res_spec__spec_name', flat=True).distinct()
+        specialties = list(Results.objects.values_list('res_spec__spec_name', flat=True).distinct())
         years = Results.objects.values_list('res_year', flat=True).distinct()
-        
+        print(specialties)
         data = {
             "institutes": [{"value": i, "label": str(i)} for i in institutes if i],
             "specialties": [{"value": s, "label": str(s)} for s in specialties if s],
