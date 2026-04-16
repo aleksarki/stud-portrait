@@ -219,7 +219,7 @@ def ai_interpret_all_competencies(request):
                 'total_competencies': len(results),
                 'high_level': sum(1 for r in results.values() if r['level'] == 'высокий'),
                 'medium_level': sum(1 for r in results.values() if r['level'] == 'средний'),
-                'low_level': sum(1 for r in results.values() if r['level'] == 'низкий'),
+                'low_level': sum(1 for r in results.values() if r['level'] == 'начальный'),
                 'avg_percentile': sum(r['percentile'] for r in results.values()) / len(results) if results else 0
             }
         }, json_dumps_params={'ensure_ascii': False})
@@ -263,14 +263,21 @@ def ai_generate_interpretation(request):
 
         comp_name = COMP.names.get(competency_field, competency_field)
         # Простой промпт
-        prompt = f"Студент {course} курса. Компетенция '{comp_name}' = {score}/800. Напиши интерпретацию уровня (низкий, средний, высокий) и 3 рекомендации по развитию."
+        prompt = f"Студент {course} курса. Компетенция '{comp_name}' = {score}/800. Напиши интерпретацию уровня (начальный, средний, высокий) и 3 рекомендации по развитию."
         result = generate_text(prompt, max_length=200)
-
+        if result is None:
+            return JsonResponse({
+                'status': 'fallback',
+                'data': {
+                    'interpretation': 'AI модель временно недоступна. Используйте стандартные интерпретации.',
+                    'recommendations': []
+                }
+            })
         return JsonResponse({
             'status': 'success',
             'data': {
                 'interpretation': result,
-                'recommendations': []  # пока отдельно, можно парсить из текста
+                'recommendations': []
             }
         })
     except Exception as e:

@@ -20,13 +20,12 @@
         grid-area: sidebar;
         position: sticky;
         top: 0;
-        height: 100vh;
         overflow-y: auto;
     }
 
     .Content {
         grid-area: content;
-        height: 100vh;
+        height: calc(100vh - 93px);
         overflow-y: auto;
     }
 }
@@ -87,15 +86,6 @@
             .title {
                 font-size: 18px;
                 font-weight: 600;
-            }
-        }
-
-        .menu-handle {
-            color: #fff;
-            font-size: 16px;
-
-            &:hover {
-                color: #eee;
             }
         }
     }
@@ -190,14 +180,6 @@
             .title {
                 font-size: 22px;
                 font-weight: 300;
-            }
-        }
-
-        .menu-handle {
-            color: #fff;
-
-            &:hover {
-                color: #eee;
             }
         }
     }
@@ -307,15 +289,6 @@
                 color: #fff;
                 font-size: 16px;
                 font-weight: 200;
-            }
-        }
-
-        .menu-handle {
-            color: #fff;
-            font-size: 16px;
-
-            &:hover {
-                color: #eee;
             }
         }
     }

@@ -146,6 +146,11 @@ export function postPortraitGroupData(sessionId, selectedIds, groupingColumn) {
     return new AsyncChain(promise);
 }
 
+export function getPortraitCentersByRegion(year) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/centers-by-region/?year=${encodeURIComponent(year)}`);
+    return new AsyncChain(promise);
+}
+
 /* ============================================================ */
 /*                    АНАЛИТИЧЕСКИЕ ENDPOINTS                   */
 /* ============================================================ */
@@ -157,12 +162,18 @@ export function getAnalyzeStudentVam(studentId, competency = 'res_comp_leadershi
     return new AsyncChain(promise);
 }
 
-/** GET /portrait/analyze-cohort-lgm/ - LGM для когорты */
-export function getAnalyzeCohortLgm(competency = 'res_comp_leadership', institutionId = null, specId = null) {
-    const params = new URLSearchParams({competency});
-    if (institutionId) params.append('institution_id', institutionId);
-    if (specId) params.append('spec_id', specId);
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/analyze-cohort-lgm/?${params}`);
+/** POST /portrait/analyze-cohort-lgm/ - LGM для когорты */
+export function postAnalyzeCohortLgm(competency, institutionIds = [], directionIds = [], groupBy = 'institution') {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/analyze-cohort-lgm/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            competency,
+            institution_ids: institutionIds,
+            direction_ids: directionIds,
+            group_by: groupBy
+        })
+    });
     return new AsyncChain(promise);
 }
 
@@ -293,5 +304,27 @@ export function getPortraitGetDisciplines() {
 export function getStudentDisciplineImpact(studentId) {
     const params = new URLSearchParams({student_id: studentId});
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/analyze-student-discipline-impact/?${params}`);
+    return new AsyncChain(promise);
+}
+
+export function postGetCompetencyLevelFlow(competency, institutionIds, directionIds) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-competency-level-flow/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            competency,
+            institution_ids: institutionIds,
+            direction_ids: directionIds
+        })
+    });
+    return new AsyncChain(promise);
+}
+
+export function postGetVamTrendData(body) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-vam-trend-data/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body)
+    });
     return new AsyncChain(promise);
 }

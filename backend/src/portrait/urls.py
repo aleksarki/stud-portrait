@@ -9,10 +9,13 @@ urlpatterns = [
     path("get-filter-options-with-counts/", statsresult.get_filter_options_with_counts, name="get_filter_options_with_counts"),
     path("student-results/",                statsresult.student_results,                name="student_results"),
     
-    path('dashboard-stats/', stat.get_dashboard_stats, name='dashboard_stats'),
+    path("centers-by-region/",              statsresult.centers_by_region,              name='centers_by_region'),
+
+    path('dashboard-stats/',  stat.get_dashboard_stats,  name='dashboard_stats'),
     path('motivation-counts/', stat.get_motivation_counts, name='motivation_counts'),
     path('filter-dash/', stat.filter_dash, name='filter_dash'),
     
+
     path('import_excel/', dataload.import_excel, name="import_excel"),
 
     path("create-data-session/",     datasesh.create_data_session,     name="create_data_session"),
@@ -26,29 +29,34 @@ urlpatterns = [
 
     path('ai-interpret/',     ai_interp.ai_interpret_competency,       name='ai_interpret'),
     path('ai-interpret-all/', ai_interp.ai_interpret_all_competencies, name='ai_interpret_all'),
-    path('ai-generate/', ai_interp.ai_generate_interpretation, name='ai_generate_interpretation'),
+    path('ai-generate/',      ai_interp.ai_generate_interpretation,    name='ai_generate_interpretation'),
     
     path('student-resume-data/',  gen_resume.get_student_resume_data,   name='student-resume-data'),
     path('generate-docx-resume/', gen_docx_resume.generate_docx_resume, name='generate_docx_resume'),
 
     # VAM и LGM базовые
     path('analyze-student-vam/', analysis_end.analyze_student_vam, name='analyze_student_vam'),
-    path('analyze-cohort-lgm/', analysis_end.analyze_cohort_lgm, name='analyze_cohort_lgm'),
+    path('analyze-cohort-lgm/',  analysis_end.analyze_cohort_lgm,  name='analyze_cohort_lgm'),
+    path('get-vam-trend-data/', analysis_end.get_vam_trend_data, name='get_vam_trend_data'),
     
+    path('get-institutions/', analysis_end.get_institutions, name='get_institutions'),
+    path('get-directions/', analysis_end.get_directions, name='get_directions'),
+
     # Анализ дисциплин
-    path('analyze-discipline-impact/', analysis_end.analyze_discipline_impact, name='analyze_discipline_impact'),
-    path('analyze-all-disciplines-impact/', analysis_end.analyze_all_disciplines_impact, name='analyze_all_disciplines_impact'),
+    path('analyze-discipline-impact/',          analysis_end.analyze_discipline_impact,          name='analyze_discipline_impact'),
+    path('analyze-all-disciplines-impact/',     analysis_end.analyze_all_disciplines_impact,     name='analyze_all_disciplines_impact'),
     path('analyze-discipline-impact-advanced/', analysis_end.analyze_discipline_impact_advanced, name='analyze_discipline_impact_advanced'),
-    path('get-discipline-heatmap-data/', analysis_end.get_discipline_heatmap_data, name='get_discipline_heatmap_data'),
-    
+    path('get-discipline-heatmap-data/',        analysis_end.get_discipline_heatmap_data,        name='get_discipline_heatmap_data'),
     path('analyze-student-discipline-impact/', analysis_end.analyze_student_discipline_impact, name='analyze_student_discipline_impact'),
+
+    path('get-competency-level-flow/', analysis_end.get_competency_level_flow, name='get_competency_level_flow'),
 
     # Кросс-секционный анализ
     path('analyze-by-dimension/', analysis_end.analyze_by_dimension, name='analyze_by_dimension'),
     
     # Продвинутые визуализации
-    path('get-vam-dotplot-data/', analysis_end.get_vam_dotplot_data, name='get_vam_dotplot_data'),
-    path('get-lgm-spaghetti-data/', analysis_end.get_lgm_spaghetti_data, name='get_lgm_spaghetti_data'),
+    path('get-vam-dotplot-data/',        analysis_end.get_vam_dotplot_data, name='get_vam_dotplot_data'),
+    path('get-lgm-spaghetti-data/',      analysis_end.get_lgm_spaghetti_data, name='get_lgm_spaghetti_data'),
     path('get-waterfall-decomposition/', analysis_end.get_waterfall_decomposition, name='get_waterfall_decomposition'),
 
     path('get-disciplines/', analysis_end.get_disciplines, name='get-disciplines'),

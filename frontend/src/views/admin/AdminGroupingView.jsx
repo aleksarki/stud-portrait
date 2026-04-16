@@ -5,7 +5,7 @@ import Chart from 'react-apexcharts';
 import { FIELD_NAMES, LINK_TREE } from "../../utilities.js";
 import { postPortraitGroupData } from '../../api.js';
 
-import FlexRow from "../../components/FlexRow";
+import FlexRow, { WRAP } from "../../components/FlexRow";
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 
 import TitledCard from "../../components/cards/TitledCard";
@@ -111,9 +111,9 @@ function AdminGroupingView() {
                     <div className="grouping-container">
                         <div className="grouping-header">
                             <h1>Группировка данных</h1>
-                            <FlexRow>
+                            <FlexRow wrap={WRAP.DO}>
                                 <label>Тип диаграммы:</label>
-                                <Select value={chartType} onChange={setChartType}>
+                                <Select initValue={chartType} onChange={setChartType}>
                                     <Option value="line" label="Линейная" />
                                     <Option value="bar" label="Столбчатая" />
                                     <Option value="area" label="Областная" />

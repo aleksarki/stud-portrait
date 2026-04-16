@@ -3,20 +3,24 @@ import { useParams } from "react-router-dom";
 
 import { getPortraitStudentResults } from "../../api";
 import {
-    getAvailableProfiles, getAvailableCategories, getAvailableYears, getCategoryDataForYear,
-    COMPETENCIES_NAMES
+    getAvailableProfiles, getAvailableCategories, getAvailableYears,
+    getCategoryDataForYear, COMPETENCIES_NAMES,
+    MOTIVATORS_NAMES
 } from "../../utilities";
-import ChartSwitcher from "../../components/charts/ChartSwitcher";
+
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 import Title from "../../components/Title";
-import Dropdown from "../../components/ui/Dropdown";
-import Button, { BUTTON_PALETTE } from "../../components/ui/Button";
 
+import Button, { BUTTON_PALETTE } from "../../components/ui/Button";
+import Select, { Option } from "../../components/ui/Select";
+
+import ChartSwitcher from "../../components/charts/ChartSwitcher";
 import StudentVamChart from "../../components/charts/StudentVamChart";
 import StudentLgmChart from '../../components/charts/StudentLgmChart';
 import StudentDisciplineImpact from '../../components/charts/StudentDisciplineImpact';
 
 import "./StudentMainView.scss";
+import PlanetaryChart from "../../components/charts/PlanetaryChart";
 
 function StudentMainView() {
     const { studentId } = useParams();
@@ -132,10 +136,6 @@ function StudentMainView() {
         setChartsData(charts);
     };
 
-    const handleYearChange = (year) => {
-        setSelectedYear(year);
-    };
-
     // АНАЛИТИКА КОМПЕТЕНЦИЙ
     const loadAnalytics = async (year) => {
         // Если данные уже загружены для этого года, просто показываем
@@ -221,6 +221,74 @@ function StudentMainView() {
     };
     const [resumeGenerating, setResumeGenerating] = useState(false);
 
+    const prepareCompetencyData = () => {
+        if (!studResults?.results?.length || !selectedYear) return [];
+
+        const yearResults = studResults.results.find(r => r.res_year === selectedYear);
+        if (!yearResults) return [];
+
+        const competencyItems = [];
+
+        // Сбор компетенций
+        Object.keys(COMPETENCIES_NAMES).forEach(compKey => {
+            const value = yearResults[compKey];
+            if (value !== undefined && value !== null) {
+                competencyItems.push({
+                    name: COMPETENCIES_NAMES[compKey],
+                    value: value
+                });
+            }
+        });
+
+        return competencyItems;
+    };
+
+    // Подготовка данных для мотиваторов
+    const prepareMotivatorData = () => {
+        if (!studResults?.results?.length || !selectedYear) return [];
+
+        const yearResults = studResults.results.find(r => r.res_year === selectedYear);
+        if (!yearResults) return [];
+
+        const motivatorItems = [];
+
+        // Сбор мотиваторов (если у вас есть MOTIVATORS_NAMES)
+        // Если нет - замените на ваши ключи мотиваторов
+        const MOTIVATORS_NAMES = {
+            res_mot_autonomy: "Автономия",
+            res_mot_altruism: "Альтруизм",
+            res_mot_challenge: "Вызов",
+            res_mot_salary: "Зарплата",
+            res_mot_career: "Карьера",
+            res_mot_creativity: "Креативность",
+            res_mot_relationships: "Отношения",
+            res_mot_recognition: "Признание",
+            res_mot_affiliation: "Принадлежность",
+            res_mot_self_development: "Саморазвитие",
+            res_mot_purpose: "Цель",
+            res_mot_cooperation: "Сотрудничество",
+            res_mot_stability: "Стабильность",
+            res_mot_tradition: "Традиции",
+            res_mot_management: "Управление",
+            res_mot_work_conditions: "Условия труда"
+        };
+
+        Object.keys(MOTIVATORS_NAMES).forEach(motKey => {
+            const value = yearResults[motKey];
+            if (value !== undefined && value !== null) {
+                motivatorItems.push({
+                    name: MOTIVATORS_NAMES[motKey],
+                    value: value
+                });
+            }
+        });
+
+        return motivatorItems;
+    };
+
+    const competencyData = prepareCompetencyData();
+    const motivatorData = prepareMotivatorData();
+
     return (
         <div className="StudentMainView">
             <SidebarLayout style={LAYOUT_STYLE.NORMAL}>
@@ -232,24 +300,12 @@ function StudentMainView() {
                         {availableYears.length > 0 && (
                             <div className="year-selector">
                                 <span className="year-label">Год данных:</span>
-                                <Dropdown
-                                    handle={
-                                        <div className="year-dropdown-handle">
-                                            {selectedYear || "Выберите год"}
-                                            <span className="dropdown-arrow">▼</span>
-                                        </div>
-                                    }
+                                <Select
+                                    initValue={selectedYear}
+                                    onChange={setSelectedYear}
                                 >
-                                    {availableYears.map(year => (
-                                        <div
-                                            key={year}
-                                            className={`year-option ${year === selectedYear ? 'selected' : ''}`}
-                                            onClick={() => handleYearChange(year)}
-                                        >
-                                            {year}
-                                        </div>
-                                    ))}
-                                </Dropdown>
+                                    {availableYears.map(year => <Option value={year} label={year} />)}
+                                </Select>
                             </div>
                         )}
 
@@ -356,6 +412,29 @@ function StudentMainView() {
                                 {availableYears.length > 0 ? "Нет данных для отображения" : "Нет доступных данных"}
                             </div>
                         )}
+                        {/* Диаграмма компетенций */}
+                        {competencyData.length > 0 && (
+                            <div className="planetary-chart-card">
+                                <PlanetaryChart
+                                    title="Карта компетенций"
+                                    items={competencyData}
+                                    type="competency"
+                                    height={500}
+                                />
+                            </div>
+                        )}
+
+                        {/* Диаграмма мотиваторов */}
+                        {motivatorData.length > 0 && (
+                            <div className="planetary-chart-card">
+                                <PlanetaryChart
+                                    title="Карта мотиваторов"
+                                    items={motivatorData}
+                                    type="motivator"
+                                    height={500}
+                                />
+                            </div>
+                        )}
                     </div>
 
                     {/* VAM ГРАФИК ДЛЯ СТУДЕНТА */}
@@ -363,11 +442,14 @@ function StudentMainView() {
                         <h3>📈 Value-Added (индивидуальный анализ)</h3>
                         <div className="vam-controls">
                             <label>Компетенция:</label>
-                            <select value={vamCompetency} onChange={e => setVamCompetency(e.target.value)}>
+                            <Select
+                                initValue={vamCompetency}
+                                onChange={setVamCompetency}
+                            >
                                 {Object.entries(COMPETENCIES_NAMES).map(([key, name]) => (
-                                    <option key={key} value={key}>{name}</option>
+                                    <Option value={key} label={name} />
                                 ))}
-                            </select>
+                            </Select>
                         </div>
                         <StudentVamChart studentId={studentId} competency={vamCompetency} />
                     </div>
@@ -377,11 +459,14 @@ function StudentMainView() {
                         <h3>📈 Динамика развития компетенций (LGM)</h3>
                         <div className="lgm-controls">
                             <label>Компетенция:</label>
-                            <select value={lgmCompetency} onChange={e => setLgmCompetency(e.target.value)}>
+                            <Select
+                                initValue={lgmCompetency}
+                                onChange={setLgmCompetency}
+                            >
                                 {Object.entries(COMPETENCIES_NAMES).map(([key, name]) => (
-                                    <option key={key} value={key}>{name}</option>
+                                    <Option value={key} label={name} />
                                 ))}
-                            </select>
+                            </Select>
                         </div>
                         {lgmData.length === 0 ? (
                             <div className="no-data">Нет данных для отображения</div>

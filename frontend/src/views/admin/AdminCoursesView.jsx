@@ -1,13 +1,19 @@
 import { useState, useEffect } from 'react';
 
+import { getPortraitCourses } from '../../api.js';
+import { COURSES_NAMES, LINK_TREE } from "../../utilities.js";
+
 import FlexRow, { WRAP } from '../../components/FlexRow.jsx';
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
-import ColorBox, { BOX_COLOR } from '../../components/ui/ColorBox.jsx';
-import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
-import Label from '../../components/ui/Label.jsx';
+
 import ValueCard from '../../components/cards/ValueCard.jsx';
-import { COURSES_NAMES, LINK_TREE } from "../../utilities.js";
-import { getPortraitCourses } from '../../api.js';
+
+import Table, { TableHeader, TableItem, TableRow } from '../../components/tables/Table.jsx';
+
+import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
+import ColorBox, { BOX_COLOR } from '../../components/ui/ColorBox.jsx';
+import Label from '../../components/ui/Label.jsx';
+import LoadingSpinner from '../../components/ui/LoadingSpinner.jsx';
 
 import "./AdminCoursesView.scss";
 
@@ -16,12 +22,6 @@ function AdminCoursesView() {
     const [loading, setLoading] = useState(true);
     const [selectedRows, setSelectedRows] = useState(new Set());
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
-
-    // Порядок колонок
-    const columnOrder = [
-        'participant',
-        ...Object.keys(COURSES_NAMES)
-    ];
 
     useEffect(() => {
         fetchCoursesData();
@@ -112,11 +112,11 @@ function AdminCoursesView() {
     };
 
     const getProgressClass = (value) => {
-        if (value === 0) return 'progress-not-started';
-        if (value < 0.3) return 'progress-low';
-        if (value < 0.7) return 'progress-medium';
-        if (value < 0.9) return 'progress-high';
-        return 'progress-completed';
+        if (value === 0) return 'not-started';
+        if (value < 0.3) return 'low';
+        if (value < 0.7) return 'medium';
+        if (value < 0.9) return 'high';
+        return 'completed';
     };
 
     const calculateParticipantStats = (participantId) => {
@@ -150,10 +150,7 @@ function AdminCoursesView() {
                     <Header title="Админ: Образовательные курсы" name="Администратор1" />
                     <Sidebar linkTree={LINK_TREE} />
                     <Content>
-                        <div className="loading">
-                            <div className="spinner"></div>
-                            <div>Загрузка данных по курсам...</div>
-                        </div>
+                        <LoadingSpinner text="Загрузка данных по курсам..." />
                     </Content>
                 </SidebarLayout>
             </div>
@@ -195,75 +192,7 @@ function AdminCoursesView() {
 
                         {/* Таблица с курсами */}
                         <div className="table-scroll-container">
-                            <div className="table-wrapper">
-                                <table className="courses-table">
-                                    <thead>
-                                        <tr>
-                                            <th className="sticky-col participant-col">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedRows.size === coursesData.length && coursesData.length > 0}
-                                                    onChange={handleSelectAll}
-                                                />
-                                            </th>
-                                            <th 
-                                                className="sticky-col participant-col"
-                                                onClick={() => handleSort('participant')}
-                                            >
-                                                Участник {getSortIcon('participant')}
-                                            </th>
-                                            {Object.keys(COURSES_NAMES).map(courseKey => (
-                                                <th 
-                                                    key={courseKey}
-                                                    onClick={() => handleSort(courseKey)}
-                                                    title={COURSES_NAMES[courseKey]}
-                                                >
-                                                    <div className="course-header">
-                                                        <div className="course-short-name">
-                                                            {COURSES_NAMES[courseKey].split(' ')[0]}
-                                                        </div>
-                                                        {getSortIcon(courseKey)}
-                                                    </div>
-                                                </th>
-                                            ))}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {coursesData.map((course) => (
-                                            <tr key={course.course_id} className={selectedRows.has(course.course_id) ? 'selected' : ''}>
-                                                <td className="sticky-col participant-col">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedRows.has(course.course_id)}
-                                                        onChange={() => handleRowSelect(course.course_id)}
-                                                    />
-                                                </td>
-                                                <td className="sticky-col participant-col">
-                                                    <div className="participant-info">
-                                                        <div className="participant-name">
-                                                            {course.participant?.part_name}
-                                                        </div>
-                                                        <div className="participant-stats">
-                                                            Пройдено: {calculateActualCompletedCoursesNumber_(course)}/
-                                                            {calculateParticipantStats(course.participant?.part_id).total} курсов
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                {Object.keys(COURSES_NAMES).map(courseKey => (
-                                                    <td 
-                                                        key={courseKey}
-                                                        className={`course-cell ${getProgressClass(course[courseKey] || 0)}`}
-                                                        title={`${COURSES_NAMES[courseKey]}: ${course[courseKey] ? (course[courseKey] * 100).toFixed(1) + '%' : 'Не пройден'}`}
-                                                    >
-                                                        {renderTableCell(course, courseKey)}
-                                                    </td>
-                                                ))}
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                            {coursesData.length === 0 && !loading && (
+                            {(!loading && coursesData.length === 0) ? (
                                 <div className="no-data">
                                     <div className="no-data-icon">📚</div>
                                     <div className="no-data-text">
@@ -271,7 +200,62 @@ function AdminCoursesView() {
                                         Загрузите данные через раздел "Загрузка данных"
                                     </div>
                                 </div>
+                            ) : (
+                                <Table>
+                                    <TableHeader>
+                                        <TableItem>
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedRows.size === coursesData.length && coursesData.length > 0}
+                                                onChange={handleSelectAll}
+                                            />
+                                        </TableItem>
+                                        <TableItem onClick={() => handleSort('participant')}>
+                                            Участник {getSortIcon('participant')}
+                                        </TableItem>
+                                        {Object.keys(COURSES_NAMES).map(courseKey => (
+                                            <TableItem
+                                                onClick={() => handleSort(courseKey)}
+                                                title={COURSES_NAMES[courseKey]}
+                                            >
+                                                {COURSES_NAMES[courseKey]} {getSortIcon(courseKey)}
+                                            </TableItem>
+                                        ))}
+                                    </TableHeader>
+                                    {coursesData.map(course => (
+                                        <TableRow
+                                            key={course.course_id}
+                                            className={selectedRows.has(course.course_id) ? 'selected' : ''}
+                                        >
+                                            <TableItem>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedRows.has(course.course_id)}
+                                                    onChange={() => handleRowSelect(course.course_id)}
+                                                />
+                                            </TableItem>
+                                            <TableItem>
+                                                <div>{course.participant?.part_name}</div>
+                                                <div>
+                                                    Пройдено: {calculateActualCompletedCoursesNumber_(course)}/
+                                                    {calculateParticipantStats(course.participant?.part_id).total} курсов
+                                                </div>
+                                            </TableItem>
+                                            {Object.keys(COURSES_NAMES).map(courseKey => (
+                                                <TableItem
+                                                    key={courseKey}
+                                                    className={getProgressClass(course[courseKey] || 0)}
+                                                    title={`${COURSES_NAMES[courseKey]}: ${course[courseKey] ? (course[courseKey] * 100).toFixed(1) + '%' : 'Не пройден'}`}
+                                                >
+                                                    {renderTableCell(course, courseKey)}
+                                                </TableItem>
+                                            ))}
+                                        </TableRow>
+                                    ))}
+                                </Table>
                             )}
+
+                            {}
                         </div>
 
                         {/* Легенда прогресса */}

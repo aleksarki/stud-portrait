@@ -1,5 +1,5 @@
 # ═══════════════════════════════════════════════════════════
-# portrait/analysis_endpoints.py
+# portrait/analysis_end.py
 # API endpoints для статистического анализа
 # ═══════════════════════════════════════════════════════════
 
@@ -135,64 +135,138 @@ def analyze_student_vam(request):
 # ============================================================
 
 @csrf_exempt
-@require_http_methods(["GET"])
+@require_http_methods(["POST"])
 def analyze_cohort_lgm(request):
-    """
-    Latent Growth Model для когорты студентов.
-    
-    GET /portrait/analyze-cohort-lgm/?competency=res_comp_leadership&institution_id=1
-    """
     try:
-        competency = request.GET.get('competency', 'res_comp_leadership')
-        institution_id = request.GET.get('institution_id')
-        spec_id = request.GET.get('spec_id')
-        
-        # Фильтруем результаты
-        query = Q()
-        
-        if institution_id:
-            query &= Q(res_institution_id=institution_id)
-        
-        if spec_id:
-            if str(spec_id).isdigit():
-                query &= Q(res_spec_id=int(spec_id))
+        body = json.loads(request.body)
+        competency = body.get('competency', 'res_comp_leadership')
+        institution_ids = body.get('institution_ids', [])
+        direction_ids = body.get('direction_ids', [])
+        group_by = body.get('group_by', 'institution')  # ← теперь читаем явно от клиента
+
+        # ---- 1. Приведение типов и поддержка названий ----
+        clean_inst_ids = []
+        for id_ in institution_ids:
+            if str(id_).isdigit():
+                clean_inst_ids.append(int(id_))
             else:
-                spec = Specialties.objects.filter(spec_name=spec_id).first()
+                inst = Institutions.objects.filter(inst_name=id_).first()
+                if inst:
+                    clean_inst_ids.append(inst.inst_id)
+
+        clean_dir_ids = []
+        for id_ in direction_ids:
+            if str(id_).isdigit():
+                clean_dir_ids.append(int(id_))
+            else:
+                spec = Specialties.objects.filter(spec_name=id_).first()
                 if spec:
-                    query &= Q(res_spec_id=spec.spec_id)
-        
-        # Получаем лонгитюдные данные
-        results = Results.objects.filter(query).order_by(
-            'res_participant_id', 'res_year', 'res_course_num'
-        )
-        
-        # Собираем данные вручную
-        data = []
-        for result in results:
-            score = getattr(result, competency, None)
-            if score is not None:
-                data.append({
-                    'student_id': result.res_participant_id,  # переименовали сразу
-                    'res_year': result.res_year,
-                    'time_point': result.res_course_num,      # переименовали сразу
-                    'competency_score': score                  # переименовали сразу
+                    clean_dir_ids.append(spec.spec_id)
+
+        # ---- 2. Определяем group_ids в зависимости от group_by ----
+        if not clean_inst_ids and not clean_dir_ids:
+            # Фильтры не выбраны — берём все группы нужного типа
+            if group_by == 'institution':
+                group_ids = list(Results.objects.filter(
+                    **{f'{competency}__isnull': False}
+                ).values_list('res_institution_id', flat=True).distinct())
+            else:
+                group_ids = list(Results.objects.filter(
+                    **{f'{competency}__isnull': False}
+                ).values_list('res_spec_id', flat=True).distinct())
+            group_ids = [gid for gid in group_ids if gid is not None]
+
+        elif group_by == 'direction':
+            if clean_dir_ids:
+                # Пользователь явно выбрал конкретные направления
+                group_ids = clean_dir_ids
+            else:
+                # Направления не выбраны, но группировка по направлениям —
+                # берём все направления в рамках выбранных вузов
+                group_ids = list(Results.objects.filter(
+                    res_institution_id__in=clean_inst_ids,
+                    **{f'{competency}__isnull': False}
+                ).values_list('res_spec_id', flat=True).distinct())
+                group_ids = [gid for gid in group_ids if gid is not None]
+
+        else:  # group_by == 'institution'
+            if clean_inst_ids:
+                group_ids = clean_inst_ids
+            else:
+                # Вузы не выбраны, но группировка по вузам —
+                # берём все вузы в рамках выбранных направлений
+                group_ids = list(Results.objects.filter(
+                    res_spec_id__in=clean_dir_ids,
+                    **{f'{competency}__isnull': False}
+                ).values_list('res_institution_id', flat=True).distinct())
+                group_ids = [gid for gid in group_ids if gid is not None]
+
+        # ---- 3. Сбор данных и расчёт LGM для каждой группы ----
+        results = []
+        for gid in group_ids:
+            query = Q()
+            if group_by == 'institution':
+                query &= Q(res_institution_id=gid)
+            else:
+                query &= Q(res_spec_id=gid)
+                # Если вузы заданы как фильтр выборки — применяем
+                if clean_inst_ids:
+                    query &= Q(res_institution_id__in=clean_inst_ids)
+
+            results_qs = Results.objects.filter(query).order_by(
+                'res_participant_id', 'res_year', 'res_course_num'
+            )
+            data = []
+            for r in results_qs:
+                score = getattr(r, competency, None)
+                if score is not None:
+                    data.append({
+                        'student_id': r.res_participant_id,
+                        'time_point': r.res_course_num,
+                        'competency_score': score
+                    })
+
+            if not data:
+                continue
+
+            df = pd.DataFrame(data)
+            lgm = LatentGrowthModel()
+            analysis = lgm.fit(df)
+
+            if analysis['status'] == 'success':
+                if group_by == 'institution':
+                    inst = Institutions.objects.filter(inst_id=gid).first()
+                    group_name = inst.inst_name if inst else f"ВУЗ {gid}"
+                else:
+                    spec = Specialties.objects.filter(spec_id=gid).first()
+                    group_name = spec.spec_name if spec else f"Направление {gid}"
+
+                results.append({
+                    'group_id': gid,
+                    'group_name': group_name,
+                    'group_type': group_by,
+                    'n_students': analysis['n_students'],
+                    'mean_intercept': analysis['mean_intercept'],
+                    'mean_slope': analysis['mean_slope'],
+                    'std_intercept': analysis['std_intercept'],
+                    'std_slope': analysis['std_slope'],
+                    'interpretation': analysis.get('interpretation'),
+                    'trajectories': analysis.get('trajectories', [])
                 })
-        
-        if not data:
+
+        if not results:
             return JsonResponse({
                 'status': 'error',
-                'message': 'Нет данных для анализа'
+                'message': 'Нет данных для анализа LGM (возможно, недостаточно лонгитюдных измерений)'
             }, status=404)
-        
-        # Преобразуем в DataFrame
-        df = pd.DataFrame(data)
-        
-        # Применяем LGM
-        lgm = LatentGrowthModel()
-        analysis = lgm.fit(df)
-        
-        return JsonResponse(analysis)
-        
+
+        return JsonResponse({
+            'status': 'success',
+            'competency': competency,
+            'group_by': group_by,
+            'data': _convert_numpy_types(results)
+        })
+
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -1271,4 +1345,265 @@ def analyze_student_discipline_impact(request):
     except Exception as e:
         import traceback
         traceback.print_exc()
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def get_competency_level_flow(request):
+    """
+    POST /portrait/get-competency-level-flow/
+    Body: {
+        "competency": "res_comp_leadership",
+        "institution_ids": [1,2],
+        "direction_ids": [10,20]
+    }
+    Returns: {
+        "nodes": [{"name": "1 курс - Начальный"}, ...],
+        "links": [{"source": 0, "target": 5, "value": 42}, ...]
+    }
+    """
+    try:
+        body = json.loads(request.body)
+        competency = body.get('competency')
+        if not competency:
+            return JsonResponse({'status': 'error', 'message': 'competency required'}, status=400)
+
+        institution_ids = body.get('institution_ids', [])
+        direction_ids = body.get('direction_ids', [])
+
+        # Фильтруем участников
+        participants_qs = Participants.objects.all()
+        if institution_ids:
+            participants_qs = participants_qs.filter(part_institution_id__in=institution_ids)
+        if direction_ids:
+            participants_qs = participants_qs.filter(part_spec_id__in=direction_ids)
+
+        # Получаем все результаты выбранных участников, сортируем по студенту и курсу
+        results = Results.objects.filter(
+            res_participant_id__in=participants_qs.values_list('part_id', flat=True)
+        ).order_by('res_participant_id', 'res_course_num')
+
+        # Группируем по студентам
+        student_data = {}
+        for r in results:
+            sid = r.res_participant_id
+            score = getattr(r, competency, None)
+            if score is None:
+                continue
+            course = r.res_course_num
+            if course not in [1,2,3,4]:
+                continue
+            if sid not in student_data:
+                student_data[sid] = {}
+            student_data[sid][course] = score
+
+        all_scores = [score for d in student_data.values() for score in d.values()]
+        if not all_scores:
+            return JsonResponse({'status': 'error', 'message': 'No scores found'}, status=404)
+
+        # Пороги: начальный < p33, высокий > p66
+        p33 = np.percentile(all_scores, 33)
+        p66 = np.percentile(all_scores, 66)
+
+        def get_level(score):
+            if score <= p33:
+                return 'Начальный'
+            elif score <= p66:
+                return 'Средний'
+            else:
+                return 'Высокий'
+
+        courses = [1,2,3,4]
+        levels = ['Начальный', 'Средний', 'Высокий']
+        nodes = []
+        node_index = {}
+        for course in courses:
+            for level in levels:
+                name = f"{course} курс - {level}"
+                node_index[(course, level)] = len(nodes)
+                nodes.append({'name': name})
+
+        # Подсчёт переходов между последовательными курсами
+        transition_counts = {}
+        for sid, scores in student_data.items():
+            sorted_courses = sorted(scores.keys())
+            for i in range(len(sorted_courses)-1):
+                c_from = sorted_courses[i]
+                c_to = sorted_courses[i+1]
+                if c_to != c_from + 1:
+                    continue
+                level_from = get_level(scores[c_from])
+                level_to = get_level(scores[c_to])
+                key = (c_from, level_from, c_to, level_to)
+                transition_counts[key] = transition_counts.get(key, 0) + 1
+
+        links = []
+        for (c_from, level_from, c_to, level_to), count in transition_counts.items():
+            links.append({
+                'source': node_index[(c_from, level_from)],
+                'target': node_index[(c_to, level_to)],
+                'value': count
+            })
+
+        return JsonResponse({
+            'status': 'success',
+            'nodes': nodes,
+            'links': links
+        }, json_dumps_params={'ensure_ascii': False})
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+# ============================================================
+# VAM TREND DATA - для линейных графиков по курсам
+# ============================================================
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def get_vam_trend_data(request):
+    """
+    Возвращает данные для отображения VAM в разрезе курсов для каждой группы.
+    """
+    try:
+        body = json.loads(request.body)
+        group_by = body.get('group_by', 'institution')
+        competency = body.get('competency', 'res_comp_leadership')
+        selected_groups = body.get('selected_groups', [])
+        
+        filter_institutions = body.get('filter_institutions', [])
+        filter_directions = body.get('filter_directions', [])
+        filter_courses = body.get('filter_courses', [])
+        
+        # Базовый queryset
+        results = Results.objects.select_related('res_institution', 'res_spec')
+        
+        # Применяем фильтры
+        if filter_institutions:
+            results = results.filter(res_institution_id__in=filter_institutions)
+        if filter_directions:
+            # Преобразуем названия в ID
+            dir_ids = []
+            for d in filter_directions:
+                if str(d).isdigit():
+                    dir_ids.append(int(d))
+                else:
+                    spec = Specialties.objects.filter(spec_name=d).first()
+                    if spec:
+                        dir_ids.append(spec.spec_id)
+            if dir_ids:
+                results = results.filter(res_spec_id__in=dir_ids)
+        if filter_courses:
+            results = results.filter(res_course_num__in=filter_courses)
+        
+        # Дополнительно фильтруем по выбранным группам (если они переданы)
+        if selected_groups:
+            if group_by == 'institution':
+                inst_ids = []
+                for g in selected_groups:
+                    if str(g).isdigit():
+                        inst_ids.append(int(g))
+                    # Если нужно поддерживать названия вузов, можно добавить поиск по inst_name
+                if inst_ids:
+                    results = results.filter(res_institution_id__in=inst_ids)
+                else:
+                    results = results.none()
+            else:  # direction
+                spec_ids = []
+                for g in selected_groups:
+                    if str(g).isdigit():
+                        spec_ids.append(int(g))
+                    else:
+                        spec = Specialties.objects.filter(spec_name=g).first()
+                        if spec:
+                            spec_ids.append(spec.spec_id)
+                if spec_ids:
+                    results = results.filter(res_spec_id__in=spec_ids)
+                else:
+                    results = results.none()
+        
+        # Собираем данные
+        data = []
+        for r in results:
+            score = getattr(r, competency, None)
+            if score is None:
+                continue
+            data.append({
+                'group_id': r.res_institution_id if group_by == 'institution' else r.res_spec_id,
+                'group_name': (r.res_institution.inst_name if r.res_institution else 'Неизвестно') if group_by == 'institution' else (r.res_spec.spec_name if r.res_spec else 'Неизвестно'),
+                'course': r.res_course_num,
+                'comp_score': score
+            })
+        
+        if not data:
+            return JsonResponse({'status': 'error', 'message': 'Нет данных'}, status=404)
+        
+        df = pd.DataFrame(data)
+        
+        # Агрегируем по группам и курсам
+        result_data = []
+        for (group_id, group_name), group_df in df.groupby(['group_id', 'group_name']):
+            courses_data = []
+            for course, course_df in group_df.groupby('course'):
+                scores = course_df['comp_score'].dropna()
+                if len(scores) < 3:
+                    continue
+                mean_score = scores.mean()
+                std_score = scores.std()
+                n = len(scores)
+                se = std_score / np.sqrt(n)
+                ci_lower = mean_score - 1.96 * se
+                ci_upper = mean_score + 1.96 * se
+                courses_data.append({
+                    'course': int(course),
+                    'value_added': float(mean_score),
+                    'ci_lower': float(ci_lower),
+                    'ci_upper': float(ci_upper),
+                    'n': int(n)
+                })
+            if courses_data:
+                courses_data.sort(key=lambda x: x['course'])
+                result_data.append({
+                    'group_id': int(group_id),
+                    'group_name': str(group_name),
+                    'courses': courses_data
+                })
+        
+        return JsonResponse({
+            'status': 'success',
+            'group_by': group_by,
+            'competency': competency,
+            'data': _convert_numpy_types(result_data)
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_institutions(request):
+    """Возвращает список всех учебных заведений."""
+    try:
+        institutions = Institutions.objects.all().values('inst_id', 'inst_name')
+        return JsonResponse({
+            'status': 'success',
+            'institutions': list(institutions)
+        })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_directions(request):
+    """Возвращает список всех направлений (специальностей)."""
+    try:
+        directions = Specialties.objects.all().values('spec_id', 'spec_name')
+        return JsonResponse({
+            'status': 'success',
+            'directions': list(directions)
+        })
+    except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

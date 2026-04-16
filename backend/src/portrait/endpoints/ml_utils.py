@@ -1,5 +1,5 @@
 from .common import *
-from ..ml_model import generate_text
+from ..ml_model import is_model_available, generate_text
 
 
 # ====== UTILITIES ====== #
@@ -7,7 +7,7 @@ from ..ml_model import generate_text
 def predict_competency_level(score, course=None, other_scores=None):
     # (оставляем без изменений)
     if score < 400:
-        level = "низкий"
+        level = "начальный"
         level_code = 0
     elif score < 600:
         level = "средний"
@@ -22,7 +22,7 @@ def predict_competency_level(score, course=None, other_scores=None):
         "confidence": 1.0,
         "percentile": percentile,
         "probabilities": {
-            "низкий": 1.0 if level_code == 0 else 0.0,
+            "начальный": 1.0 if level_code == 0 else 0.0,
             "средний": 1.0 if level_code == 1 else 0.0,
             "высокий": 1.0 if level_code == 2 else 0.0
         }
@@ -35,7 +35,7 @@ def calculate_percentile(score):
 def generate_interpretation(score, level, competency_name, course, percentile):
     # (оставляем шаблонный метод как fallback)
     level_templates = {
-        'низкий': {
+        'начальный': {
             'intro': f"Ваш результат по компетенции '{competency_name}' находится на начальном уровне развития ({score} баллов).",
             'context': f"Для студента {course} курса это типичный показатель на этапе формирования базовых навыков.",
             'outlook': "У вас есть хороший потенциал для роста! С регулярной практикой и обучением вы сможете значительно улучшить этот показатель.",
@@ -62,7 +62,7 @@ def generate_recommendations(competency_field, level, course):
     comp_name = COMP.names.get(competency_field, 'Компетенция')
     recommendations_db = {
         'Лидерство': {
-            'низкий': [
+            'начальный': [
                 "Примите участие в групповых проектах в роли координатора задач",
                 "Пройдите онлайн-курс по основам лидерства (Coursera, Stepik)",
                 "Присоединитесь к студенческому самоуправлению или волонтёрским проектам",
@@ -82,7 +82,7 @@ def generate_recommendations(competency_field, level, course):
             ]
         },
         'Коммуникация': {
-            'низкий': [
+            'начальный': [
                 "Активно участвуйте в семинарах и групповых дискуссиях",
                 "Тренируйте публичные выступления (начните с коротких докладов)",
                 "Посетите тренинг по эффективной коммуникации",
@@ -102,7 +102,7 @@ def generate_recommendations(competency_field, level, course):
             ]
         },
         'Саморазвитие': {
-            'низкий': [
+            'начальный': [
                 "Составьте план личностного развития на семестр",
                 "Начните читать профессиональную литературу",
                 "Определите 2-3 навыка для развития",
@@ -132,11 +132,11 @@ def generate_recommendations(competency_field, level, course):
     return comp_recs.get(level, default_recs)[:4]
 
 def get_level_emoji(level):
-    emoji_map = {'низкий': '🔴', 'средний': '🟡', 'высокий': '🟢'}
+    emoji_map = {'начальный': '🔴', 'средний': '🟡', 'высокий': '🟢'}
     return emoji_map.get(level, '⚪')
 
 def get_level_color(level):
-    color_map = {'низкий': '#f44336', 'средний': '#ff9800', 'высокий': '#4caf50'}
+    color_map = {'начальный': '#f44336', 'средний': '#ff9800', 'высокий': '#4caf50'}
     return color_map.get(level, '#9e9e9e')
 
 # ===== AI-функции (инструкционные) =====
@@ -180,11 +180,17 @@ def generate_recommendations_with_ai(competency_field, level, course):
     return lines[:4]
 
 def generate_general_interpretation_with_ai(student_info, competencies_dict):
-    # Сортируем компетенции по баллам
+    # Сортируем компетенции (общая логика для обоих случаев)
     sorted_comps = sorted(competencies_dict.items(), key=lambda x: x[1], reverse=True)
-    strong = [f"{name} ({score})" for name, score in sorted_comps[:3]]
-    weak = [f"{name} ({score})" for name, score in sorted_comps[-3:]]
+    strong = [name for name, _ in sorted_comps[:2]]
+    weak = [name for name, _ in sorted_comps[-2:]]
 
+    # Если модель недоступна — возвращаем шаблонную заглушку
+    if not is_model_available():
+        return (f"Студент демонстрирует сильные стороны в области {', '.join(strong)}. "
+                f"Рекомендуется обратить внимание на развитие {', '.join(weak)}.")
+
+    # Формируем промпт с использованием strong/weak
     prompt = (
         f"Ты — карьерный консультант. Напиши краткую характеристику студента, используя только данные о компетенциях. "
         f"Не добавляй никакой информации о внешности, возрасте или личных качествах, не указанных в данных.\n\n"
@@ -194,12 +200,14 @@ def generate_general_interpretation_with_ai(student_info, competencies_dict):
         f"Зоны роста (наиболее низкие баллы): {', '.join(weak)}\n\n"
         f"Характеристика (2-3 предложения):"
     )
+
     text = generate_text(prompt, max_length=150, temperature=0.6, top_p=0.85)
-    # Если ответ содержит явные признаки галлюцинаций, возвращаем заглушку
+
+    # Если ответ пустой или содержит признаки галлюцинаций — возвращаем заглушку
     if not text or any(phrase in text.lower() for phrase in ['внешность', 'возраст', 'рост', 'характер', 'build']):
-        return "Студент демонстрирует сильные стороны в области {}. Рекомендуется обратить внимание на развитие {}.".format(
-            ', '.join(strong[:2]), ', '.join(weak[:2])
-        )
+        return (f"Студент демонстрирует сильные стороны в области {', '.join(strong[:2])}. "
+                f"Рекомендуется обратить внимание на развитие {', '.join(weak[:2])}.")
+
     # Очистка от лишних символов
     text = text.split('\n')[0].strip()
     if text.endswith(','):
