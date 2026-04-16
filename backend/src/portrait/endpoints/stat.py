@@ -13,11 +13,14 @@ comp_fields = [
 
 def get_year_metrics(year, filter):
     res_queryset = Results.objects.filter(res_year=year, **filter)
+    max_mot={"name": "-", "count": 0}
     if not res_queryset.exists():
         return {
             "total_avg": 0,
             "course_percent": 0,
-            "all_comps": {f: 0 for f in comp_fields}
+            "all_comps": {f: 0 for f in comp_fields},
+            "motivator": max_mot,
+            "participated" : {"amount_in": 0, "students_all": 0}
         }
     avgs = res_queryset.aggregate(**{f'avg_{f}': Avg(f) for f in comp_fields})
     
@@ -30,12 +33,11 @@ def get_year_metrics(year, filter):
         course_participant__in=participant_ids 
     ).count()
     
-    max_mot={'name': "", 'count': 0}
     for f in MOT_FIELDS:
-        cnt_high = res_queryset.filter(**{f"{f}__gte": 600}).count() #!!! нужен наибольший мотиватор. можно взять самый популярный кст
-        if cnt_high>max_mot['count']: 
-            max_mot['count']=cnt_high
-            max_mot['name']=f
+        cnt_high = res_queryset.filter(**{f"{f}__gte": 600}).count() 
+        if cnt_high>max_mot["count"]: 
+            max_mot["count"]=cnt_high
+            max_mot["name"]=f
     course_percent = (students_with_courses / total_students * 100) if total_students > 0 else 0
     students_uni = total_students * 1.2 #тут должны быть обучающиеся в унике вообще
     return {
@@ -47,11 +49,12 @@ def get_year_metrics(year, filter):
     }
 
 def filter_dash(request):
+    
     try:
         institutes = list(Results.objects.values_list('res_institution__inst_name', flat=True).distinct())
         specialties = list(Results.objects.values_list('res_spec__spec_name', flat=True).distinct())
         years = Results.objects.values_list('res_year', flat=True).distinct()
-        print(specialties)
+        
         data = {
             "institutes": [{"value": i, "label": str(i)} for i in institutes if i],
             "specialties": [{"value": s, "label": str(s)} for s in specialties if s],
@@ -66,7 +69,7 @@ def get_dashboard_stats(request):
 
     try:
         inst = request.GET.get('institute')
-        spec = request.GET.get('speciality')
+        spec = request.GET.get('specialty')
         year = request.GET.get('year')
 
         base_filter = {}
@@ -96,6 +99,7 @@ def get_dashboard_stats(request):
             .annotate(overall_avg=Avg(total_score_expression)) \
             .order_by('-overall_avg')
         rate_list=list(rate_uni_data)
+        
         if inst: #место выбранного в %
             uni_place = (next((i for i, item in enumerate(rate_list) if item.get('uni_name') == inst), -1)+1)/len(rate_list) * 100
             uni_score = curr_data['total_avg']
@@ -110,7 +114,7 @@ def get_dashboard_stats(request):
             else:
                 uni_name = "Нет данных"
                 uni_score = 0
-
+        print(inst, uni_place)
         sorted_comps = sorted(curr_data['all_comps'].items(), key=lambda x: x[1], reverse=True)
         sorted_comps_prev = sorted(prev_data['all_comps'].items(), key=lambda x: x[1], reverse=True)
         
@@ -131,17 +135,16 @@ def get_dashboard_stats(request):
         base_filter['res_year'] = curr_year
         radar=get_competency_stats_courses(base_filter) #radar
         
-        motiv={'same':True, 'name':{'prev': '-', 'curr':'-'}, 'count': {'prev': 0, 'curr': 0}}
+        motiv={'name':{'prev': '-', 'curr':'-'}, 'count': {'prev': 0, 'curr': 0}}
         #топ мотиватор
-        if prev_data['motivator']['name']==curr_data['motivator']['name']:
-            motiv['same']=True
-            motiv['name']={'prev': curr_data['motivator']['name'], 'curr': curr_data['motivator']['name']}
-            motiv['count']={'prev':prev_data['motivator']['count'], 'curr':curr_data['motivator']['count']}
+        print(curr_data)
+        if prev_data["motivator"]["name"]==curr_data["motivator"]["name"]:
+            motiv['name']={'prev': curr_data["motivator"]["name"], 'curr': curr_data["motivator"]["name"]}
+            motiv['count']={'prev':prev_data["motivator"]["count"], 'curr':curr_data["motivator"]["count"]}
         else:
-            motiv['same']=False
-            motiv['name']={'prev':prev_data['motivator']['name'], 'curr':curr_data['motivator']['name']}
-            motiv['count']={'prev':prev_data['motivator']['count'], 'curr':curr_data['motivator']['count']}
-
+            motiv['name']={'prev':prev_data["motivator"]["name"], 'curr':curr_data["motivator"]["name"]}
+            motiv['count']={'prev':prev_data["motivator"]["count"], 'curr':curr_data["motivator"]["count"]}
+        
         response_data = {
             "status": "success",
             "col1": {
@@ -208,7 +211,7 @@ def get_motivation_counts(request):
     try:
         
         inst = request.GET.get('institute')
-        spec = request.GET.get('speciality')
+        spec = request.GET.get('specialty')
         year = request.GET.get('year')
 
         base_filter = {}

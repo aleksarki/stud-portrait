@@ -272,7 +272,7 @@ function Dashboard({ data }) {
     console.log(data.col2.uni_place);
     if (data.col2.uni_place!=0){
         col2_data['header'] = "Рейтинг ВУЗа";
-        col2_data['name'] = "Топ "+(data.col2.uni_place).toString()+"%";
+        col2_data['name'] = "Топ "+(Math.round(data.col2.uni_place,1)).toString()+"%";
     }
     return (
         <div className="dashboard-container">
@@ -284,7 +284,7 @@ function Dashboard({ data }) {
             <div className="col-left">
             <Stat label="студентов прошли доп. курсы" value={data.col1.courses.val} prev={data.col1.courses.prev} suffix="%" />
             <Stat label="средний уровень компетенций" value={data.col1.avg_lvl.val} prev={data.col1.avg_lvl.prev} />
-            <Stat label={`Наибольший мотиватор (${data.col1.motiv.count.curr})`} value={getLabel(data.col1.motiv.name.curr)} prev={getLabel(data.col1.motiv.name.prev)+`(${data.col1.motiv.count.prev})`} isText={true} />
+            <Stat label={data.col1.motiv.count.curr!=0 ?`Наибольший мотиватор (${data.col1.motiv.count.curr})` : "Нет данных за этот год"} value={getLabel(data.col1.motiv.name.curr)} prev={data.col1.motiv.count.prev!=0 ? getLabel(data.col1.motiv.name.prev)+`(${data.col1.motiv.count.prev})` : 0 } isText={true} />
             </div>
 
             {/* Центральная колонка */} 
@@ -313,8 +313,9 @@ function Dashboard({ data }) {
                     </ResponsiveContainer>
 
                     <div class="absolute-center">
-                        <h2>{Math.round(data.col2.participated?.amount_in/data.col2.participated?.students_all*100,1) }%</h2>
-                        <p>Студентов прошли тестирование</p>
+                        {data.col2.participated.students_all==0 ? <p> Нет данных </p> :
+                        (<><h2>{Math.round(data.col2.participated?.amount_in/data.col2.participated?.students_all*100,1) }%</h2>
+                        <p>Студентов прошли тестирование</p></>)}
                     </div>
                 </div>
             </div>
