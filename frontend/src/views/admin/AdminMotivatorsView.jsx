@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 
 import { COURSES_NAMES, LINK_TREE } from "../../utilities.js";
 import {
-    LabelList, LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
+    Cell, LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
     BarChart, Bar, CartesianGrid, ReferenceLine,
 } from "recharts";
 import Select from 'react-select';
@@ -45,7 +45,72 @@ const competencyLabels = {
 };
 const getLabel = (key) => competencyLabels[key] || competencyLabels[key.replace('res_comp_', '').replace('_', ' ')] || key.replace('res_comp_', '').replace('_', ' ');
 
+const formatValue = (value) => Math.abs(value);
 
+const Legendy = ({ selectedCourses, colors }) => (
+    <div style={{ marginBottom: '24px', marginLeft: '40px' }}>
+        <table style={{ borderCollapse: 'separate', borderSpacing: '20px 8px', fontSize: '13px' }}>
+        <thead>
+            <tr>
+            <th style={{ marginLeft: '5px', textAlign: 'left', color: '#999', fontWeight: 'normal', fontStyle: 'italic' }}>Курсы</th>
+            {selectedCourses.map(c => (
+                <th key={c} style={{ textAlign: 'center', fontWeight: 'bold', minWidth: '20px' }}>{c}</th>
+            ))}
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+            <td style={{ textAlign: 'left', fontWeight: '500', color: '#333' }}>Мотиваторы</td>
+            {selectedCourses.map(c => (
+                <td key={c}>
+                <div style={{ width: '12px', height: '12px', borderRadius: '1px', backgroundColor: colors[c].high, margin: '0 auto' }} />
+                </td>
+            ))}
+            </tr>
+            <tr>
+            <td style={{ textAlign: 'left', fontWeight: '500', color: '#333' }}>Демотиваторы</td>
+            {selectedCourses.map(c => (
+                <td key={c}>
+                <div style={{ width: '12px', height: '12px', borderRadius: '1px', backgroundColor: colors[c].low, margin: '0 auto' }} />
+                </td>
+            ))}
+            </tr>
+        </tbody>
+        </table>
+    </div>
+);
+
+const Tooltippy = ({ active, payload = [], coordinate = {}, chartHeight = 0, label }) => {
+    if (!active || !payload.length) return null;
+    const isTopHalf = coordinate.y < chartHeight / 2;
+
+    const filtered = payload
+    .filter(e => (isTopHalf ? e.value > 0 : e.value < 0))
+    .sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+    if (!filtered.length) return null;
+
+    return (
+    <div className="tooltip">
+        <p className="font-bold text-gray-800 mb-2 border-b pb-1" style={{marginBottom: "2px"}}>{getLabel(label)}
+        </p>{isTopHalf ? <p style={{color: "rgb(2, 81, 62)"}}>Мотиваторы</p> : <p style={{color: "rgb(107, 0, 0)"}}>Демотиваторы</p>}
+        {filtered.map((entry, i) => {
+            const courseNum = entry.payload[`${entry.dataKey}_course`];
+            const color = entry.payload[`${entry.dataKey}_color`];
+            return (
+                <div key={i} className="nums">
+                <div className="flex items-center gap-4">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                    <span>{courseNum} курс:   </span>
+                <span className="font-bold" style={{ color }}>{Math.abs(entry.value)}</span></div>
+                </div>
+                
+            );
+        })}
+    </div>
+    );
+};
+  
+  
 
 //до 400 - демотиватор, 600+ мотиватор
 function MotivatorChart ({ chart_data }){
@@ -53,18 +118,18 @@ function MotivatorChart ({ chart_data }){
   
     const toggleCourse = (course) => {
       setSelectedCourses(prev => 
-        prev.includes(course) ? prev.filter(c => c !== course) : [...prev, course]
-      );
+            prev.includes(course) ? prev.filter(c => c !== course) : [...prev, course]
+        );
     };
   
     // Цветовая палитра для 4 курсов 
     const colors = {
-      1: { high: " #2ecc71", low: "rgb(167, 65, 65)" }, 
-      2: { high: "rgb(47, 205, 173)", low: "rgb(153, 33, 20)" },
-      3: { high: " #27ae60", low: "rgb(184, 106, 27)" },
-      4: { high: " #1a7438", low: " #862663" },
+        1: { high: "rgb(46, 204, 88)", low: "rgb(230, 187, 58)" }, 
+        2: { high: "rgb(74, 198, 144)", low: "rgb(208, 35, 23)" },
+        3: { high: "rgb(21, 106, 75)", low: "rgb(200, 46, 82)" },
+        4: { high: "rgb(17, 138, 152)", low: "rgb(150, 23, 118)" },
     };
-    const formatValue = (value) => Math.abs(value);
+    
     if (!chart_data) {
         console.log('MotivationBars: ошибка загрузки данных');
         return <div className="p-4 text-gray-500">Нет данных для отображения</div>;
@@ -110,6 +175,7 @@ function MotivatorChart ({ chart_data }){
                         formatter={(value, course) => [formatValue(value), `${course} у`]}
                         cursor={{ fill: '#f5f5f5' }}
                         labelFormatter={(label) => `${getLabel(label)}`}
+                        shared={true}
                     />
                    
                     <ReferenceLine y={0} stroke="#333" strokeWidth={1} />
@@ -122,7 +188,7 @@ function MotivatorChart ({ chart_data }){
                             fill={colors[course].high}
                             fillOpacity={0.5}
                             stroke={colors[course].high}
-                            strokeWidth={1}
+                            strokeWidth={2}
                             name={`Курс ${course}: Мотиваторы`}
                             barSize={35}
                         />
@@ -132,7 +198,7 @@ function MotivatorChart ({ chart_data }){
                             fill={colors[course].low}
                             fillOpacity={0.4}
                             stroke={colors[course].low}
-                            strokeWidth={1}
+                            strokeWidth={2}
                             name={`Курс ${course}: Демотиваторы`}
                             barSize={35}
                         />
@@ -141,10 +207,160 @@ function MotivatorChart ({ chart_data }){
                     </BarChart>
                 </ResponsiveContainer>
                 </div>
+                <div><MotivatorStackedChart chart_data={chart_data}/></div>
             </div>
     );}
 };
 
+
+function MotivatorStackedChart({ chart_data }) {
+    const allCourses = [1, 2, 3, 4];
+    const [selectedCourses, setSelectedCourses] = useState(allCourses);
+  
+    const toggleCourse = (course) => {
+        setSelectedCourses(prev =>{
+            const next = prev.includes(course) ? prev.filter(c => c !== course) : [...prev, course]
+            return next.sort((a, b) => a - b);}
+        );
+    };
+
+    const containerRef = useRef(null);
+    const [chartHeight, setChartHeight] = useState(0);
+
+    useEffect(() => {
+        if (!containerRef.current) return;
+        const el = containerRef.current;
+        const getSvgHeight = () => {
+          const svg = el.querySelector("svg");
+          return svg ? svg.clientHeight : 0;
+        };
+        setChartHeight(getSvgHeight());
+      
+        const ro = new ResizeObserver(() => setChartHeight(getSvgHeight()));
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, [chart_data]);
+      
+
+    const colors = {
+        1: { high: " #bcff77", low: " #c55294" },
+        2: { high: " #7bda77", low: " #bc3a6c" },
+        3: { high: " #42b474", low: " #ab2744" },
+        4: { high: " #008d6b", low: " #941d1d" },
+    };
+  
+    const processedData = useMemo(() => {
+        return chart_data.map(item => {
+            const newItem = { ...item };
+            
+            //сортировка
+            const posValues = selectedCourses
+            .map(c => ({ course: c, val: item[`course_${c}_high`] || 0 }))
+            .sort((a, b) => a.val - b.val); // от меньшего к большему
+
+            posValues.forEach((obj, index) => {
+            newItem[`pos_seg_${index}`] = obj.val;
+            newItem[`pos_seg_${index}_course`] = obj.course;
+            newItem[`pos_seg_${index}_color`] = colors[obj.course].high;
+            });
+
+            const negValues = selectedCourses
+            .map(c => ({ course: c, val: item[`course_${c}_low`] || 0 }))
+            .sort((a, b) => a.val - b.val); 
+
+            negValues.forEach((obj, index) => {
+            newItem[`neg_seg_${index}`] = -obj.val; // делаем отрицательным для графика
+            newItem[`neg_seg_${index}_course`] = obj.course;
+            newItem[`neg_seg_${index}_color`] = colors[obj.course].low;
+            });
+
+            return newItem;
+        });
+    }, [chart_data, selectedCourses]);
+  
+    if (!chart_data || chart_data.length === 0) {
+        console.log('MotivatorChart: нет данных');
+        return <div className="p-4 text-gray-500 text-center">Нет данных для отображения</div>;
+    }
+
+    return (
+    <div className="mot_bar w-full p-4 bg-white rounded-lg shadow">
+        <div className="course-filters">
+            {[1, 2, 3, 4].map(course => (
+                <label key={course} className="filter-item">
+                <input
+                    type="checkbox"
+                    checked={selectedCourses.includes(course)}
+                    onChange={() => toggleCourse(course)}
+                />
+                <span>{course} Курс</span>
+                </label>
+            ))}
+        </div>
+        <Legendy selectedCourses={selectedCourses} colors={colors}/>
+        
+        <div ref={containerRef} className="chart-container h-[500px]">
+            <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                    data={processedData}
+                    barGap={-30}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                >
+                        
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
+                <XAxis
+                    dataKey="name"
+                    tickFormatter={getLabel}
+                    angle={-45}
+                    tickMargin={20}
+                    textAnchor={"end"}
+                    interval={0}
+                    height={80}
+                    stroke="#666"
+
+                />
+                <YAxis 
+                    tickFormatter={formatValue} 
+                    stroke="#666"
+                />
+                <Tooltip content={(props) => <Tooltippy {...props} chartHeight={chartHeight}
+                wrapperStyle={{ overflow: "visible", pointerEvents: "none", zIndex: 9999 }} />} />
+                
+                <ReferenceLine y={0} stroke="#333" strokeWidth={1.5} />
+
+                {selectedCourses.map((_, index) => (
+                <Bar 
+                    key={`pos_${index}`} 
+                    dataKey={`pos_seg_${index}`} 
+                    stackId="positive" 
+                    barSize={30}
+                    strokeWidth={1.5}
+                >
+                    {processedData.map((entry, i) => (
+                    <Cell key={i} fill={entry[`pos_seg_${index}_color`]} />
+                    ))}
+                </Bar>
+                ))}
+
+                {selectedCourses.map((_, index) => (
+                    <Bar 
+                        key={`neg_${index}`} 
+                        dataKey={`neg_seg_${index}`} 
+                        stackId="negative" 
+                        barSize={30}
+                        strokeWidth={1.5}
+                    >
+                        {processedData.map((entry, i) => (
+                        <Cell key={i} fill={entry[`neg_seg_${index}_color`]} />
+                        ))}
+                    </Bar>
+                ))}
+                </BarChart>
+            </ResponsiveContainer>
+        </div>
+      </div>
+    );
+}
 
 //верх фильтры
 const FilterHeader = ({ onFilterChange }) => {
@@ -225,7 +441,6 @@ function AdminMotivatorsView(){
             let baseUrl = `http://localhost:8000/portrait/motivation-counts`;
             const params = new URLSearchParams();
 
-            // Добавляем только существующие фильтры
             if (currentFilters.institute) params.append('institute', currentFilters.institute);
             if (currentFilters.specialty) params.append('specialty', currentFilters.specialty);
             if (currentFilters.year) params.append('year', currentFilters.year);
