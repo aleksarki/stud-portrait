@@ -117,8 +117,9 @@ function MotivatorChart ({ chart_data }){
     const [selectedCourses, setSelectedCourses] = useState([1, 2, 3, 4]);
   
     const toggleCourse = (course) => {
-      setSelectedCourses(prev => 
-            prev.includes(course) ? prev.filter(c => c !== course) : [...prev, course]
+      setSelectedCourses(prev => {
+        const next = prev.includes(course) ? prev.filter(c => c !== course) : [...prev, course]
+        return next.sort((a, b) => a - b);}
         );
     };
   
@@ -149,6 +150,7 @@ function MotivatorChart ({ chart_data }){
                     </label>
                 ))}
                 </div>
+                <Legendy selectedCourses={selectedCourses} colors={colors}/>
         
                 <div className="chart-container">
                 <ResponsiveContainer width="100%" height={500}>
@@ -158,7 +160,6 @@ function MotivatorChart ({ chart_data }){
                         barGap={-35} 
                         margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
                     >
-                    <Legend layout="vertical" align="left" verticalAlign="top" wrapperStyle={{ paddingBottom: '20px' }} />
                     
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
                     <XAxis 
@@ -243,10 +244,10 @@ function MotivatorStackedChart({ chart_data }) {
       
 
     const colors = {
-        1: { high: " #bcff77", low: " #c55294" },
-        2: { high: " #7bda77", low: " #bc3a6c" },
-        3: { high: " #42b474", low: " #ab2744" },
-        4: { high: " #008d6b", low: " #941d1d" },
+        1: { high: " #A2CB8B", low: " #f5cd70" }, 
+        2: { high: " #81ae71", low: " #eaa157" },
+        3: { high: " #619257", low: " #da744a" },
+        4: { high: " #42763f", low: " #C44545" },
     };
   
     const processedData = useMemo(() => {
@@ -334,6 +335,7 @@ function MotivatorStackedChart({ chart_data }) {
                     dataKey={`pos_seg_${index}`} 
                     stackId="positive" 
                     barSize={30}
+                    barGap={5}
                     strokeWidth={1.5}
                 >
                     {processedData.map((entry, i) => (
