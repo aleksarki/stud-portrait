@@ -1,9 +1,20 @@
-.venv/
-venv/
-env/
+# Конфигурация и секреты
+env.py
+.env
+*.key
+*.pem
 
+# Python
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
-.Python
+.venv/
+venv/
+
+# Django
+*.log
+db.sqlite3
+local_settings.py
+
+# IDE
+.vscode/
+.idea/

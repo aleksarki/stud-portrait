@@ -1,0 +1,127 @@
+{
+  "description": "Демонстрационные примеры работы аналитических запросов",
+  "author": "Шляхтин Даниил Константинович",
+  "date": "2025",
+  
+  "example_1_competency_distribution": {
+    "function": "get_competency_distribution",
+    "description": "Распределение средних баллов по 12 компетенциям за учебный год",
+    "input": {
+      "academic_year": "2024/2025",
+      "institution_id": null
+    },
+    "output": [
+      {"competency": "Анализ информации", "avg_score": 524.75},
+      {"competency": "Планирование", "avg_score": 498.32},
+      {"competency": "Ориентация на результат", "avg_score": 512.67},
+      {"competency": "Стрессоустойчивость", "avg_score": 487.91},
+      {"competency": "Партнерство/Сотрудничество", "avg_score": 503.45},
+      {"competency": "Следование правилам", "avg_score": 478.23},
+      {"competency": "Саморазвитие", "avg_score": 531.89},
+      {"competency": "Лидерство", "avg_score": 495.67},
+      {"competency": "Эмоциональный интеллект", "avg_score": 508.34},
+      {"competency": "Клиентоориентированность", "avg_score": 521.12},
+      {"competency": "Коммуникация", "avg_score": 489.78},
+      {"competency": "Пассивный словарный запас", "avg_score": 542.56}
+    ]
+  },
+
+  "example_2_university_rating": {
+    "function": "get_university_rating",
+    "description": "Рейтинг вузов по среднему баллу (сводный отчёт)",
+    "input": {
+      "academic_year": "2024/2025",
+      "top_n": 5
+    },
+    "output": [
+      {"university": "ФГАОУ ВО ТЮМЕНСКИЙ ГОСУДАРСТВЕННЫЙ УНИВЕРСИТЕТ", "avg_score": 612.45, "count": 45},
+      {"university": "ФГБОУ ВО ТЮМЕНСКИЙ ИНДУСТРИАЛЬНЫЙ УНИВЕРСИТЕТ", "avg_score": 587.23, "count": 32},
+      {"university": "ГБПОУ ЯМАЛО-НЕНЕЦКОГО АВТОНОМНОГО ОКРУГА ЯМАЛЬСКИЙ МНОГОПРОФИЛЬНЫЙ КОЛЛЕДЖ", "avg_score": 564.78, "count": 28},
+      {"university": "ГАПОУ ТЮМЕНСКОЙ ОБЛАСТИ ТЮМЕНСКИЙ ТЕХНИКУМ ИНДУСТРИИ ПИТАНИЯ", "avg_score": 542.91, "count": 21},
+      {"university": "ФГБОУ ВО УДМУРТСКИЙ ГОСУДАРСТВЕННЫЙ УНИВЕРСИТЕТ", "avg_score": 528.34, "count": 18}
+    ]
+  },
+
+  "example_3_participant_dynamics": {
+    "function": "get_participant_dynamics",
+    "description": "Динамика баллов участника по годам",
+    "input": {
+      "participant_id": 230850187,
+      "metric": "res_comp_info_analysis"
+    },
+    "output": [
+      {"year": "2021/2022", "score": 548},
+      {"year": "2022/2023", "score": 607},
+      {"year": "2023/2024", "score": 544}
+    ]
+  },
+
+  "example_4_top_participants": {
+    "function": "get_top_participants",
+    "description": "Топ-N участников по сумме баллов компетенций",
+    "input": {
+      "academic_year": "2024/2025",
+      "top_n": 10
+    },
+    "output": [
+      {"participant_id": 1445272380, "total_score": 7296.0, "year": "2024/2025"},
+      {"participant_id": 1848732, "total_score": 6948.0, "year": "2024/2025"},
+      {"participant_id": 437373337, "total_score": 6852.0, "year": "2024/2025"},
+      {"participant_id": 106116997, "total_score": 6756.0, "year": "2024/2025"},
+      {"participant_id": 1086821, "total_score": 6648.0, "year": "2024/2025"},
+      {"participant_id": 1446152187, "total_score": 6540.0, "year": "2024/2025"},
+      {"participant_id": 2011036691, "total_score": 6432.0, "year": "2024/2025"},
+      {"participant_id": 755094200, "total_score": 6324.0, "year": "2024/2025"},
+      {"participant_id": 1132243397, "total_score": 6216.0, "year": "2024/2025"},
+      {"participant_id": 1658102026, "total_score": 6108.0, "year": "2024/2025"}
+    ]
+  },
+
+  "example_5_gender_stats": {
+    "function": "get_gender_stats_by_specialty",
+    "description": "Гендерная статистика по специальностям",
+    "input": {
+      "academic_year": "2024/2025"
+    },
+    "output": [
+      {
+        "specialty": "Информационные системы и программирование",
+        "male_count": 34,
+        "female_count": 28,
+        "avg_score": 587.45
+      },
+      {
+        "specialty": "Экономика и бухгалтерский учет",
+        "male_count": 12,
+        "female_count": 45,
+        "avg_score": 564.23
+      },
+      {
+        "specialty": "Сестринское дело",
+        "male_count": 3,
+        "female_count": 52,
+        "avg_score": 542.78
+      },
+      {
+        "specialty": "Нефтегазовое дело",
+        "male_count": 38,
+        "female_count": 15,
+        "avg_score": 531.91
+      }
+    ]
+  },
+
+  "example_6_talent_category_stats": {
+    "function": "get_talent_category_stats",
+    "description": "Статистика по категориям высокопотенциальных участников",
+    "input": {
+      "academic_year": "2024/2025"
+    },
+    "output": [
+      {"category": "Высокие когнитивные способности", "count": 156, "avg_score": 598.34},
+      {"category": "Высокопотенциальные", "count": 124, "avg_score": 567.89},
+      {"category": "Звезды", "count": 42, "avg_score": 645.23},
+      {"category": "Не указано", "count": 378, "avg_score": 512.45}
+    ]
+  }
+}

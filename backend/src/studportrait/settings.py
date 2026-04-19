@@ -39,7 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'corsheaders'
+    'corsheaders',      
+    'studportrait',
 ]
 
 MIDDLEWARE = [
@@ -136,3 +137,20 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# НАСТРОЙКИ ДЛЯ ТЕСТОВ
+
+
+import os
+if 'test' in sys.argv:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': env['NAME'],
+            'USER': env['USER'],
+            'PASSWORD': env['PASSWORD'],
+            'HOST': env['HOST'],
+            'PORT': env['PORT'],
+        }
+    }
