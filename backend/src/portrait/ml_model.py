@@ -72,13 +72,23 @@ def is_model_available():
     return _MODEL_AVAILABLE
 
 
-def generate_text(prompt, max_length=200, temperature=0.7, top_p=0.9):
+def generate_text(prompt, max_length=400, temperature=0.15, top_p=0.85):
     model, tokenizer = load_model()
     if model is None:
         return None
 
-    inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=1024)
-    inputs = {k: v.to(model.device) for k, v in inputs.items()}
+    # Формируем сообщения в формате Qwen
+    messages = [
+        {"role": "system", "content": "Ты — эксперт по оценке компетенций. Отвечай кратко и по делу."},
+        {"role": "user", "content": prompt}
+    ]
+    # Применяем chat template
+    text = tokenizer.apply_chat_template(
+        messages,
+        tokenize=False,
+        add_generation_prompt=True
+    )
+    inputs = tokenizer(text, return_tensors="pt", truncation=True, max_length=1024).to(model.device)
 
     with torch.no_grad():
         outputs = model.generate(
@@ -87,11 +97,11 @@ def generate_text(prompt, max_length=200, temperature=0.7, top_p=0.9):
             do_sample=True,
             temperature=temperature,
             top_p=top_p,
-            repetition_penalty=1.2,
+            repetition_penalty=1.05,
             pad_token_id=tokenizer.eos_token_id,
         )
 
-    text = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    if text.startswith(prompt):
-        text = text[len(prompt):].strip()
-    return text
+    generated = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    # Убираем системный промпт и пользовательский запрос, оставляем только ответ ассистента
+    response = generated.split("<|im_start|>assistant\n")[-1].strip()
+    return response
