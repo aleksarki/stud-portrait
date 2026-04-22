@@ -659,13 +659,26 @@ def analyze_discipline_impact_advanced(request):
                     after_score = getattr(after_result, competency, None)
                     
                     if before_score is not None and after_score is not None:
+                        # Направление берём из результата (res_spec), т.к. part_spec у участника может быть пустым
+                        direction = (
+                            (after_result.res_spec.spec_name  if after_result.res_spec  else None) or
+                            (before_result.res_spec.spec_name if before_result.res_spec else None) or
+                            (student.part_spec.spec_name      if student.part_spec      else None) or
+                            'Не указано'
+                        )
+                        institution = (
+                            (after_result.res_institution.inst_name  if after_result.res_institution  else None) or
+                            (before_result.res_institution.inst_name if before_result.res_institution else None) or
+                            (student.part_institution.inst_name      if student.part_institution      else None) or
+                            'Не указано'
+                        )
                         perf_data.append({
                             'student_id': student.part_id,
                             'discipline': perf.perf_discipline,
                             'grade': perf.perf_main_attestation,
                             'year': year,
-                            'institution': student.part_institution.inst_name if student.part_institution else 'Unknown',
-                            'direction': student.part_spec.spec_name if student.part_spec else 'Unknown',
+                            'institution': institution,
+                            'direction': direction,
                             f'{competency}_before': before_score,
                             f'{competency}_after': after_score
                         })
