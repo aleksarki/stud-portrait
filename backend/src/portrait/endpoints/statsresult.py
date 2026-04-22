@@ -16,6 +16,9 @@ def courses(request):
     """ Information about course completion for '/admin/courses' page
     """
 
+    selected_institution_ids = list(map(int, selected_institution_ids or []))
+    selected_directions = list(map(int, selected_directions or []))
+
     courses_data = [
         {
             "course_id": course.course_id,
@@ -113,28 +116,28 @@ def get_institution_directions(request):
     Возвращает направления, которые есть в выбранных институтах.
     Извлекает уникальные пары (institution, direction) из таблицы Results.
     """
-    institution_ids = request.GET.getlist('institution_ids[]')
-    
-    if not institution_ids or len(institution_ids) == 0:  # when no institutions selected, return all majors
-        directions_list = list(
-            Results.objects
-                .filter(res_spec__isnull=False)
-                .values_list('res_spec__spec_name', flat=True)
-                .distinct()
-                .order_by('res_spec__spec_name')
-        )
+    institution_ids = request.GET.getlist('institution_ids') or request.GET.getlist('institution_ids[]')
 
-        return {"directions": directions_list}
+    # привести к int
+    try:
+        institution_ids = list(map(int, institution_ids))
+    except:
+        institution_ids = []
 
-    directions_list = list(
-        Results.objects
-            .filter(res_institution__inst_id__in=institution_ids, res_spec__isnull=False)
-            .values_list('res_spec__spec_name', flat=True)
-            .distinct()
-            .order_by('res_spec__spec_name')
-    )
+    if not institution_ids:
+        directions = Specialties.objects.all().values('spec_id', 'spec_name').order_by('spec_name')
+    else:
+        directions = Specialties.objects.filter(
+            results_set__res_institution_id__in=institution_ids
+        ).distinct().values('spec_id', 'spec_name').order_by('spec_name')
 
-    return {"directions": directions_list}
+    return {
+        "status": "success",
+        "directions": [
+            {"id": d['spec_id'], "name": d['spec_name']}
+            for d in directions
+        ]
+    }
 
 
 @method('GET')
@@ -153,14 +156,19 @@ def get_filter_options_with_counts(request):
     selected_test_attempts =   request.GET.getlist('test_attempts[]')
 
     # all filters except the current one
-    base_results = Results.objects.select_related('res_participant__part_institution', 'res_participant__part_spec')
+    base_results = Results.objects.select_related(
+        'res_institution',
+        'res_spec'
+    )
 
     # institutions
 
     institutions_query = base_results
 
     if selected_directions:
-        institutions_query = institutions_query.filter(res_participant__part_spec__spec_name__in=selected_directions)
+        institutions_query = institutions_query.filter(
+            res_spec__spec_id__in=selected_directions
+        )
 
     if selected_courses:
         institutions_query = institutions_query.filter(res_course_num__in=selected_courses)
@@ -184,18 +192,18 @@ def get_filter_options_with_counts(request):
         institutions_query = institutions_query.filter(res_participant__in=valid_students)
 
     institutions_counts = institutions_query                                                                  \
-        .values('res_participant__part_institution__inst_id', 'res_participant__part_institution__inst_name') \
+        .values('res_institution__inst_id', 'res_institution__inst_name') \
         .annotate(count=Count('res_id'))                                                                      \
         .order_by('-count')
 
     institutions_list = [
         {
-            "id":    item['res_participant__part_institution__inst_id'],
-            "name":  item['res_participant__part_institution__inst_name'],
+            "id":    item['res_institution__inst_id'],
+            "name":  item['res_institution__inst_name'],
             "count": item['count']
         }
         for item in institutions_counts
-        if item['res_participant__part_institution__inst_name']
+        if item['res_institution__inst_name']
     ]
 
     # majors
@@ -203,7 +211,9 @@ def get_filter_options_with_counts(request):
     directions_query = base_results
 
     if selected_institution_ids:
-        directions_query = directions_query.filter(res_participant__part_institution__inst_id__in=selected_institution_ids)
+        directions_query = directions_query.filter(
+            res_institution__inst_id__in=selected_institution_ids
+        )
 
     if selected_courses:
         directions_query = directions_query.filter(res_course_num__in=selected_courses)
@@ -227,17 +237,17 @@ def get_filter_options_with_counts(request):
         directions_query = directions_query.filter(res_participant__in=valid_students)
 
     directions_counts = directions_query                 \
-        .values('res_participant__part_spec__spec_name') \
+        .values('res_spec__spec_id', 'res_spec__spec_name') \
         .annotate(count=Count('res_id'))                 \
         .order_by('-count')
 
     directions_list = [
         {
-            "id":    item['res_participant__part_spec__spec_name'],  # id = name для строк
-            "name":  item['res_participant__part_spec__spec_name'],
+            "id":    item['res_spec__spec_id'],
+            "name":  item['res_spec__spec_name'],
             "count": item['count']
         }
-        for item in directions_counts if item['res_participant__part_spec__spec_name']
+        for item in directions_counts if item['res_spec__spec_name']
     ]
 
     # courses
@@ -245,10 +255,14 @@ def get_filter_options_with_counts(request):
     courses_query = base_results
 
     if selected_institution_ids:
-        courses_query = courses_query.filter(res_participant__part_institution__inst_id__in=selected_institution_ids)
+        courses_query = courses_query.filter(
+            res_institution__inst_id__in=selected_institution_ids
+        )
 
     if selected_directions:
-        courses_query = courses_query.filter(res_participant__part_spec__spec_name__in=selected_directions)
+        courses_query = courses_query.filter(
+            res_spec__spec_id__in=selected_directions
+        )
 
     if selected_test_attempts:
         student_attempts = Results.objects \
@@ -287,10 +301,14 @@ def get_filter_options_with_counts(request):
     attempts_query = base_results
 
     if selected_institution_ids:
-        attempts_query = attempts_query.filter(res_participant__part_institution__inst_id__in=selected_institution_ids)
+        attempts_query = attempts_query.filter(
+            res_institution__inst_id__in=selected_institution_ids
+        )
 
     if selected_directions:
-        attempts_query = attempts_query.filter(res_participant__part_spec__spec_name__in=selected_directions)
+        attempts_query = attempts_query.filter(
+            res_spec__spec_id__in=selected_directions
+        )
 
     if selected_courses:
         attempts_query = attempts_query.filter(res_course_num__in=selected_courses)
