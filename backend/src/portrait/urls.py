@@ -59,5 +59,13 @@ urlpatterns = [
     path('get-lgm-spaghetti-data/',      analysis_end.get_lgm_spaghetti_data, name='get_lgm_spaghetti_data'),
     path('get-waterfall-decomposition/', analysis_end.get_waterfall_decomposition, name='get_waterfall_decomposition'),
 
+    path('ai-analytics-summary/', analysis_end.ai_analytics_summary, name='ai_analytics_summary'),
+
     path('get-disciplines/', analysis_end.get_disciplines, name='get-disciplines'),
+
+    # Загрузка данных
+    path('get-expected-fields/', dataload.get_expected_fields, name='get_expected_fields'),
+    path('get-templates/',        dataload.get_templates,        name='get_templates'),
+    path('save-template/',        dataload.save_template,        name='save_template'),
+    path('delete-template/<int:template_id>/', dataload.delete_template, name='delete_template'),
 ]

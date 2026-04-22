@@ -223,3 +223,62 @@
         }
     }
 }
+
+.mapping-editor {
+    margin-top: 20px;
+}
+
+.mapping-sheet {
+    border: 1px solid #ddd;
+    margin-bottom: 20px;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.mapping-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 15px;
+
+    th, td {
+        border: 1px solid #ccc;
+        padding: 8px;
+        text-align: left;
+    }
+
+    th {
+        background-color: #f5f5f5;
+    }
+}
+
+.start-row-input {
+    margin: 10px 0;
+    label {
+        margin-right: 10px;
+    }
+    input {
+        width: 80px;
+    }
+}
+
+.template-actions, .import-actions {
+    margin-top: 15px;
+    button {
+        margin-left: 10px;
+        padding: 8px 16px;
+    }
+}
+
+.upload-success, .upload-error {
+    margin-top: 20px;
+    padding: 10px;
+    border-radius: 5px;
+}
+.upload-success {
+    background-color: #d4edda;
+    color: #155724;
+}
+.upload-error {
+    background-color: #f8d7da;
+    color: #721c24;
+}

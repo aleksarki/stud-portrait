@@ -1,196 +1,389 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import * as XLSX from "xlsx";
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 import { LINK_TREE } from "../../utilities";
-
+import { getExpectedFields, getTemplates, saveTemplate, deleteTemplate, importExcel } from "../../api";
 import "./AdminUploadView.scss";
 
+/** Конвертирует 0-based индекс колонки в Excel-нотацию: 0→A, 25→Z, 26→AA, 27→AB, ... */
+function colIndexToLetter(idx) {
+    let letter = "";
+    let n = idx + 1; // переходим к 1-based
+    while (n > 0) {
+        const rem = (n - 1) % 26;
+        letter = String.fromCharCode(65 + rem) + letter;
+        n = Math.floor((n - 1) / 26);
+    }
+    return letter;
+}
+
+/** Обратная конвертация: "AA" → 26 (0-based) */
+function colLetterToIndex(letter) {
+    if (!letter) return -1;
+    let idx = 0;
+    for (let i = 0; i < letter.length; i++) {
+        idx = idx * 26 + (letter.charCodeAt(i) - 64);
+    }
+    return idx - 1; // возвращаем 0-based
+}
+
 function AdminUploadView() {
+    const [step, setStep] = useState("upload");
     const [selectedFile, setSelectedFile] = useState(null);
-    const [uploading, setUploading] = useState(false);
+    const [fileHeaders, setFileHeaders] = useState({});
+    const [mappingConfig, setMappingConfig] = useState(null);
+    const [expectedFields, setExpectedFields] = useState({});
     const [uploadResult, setUploadResult] = useState(null);
     const [error, setError] = useState(null);
+    const [uploading, setUploading] = useState(false);
+    const [savedTemplates, setSavedTemplates] = useState([]);
+    const [selectedTemplateName, setSelectedTemplateName] = useState("");
+    const [newTemplateName, setNewTemplateName] = useState("");
+    const [templatesLoading, setTemplatesLoading] = useState(false);
 
-    // Конфигурация для парсинга Excel (как в Postman)
-    const defaultConfig = {
-        "sheets": [
-            {
-            "name": "Сравнение по компетенциям",
-            "start_row": 4,
-            "columns": {
-                "center_name": "H",
+    // Ref для доступа к актуальному expectedFields внутри колбэков FileReader
+    const expectedFieldsRef = useRef({});
+    useEffect(() => {
+        expectedFieldsRef.current = expectedFields;
+    }, [expectedFields]);
 
-                "edu_level_name": "L",
-
-                "inst_name": "I",
-
-                "part_name": "C",
-                "part_gender": "E",
-                "part_institution": "I",
-                "part_spec": "O",
-                "part_edu_level": "L",
-                "part_form": "N",
-                "part_course_num": "M",
-
-                "res_center": "H",
-                "res_institution": "I",
-                "res_edu_level": "L",
-                "res_form": "N",
-                "res_spec": "O",
-                "res_course_num": "M",
-                "res_year": "B",
-                "res_high_potential": "D",
-                "res_summary_report": "P",
-
-                "res_comp_info_analysis": "Q",
-                "res_comp_planning": "R",
-                "res_comp_result_orientation": "S",
-                "res_comp_stress_resistance": "T",
-                "res_comp_partnership": "U",
-                "res_comp_rules_compliance": "V",
-                "res_comp_self_development": "W",
-                "res_comp_leadership": "X",
-                "res_comp_emotional_intel": "Y",
-                "res_comp_client_focus": "Z",
-                "res_comp_communication": "AA",
-                "res_comp_passive_vocab": "AB",
-
-                "spec_name": "O",
-
-                "form_name": "N"
-            }
-            },
-            {
-            "name": "Мотивационный профиль",
-            "start_row": 4,
-            "columns": {
-                "part_name": "B",
-                "res_year": "C",
-                
-                "res_mot_autonomy": "D",
-                "res_mot_altruism": "E",
-                "res_mot_challenge": "F",
-                "res_mot_salary": "G",
-                "res_mot_career": "H",
-                "res_mot_creativity": "I",
-                "res_mot_relationships": "J",
-                "res_mot_recognition": "K",
-                "res_mot_affiliation": "L",
-                "res_mot_self_development": "M",
-                "res_mot_purpose": "N",
-                "res_mot_cooperation": "O",
-                "res_mot_stability": "P",
-                "res_mot_tradition": "Q",
-                "res_mot_management": "R",
-                "res_mot_work_conditions": "S"
-            }
-            },
-            {
-            "name": "Образовательные курсы",
-            "start_row": 4,
-            "columns":{
-                "part_name": "B",
-                "course_an_dec": "C",
-                "course_client_focus": "D",
-                "course_communication": "E",
-                "course_leadership": "F",
-                "course_result_orientation": "G",
-                "course_planning_org": "H",
-                "course_rules_culture": "I",
-                "course_self_dev": "J",
-                "course_collaboration": "K",
-                "course_stress_resistance": "L",
-                "course_emotions_communication": "M",
-                "course_negotiations": "N",
-                "course_digital_comm": "O",
-                "course_effective_learning": "P",
-                "course_entrepreneurship": "Q",
-                "course_creativity_tech": "R",
-                "course_trendwatching": "S",
-                "course_conflict_management": "T",
-                "course_career_management": "U",
-                "course_burnout": "V",
-                "course_cross_cultural_comm": "W",
-                "course_mentoring": "X"
-            }
-            },
-            {
-            "name": "Итоги успеваемости участников",
-            "start_row": 2,
-            "columns": {
-                "part_name": "B",
-                "perf_year": "A",
-                "perf_current_avg": "C",
-                "perf_digital_culture": "D",
-                "perf_main_attestation": "E",
-                "perf_first_retake": "F",
-                "perf_second_retake": "G",
-                "perf_high_grade_retake": "H",
-                "perf_final_grade": "I"
+    useEffect(() => {
+        // ФИX 1: добавлен .onSuccess(r => r.json()) для парсинга ответа
+        getExpectedFields()
+            .onSuccess(r => r.json())
+            .onSuccess(data => {
+                const { status, ...sheets } = data;
+                setExpectedFields(sheets);
+                expectedFieldsRef.current = sheets;
+                // ФИX 2: если файл уже загружен до получения fields — перегенерировать маппинг
+                if (Object.keys(fileHeaders).length > 0) {
+                    autoGenerateConfig(fileHeaders, sheets);
                 }
-            }
-        ]
-        };
+            })
+            .onError(err => console.error("Ошибка expected fields", err));
+
+        loadTemplatesFromServer();
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const loadTemplatesFromServer = () => {
+        setTemplatesLoading(true);
+        // ФИX 3: используем серверное хранение шаблонов вместо localStorage
+        getTemplates()
+            .onSuccess(r => r.json())
+            .onSuccess(data => {
+                setSavedTemplates(data.templates || []);
+            })
+            .onError(err => {
+                console.error("Ошибка загрузки шаблонов", err);
+                // Fallback на localStorage если сервер недоступен
+                const stored = localStorage.getItem("upload_templates");
+                if (stored) {
+                    try { setSavedTemplates(JSON.parse(stored)); } catch(e) {}
+                }
+            })
+            .finally(() => setTemplatesLoading(false));
+    };
 
     const handleFileChange = (e) => {
         const file = e.target.files[0];
+        if (!file) return;
         setSelectedFile(file);
-        setUploadResult(null);
         setError(null);
+        setUploadResult(null);
+
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            const data = new Uint8Array(evt.target.result);
+            const workbook = XLSX.read(data, { type: "array" });
+            const headers = {};
+            workbook.SheetNames.forEach(sheetName => {
+                const sheet = workbook.Sheets[sheetName];
+                const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+                if (rows.length > 0) {
+                    headers[sheetName] = rows[0].map(cell => (cell || "").toString().trim());
+                } else {
+                    headers[sheetName] = [];
+                }
+            });
+            setFileHeaders(headers);
+            // ФИX 4: передаём актуальные fields через ref, не из замкнутого стейта
+            autoGenerateConfig(headers, expectedFieldsRef.current);
+            setStep("mapping");
+        };
+        reader.readAsArrayBuffer(file);
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        
-        if (!selectedFile) {
-            setError("Пожалуйста, выберите файл");
+    // ФИX 5: autoGenerateConfig принимает fields явным аргументом — нет зависимости от стейта
+    const autoGenerateConfig = (headers, fields) => {
+        if (!fields || Object.keys(fields).length === 0) {
+            // Fields ещё не загружены — создаём пустой маппинг, который заполнится позже
+            const sheets = Object.keys(headers).map(sheetName => ({
+                name: sheetName,
+                start_row: 2,
+                columns: {}
+            }));
+            setMappingConfig({ sheets });
             return;
         }
 
-        setUploading(true);
-        setError(null);
-        setUploadResult(null);
+        const sheets = [];
+        for (const sheetName of Object.keys(headers)) {
+            if (!fields[sheetName]) continue;
+            const expectedCols = fields[sheetName];
+            const availableHeaders = headers[sheetName];
 
-        try {
-            // Создаём FormData для отправки файла
-            const formData = new FormData();
-            formData.append('file', selectedFile);
-            formData.append('config_json', JSON.stringify(defaultConfig));
-
-            console.log('📤 Отправка файла:', selectedFile.name);
-
-            // Отправляем на backend
-            const response = await fetch('http://localhost:8000/portrait/import_excel/', {
-                method: 'POST',
-                body: formData
+            const columnMapping = {};
+            expectedCols.forEach(expected => {
+                // Точное совпадение (без учёта регистра)
+                let idx = availableHeaders.findIndex(
+                    h => h.toLowerCase() === expected.toLowerCase()
+                );
+                // Нечёткое совпадение: ищем expected как подстроку заголовка и наоборот
+                if (idx === -1) {
+                    idx = availableHeaders.findIndex(h => {
+                        const hLow = h.toLowerCase();
+                        const eLow = expected.toLowerCase();
+                        return hLow.includes(eLow) || eLow.includes(hLow);
+                    });
+                }
+                columnMapping[expected] = idx !== -1 ? colIndexToLetter(idx) : "";
             });
 
-            console.log('📡 Ответ получен:', response.status);
+            sheets.push({ name: sheetName, start_row: 2, columns: columnMapping });
+        }
+        setMappingConfig({ sheets });
+    };
 
-            const data = await response.json();
-            console.log('📦 Данные:', data);
+    const updateSheetMapping = (sheetIndex, newColumns) => {
+        const newSheets = [...mappingConfig.sheets];
+        newSheets[sheetIndex] = { ...newSheets[sheetIndex], columns: newColumns };
+        setMappingConfig({ sheets: newSheets });
+    };
 
-            if (data.status === 'success') {
-                setUploadResult({
-                    success: true,
-                    created: data.created,
-                    updated: data.updated
-                });
-                
-                // Очищаем выбранный файл
-                setSelectedFile(null);
-                document.getElementById('excel-file').value = '';
-                
-            } else {
-                setError(data.message || 'Ошибка загрузки данных');
-            }
+    const updateStartRow = (sheetIndex, newStartRow) => {
+        const newSheets = [...mappingConfig.sheets];
+        newSheets[sheetIndex] = { ...newSheets[sheetIndex], start_row: newStartRow };
+        setMappingConfig({ sheets: newSheets });
+    };
 
-        } catch (err) {
-            console.error('❌ Ошибка:', err);
-            setError(`Ошибка подключения к серверу: ${err.message}`);
-        } finally {
-            setUploading(false);
+    const handleSaveTemplate = () => {
+        if (!newTemplateName.trim()) {
+            setError("Введите имя шаблона");
+            return;
+        }
+        // ФИX 6: сохраняем на сервер, не в localStorage
+        saveTemplate(newTemplateName.trim(), mappingConfig)
+            .onSuccess(r => r.json())
+            .onSuccess(() => {
+                setNewTemplateName("");
+                setError(null);
+                loadTemplatesFromServer(); // перезагружаем список
+            })
+            .onError(err => setError(`Ошибка сохранения шаблона: ${err.message}`));
+    };
+
+    const handleDeleteTemplate = (templateId, e) => {
+        e.stopPropagation();
+        if (!window.confirm("Удалить шаблон?")) return;
+        deleteTemplate(templateId)
+            .onSuccess(r => r.json())
+            .onSuccess(() => loadTemplatesFromServer())
+            .onError(err => setError(`Ошибка удаления: ${err.message}`));
+    };
+
+    const loadTemplate = () => {
+        const tmpl = savedTemplates.find(t =>
+            (t.name === selectedTemplateName) || (String(t.id) === String(selectedTemplateName))
+        );
+        if (tmpl) {
+            setMappingConfig(tmpl.config);
+            setStep("mapping");
         }
     };
+
+    const handleImport = () => {
+        if (!selectedFile || !mappingConfig) return;
+        setUploading(true);
+        setError(null);
+        // ФИX 7: добавлен .onSuccess(r => r.json()) для парсинга ответа импорта
+        importExcel(selectedFile, mappingConfig)
+            .onSuccess(r => r.json())
+            .onSuccess(data => {
+                if (data.status === "success") {
+                    setUploadResult(data);
+                    setStep("upload");
+                    setSelectedFile(null);
+                    const fileInput = document.getElementById("excel-file");
+                    if (fileInput) fileInput.value = "";
+                } else {
+                    setError(data.message || "Ошибка импорта");
+                }
+                setUploading(false);
+            })
+            .onError(err => {
+                setError(`Ошибка импорта: ${err.message}`);
+                setUploading(false);
+            });
+    };
+
+    const renderMappingEditor = () => {
+        if (!mappingConfig || !fileHeaders) return null;
+
+        const allFieldsMapped = mappingConfig.sheets.every(sheet =>
+            Object.values(sheet.columns).some(v => v !== "")
+        );
+
+        return (
+            <div className="mapping-editor">
+                <h3>Сопоставление колонок (можно изменить вручную)</h3>
+
+                {Object.keys(expectedFields).length === 0 && (
+                    <div className="warning-banner">
+                        ⚠️ Список ожидаемых полей ещё загружается. Автосопоставление будет недоступно.
+                    </div>
+                )}
+
+                {mappingConfig.sheets.length === 0 && (
+                    <div className="warning-banner">
+                        ⚠️ Ни один лист файла не совпал с ожидаемыми листами ({Object.keys(expectedFields).join(", ")}).
+                        Проверьте названия листов в Excel-файле.
+                    </div>
+                )}
+
+                {mappingConfig.sheets.map((sheet, idx) => (
+                    <div key={sheet.name} className="mapping-sheet">
+                        <h4>Лист: {sheet.name}</h4>
+                        <table className="mapping-table">
+                            <thead>
+                                <tr>
+                                    <th>Ожидаемое поле</th>
+                                    <th>Колонка в Excel</th>
+                                    <th>Предпросмотр заголовка</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {Object.entries(sheet.columns).map(([field, colLetter]) => {
+                                    const colIdx = colLetter ? colLetterToIndex(colLetter) : -1;
+                                    const headerPreview = colIdx >= 0
+                                        ? fileHeaders[sheet.name]?.[colIdx] || ""
+                                        : "—";
+                                    const isMissing = !colLetter;
+
+                                    return (
+                                        <tr key={field} className={isMissing ? "row-unmapped" : ""}>
+                                            <td>{field}</td>
+                                            <td>
+                                                <select
+                                                    value={colLetter}
+                                                    onChange={(e) => {
+                                                        const newCols = { ...sheet.columns, [field]: e.target.value };
+                                                        updateSheetMapping(idx, newCols);
+                                                    }}
+                                                >
+                                                    <option value="">— не выбрано —</option>
+                                                    {fileHeaders[sheet.name]?.map((header, colIdx) => (
+                                                        <option key={colIdx} value={colIndexToLetter(colIdx)}>
+                                                            {colIndexToLetter(colIdx)}: {header}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </td>
+                                            <td className="header-preview">{headerPreview}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                        <div className="start-row-control">
+                            <label>Начальная строка данных:</label>
+                            <input
+                                type="number"
+                                min={2}
+                                value={sheet.start_row}
+                                onChange={(e) => updateStartRow(idx, parseInt(e.target.value) || 2)}
+                            />
+                        </div>
+                    </div>
+                ))}
+
+                <div className="template-save-row">
+                    <input
+                        type="text"
+                        placeholder="Имя шаблона"
+                        value={newTemplateName}
+                        onChange={(e) => setNewTemplateName(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleSaveTemplate()}
+                    />
+                    <button onClick={handleSaveTemplate}>💾 Сохранить шаблон</button>
+                </div>
+
+                <div className="import-row">
+                    <button onClick={handleImport} disabled={uploading || !allFieldsMapped}>
+                        {uploading ? "⏳ Импорт..." : "📤 Импортировать данные"}
+                    </button>
+                    {!allFieldsMapped && (
+                        <span className="hint">Заполните хотя бы одно поле в каждом листе</span>
+                    )}
+                </div>
+
+                {error && <div className="error-banner">{error}</div>}
+            </div>
+        );
+    };
+
+    const renderUploadStep = () => (
+        <div>
+            <div className="file-input-row">
+                <label>Выберите Excel файл</label>
+                <input
+                    id="excel-file"
+                    type="file"
+                    accept=".xlsx, .xls"
+                    onChange={handleFileChange}
+                    disabled={uploading}
+                />
+            </div>
+
+            {templatesLoading ? (
+                <div>Загрузка шаблонов...</div>
+            ) : savedTemplates.length > 0 && (
+                <div className="template-load-row">
+                    <label>Загрузить сохранённый шаблон:</label>
+                    <select
+                        value={selectedTemplateName}
+                        onChange={e => setSelectedTemplateName(e.target.value)}
+                    >
+                        <option value="">— выберите —</option>
+                        {savedTemplates.map(t => (
+                            <option key={t.id ?? t.name} value={t.name}>{t.name}</option>
+                        ))}
+                    </select>
+                    <button onClick={loadTemplate} disabled={!selectedTemplateName}>
+                        Загрузить
+                    </button>
+                    {selectedTemplateName && (
+                        <button
+                            className="btn-delete"
+                            onClick={(e) => {
+                                const tmpl = savedTemplates.find(t => t.name === selectedTemplateName);
+                                if (tmpl?.id) handleDeleteTemplate(tmpl.id, e);
+                            }}
+                        >
+                            🗑 Удалить
+                        </button>
+                    )}
+                </div>
+            )}
+
+            {uploadResult && (
+                <div className="success-banner">
+                    ✅ Импорт завершён: создано {uploadResult.created}, обновлено {uploadResult.updated},
+                    связей ФИО→ID: {uploadResult.mapped ?? 0}
+                </div>
+            )}
+            {error && <div className="error-banner">{error}</div>}
+        </div>
+    );
 
     return (
         <div className="AdminUploadView">
@@ -199,78 +392,19 @@ function AdminUploadView() {
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <div className="upload-form-container">
-                        <h2 className="upload-form-title">
-                            Загрузка данных результатов тестирования "Россия - страна возможностей"
-                        </h2>
-                        
-                        <form className="upload-form" onSubmit={handleSubmit}>
-                            <div className="form-group">
-                                <label htmlFor="excel-file" className="file-label">
-                                    Выберите Excel файл
-                                </label>
-                                <input
-                                    type="file"
-                                    id="excel-file"
-                                    className="file-input"
-                                    accept=".xlsx, .xls"
-                                    onChange={handleFileChange}
-                                    disabled={uploading}
-                                />
-                                {selectedFile && (
-                                    <div className="selected-file">
-                                        ✓ Выбран файл: <strong>{selectedFile.name}</strong>
-                                    </div>
-                                )}
-                                <div className="file-hint">
-                                    Поддерживаемые форматы: .xlsx, .xls
-                                </div>
-                            </div>
+                        <h2>Загрузка данных "Россия — страна возможностей"</h2>
 
-                            {/* Информация о структуре файла */}
-                            <div className="info-block">
-                                <h3>📋 Требования к структуре файла:</h3>
-                                <ul>
-                                    <li>Лист "Сравнение по компетенциям" (данные с 3 строки)</li>
-                                    <li>Лист "Мотивационный профиль" (данные с 3 строки)</li>
-                                    <li>Лист "Образовательные курсы" (данные с 3 строки)</li>
-                                    <li>Лист "Итоги успеваемости участников" (данные с 3 строки)</li>
-                                </ul>
-                            </div>
-                            
-                            {/* Результат загрузки */}
-                            {uploadResult && (
-                                <div className="upload-success">
-                                    <div className="success-icon">✅</div>
-                                    <h3>Данные успешно загружены!</h3>
-                                    <div className="upload-stats">
-                                        <div className="stat">
-                                            <span className="stat-label">Создано записей:</span>
-                                            <span className="stat-value">{uploadResult.created}</span>
-                                        </div>
-                                        <div className="stat">
-                                            <span className="stat-label">Обновлено записей:</span>
-                                            <span className="stat-value">{uploadResult.updated}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Ошибка */}
-                            {error && (
-                                <div className="upload-error">
-                                    <div className="error-icon">❌</div>
-                                    <div className="error-message">{error}</div>
-                                </div>
-                            )}
-                            
+                        {step === "mapping" && (
                             <button
-                                type="submit"
-                                className="submit-button"
-                                disabled={uploading || !selectedFile}
+                                className="btn-back"
+                                onClick={() => setStep("upload")}
                             >
-                                {uploading ? '⏳ Загрузка...' : '📤 Загрузить данные'}
+                                ← Назад
                             </button>
-                        </form>
+                        )}
+
+                        {step === "upload" && renderUploadStep()}
+                        {step === "mapping" && renderMappingEditor()}
                     </div>
                 </Content>
             </SidebarLayout>

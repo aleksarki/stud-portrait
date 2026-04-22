@@ -78,6 +78,20 @@
       }
     },
     {
+      "name": "Ценностный профиль",
+      "start_row": 4,
+      "columns": {
+        "part_rsv_id": "B",
+        "res_year": "C",
+        "res_val_honesty_justice": "D",
+        "res_val_humanism": "E",
+        "res_val_patriotism": "F",
+        "res_val_family": "G",
+        "res_val_health": "H",
+        "res_val_environment": "I"
+      }
+    },
+    {
       "name": "Образовательные курсы",
       "start_row": 4,
       "columns": {
@@ -113,12 +127,7 @@
         "perf_year": "A",
         "student_name": "B",
         "perf_discipline": "C",
-        "perf_current_avg": "D",
-        "perf_main_attestation": "E",
-        "perf_first_retake": "F",
-        "perf_second_retake": "G",
-        "perf_high_grade_retake": "H",
-        "perf_final_grade": "I"
+        "perf_main_attestation": "E"
       }
     }
   ]

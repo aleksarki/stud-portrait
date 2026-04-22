@@ -328,3 +328,54 @@ export function postGetVamTrendData(body) {
     });
     return new AsyncChain(promise);
 }
+
+export function postAiAnalyticsSummary(contextType, filters) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/ai-analytics-summary/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            context_type: contextType,
+            filters: filters
+        })
+    });
+    return new AsyncChain(promise);
+}
+
+// Шаблоны загрузки
+export function getExpectedFields() {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-expected-fields/`);
+    return new AsyncChain(promise);
+}
+
+export function getTemplates() {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-templates/`);
+    return new AsyncChain(promise);
+}
+
+export function saveTemplate(name, config, description = "") {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/save-template/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, config, description })
+    });
+    return new AsyncChain(promise);
+}
+
+export function deleteTemplate(templateId) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/delete-template/${templateId}/`, {
+        method: 'DELETE'
+    });
+    return new AsyncChain(promise);
+}
+
+// Импорт Excel (уже есть, но можно добавить обертку)
+export function importExcel(file, configJson) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('config_json', JSON.stringify(configJson));
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/import_excel/`, {
+        method: 'POST',
+        body: formData
+    });
+    return new AsyncChain(promise);
+}
