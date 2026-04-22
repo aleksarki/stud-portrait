@@ -4,7 +4,6 @@ export const LINK_TREE = [
     {
         category: null,
         links: [
-            {title: "Главная", to: '/admin/'},
             {title: "Статистика тестирования", to: '/admin/stats'},
             {title: "География тестирования", to: '/admin/geography'}
         ]
