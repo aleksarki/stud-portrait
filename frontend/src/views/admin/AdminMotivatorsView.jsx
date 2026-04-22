@@ -8,8 +8,10 @@ import {
     BarChart, Bar, CartesianGrid, ReferenceLine,
 } from "recharts";
 import Select from 'react-select';
-import "./AdminMotivatorsView.scss";
 
+import MotivatorStatistics from "../../components/MotivatorStatistics.jsx";
+
+import "./AdminMotivatorsView.scss";
 
 const competencyLabels = {
     "res_comp_info_analysis": "Анализ информации",
@@ -483,9 +485,10 @@ function AdminMotivatorsView(){
                         (<>{loadingMotDash ? (
                             <div className="p-10 text-center">Загрузка данных...</div>
                                 
-                            ) : (<MotivatorChart chart_data={MotivationData?.data}/>
-                            
-                        )}</>)}
+                            ) : <><MotivatorChart chart_data={MotivationData?.data}/>
+                            <MotivatorStatistics filters={filters} />
+                        </>}</>)}
+                        
                     </Content>
                 </SidebarLayout>
             </div>

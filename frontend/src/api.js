@@ -151,6 +151,20 @@ export function getPortraitCentersByRegion(year) {
     return new AsyncChain(promise);
 }
 
+export function getMotivatorStatistics(filters) {
+    const params = new URLSearchParams();
+    if (filters.institute) params.append('institute', filters.institute);
+    if (filters.specialty) params.append('specialty', filters.specialty);
+    if (filters.year) params.append('year', filters.year);
+    if (filters.group_by) params.append('group_by', filters.group_by);
+    
+    const queryString = params.toString();
+    const url = `${PROTOCOL}://${HOST}/portrait/motivator-statistics/${queryString ? `?${queryString}` : ''}`;
+    
+    const promise = fetch(url);
+    return new AsyncChain(promise);
+}
+
 /* ============================================================ */
 /*                    АНАЛИТИЧЕСКИЕ ENDPOINTS                   */
 /* ============================================================ */
@@ -377,5 +391,15 @@ export function importExcel(file, configJson) {
         method: 'POST',
         body: formData
     });
+    return new AsyncChain(promise);
+}
+
+export function getStudentComparisonStats(studentId, year) {
+    const params = new URLSearchParams();
+    params.append('student_id', studentId);
+    if (year) params.append('year', year);
+    
+    const url = `${PROTOCOL}://${HOST}/portrait/student-comparison-stats/?${params.toString()}`;
+    const promise = fetch(url);
     return new AsyncChain(promise);
 }

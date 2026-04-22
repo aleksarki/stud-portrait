@@ -54,7 +54,7 @@ INSERT INTO EducationLevels (edu_level_name) VALUES
 CREATE TABLE EducationForms
 (
     edu_form_id    INTEGER      PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    edu_form_name  VARCHAR(64)  NOT NULL
+    edu_form_name  VARCHAR(32)  NOT NULL
 );
 
 INSERT INTO EducationForms (edu_form_name) VALUES
@@ -83,7 +83,7 @@ CREATE TABLE Participants
 (
     part_id      INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     part_rsv_id  VARCHAR(512)  UNIQUE NOT NULL,  -- ID участника RSV
-    part_name    VARCHAR(512),
+    part_name    VARCHAR(1024),
     part_gender  INT
 );
 

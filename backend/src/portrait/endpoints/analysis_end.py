@@ -1796,3 +1796,236 @@ def ai_analytics_summary(request):
         import traceback
         traceback.print_exc()
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+def get_student_comparison_stats(request):
+    """
+    Получение сравнительной статистики студента.
+    GET параметры:
+        - student_id: ID студента
+        - year: год тестирования
+    """
+    try:
+        student_id = request.GET.get('student_id')
+        year = request.GET.get('year')
+        
+        if not student_id:
+            return JsonResponse({'status': 'error', 'message': 'student_id required'}, status=400)
+        
+        # Получаем данные студента
+        student_results = Results.objects.filter(
+            res_participant__part_id=student_id
+        )
+        
+        if year:
+            student_results = student_results.filter(res_year=year)
+        
+        if not student_results.exists():
+            return JsonResponse({'status': 'error', 'message': 'Student results not found'}, status=404)
+        
+        student = student_results.first()
+        student_participant = student.res_participant
+        
+        # Определяем контекст сравнения
+        institution = student_participant.part_institution
+        specialty = student_participant.part_spec
+        course_num = student.res_course_num
+        
+        # Получаем всех студентов для сравнения
+        all_results = Results.objects.filter(res_year=student.res_year)
+        
+        # Фильтруем по институту
+        institution_results = all_results.filter(
+            res_participant__part_institution=institution
+        ) if institution else None
+        
+        # Фильтруем по направлению
+        specialty_results = all_results.filter(
+            res_participant__part_spec=specialty
+        ) if specialty else None
+        
+        # Фильтруем по курсу
+        course_results = all_results.filter(res_course_num=course_num)
+        
+        # Список компетенций
+        competencies = [
+            'res_comp_info_analysis', 'res_comp_planning', 'res_comp_result_orientation',
+            'res_comp_stress_resistance', 'res_comp_partnership', 'res_comp_rules_compliance',
+            'res_comp_self_development', 'res_comp_leadership', 'res_comp_emotional_intel',
+            'res_comp_client_focus', 'res_comp_communication', 'res_comp_passive_vocab'
+        ]
+        
+        # Список мотиваторов
+        motivators = [
+            'res_mot_autonomy', 'res_mot_altruism', 'res_mot_challenge', 'res_mot_salary',
+            'res_mot_career', 'res_mot_creativity', 'res_mot_relationships', 'res_mot_recognition',
+            'res_mot_affiliation', 'res_mot_self_development', 'res_mot_purpose', 'res_mot_cooperation',
+            'res_mot_stability', 'res_mot_tradition', 'res_mot_management', 'res_mot_work_conditions'
+        ]
+        
+        # Функция расчета процентиля
+        def calculate_percentile(student_value, all_values):
+            if student_value is None:
+                return None
+            sorted_values = sorted([v for v in all_values if v is not None])
+            if not sorted_values:
+                return None
+            count_less = sum(1 for v in sorted_values if v < student_value)
+            percentile = (count_less / len(sorted_values)) * 100
+            return round(percentile)
+        
+        # Функция расчета статистики для списка полей
+        def calculate_stats(results_queryset, fields):
+            stats = {}
+            all_values = {field: [] for field in fields}
+            
+            # Собираем все значения
+            for result in results_queryset:
+                for field in fields:
+                    value = getattr(result, field, None)
+                    if value is not None:
+                        all_values[field].append(value)
+            
+            # Рассчитываем статистику для каждого поля
+            for field in fields:
+                student_value = getattr(student, field, None)
+                stats[field] = {
+                    'student_score': student_value,
+                    'percentile_institution': None,
+                    'percentile_specialty': None,
+                    'percentile_course': None,
+                    'avg_institution': None,
+                    'avg_specialty': None,
+                    'avg_course': None,
+                    'min_institution': None,
+                    'max_institution': None
+                }
+                
+                if student_value is not None:
+                    # Процентили
+                    if institution_results:
+                        stats[field]['percentile_institution'] = calculate_percentile(
+                            student_value, all_values[field]
+                        )
+                    if specialty_results:
+                        stats[field]['percentile_specialty'] = calculate_percentile(
+                            student_value, [getattr(r, field) for r in specialty_results if getattr(r, field) is not None]
+                        )
+                    if course_results:
+                        stats[field]['percentile_course'] = calculate_percentile(
+                            student_value, [getattr(r, field) for r in course_results if getattr(r, field) is not None]
+                        )
+                    
+                    # Средние значения
+                    if institution_results and all_values[field]:
+                        stats[field]['avg_institution'] = round(sum(all_values[field]) / len(all_values[field]), 1)
+                        stats[field]['min_institution'] = min(all_values[field])
+                        stats[field]['max_institution'] = max(all_values[field])
+                    
+                    if specialty_results:
+                        specialty_values = [getattr(r, field) for r in specialty_results if getattr(r, field) is not None]
+                        if specialty_values:
+                            stats[field]['avg_specialty'] = round(sum(specialty_values) / len(specialty_values), 1)
+                    
+                    if course_results:
+                        course_values = [getattr(r, field) for r in course_results if getattr(r, field) is not None]
+                        if course_values:
+                            stats[field]['avg_course'] = round(sum(course_values) / len(course_values), 1)
+            
+            return stats
+        
+        # Рассчитываем статистику
+        competencies_stats = calculate_stats(all_results, competencies)
+        motivators_stats = calculate_stats(all_results, motivators)
+        
+        # Названия для отображения
+        competency_names = {
+            'res_comp_info_analysis': 'Анализ информации',
+            'res_comp_planning': 'Планирование',
+            'res_comp_result_orientation': 'Ориентация на результат',
+            'res_comp_stress_resistance': 'Стрессоустойчивость',
+            'res_comp_partnership': 'Партнёрство',
+            'res_comp_rules_compliance': 'Соблюдение правил',
+            'res_comp_self_development': 'Саморазвитие',
+            'res_comp_leadership': 'Лидерство',
+            'res_comp_emotional_intel': 'Эмоциональный интеллект',
+            'res_comp_client_focus': 'Клиентоориентированность',
+            'res_comp_communication': 'Коммуникация',
+            'res_comp_passive_vocab': 'Пассивный словарь'
+        }
+        
+        motivator_names = {
+            'res_mot_autonomy': 'Автономия',
+            'res_mot_altruism': 'Альтруизм',
+            'res_mot_challenge': 'Вызов',
+            'res_mot_salary': 'Заработок',
+            'res_mot_career': 'Карьера',
+            'res_mot_creativity': 'Креативность',
+            'res_mot_relationships': 'Отношения',
+            'res_mot_recognition': 'Признание',
+            'res_mot_affiliation': 'Принадлежность',
+            'res_mot_self_development': 'Саморазвитие',
+            'res_mot_purpose': 'Смысл',
+            'res_mot_cooperation': 'Сотрудничество',
+            'res_mot_stability': 'Стабильность',
+            'res_mot_tradition': 'Традиция',
+            'res_mot_management': 'Управление',
+            'res_mot_work_conditions': 'Условия труда'
+        }
+        
+        # Формируем результат
+        result = {
+            'student_info': {
+                'name': student_participant.part_rsv_id,
+                'institution': institution.inst_name if institution else 'Не указан',
+                'specialty': specialty.spec_name if specialty else 'Не указано',
+                'course': course_num,
+                'year': student.res_year
+            },
+            'comparison_context': {
+                'institution_students': institution_results.count() if institution_results else 0,
+                'specialty_students': specialty_results.count() if specialty_results else 0,
+                'course_students': course_results.count()
+            },
+            'competencies': [],
+            'motivators': []
+        }
+        
+        for field, stats in competencies_stats.items():
+            result['competencies'].append({
+                'name': competency_names.get(field, field),
+                'score': stats['student_score'],
+                'percentile_institution': stats['percentile_institution'],
+                'percentile_specialty': stats['percentile_specialty'],
+                'percentile_course': stats['percentile_course'],
+                'avg_institution': stats['avg_institution'],
+                'avg_specialty': stats['avg_specialty'],
+                'avg_course': stats['avg_course'],
+                'min_institution': stats['min_institution'],
+                'max_institution': stats['max_institution']
+            })
+        
+        for field, stats in motivators_stats.items():
+            result['motivators'].append({
+                'name': motivator_names.get(field, field),
+                'score': stats['student_score'],
+                'percentile_institution': stats['percentile_institution'],
+                'percentile_specialty': stats['percentile_specialty'],
+                'percentile_course': stats['percentile_course'],
+                'avg_institution': stats['avg_institution'],
+                'avg_specialty': stats['avg_specialty'],
+                'avg_course': stats['avg_course'],
+                'min_institution': stats['min_institution'],
+                'max_institution': stats['max_institution']
+            })
+        
+        return JsonResponse({
+            'status': 'success',
+            'data': result
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)
