@@ -21,6 +21,8 @@ from .datanal import (
     CrossSectionalAnalyzer
 )
 
+from ..ml_model import generate_text
+
 COMPETENCIES = [
     'res_comp_info_analysis',
     'res_comp_planning',
@@ -334,7 +336,7 @@ def analyze_discipline_impact(request):
                     perf_data.append({
                         'student_id': student.part_id,
                         'discipline': perf.perf_discipline,
-                        'grade': perf.perf_final_grade,
+                        'grade': perf.perf_main_attestation,
                         'year': year,
                         f'{competency}_before': before_score,
                         f'{competency}_after': after_score
@@ -457,7 +459,7 @@ def _get_discipline_impact_for_competency(competency):
                     perf_data.append({
                         'student_id': student.part_id,
                         'discipline': perf.perf_discipline,
-                        'grade': perf.perf_final_grade,
+                        'grade': perf.perf_main_attestation,
                         'year': year,
                         f'{competency}_before': before_score,
                         f'{competency}_after': after_score
@@ -660,7 +662,7 @@ def analyze_discipline_impact_advanced(request):
                         perf_data.append({
                             'student_id': student.part_id,
                             'discipline': perf.perf_discipline,
-                            'grade': perf.perf_final_grade,
+                            'grade': perf.perf_main_attestation,
                             'year': year,
                             'institution': student.part_institution.inst_name if student.part_institution else 'Unknown',
                             'direction': student.part_spec.spec_name if student.part_spec else 'Unknown',
@@ -827,7 +829,7 @@ def get_discipline_heatmap_data(request):
                             'competency': comp,
                             f'{comp}_before': before_score,
                             f'{comp}_after': after_score,
-                            'grade': perf.perf_final_grade
+                            'grade': perf.perf_main_attestation
                         })
         
         # Вычисляем эффект для каждой пары (дисциплина, компетенция)
@@ -1332,7 +1334,7 @@ def analyze_student_discipline_impact(request):
             results.append({
                 'discipline': disc.perf_discipline,
                 'year': year,
-                'grade': disc.perf_final_grade,
+                'grade': disc.perf_main_attestation,
                 'competencies_before': competencies_before,
                 'competencies_after': competencies_after,
             })
@@ -1606,4 +1608,191 @@ def get_directions(request):
             'directions': list(directions)
         })
     except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def ai_analytics_summary(request):
+    """
+    Генерирует аналитическую сводку для администратора.
+    """
+    try:
+        import json
+        # COMP уже доступен из from .common import *
+        # используем COMP.names для названий компетенций
+
+        body = json.loads(request.body)
+        context_type = body.get('context_type', 'general')
+        filters = body.get('filters', {})
+
+        inst_ids = filters.get('institutions', [])
+        dir_ids = filters.get('directions', [])
+        courses = filters.get('courses', [])
+        competency = filters.get('competency', 'res_comp_leadership')
+        year = filters.get('year', None)
+
+        results_qs = Results.objects.select_related('res_institution', 'res_spec')
+        if inst_ids:
+            results_qs = results_qs.filter(res_institution_id__in=inst_ids)
+        if dir_ids:
+            results_qs = results_qs.filter(res_spec_id__in=dir_ids)
+        if courses:
+            results_qs = results_qs.filter(res_course_num__in=courses)
+        if year:
+            results_qs = results_qs.filter(res_year=year)
+
+        prompt = ""
+        if context_type == 'general':
+            total_students = results_qs.values('res_participant_id').distinct().count()
+            avg_scores = {}
+            for comp in COMPETENCIES[:6]:
+                avg = results_qs.aggregate(Avg(comp))[f'{comp}__avg']
+                if avg:
+                    comp_name = COMP.names.get(comp, comp)
+                    avg_scores[comp_name] = round(avg, 1)
+
+            scores = results_qs.exclude(**{f'{competency}__isnull': True}).values_list(competency, flat=True)
+            if scores:
+                low = sum(1 for s in scores if s < 400)
+                medium = sum(1 for s in scores if 400 <= s < 600)
+                high = sum(1 for s in scores if s >= 600)
+                total = len(scores)
+                low_pct = round(low / total * 100, 1) if total else 0
+                medium_pct = round(medium / total * 100, 1) if total else 0
+                high_pct = round(high / total * 100, 1) if total else 0
+            else:
+                low_pct = medium_pct = high_pct = 0
+
+            comp_display = COMP.names.get(competency, competency)
+            prompt = f"""
+Ты — аналитик образовательной платформы. На основе следующих данных напиши краткий аналитический отчёт (3-5 предложений) для администратора.
+
+Данные:
+- Всего участников: {total_students}
+- Средние баллы по компетенциям: {avg_scores}
+- Распределение по уровням для компетенции "{comp_display}": высокий {high_pct}%, средний {medium_pct}%, начальный {low_pct}%
+
+Выдели основные тренды, сильные стороны и зоны роста.
+"""
+
+        elif context_type == 'institution_comparison':
+            if not inst_ids:
+                inst_agg = results_qs.values('res_institution_id', 'res_institution__inst_name') \
+                    .annotate(avg_score=Avg(competency), student_count=Count('res_participant_id', distinct=True)) \
+                    .order_by('-student_count')[:5]
+            else:
+                inst_agg = results_qs.values('res_institution_id', 'res_institution__inst_name') \
+                    .annotate(avg_score=Avg(competency), student_count=Count('res_participant_id', distinct=True)) \
+                    .filter(res_institution_id__in=inst_ids)
+
+            comparison = []
+            for item in inst_agg:
+                comparison.append(f"- {item['res_institution__inst_name']}: средний балл {item['avg_score']:.1f}, студентов {item['student_count']}")
+
+            comp_display = COMP.names.get(competency, competency)
+            prompt = f"""
+Сравни учебные заведения по компетенции "{comp_display}".
+
+Данные:
+{chr(10).join(comparison)}
+
+Выдели лидеров и отстающих, дай рекомендации.
+"""
+
+        elif context_type == 'discipline_impact':
+            from .datanal import DisciplineImpactAnalyzer
+            analyzer = DisciplineImpactAnalyzer()
+            perf_data = []
+            perf_qs = Academicperformance.objects.select_related('perf_part')
+            if inst_ids:
+                perf_qs = perf_qs.filter(perf_part__part_institution_id__in=inst_ids)
+            if dir_ids:
+                perf_qs = perf_qs.filter(perf_part__part_spec_id__in=dir_ids)
+
+            for perf in perf_qs[:200]:
+                year_perf = perf.perf_year
+                student = perf.perf_part
+                try:
+                    year_start = int(year_perf.split('/')[0])
+                except:
+                    continue
+                before = Results.objects.filter(res_participant=student, res_year__lt=year_perf).order_by('-res_year').first()
+                after = Results.objects.filter(res_participant=student, res_year=year_perf).order_by('-res_course_num').first()
+                if before and after:
+                    before_score = getattr(before, competency, None)
+                    after_score = getattr(after, competency, None)
+                    if before_score and after_score:
+                        perf_data.append({
+                            'discipline': perf.perf_discipline,
+                            'grade': perf.perf_main_attestation,
+                            f'{competency}_before': before_score,
+                            f'{competency}_after': after_score
+                        })
+            if perf_data:
+                df = pd.DataFrame(perf_data)
+                analysis = analyzer.analyze_discipline_impact(df, competency)
+                impact_text = ""
+                for disc_res in analysis.get('results', []):
+                    impact_text += f"\nДисциплина: {disc_res['discipline']}\n"
+                    for grade, impact in disc_res.get('grade_impacts', {}).items():
+                        impact_text += f"  Оценка {grade}: прирост {impact['mean_gain']:.1f} баллов, эффект {impact['cohens_d']:.2f} (p={impact['p_value']:.3f})\n"
+                comp_display = COMP.names.get(competency, competency)
+                prompt = f"""
+Проанализируй влияние дисциплин на компетенцию "{comp_display}".
+
+Данные анализа:
+{impact_text}
+
+Сделай выводы: какие дисциплины наиболее эффективны, какие требуют доработки.
+"""
+            else:
+                prompt = "Недостаточно данных для анализа влияния дисциплин."
+
+        elif context_type == 'vam_trend':
+            # Прямой вызов get_vam_trend_data (функция уже определена в этом модуле)
+            from django.http import HttpRequest
+            mock_request = HttpRequest()
+            mock_request.method = "POST"
+            mock_request.body = json.dumps({
+                'group_by': 'institution',
+                'competency': competency,
+                'filter_institutions': inst_ids,
+                'filter_directions': dir_ids,
+                'filter_courses': courses
+            }).encode()
+            response = get_vam_trend_data(mock_request)
+            content = json.loads(response.content)
+            if content.get('status') == 'success':
+                data_points = []
+                for group in content.get('data', []):
+                    for course in group.get('courses', []):
+                        data_points.append(f"{group['group_name']}, курс {course['course']}: {course['value_added']:.1f} баллов")
+                comp_display = COMP.names.get(competency, competency)
+                prompt = f"""
+Проанализируй динамику развития компетенции "{comp_display}" по курсам.
+
+Данные (средний балл на курсе для каждой группы):
+{chr(10).join(data_points[:20])}
+
+Выдели общий тренд (рост, падение, стагнацию), укажи группы с лучшей и худшей динамикой.
+"""
+            else:
+                prompt = "Недостаточно данных для анализа VAM."
+
+        else:
+            prompt = "Неизвестный тип анализа."
+
+        result = generate_text(prompt, max_length=600, temperature=0.2)
+        if result is None:
+            result = "⚠️ Модель временно недоступна. Попробуйте позже."
+
+        return JsonResponse({
+            'status': 'success',
+            'summary': result,
+            'context_type': context_type
+        }, json_dumps_params={'ensure_ascii': False})
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

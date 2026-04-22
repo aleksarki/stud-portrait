@@ -17,6 +17,7 @@ import AdminMainView from "./views/admin/AdminMainView";
 import AdminResultsView from "./views/admin/AdminResultsView";
 import AdminStatsView from "./views/admin/AdminStatsView";
 import AdminUploadView from "./views/admin/AdminUploadView";
+import AdminAiAnalyticsView from "./views/admin/analysis/AdminAiAnalyticsView";
 
 import StudentMainView from "./views/student/StudentMainView";
 import StudentReportView from "./views/student/StudentReportView";
@@ -70,6 +71,10 @@ const router = createBrowserRouter([
   {
     path: "/admin/analysis/advanced",
     element: <AdminAnalysisAdvancedView />
+  },
+  {
+    path: "/admin/analysis/ai-analytics",
+    element: <AdminAiAnalyticsView />
   },
   {
     path: "/admin/courses",

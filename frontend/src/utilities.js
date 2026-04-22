@@ -22,7 +22,8 @@ export const LINK_TREE = [
         links: [
             {title: "VAM / LGM", to: '/admin/analysis/vam-lgm'},
             {title: "Анализ дисциплин", to: '/admin/analysis/disciplines'},
-            {title: "Визуализации", to: '/admin/analysis/advanced'}
+            {title: "Визуализации", to: '/admin/analysis/advanced'},
+            {title: "AI-аналитика", to: '/admin/analysis/ai-analytics'}
         ]
     },
     {

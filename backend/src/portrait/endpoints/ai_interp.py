@@ -264,7 +264,7 @@ def ai_generate_interpretation(request):
         comp_name = COMP.names.get(competency_field, competency_field)
         # Простой промпт
         prompt = f"Студент {course} курса. Компетенция '{comp_name}' = {score}/800. Напиши интерпретацию уровня (начальный, средний, высокий) и 3 рекомендации по развитию."
-        result = generate_text(prompt, max_length=600, temperature=0.15, top_p=0.85)
+        result = generate_text(prompt, max_length=600, temperature=0.3, top_p=0.85)
         if result is None:
             return JsonResponse({
                 'status': 'fallback',
