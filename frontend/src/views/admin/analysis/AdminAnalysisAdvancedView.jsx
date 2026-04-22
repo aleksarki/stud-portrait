@@ -30,6 +30,7 @@ import Select, { Option } from "../../../components/ui/Select";
 import SankeyDiagram from '../../../components/charts/SankeyDiagram';
 import VamCourseScatter from '../../../components/charts/VamCourseScatter';
 
+import AiInsightPanel from "../../../components/AiInsightPanel";
 import "./AdminAnalysisAdvancedView.scss";
 
 function AdminAnalysisAdvancedView() {
@@ -625,6 +626,24 @@ function AdminAnalysisAdvancedView() {
                             {activeVisualization === 'vam' && renderVAM()}
                         </div>
                     )}
+
+                    <AiInsightPanel
+                        contextType={activeVisualization === 'vam' ? 'vam_trend' : 'general'}
+                        filters={{
+                            institutions: selectedInstitutions,
+                            directions:   selectedDirections,
+                            courses:      selectedCourses,
+                            competency:   activeVisualization === 'vam'  ? vamCompetency
+                                        : activeVisualization === 'lgm'  ? lgmCompetency
+                                        : flowCompetency,
+                        }}
+                        label={
+                            activeVisualization === 'vam'  ? 'Динамика по курсам' :
+                            activeVisualization === 'lgm'  ? 'LGM Когорта' :
+                            'Поток уровней'
+                        }
+                        disabled={loading}
+                    />
                 </Content>
             </SidebarLayout>
         </div>

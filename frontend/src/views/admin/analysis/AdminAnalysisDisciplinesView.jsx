@@ -27,6 +27,7 @@ import NoData from "../../../components/ui/NoData";
 
 import SankeyDiagram from '../../../components/charts/SankeyDiagram';
 
+import AiInsightPanel from "../../../components/AiInsightPanel";
 import "./AdminAnalysisDisciplinesView.scss";
 
 function AdminAnalysisDisciplinesView() {
@@ -579,7 +580,18 @@ function AdminAnalysisDisciplinesView() {
                             )}
                         </div>
                     </>}
-                    
+
+                    <AiInsightPanel
+                        contextType="discipline_impact"
+                        filters={{
+                            institutions: selectedInstitutions,
+                            directions:   selectedDirections,
+                            courses:      selectedCourses,
+                            competency:   selectedCompetencies[0] || 'res_comp_leadership',
+                        }}
+                        label="Влияние дисциплин"
+                        disabled={loading}
+                    />
                 </Content>
             </SidebarLayout>
         </div>
