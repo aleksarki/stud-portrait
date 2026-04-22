@@ -179,10 +179,7 @@ CREATE TABLE AcademicPerformance
     perf_digital_culture  DECIMAL(5,2),  -- цифровая культура
 
     perf_main_attestation   VARCHAR(16),
-    perf_first_retake       VARCHAR(16),
-    perf_second_retake      VARCHAR(16),
-    perf_high_grade_retake  VARCHAR(16),
-    perf_final_grade        VARCHAR(16),
+
 
     -- Уникальность: один результат на студента + год + дисциплина
     UNIQUE(perf_part_id, perf_year, perf_discipline),
@@ -190,19 +187,16 @@ CREATE TABLE AcademicPerformance
     -- Ограничение допустимых значений аттестаций
     CONSTRAINT chk_attestation_values CHECK (
         perf_main_attestation IN ('отл.', 'хор.', 'удовл.', 'неудовл.', 'не явился') OR perf_main_attestation IS NULL
-    ),
-    CONSTRAINT chk_first_retake CHECK (
-        perf_first_retake IN ('отл.', 'хор.', 'удовл.', 'неудовл.', 'не явился') OR perf_first_retake IS NULL
-    ),
-    CONSTRAINT chk_second_retake CHECK (
-        perf_second_retake IN ('отл.', 'хор.', 'удовл.', 'неудовл.', 'не явился') OR perf_second_retake IS NULL
-    ),
-    CONSTRAINT chk_high_grade_retake CHECK (
-        perf_high_grade_retake IN ('отл.', 'хор.', 'удовл.', 'неудовл.', 'не явился') OR perf_high_grade_retake IS NULL
-    ),
-    CONSTRAINT chk_final_grade CHECK (
-        perf_final_grade IN ('отл.', 'хор.', 'удовл.', 'неудовл.', 'не явился') OR perf_final_grade IS NULL
     )
+);
+
+CREATE TABLE portrait_uploadtemplate (
+    id           SERIAL PRIMARY KEY,
+    name         VARCHAR(255) NOT NULL UNIQUE,
+    description  TEXT,
+    config       JSONB NOT NULL,
+    created_at   TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at   TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Индекс для быстрого поиска
