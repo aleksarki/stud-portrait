@@ -282,48 +282,62 @@ class DisciplineImpactAnalyzer:
         """
         results = []
         
+        GRADES = ['отл.', 'хор.', 'удовл.', 'неудовл.']
+
+        def _calc_grade_impact(group_df, grade, competency_field):
+            """Считает статистику для одной оценки в одной группе."""
+            grade_students = group_df[group_df['grade'] == grade]
+            if len(grade_students) < 5:
+                return None
+            before_scores = grade_students[f'{competency_field}_before'].values
+            after_scores  = grade_students[f'{competency_field}_after'].values
+            t_stat, p_value = stats.ttest_rel(after_scores, before_scores)
+            mean_diff  = after_scores.mean() - before_scores.mean()
+            std_pooled = np.sqrt((before_scores.std()**2 + after_scores.std()**2) / 2)
+            cohens_d   = mean_diff / std_pooled if std_pooled > 0 else 0
+            return {
+                'n_students':       len(grade_students),
+                'mean_before':      float(before_scores.mean()),
+                'mean_after':       float(after_scores.mean()),
+                'mean_gain':        float(mean_diff),
+                't_statistic':      float(t_stat),
+                'p_value':          float(p_value),
+                'cohens_d':         float(cohens_d),
+                'significant':      bool(p_value < 0.05),
+                'effect_size_label': self._interpret_effect_size(cohens_d)
+            }
+
         # Группируем по дисциплинам
         for discipline, disc_df in discipline_data.groupby('discipline'):
-            # Анализируем каждую оценку отдельно
+
+            # --- Общая статистика по оценкам (агрегат по всем направлениям) ---
             grade_impacts = {}
-            
-            for grade in ['отл.', 'хор.', 'удовл.']:
-                grade_students = disc_df[disc_df['grade'] == grade]
-                
-                if len(grade_students) < 5:  # Минимум 5 студентов
-                    continue
-                
-                # Извлекаем баллы до и после дисциплины
-                before_scores = grade_students[f'{competency_field}_before'].values
-                after_scores = grade_students[f'{competency_field}_after'].values
-                
-                # Paired t-test
-                t_stat, p_value = stats.ttest_rel(after_scores, before_scores)
-                
-                # Средний прирост
-                mean_diff = after_scores.mean() - before_scores.mean()
-                
-                # Effect size (Cohen's d)
-                std_pooled = np.sqrt((before_scores.std()**2 + after_scores.std()**2) / 2)
-                cohens_d = mean_diff / std_pooled if std_pooled > 0 else 0
-                
-                grade_impacts[grade] = {
-                    'n_students': len(grade_students),
-                    'mean_before': float(before_scores.mean()),
-                    'mean_after': float(after_scores.mean()),
-                    'mean_gain': float(mean_diff),
-                    't_statistic': float(t_stat),
-                    'p_value': float(p_value),
-                    'cohens_d': float(cohens_d),
-                    'significant': p_value < 0.05,
-                    'effect_size_label': self._interpret_effect_size(cohens_d)
-                }
-            
+            for grade in GRADES:
+                impact = _calc_grade_impact(disc_df, grade, competency_field)
+                if impact:
+                    grade_impacts[grade] = impact
+
+            # --- Разбивка по направлениям ---
+            by_direction = {}
+            if 'direction' in disc_df.columns:
+                for direction, dir_df in disc_df.groupby('direction'):
+                    dir_grades = {}
+                    for grade in GRADES:
+                        impact = _calc_grade_impact(dir_df, grade, competency_field)
+                        if impact:
+                            dir_grades[grade] = impact
+                    if dir_grades:
+                        by_direction[direction] = {
+                            'grade_impacts': dir_grades,
+                            'summary': self._summarize_discipline_impact(dir_grades)
+                        }
+
             if grade_impacts:
                 results.append({
                     'discipline': discipline,
                     'competency': competency_field,
                     'grade_impacts': grade_impacts,
+                    'by_direction': by_direction,
                     'summary': self._summarize_discipline_impact(grade_impacts)
                 })
         

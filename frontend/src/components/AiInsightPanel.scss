@@ -1,0 +1,164 @@
+/* AiInsightPanel.scss
+   Встраивается в аналитические страницы рядом с кнопками управления.
+   Намеренно сдержанный стиль — не конкурирует с данными на странице.
+*/
+
+.ai-insight-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+/* ── Кнопка-триггер ── */
+.ai-insight-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 16px;
+    background: #0f172a;
+    color: #e2e8f0;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+    letter-spacing: 0.01em;
+
+    &:hover:not(:disabled) {
+        background: #1e293b;
+        border-color: #64748b;
+        transform: translateY(-1px);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .ai-icon {
+        font-size: 14px;
+        color: #818cf8;
+        animation: ai-pulse 2.5s ease-in-out infinite;
+    }
+
+    .ai-spinner {
+        width: 12px;
+        height: 12px;
+        border: 2px solid #334155;
+        border-top-color: #818cf8;
+        border-radius: 50%;
+        animation: ai-spin 0.7s linear infinite;
+    }
+}
+
+/* ── Результат ── */
+.ai-insight-result {
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 10px;
+    overflow: hidden;
+    transition: opacity 0.2s;
+
+    &.ai-loading {
+        opacity: 0.85;
+    }
+}
+
+.ai-insight-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    background: #1e293b;
+    border-bottom: 1px solid #334155;
+
+    .ai-badge {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        color: #818cf8;
+        background: rgba(129, 140, 248, 0.12);
+        padding: 2px 7px;
+        border-radius: 4px;
+    }
+
+    .ai-context-label {
+        font-size: 12px;
+        color: #94a3b8;
+        flex: 1;
+    }
+
+    .ai-insight-actions {
+        display: flex;
+        gap: 4px;
+    }
+
+    .ai-action-btn {
+        background: none;
+        border: none;
+        color: #475569;
+        cursor: pointer;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 14px;
+        transition: color 0.15s, background 0.15s;
+
+        &:hover {
+            color: #94a3b8;
+            background: rgba(148, 163, 184, 0.1);
+        }
+    }
+}
+
+.ai-insight-body {
+    padding: 14px 16px;
+    min-height: 60px;
+}
+
+/* Текст ответа */
+.ai-text {
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.65;
+    color: #cbd5e1;
+    white-space: pre-wrap;
+}
+
+/* Ошибка */
+.ai-error {
+    font-size: 13px;
+    color: #f87171;
+}
+
+/* Скелетон при загрузке */
+.ai-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ai-skeleton-line {
+    height: 13px;
+    background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+    background-size: 200% 100%;
+    border-radius: 4px;
+    animation: ai-shimmer 1.4s ease-in-out infinite;
+}
+
+/* ── Анимации ── */
+@keyframes ai-spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes ai-pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.4; }
+}
+
+@keyframes ai-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}

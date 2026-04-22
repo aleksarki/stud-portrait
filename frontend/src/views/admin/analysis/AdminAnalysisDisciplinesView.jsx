@@ -27,6 +27,7 @@ import NoData from "../../../components/ui/NoData";
 
 import SankeyDiagram from '../../../components/charts/SankeyDiagram';
 
+import AiInsightPanel from "../../../components/AiInsightPanel";
 import "./AdminAnalysisDisciplinesView.scss";
 
 function AdminAnalysisDisciplinesView() {
@@ -342,10 +343,47 @@ function AdminAnalysisDisciplinesView() {
         );
     };
 
+    // Цвет строки по оценке
+    const GRADE_COLOR = {
+        'отл.':     'rgba(76,175,80,0.12)',
+        'хор.':     'rgba(33,150,243,0.10)',
+        'удовл.':   'rgba(255,193,7,0.15)',
+        'неудовл.': 'rgba(244,67,54,0.13)',
+    };
+
+    const renderGradeRows = (gradeImpacts, prefix = '') =>
+        Object.entries(gradeImpacts || {}).map(([grade, impact]) => (
+            <TableRow key={prefix + grade} style={{ background: GRADE_COLOR[grade] || 'transparent' }}>
+                <TableItem>{grade}</TableItem>
+                <TableItem>{impact.n_students}</TableItem>
+                <TableItem>{impact.mean_before?.toFixed(1) ?? '—'}</TableItem>
+                <TableItem>{impact.mean_after?.toFixed(1) ?? '—'}</TableItem>
+                <TableItem style={{ color: impact.mean_gain > 0 ? '#2e7d32' : impact.mean_gain < 0 ? '#c62828' : 'inherit', fontWeight: 600 }}>
+                    {impact.mean_gain > 0 ? '+' : ''}{impact.mean_gain?.toFixed(1) ?? '0.0'}
+                </TableItem>
+                <TableItem>{impact.cohens_d?.toFixed(3) ?? '0.000'}</TableItem>
+                <TableItem>{impact.p_value?.toFixed(4) ?? '0.0000'}</TableItem>
+                <TableItem>{impact.significant ? '✓' : '✗'}</TableItem>
+            </TableRow>
+        ));
+
     const renderDisciplineImpact = () => {
         if (!disciplineData || disciplineData.length === 0) {
             return <NoData text="Нет данных для анализа влияния" />;
         }
+
+        const TABLE_HEADER = (
+            <TableHeader>
+                <TableItem>Оценка</TableItem>
+                <TableItem>n студ.</TableItem>
+                <TableItem>Среднее ДО</TableItem>
+                <TableItem>Среднее ПОСЛЕ</TableItem>
+                <TableItem>Прирост</TableItem>
+                <TableItem>Effect Size (d)</TableItem>
+                <TableItem>p-value</TableItem>
+                <TableItem>Значим</TableItem>
+            </TableHeader>
+        );
 
         return (
             <div className="discipline-impact-results">
@@ -356,30 +394,34 @@ function AdminAnalysisDisciplinesView() {
                         {result.results && result.results.length > 0 ? (
                             result.results.map((disc, didx) => (
                                 <TitledCard title={disc.discipline}>
+
+                                    {/* ── Агрегат по всем направлениям ── */}
+                                    <h6 style={{ margin: '0 0 6px', color: '#555', fontWeight: 500 }}>Все направления</h6>
                                     <Table>
-                                        <TableHeader>
-                                            <TableItem>Оценка</TableItem>
-                                            <TableItem>n студ.</TableItem>
-                                            <TableItem>Среднее ДО</TableItem>
-                                            <TableItem>Среднее ПОСЛЕ</TableItem>
-                                            <TableItem>Прирост</TableItem>
-                                            <TableItem>Effect Size</TableItem>
-                                            <TableItem>p-value</TableItem>
-                                            <TableItem>Значим</TableItem>
-                                        </TableHeader>
-                                        {Object.entries(disc.grade_impacts || {}).map(([grade, impact]) => (
-                                            <TableRow key={grade}>
-                                                <TableItem>{grade}</TableItem>
-                                                <TableItem>{impact.n_students}</TableItem>
-                                                <TableItem>{impact.mean_before?.toFixed(1) || '0.0'}</TableItem>
-                                                <TableItem>{impact.mean_after?.toFixed(1) || '0.0'}</TableItem>
-                                                <TableItem>{impact.mean_gain > 0 ? '+' : ''}{impact.mean_gain?.toFixed(1) || '0.0'}</TableItem>
-                                                <TableItem>{impact.cohens_d?.toFixed(3) || '0.000'}</TableItem>
-                                                <TableItem>{impact.p_value?.toFixed(4) || '0.0000'}</TableItem>
-                                                <TableItem>{impact.significant ? '✓' : '✗'}</TableItem>
-                                            </TableRow>
-                                        ))}
+                                        {TABLE_HEADER}
+                                        {renderGradeRows(disc.grade_impacts)}
                                     </Table>
+
+                                    {/* ── Разбивка по направлениям ── */}
+                                    {disc.by_direction && Object.keys(disc.by_direction).length > 0 && (
+                                        <details style={{ marginTop: 12 }}>
+                                            <summary style={{ cursor: 'pointer', fontWeight: 500, color: '#1565c0', padding: '4px 0' }}>
+                                                📂 По направлениям ({Object.keys(disc.by_direction).length})
+                                            </summary>
+                                            {Object.entries(disc.by_direction).map(([direction, dirData]) => (
+                                                <div key={direction} style={{ marginTop: 10 }}>
+                                                    <div style={{ fontWeight: 500, fontSize: 13, color: '#333', marginBottom: 4, paddingLeft: 4, borderLeft: '3px solid #1565c0' }}>
+                                                        {direction}
+                                                    </div>
+                                                    <Table>
+                                                        {TABLE_HEADER}
+                                                        {renderGradeRows(dirData.grade_impacts, direction)}
+                                                    </Table>
+                                                </div>
+                                            ))}
+                                        </details>
+                                    )}
+
                                     <FlexRow>
                                         <Label>
                                             <FlexRow gap="15">
@@ -538,7 +580,18 @@ function AdminAnalysisDisciplinesView() {
                             )}
                         </div>
                     </>}
-                    
+
+                    <AiInsightPanel
+                        contextType="discipline_impact"
+                        filters={{
+                            institutions: selectedInstitutions,
+                            directions:   selectedDirections,
+                            courses:      selectedCourses,
+                            competency:   selectedCompetencies[0] || 'res_comp_leadership',
+                        }}
+                        label="Влияние дисциплин"
+                        disabled={loading}
+                    />
                 </Content>
             </SidebarLayout>
         </div>
