@@ -8,7 +8,7 @@ comp_fields = [
     'res_comp_info_analysis', 'res_comp_planning', 'res_comp_result_orientation',
     'res_comp_stress_resistance', 'res_comp_partnership', 'res_comp_rules_compliance',
     'res_comp_self_development', 'res_comp_leadership', 'res_comp_emotional_intel',
-    'res_comp_client_focus', 'res_comp_communication'
+    'res_comp_client_focus', 'res_comp_communication', 'res_comp_passive_vocab'
 ]
 
 def get_year_metrics(year, filter):
@@ -91,30 +91,46 @@ def get_dashboard_stats(request):
         if curr_data and prev_data:
             growth = ((curr_data['total_avg'] - prev_data['total_avg']) / prev_data['total_avg']) * 100 if prev_data['total_avg']!=0 else 0
 
-        
-        total_score_expression = sum(F(field) for field in comp_fields) / len(comp_fields)
+        unis = Results.objects.filter(res_year=curr_year) \
+            .values_list('res_institution__inst_name', flat=True) \
+            .distinct()
 
-        rate_uni_data = Results.objects.filter(res_year=curr_year) \
-            .values(uni_name=F('res_institution__inst_name')) \
-            .annotate(overall_avg=Avg(total_score_expression)) \
-            .order_by('-overall_avg')
-        rate_list=list(rate_uni_data)
-        
+        rate_list = []
+        for uni in unis:
+            rows = Results.objects.filter(res_year=curr_year, res_institution__inst_name=uni) \
+                    .values_list(*comp_fields)
+            total = 0
+            count = 0
+            for row in rows:
+                for val in row:
+                    if val and val != 0:  
+                        total += val
+                        count += 1
+            avg = (total / count) if count > 0 else None
+            rate_list.append({'uni_name': uni, 'overall_avg': avg})
+        rate_list=sorted(
+            rate_list,
+            key=lambda x: (x['overall_avg'] is None, -(x['overall_avg'] or 0))
+        )
         if inst: #место выбранного в %
-            uni_place = (next((i for i, item in enumerate(rate_list) if item.get('uni_name') == inst), -1)+1)/len(rate_list) * 100
+            place=[i for i, item in enumerate(rate_list) if item['uni_name'] == inst]
+            if len(place)>0:
+                uni_place = place[0]/len(rate_list) * 100
+            else: uni_place = -1
             uni_score = curr_data['total_avg']
             uni_name = inst
+
         else: 
             uni_place = 0
-            best_uni_data = rate_uni_data.first() #Лучший ВУЗ
-        
-            if best_uni_data:
-                uni_name = best_uni_data['uni_name']
-                uni_score = round(best_uni_data['overall_avg'] or 0, 2)
+            best_uni = next((r for r in rate_list if r['overall_avg'] is not None), None) #Лучший ВУЗ
+            
+            if best_uni:
+                uni_name = best_uni['uni_name']
+                uni_score = best_uni['overall_avg']
             else:
                 uni_name = "Нет данных"
                 uni_score = 0
-        print(inst, uni_place)
+        print(uni_name, uni_place, uni_score)
         sorted_comps = sorted(curr_data['all_comps'].items(), key=lambda x: x[1], reverse=True)
         sorted_comps_prev = sorted(prev_data['all_comps'].items(), key=lambda x: x[1], reverse=True)
         
@@ -137,7 +153,6 @@ def get_dashboard_stats(request):
         
         motiv={'name':{'prev': '-', 'curr':'-'}, 'count': {'prev': 0, 'curr': 0}}
         #топ мотиватор
-        print(curr_data)
         if prev_data["motivator"]["name"]==curr_data["motivator"]["name"]:
             motiv['name']={'prev': curr_data["motivator"]["name"], 'curr': curr_data["motivator"]["name"]}
             motiv['count']={'prev':prev_data["motivator"]["count"], 'curr':curr_data["motivator"]["count"]}

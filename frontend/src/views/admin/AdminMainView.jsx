@@ -24,7 +24,7 @@ const competencyLabels = {
     "res_comp_emotional_intel": "Эмоциональный интеллект",
     "res_comp_client_focus": "Клиентоориентированность",
     "res_comp_communication": "Коммуникация",
-    "res_comp_passive_vocab": "Пассивный словарь",
+    "res_comp_passive_vocab": "Пассивный словарный запас",
 
     'res_mot_autonomy': 'Автономия',
     'res_mot_altruism': 'Альтруизм',
@@ -270,7 +270,11 @@ function Dashboard({ data }) {
     //col2 uni
     const col2_data={ 'header': "Лидирующий ВУЗ", 'name': data.col2.uni_name,'score': data.col2.uni_score};
     console.log(data.col2.uni_place);
-    if (data.col2.uni_place!=0){
+    if (data.col2.uni_place==-1){
+        col2_data['header'] = "Нет данных за этот год";
+        col2_data['name'] = "Рейтинг";
+    }
+    else if (data.col2.uni_place!=0){
         col2_data['header'] = "Рейтинг ВУЗа";
         col2_data['name'] = "Топ "+(Math.round(data.col2.uni_place,1)).toString()+"%";
     }
@@ -312,7 +316,7 @@ function Dashboard({ data }) {
                         </PieChart>
                     </ResponsiveContainer>
 
-                    <div class="absolute-center">
+                    <div className="absolute-center">
                         {data.col2.participated.students_all==0 ? <p> Нет данных </p> :
                         (<><h2>{Math.round(data.col2.participated?.amount_in/data.col2.participated?.students_all*100,1) }%</h2>
                         <p>Студентов прошли тестирование</p></>)}
@@ -343,6 +347,8 @@ function Dashboard({ data }) {
                             <BarChart data={chartData} barGap={5} barCategoryGap="25%"
                                 margin={{ top: 20, right: 30, left: 10, bottom: 70 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                            
+                            <ReferenceLine y={0} stroke="#333" strokeWidth={1.5} />
                             <XAxis 
                                 dataKey="displayName" 
                                 interval={0}
