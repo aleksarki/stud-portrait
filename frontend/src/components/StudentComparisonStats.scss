@@ -1,0 +1,179 @@
+.student-comparison-stats {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 24px;
+    margin: 24px 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+    .loading {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+    }
+
+    .comparison-header {
+        margin-bottom: 24px;
+
+        h3 {
+            margin: 0 0 16px 0;
+            color: #333;
+            font-size: 20px;
+        }
+
+        .context-info {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            padding: 12px;
+            background: #f5f7fa;
+            border-radius: 12px;
+
+            .context-badge {
+                display: flex;
+                gap: 8px;
+                font-size: 14px;
+
+                .label {
+                    color: #666;
+                    font-weight: 500;
+                }
+
+                .value {
+                    color: #1976d2;
+                    font-weight: 600;
+                }
+            }
+        }
+    }
+
+    .comparison-tabs {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 24px;
+        border-bottom: 1px solid #e0e0e0;
+
+        .tab {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 15px;
+            color: #666;
+            transition: all 0.3s;
+
+            &:hover {
+                color: #1976d2;
+            }
+
+            &.active {
+                color: #1976d2;
+                border-bottom: 2px solid #1976d2;
+            }
+        }
+    }
+
+    .comparison-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+        gap: 20px;
+
+        .comparison-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 16px;
+            transition: transform 0.2s, box-shadow 0.2s;
+
+            &:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            }
+
+            .card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 16px;
+                padding-bottom: 12px;
+                border-bottom: 1px solid #e0e0e0;
+
+                h4 {
+                    margin: 0;
+                    color: #333;
+                    font-size: 16px;
+                    font-weight: 600;
+                }
+
+                .score {
+                    font-weight: bold;
+                    font-size: 18px;
+                    color: #1976d2;
+                }
+            }
+
+            .percentiles {
+                margin-bottom: 16px;
+
+                .percentile-item {
+                    margin-bottom: 12px;
+
+                    .percentile-label {
+                        font-size: 12px;
+                        color: #666;
+                        margin-bottom: 4px;
+                    }
+
+                    .percentile-bar {
+                        height: 8px;
+                        border-radius: 4px;
+                        transition: width 0.3s;
+                        margin-bottom: 6px;
+                    }
+
+                    .percentile-value {
+                        display: flex;
+                        justify-content: space-between;
+                        font-size: 13px;
+                        font-weight: 500;
+
+                        .percentile-rank {
+                            color: #666;
+                            font-weight: normal;
+                        }
+                    }
+                }
+            }
+
+            .averages {
+                background: #ffffff;
+                border-radius: 8px;
+                padding: 12px;
+
+                .avg-item {
+                    display: flex;
+                    justify-content: space-between;
+                    padding: 6px 0;
+                    font-size: 13px;
+
+                    .avg-label {
+                        color: #666;
+                    }
+
+                    .avg-value {
+                        font-weight: 500;
+                        color: #333;
+                    }
+                }
+            }
+        }
+    }
+}
+
+@media (max-width: 768px) {
+    .student-comparison-stats {
+        padding: 16px;
+
+        .comparison-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+}

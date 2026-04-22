@@ -41,7 +41,8 @@ urlpatterns = [
     
     path('get-institutions/', analysis_end.get_institutions, name='get_institutions'),
     path('get-directions/', analysis_end.get_directions, name='get_directions'),
-
+    path('student-comparison-stats/', analysis_end.get_student_comparison_stats, name='student_comparison_stats'),
+ 
     # Анализ дисциплин
     path('analyze-discipline-impact/',          analysis_end.analyze_discipline_impact,          name='analyze_discipline_impact'),
     path('analyze-all-disciplines-impact/',     analysis_end.analyze_all_disciplines_impact,     name='analyze_all_disciplines_impact'),

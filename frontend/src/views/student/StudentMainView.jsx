@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
-import { getPortraitStudentResults } from "../../api";
+import { getPortraitStudentResults, getStudentComparisonStats } from "../../api";
 import {
     getAvailableProfiles, getAvailableCategories, getAvailableYears,
     getCategoryDataForYear, COMPETENCIES_NAMES,
@@ -21,6 +21,7 @@ import StudentDisciplineImpact from '../../components/charts/StudentDisciplineIm
 
 import "./StudentMainView.scss";
 import PlanetaryChart from "../../components/charts/PlanetaryChart";
+import StudentComparisonStats from "../../components/StudentComparisonStats";
 
 function StudentMainView() {
     const { studentId } = useParams();
@@ -40,6 +41,9 @@ function StudentMainView() {
     const [vamCompetency, setVamCompetency] = useState('res_comp_leadership');
     const [lgmCompetency, setLgmCompetency] = useState('res_comp_leadership');
     const [lgmData, setLgmData] = useState([]); // данные для графика LGM
+
+    const [comparisonStats, setComparisonStats] = useState(null);
+    const [loadingComparison, setLoadingComparison] = useState(false);
 
     useEffect(() => {
         if (showAnalytics && selectedYear) {
@@ -102,6 +106,27 @@ function StudentMainView() {
             updateChartsData(selectedYear);
         }
     }, [selectedYear, studResults]);
+
+    const loadComparisonStats = async () => {
+        if (!studentId || !selectedYear) return;
+        setLoadingComparison(true);
+        getStudentComparisonStats(studentId, selectedYear)
+            .onSuccess(async response => {
+                const data = await response.json();
+                if (data.status === 'success') {
+                    setComparisonStats(data.data);
+                }
+            })
+            .onError(error => console.error("Ошибка загрузки сравнения:", error))
+            .finally(() => setLoadingComparison(false));
+    };
+
+    // Добавьте useEffect для загрузки при изменении года
+    useEffect(() => {
+        if (selectedYear) {
+            loadComparisonStats();
+        }
+    }, [selectedYear]);
 
     const updateChartsData = (year) => {
         if (!studResults?.results?.length || !year) return;
@@ -436,6 +461,12 @@ function StudentMainView() {
                             </div>
                         )}
                     </div>
+
+                    {/* СРАВНИТЕЛЬНАЯ СТАТИСТИКА */}
+                    <StudentComparisonStats
+                        studentId={studentId} 
+                        year={selectedYear} 
+                    />
 
                     {/* VAM ГРАФИК ДЛЯ СТУДЕНТА */}
                     <div className="student-vam-section">
