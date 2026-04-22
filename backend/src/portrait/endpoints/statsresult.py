@@ -1,6 +1,7 @@
 # Модуль статистики и результатов.
 
-from django.db.models import Q, Count
+from django.db.models import Count, Q, F, Value, FloatField, Case, When
+from django.db.models.functions import Round
 
 from collections import defaultdict
 
@@ -401,3 +402,221 @@ def centers_by_region(request):
         'total_centers': len(region_stats),
         'available_years': AVAILABLE_YEARS
     }
+
+
+def get_motivator_statistics(request):
+    """
+    Получение статистики по мотиваторам с возможностью группировки.
+    GET параметры:
+        - institute: ID института (опционально)
+        - specialty: ID направления (опционально)
+        - year: год тестирования (опционально)
+        - group_by: параметр группировки ('specialty', 'course', 'specialty_course')
+    """
+    try:
+        # Получаем параметры фильтрации
+        institute_id = request.GET.get('institute')
+        specialty_id = request.GET.get('specialty')
+        year = request.GET.get('year')
+        group_by = request.GET.get('group_by', 'specialty')  # specialty, course, specialty_course
+
+        # Базовый запрос
+        queryset = Results.objects.select_related(
+            'res_participant',
+            'res_participant__part_spec',
+            'res_participant__part_institution'
+        )
+
+        # Применяем фильтры
+        if institute_id:
+            queryset = queryset.filter(
+                res_participant__part_institution__inst_id=institute_id
+            )
+        if specialty_id:
+            queryset = queryset.filter(
+                res_participant__part_spec__spec_id=specialty_id
+            )
+        if year:
+            queryset = queryset.filter(res_year=year)
+
+        # Список полей мотиваторов
+        motivator_fields = [
+            'res_mot_autonomy', 'res_mot_altruism', 'res_mot_challenge',
+            'res_mot_salary', 'res_mot_career', 'res_mot_creativity',
+            'res_mot_relationships', 'res_mot_recognition', 'res_mot_affiliation',
+            'res_mot_self_development', 'res_mot_purpose', 'res_mot_cooperation',
+            'res_mot_stability', 'res_mot_tradition', 'res_mot_management',
+            'res_mot_work_conditions'
+        ]
+
+        # Названия мотиваторов на русском
+        motivator_names = {
+            'res_mot_autonomy': 'Автономия',
+            'res_mot_altruism': 'Альтруизм',
+            'res_mot_challenge': 'Вызов',
+            'res_mot_salary': 'Заработок',
+            'res_mot_career': 'Карьера',
+            'res_mot_creativity': 'Креативность',
+            'res_mot_relationships': 'Отношения',
+            'res_mot_recognition': 'Признание',
+            'res_mot_affiliation': 'Принадлежность',
+            'res_mot_self_development': 'Саморазвитие',
+            'res_mot_purpose': 'Смысл',
+            'res_mot_cooperation': 'Сотрудничество',
+            'res_mot_stability': 'Стабильность',
+            'res_mot_tradition': 'Традиция',
+            'res_mot_management': 'Управление',
+            'res_mot_work_conditions': 'Условия труда'
+        }
+
+        # Группировка данных
+        if group_by == 'specialty':
+            # Группировка по направлениям подготовки
+            results = []
+            specialties = Specialties.objects.all()
+            
+            for specialty in specialties:
+                specialty_results = queryset.filter(
+                    res_participant__part_spec=specialty
+                )
+                
+                if not specialty_results.exists():
+                    continue
+                    
+                motivator_stats = {}
+                total_count = specialty_results.count()
+                
+                for field in motivator_fields:
+                    # Считаем мотиваторы (600-800)
+                    motivator_count = specialty_results.filter(
+                        **{f'{field}__gte': 600, f'{field}__lte': 800}
+                    ).count()
+                    
+                    # Считаем демотиваторы (200-399)
+                    demotivator_count = specialty_results.filter(
+                        **{f'{field}__gte': 200, f'{field}__lte': 399}
+                    ).count()
+                    
+                    motivator_stats[field] = {
+                        'motivator_percent': round(motivator_count / total_count * 100, 1) if total_count > 0 else 0,
+                        'demotivator_percent': round(demotivator_count / total_count * 100, 1) if total_count > 0 else 0,
+                        'total_count': total_count
+                    }
+                
+                results.append({
+                    'id': specialty.spec_id,
+                    'name': specialty.spec_name,
+                    'total_students': total_count,
+                    'motivators': motivator_stats
+                })
+            
+            return JsonResponse({
+                'status': 'success',
+                'group_by': 'specialty',
+                'data': results
+            })
+            
+        elif group_by == 'course':
+            # Группировка по курсам
+            results = []
+            for course_num in range(1, 5):  # 1-4 курсы
+                course_results = queryset.filter(res_course_num=course_num)
+                
+                if not course_results.exists():
+                    continue
+                    
+                motivator_stats = {}
+                total_count = course_results.count()
+                
+                for field in motivator_fields:
+                    motivator_count = course_results.filter(
+                        **{f'{field}__gte': 600, f'{field}__lte': 800}
+                    ).count()
+                    demotivator_count = course_results.filter(
+                        **{f'{field}__gte': 200, f'{field}__lte': 399}
+                    ).count()
+                    
+                    motivator_stats[field] = {
+                        'motivator_percent': round(motivator_count / total_count * 100, 1) if total_count > 0 else 0,
+                        'demotivator_percent': round(demotivator_count / total_count * 100, 1) if total_count > 0 else 0,
+                        'total_count': total_count
+                    }
+                
+                results.append({
+                    'id': course_num,
+                    'name': f'{course_num} курс',
+                    'total_students': total_count,
+                    'motivators': motivator_stats
+                })
+            
+            return JsonResponse({
+                'status': 'success',
+                'group_by': 'course',
+                'data': results
+            })
+            
+        elif group_by == 'specialty_course':
+            # Группировка по направлениям и курсам
+            results = []
+            specialties = Specialties.objects.all()
+            
+            for specialty in specialties:
+                specialty_data = {
+                    'id': specialty.spec_id,
+                    'name': specialty.spec_name,
+                    'courses': []
+                }
+                
+                for course_num in range(1, 5):
+                    course_results = queryset.filter(
+                        res_participant__part_spec=specialty,
+                        res_course_num=course_num
+                    )
+                    
+                    if not course_results.exists():
+                        continue
+                        
+                    motivator_stats = {}
+                    total_count = course_results.count()
+                    
+                    for field in motivator_fields:
+                        motivator_count = course_results.filter(
+                            **{f'{field}__gte': 600, f'{field}__lte': 800}
+                        ).count()
+                        demotivator_count = course_results.filter(
+                            **{f'{field}__gte': 200, f'{field}__lte': 399}
+                        ).count()
+                        
+                        motivator_stats[field] = {
+                            'motivator_percent': round(motivator_count / total_count * 100, 1) if total_count > 0 else 0,
+                            'demotivator_percent': round(demotivator_count / total_count * 100, 1) if total_count > 0 else 0,
+                            'total_count': total_count
+                        }
+                    
+                    specialty_data['courses'].append({
+                        'course': course_num,
+                        'name': f'{course_num} курс',
+                        'total_students': total_count,
+                        'motivators': motivator_stats
+                    })
+                
+                if specialty_data['courses']:
+                    results.append(specialty_data)
+            
+            return JsonResponse({
+                'status': 'success',
+                'group_by': 'specialty_course',
+                'data': results
+            })
+            
+        else:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Неверный параметр group_by'
+            }, status=400)
+            
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)

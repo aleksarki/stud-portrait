@@ -151,6 +151,20 @@ export function getPortraitCentersByRegion(year) {
     return new AsyncChain(promise);
 }
 
+export function getMotivatorStatistics(filters) {
+    const params = new URLSearchParams();
+    if (filters.institute) params.append('institute', filters.institute);
+    if (filters.specialty) params.append('specialty', filters.specialty);
+    if (filters.year) params.append('year', filters.year);
+    if (filters.group_by) params.append('group_by', filters.group_by);
+    
+    const queryString = params.toString();
+    const url = `${PROTOCOL}://${HOST}/portrait/motivator-statistics/${queryString ? `?${queryString}` : ''}`;
+    
+    const promise = fetch(url);
+    return new AsyncChain(promise);
+}
+
 /* ============================================================ */
 /*                    АНАЛИТИЧЕСКИЕ ENDPOINTS                   */
 /* ============================================================ */

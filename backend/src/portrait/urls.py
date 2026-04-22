@@ -8,7 +8,7 @@ urlpatterns = [
     path("get-institution-directions/",     statsresult.get_institution_directions,     name="get_institution_directions"),
     path("get-filter-options-with-counts/", statsresult.get_filter_options_with_counts, name="get_filter_options_with_counts"),
     path("student-results/",                statsresult.student_results,                name="student_results"),
-    
+    path('motivator-statistics/', statsresult.get_motivator_statistics, name='motivator_statistics'),
     path("centers-by-region/",              statsresult.centers_by_region,              name='centers_by_region'),
 
     path('dashboard-stats/',  stat.get_dashboard_stats,  name='dashboard_stats'),
