@@ -8,23 +8,24 @@ import ErrorView from "./views/ErrorView";
 import AdminAnalysisAdvancedView from "./views/admin/analysis/AdminAnalysisAdvancedView";
 import AdminAnalysisDisciplinesView from "./views/admin/analysis/AdminAnalysisDisciplinesView";
 import AdminAnalysisVamLgmView from "./views/admin/analysis/AdminAnalysisVamLgmView";
+import AdminAiAnalyticsView from "./views/admin/analysis/AdminAiAnalyticsView";
+import AdminAnalysisEduProfilesView from "./views/admin/analysis/AdminAnalysisEduProfilesView";
 
 import AdminCoursesView from "./views/admin/AdminCoursesView";
 import AdminGeographyView from "./views/admin/AdminGeographyView";
 import AdminGroupingView from "./views/admin/AdminGroupingView";
 import AdminHelpView from "./views/admin/AdminHelpView";
 import AdminMainView from "./views/admin/AdminMainView";
+import AdminMotivatorsView from "./views/admin/AdminMotivatorsView";
 import AdminResultsView from "./views/admin/AdminResultsView";
 import AdminStatsView from "./views/admin/AdminStatsView";
 import AdminUploadView from "./views/admin/AdminUploadView";
-import AdminAiAnalyticsView from "./views/admin/analysis/AdminAiAnalyticsView";
 
 import StudentMainView from "./views/student/StudentMainView";
 import StudentReportView from "./views/student/StudentReportView";
 
 import reportWebVitals from "./reportWebVitals";
 import "./index.css";
-import AdminMotivatorsView from "./views/admin/AdminMotivatorsView";
 
 const router = createBrowserRouter([
   {
@@ -75,6 +76,10 @@ const router = createBrowserRouter([
   {
     path: "/admin/analysis/ai-analytics",
     element: <AdminAiAnalyticsView />
+  },
+  {
+    path: "/admin/analysis/edu-profiles",
+    element: <AdminAnalysisEduProfilesView />
   },
   {
     path: "/admin/courses",

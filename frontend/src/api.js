@@ -382,6 +382,24 @@ export function deleteTemplate(templateId) {
     return new AsyncChain(promise);
 }
 
+export function getEducationProfilesComparison(filters) {
+    const params = new URLSearchParams();
+    if (filters.specialties && filters.specialties.length) {
+        params.append('specialties', filters.specialties.join(','));
+    }
+    if (filters.year) params.append('year', filters.year);
+    if (filters.include_motivators !== undefined) {
+        params.append('include_motivators', filters.include_motivators);
+    }
+    if (filters.include_values !== undefined) {
+        params.append('include_values', filters.include_values);
+    }
+    
+    const url = `${PROTOCOL}://${HOST}/portrait/education-profiles-comparison/${params.toString() ? `?${params.toString()}` : ''}`;
+    const promise = fetch(url);
+    return new AsyncChain(promise);
+}
+
 // Импорт Excel (уже есть, но можно добавить обертку)
 export function importExcel(file, configJson) {
     const formData = new FormData();

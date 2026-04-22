@@ -2029,3 +2029,173 @@ def get_student_comparison_stats(request):
             'status': 'error',
             'message': str(e)
         }, status=500)
+
+
+def get_education_profiles_comparison(request):
+    """
+    Получение усреднённых профилей по направлениям подготовки.
+    GET параметры:
+        - specialties: список ID направлений через запятую (опционально)
+        - year: год тестирования (опционально)
+        - include_motivators: включить мотиваторы (true/false)
+        - include_values: включить ценности (true/false)
+    """
+    try:
+        import json
+        from django.db.models import Avg, Count, StdDev
+        
+        specialties_param = request.GET.get('specialties', '')
+        year = request.GET.get('year')
+        include_motivators = request.GET.get('include_motivators', 'true').lower() == 'true'
+        include_values = request.GET.get('include_values', 'true').lower() == 'true'
+        
+        # Получаем список направлений
+        if specialties_param:
+            specialty_ids = [int(x) for x in specialties_param.split(',') if x]
+            specialties = Specialties.objects.filter(spec_id__in=specialty_ids)
+        else:
+            # Если не указаны, берем топ-10 по количеству студентов
+            specialties = Specialties.objects.all()
+        
+        # Словари для названий
+        motivator_names = {
+            'res_mot_autonomy': 'Автономия',
+            'res_mot_altruism': 'Альтруизм',
+            'res_mot_challenge': 'Вызов',
+            'res_mot_salary': 'Заработок',
+            'res_mot_career': 'Карьера',
+            'res_mot_creativity': 'Креативность',
+            'res_mot_relationships': 'Отношения',
+            'res_mot_recognition': 'Признание',
+            'res_mot_affiliation': 'Принадлежность',
+            'res_mot_self_development': 'Саморазвитие',
+            'res_mot_purpose': 'Смысл',
+            'res_mot_cooperation': 'Сотрудничество',
+            'res_mot_stability': 'Стабильность',
+            'res_mot_tradition': 'Традиция',
+            'res_mot_management': 'Управление',
+            'res_mot_work_conditions': 'Условия труда'
+        }
+        
+        value_names = {
+            'res_val_honesty_justice': 'Честность и справедливость',
+            'res_val_humanism': 'Гуманизм',
+            'res_val_patriotism': 'Патриотизм',
+            'res_val_family': 'Семья',
+            'res_val_health': 'Здоровье',
+            'res_val_environment': 'Окружающая среда'
+        }
+        
+        # Поля для анализа
+        motivator_fields = list(motivator_names.keys()) if include_motivators else []
+        value_fields = list(value_names.keys()) if include_values else []
+        all_fields = motivator_fields + value_fields
+        
+        results = []
+        
+        for specialty in specialties:
+            # Получаем результаты по направлению
+            queryset = Results.objects.filter(
+                res_participant__part_spec=specialty
+            ).select_related('res_participant')
+            
+            if year:
+                queryset = queryset.filter(res_year=year)
+            
+            if not queryset.exists():
+                continue
+            
+            total_students = queryset.count()
+            
+            # Рассчитываем средние значения по каждому полю
+            profile = {}
+            for field in all_fields:
+                values = [getattr(r, field) for r in queryset if getattr(r, field) is not None]
+                if values:
+                    avg_value = round(sum(values) / len(values), 1)
+                    profile[field] = {
+                        'avg': avg_value,
+                        'count': len(values),
+                        'std': round(StdDevCalculation(values), 1) if len(values) > 1 else 0
+                    }
+                else:
+                    profile[field] = {'avg': None, 'count': 0, 'std': 0}
+            
+            results.append({
+                'id': specialty.spec_id,
+                'name': specialty.spec_name,
+                'total_students': total_students,
+                'profile': profile
+            })
+        
+        # Рассчитываем дельты между направлениями
+        deltas = {}
+        if len(results) >= 2:
+            for i, spec1 in enumerate(results):
+                for j, spec2 in enumerate(results):
+                    if i >= j:
+                        continue
+                    
+                    key = f"{spec1['id']}_{spec2['id']}"
+                    deltas[key] = {
+                        'specialty1': spec1['name'],
+                        'specialty2': spec2['name'],
+                        'motivators_delta': {},
+                        'values_delta': {}
+                    }
+                    
+                    # Рассчитываем дельты для мотиваторов
+                    for field in motivator_fields:
+                        val1 = spec1['profile'].get(field, {}).get('avg')
+                        val2 = spec2['profile'].get(field, {}).get('avg')
+                        if val1 is not None and val2 is not None:
+                            delta = round(val2 - val1, 1)
+                            deltas[key]['motivators_delta'][field] = {
+                                'delta': delta,
+                                'abs_delta': abs(delta),
+                                'spec1_avg': val1,
+                                'spec2_avg': val2,
+                                'name': motivator_names[field]
+                            }
+                    
+                    # Рассчитываем дельты для ценностей
+                    for field in value_fields:
+                        val1 = spec1['profile'].get(field, {}).get('avg')
+                        val2 = spec2['profile'].get(field, {}).get('avg')
+                        if val1 is not None and val2 is not None:
+                            delta = round(val2 - val1, 1)
+                            deltas[key]['values_delta'][field] = {
+                                'delta': delta,
+                                'abs_delta': abs(delta),
+                                'spec1_avg': val1,
+                                'spec2_avg': val2,
+                                'name': value_names[field]
+                            }
+        
+        return JsonResponse({
+            'status': 'success',
+            'data': {
+                'specialties': results,
+                'deltas': deltas,
+                'fields': {
+                    'motivators': motivator_names,
+                    'values': value_names
+                }
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)
+
+def StdDevCalculation(values):
+    """Рассчет стандартного отклонения"""
+    import math
+    n = len(values)
+    if n < 2:
+        return 0
+    mean = sum(values) / n
+    variance = sum((x - mean) ** 2 for x in values) / (n - 1)
+    return math.sqrt(variance)

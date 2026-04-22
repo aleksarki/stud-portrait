@@ -59,6 +59,7 @@ urlpatterns = [
     path('get-vam-dotplot-data/',        analysis_end.get_vam_dotplot_data, name='get_vam_dotplot_data'),
     path('get-lgm-spaghetti-data/',      analysis_end.get_lgm_spaghetti_data, name='get_lgm_spaghetti_data'),
     path('get-waterfall-decomposition/', analysis_end.get_waterfall_decomposition, name='get_waterfall_decomposition'),
+    path('education-profiles-comparison/', analysis_end.get_education_profiles_comparison, name='education_profiles_comparison'),
 
     path('ai-analytics-summary/', analysis_end.ai_analytics_summary, name='ai_analytics_summary'),
 
