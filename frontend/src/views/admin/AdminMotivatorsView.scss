@@ -22,17 +22,6 @@
 }
 .AdminMotivatorView{
 
-    .MotChartContainer {
-        display: flex;
-        flex-direction: row;
-        width: 90%;
-        height: 600px;
-        font-family: sans-serif;
-        background-color: #f9f9f9;
-        border-radius: 8px;
-        padding: 20px;
-    }
-    
     .chooseBoxes { 
         width: 200px;
         display: flex;
@@ -40,13 +29,17 @@
         gap: 15px;
         padding: 20px;
         border-right: 1px solid #ddd;
+        
     }
-    .mot_bar {
+    .motBarContainer {
         padding: 24px;
         background: #fdfdfd;
         border-radius: 16px;
-        border: 1px solid #eaeaea;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+        padding-bottom: 1rem;
+        margin-bottom: 1rem;
+        border-radius: 0.75rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 1px solid #f1f5f9;
       
         .course-filters {
             display: flex;
@@ -73,9 +66,9 @@
         }
         
         .filter-item input {
-            width: 18px;
-            height: 18px;
-            accent-color: #2ecc71;
+            width: 14px;
+            height: 14px;
+            accent-color: #7397d5;
         }
         
         .chart-container {

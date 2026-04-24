@@ -54,7 +54,7 @@ const Legendy = ({ selectedCourses, colors }) => (
         <table style={{ borderCollapse: 'separate', borderSpacing: '20px 8px', fontSize: '13px' }}>
         <thead>
             <tr>
-            <th style={{ marginLeft: '5px', textAlign: 'left', color: '#999', fontWeight: 'normal', fontStyle: 'italic' }}>Курсы</th>
+            <th style={{ marginLeft: '5px', textAlign: 'right', color: '#999', fontWeight: 'normal' }}>Курсы</th>
             {selectedCourses.map(c => (
                 <th key={c} style={{ textAlign: 'center', fontWeight: 'bold', minWidth: '20px' }}>{c}</th>
             ))}
@@ -62,7 +62,7 @@ const Legendy = ({ selectedCourses, colors }) => (
         </thead>
         <tbody>
             <tr>
-            <td style={{ textAlign: 'left', fontWeight: '500', color: '#333' }}>Мотиваторы</td>
+            <td style={{ textAlign: 'right', fontWeight: '500', color: '#333' }}>Мотиваторы</td>
             {selectedCourses.map(c => (
                 <td key={c}>
                 <div style={{ width: '12px', height: '12px', borderRadius: '1px', backgroundColor: colors[c].high, margin: '0 auto' }} />
@@ -115,106 +115,6 @@ const Tooltippy = ({ active, payload = [], coordinate = {}, chartHeight = 0, lab
   
 
 //до 400 - демотиватор, 600+ мотиватор
-function MotivatorChart ({ chart_data }){
-    const [selectedCourses, setSelectedCourses] = useState([1, 2, 3, 4]);
-  
-    const toggleCourse = (course) => {
-      setSelectedCourses(prev => {
-        const next = prev.includes(course) ? prev.filter(c => c !== course) : [...prev, course]
-        return next.sort((a, b) => a - b);}
-        );
-    };
-  
-    // Цветовая палитра для 4 курсов 
-    const colors = {
-        1: { high: "rgb(46, 204, 88)", low: "rgb(230, 187, 58)" }, 
-        2: { high: "rgb(74, 198, 144)", low: "rgb(208, 35, 23)" },
-        3: { high: "rgb(21, 106, 75)", low: "rgb(200, 46, 82)" },
-        4: { high: "rgb(17, 138, 152)", low: "rgb(150, 23, 118)" },
-    };
-    
-    if (!chart_data) {
-        console.log('MotivationBars: ошибка загрузки данных');
-        return <div className="p-4 text-gray-500">Нет данных для отображения</div>;
-    }
-    else{
-        return (
-            <div className="mot_bar">
-                <div className="course-filters">
-                {[1, 2, 3, 4].map(course => (
-                    <label key={course} className="filter-item">
-                    <input
-                        type="checkbox"
-                        checked={selectedCourses.includes(course)}
-                        onChange={() => toggleCourse(course)}
-                    />
-                    <span>{course} Курс</span>
-                    </label>
-                ))}
-                </div>
-                <Legendy selectedCourses={selectedCourses} colors={colors}/>
-        
-                <div className="chart-container">
-                <ResponsiveContainer width="100%" height={500}>
-                    
-                    <BarChart
-                        data={chart_data}
-                        barGap={-35} 
-                        margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-                    >
-                    
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
-                    <XAxis 
-                        dataKey="name" 
-                        tickFormatter={getLabel}
-                        angle={-45} 
-                        tickMargin={20}
-                        textAnchor={"end"} 
-                        interval={0} 
-                        height={80}
-                    />
-                    <YAxis tickFormatter={formatValue} />
-                    <Tooltip 
-                        formatter={(value, course) => [formatValue(value), `${course} у`]}
-                        cursor={{ fill: '#f5f5f5' }}
-                        labelFormatter={(label) => `${getLabel(label)}`}
-                        shared={true}
-                    />
-                   
-                    <ReferenceLine y={0} stroke="#333" strokeWidth={1} />
-        
-                    {selectedCourses.map(course => (
-                        <React.Fragment key={course}>
-                        {/* Верхний >600 */}
-                        <Bar
-                            dataKey={`course_${course}_high`}
-                            fill={colors[course].high}
-                            fillOpacity={0.5}
-                            stroke={colors[course].high}
-                            strokeWidth={2}
-                            name={`Курс ${course}: Мотиваторы`}
-                            barSize={35}
-                        />
-                        {/* нижний */}
-                        <Bar
-                            dataKey={(data) => -(data[`course_${course}_low`] || 0)}
-                            fill={colors[course].low}
-                            fillOpacity={0.4}
-                            stroke={colors[course].low}
-                            strokeWidth={2}
-                            name={`Курс ${course}: Демотиваторы`}
-                            barSize={35}
-                        />
-                        </React.Fragment>
-                    ))}
-                    </BarChart>
-                </ResponsiveContainer>
-                </div>
-                <div><MotivatorStackedChart chart_data={chart_data}/></div>
-            </div>
-    );}
-};
-
 
 function MotivatorStackedChart({ chart_data }) {
     const allCourses = [1, 2, 3, 4];
@@ -253,6 +153,7 @@ function MotivatorStackedChart({ chart_data }) {
     };
   
     const processedData = useMemo(() => {
+        if (!chart_data) return [];
         return chart_data.map(item => {
             const newItem = { ...item };
             
@@ -287,7 +188,7 @@ function MotivatorStackedChart({ chart_data }) {
     }
 
     return (
-    <div className="mot_bar w-full p-4 bg-white rounded-lg shadow">
+    <div className="motBarContainer w-full p-4 bg-white">
         <div className="course-filters">
             {[1, 2, 3, 4].map(course => (
                 <label key={course} className="filter-item">
@@ -485,7 +386,7 @@ function AdminMotivatorsView(){
                         (<>{loadingMotDash ? (
                             <div className="p-10 text-center">Загрузка данных...</div>
                                 
-                            ) : <><MotivatorChart chart_data={MotivationData?.data}/>
+                            ) : <><MotivatorStackedChart chart_data={MotivationData?.data}/>
                             <MotivatorStatistics filters={filters} />
                         </>}</>)}
                         

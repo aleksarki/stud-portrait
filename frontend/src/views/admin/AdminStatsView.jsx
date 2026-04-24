@@ -202,7 +202,7 @@ function CompRadar({ data }) {
 
     //console.log("данные дошли");
     return (
-        <div className="ChoiceContainer">
+        <div className="RadarContainer">
             {/*панель с чекбоксами */}
             <div className="chooseBoxes">
                 <h3 style={{ fontSize: '14px', marginBottom: '10px' }}>Курсы</h3>
@@ -219,54 +219,53 @@ function CompRadar({ data }) {
                 ))}
             </div>
         
-        <div style={{ flex: 1}}>
-            <ResponsiveContainer width="110%" height="100%" >
-                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data} marginLeft={50}>
-                    <PolarGrid stroke="#e0e0e0" />
-                    <PolarAngleAxis 
-                        dataKey="name" 
-                        tickFormatter={getLabel} 
-                        tick={{fill: '#666', fontSize: 10 }} 
-                    />
-                    <PolarRadiusAxis angle={30} domain={[0, 800]} tick={false} axisLine={false} />
-                    
-                    {courseConfig.map(course => visibleCourses[course.key] && (
-                    <Radar
-                        key={course.key}
-                        name={course.name}
-                        dataKey={course.key}
-                        stroke={course.color}
-                        fill={course.color}
-                        fillOpacity={0.08}
-                        strokeOpacity={getStrokeOpacity(course.key)}
-                        onMouseEnter={() => setHoveredCourse(course.key)}
-                        onMouseLeave={() => setHoveredCourse(null)}
-                        animationDuration={400}
-                    />
-                    ))}
-                    
-                    <Tooltip 
-                        labelFormatter={(label) => getLabel(label)}
-                        // name имя из конфига 
-                        formatter={(value, name) => [value.toFixed(1), name]}
-                        contentStyle={{ 
-                            borderRadius: '8px', 
-                            border: 'none', 
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)' 
-                        }}
-                    />
-                    <Legend verticalAlign="bottom" onMouseEnter={(o) => setHoveredCourse(o.dataKey)} onMouseLeave={() => setHoveredCourse(null)} />
-                </RadarChart>
-            </ResponsiveContainer>
-        </div>
-      </div>
+            <div className="radarChart" style={{ flex: 1}}>
+                <ResponsiveContainer width="110%" height="100%" >
+                    <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data} marginLeft={50}>
+                        <PolarGrid stroke="#e0e0e0" />
+                        <PolarAngleAxis 
+                            dataKey="name" 
+                            tickFormatter={getLabel} 
+                            tick={{fill: '#666', fontSize: 10 }} 
+                        />
+                        <PolarRadiusAxis angle={30} domain={[0, 800]} tick={false} axisLine={false} />
+                        
+                        {courseConfig.map(course => visibleCourses[course.key] && (
+                        <Radar
+                            key={course.key}
+                            name={course.name}
+                            dataKey={course.key}
+                            stroke={course.color}
+                            fill={course.color}
+                            fillOpacity={0.08}
+                            strokeOpacity={getStrokeOpacity(course.key)}
+                            onMouseEnter={() => setHoveredCourse(course.key)}
+                            onMouseLeave={() => setHoveredCourse(null)}
+                            animationDuration={400}
+                        />
+                        ))}
+                        
+                        <Tooltip 
+                            labelFormatter={(label) => getLabel(label)}
+                            // name имя из конфига 
+                            formatter={(value, name) => [value.toFixed(1), name]}
+                            contentStyle={{ 
+                                borderRadius: '8px', 
+                                border: 'none', 
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.15)' 
+                            }}
+                        />
+                        <Legend verticalAlign="bottom" onMouseEnter={(o) => setHoveredCourse(o.dataKey)} onMouseLeave={() => setHoveredCourse(null)} />
+                    </RadarChart>
+                </ResponsiveContainer>
+            </div>
+       </div>
     );
 }
 
 function Dashboard({ data }) {
     if (!data) return null;
     const year = data.year;
-    const fixedSize = (name) => max_comp - name.length <= 0 ? name : ' '.repeat(max_comp - name.length) + name;
     const chartData = data.chart.map(item => { 
         const name = getLabel(item.name);
         return {
@@ -290,6 +289,7 @@ function Dashboard({ data }) {
         col2_data['name'] = "Топ "+(Math.round(data.col2.uni_place,1)).toString()+"%";
     }
     return (
+        <div>
         <div className="dashboard-container">
         <h2 className="dashboard-title">Статистика
         <p className="extra-title">  за {year-1}/{year} год</p></h2>
@@ -350,72 +350,71 @@ function Dashboard({ data }) {
             />
             </div>
         </div>
-        <div className="dashboard-chart-row">
-                <div className="chart-container">
-                    <h4 className="section-label">Распределение по компетенциям (средний балл)</h4>
-                    <div style={{ width: '100%', height: 400 }}>
-                        <ResponsiveContainer>
-                            <BarChart data={chartData} barGap={5} barCategoryGap="25%"
-                                margin={{ top: 20, right: 30, left: 10, bottom: 70 }}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+    </div>
+    <div className="dashboard-chart-row">
+            <div className="chart-container">
+                <h4 className="section-label">Распределение по компетенциям (средний балл)</h4>
+                <div style={{ width: '100%', height: 400 }}>
+                    <ResponsiveContainer>
+                        <BarChart data={chartData} barGap={5} barCategoryGap="25%"
+                            margin={{ top: 20, right: 30, left: 10, bottom: 70 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        
+                        <ReferenceLine y={0} stroke="#333" strokeWidth={1.5} />
+                        <XAxis 
+                            dataKey="displayName" 
+                            interval={0}
+                            angle={-20} 
+                            tick={{
+                                fontSize: 11, 
+                                fill: ' #64748b',
+                                dy: 11}} 
+                            tickMargin={12}
+                            tickLine={false}
+                            dx={-50}
+                            height={45}
+                            textAnchor="end"
+                        />
+                        <YAxis 
+                            domain={[0, 850]} 
+                            fontSize={12} 
+                            tickLine={false} 
+                            axisLine={false} 
+                            tick={{fill: ' #94a3b8'}} 
+                        />
+                        <Tooltip 
+                            cursor={{fill: '#f8fafc'}}
+                            contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}}
+                            labelFormatter={(label) => `Компетенция: ${label}`}
+                            formatter={(value)=>[value, 'баллы ']}
                             
-                            <ReferenceLine y={0} stroke="#333" strokeWidth={1.5} />
-                            <XAxis 
-                                dataKey="displayName" 
-                                interval={0}
-                                angle={-20} 
-                                tick={{
-                                    fontSize: 11, 
-                                    fill: ' #64748b',
-                                    dy: 11}} 
-                                tickMargin={12}
-                                tickLine={false}
-                                dx={-50}
-                                height={45}
-                                textAnchor="end"
-                            />
-                            <YAxis 
-                                domain={[0, 850]} 
-                                fontSize={12} 
-                                tickLine={false} 
-                                axisLine={false} 
-                                tick={{fill: ' #94a3b8'}} 
-                            />
-                            <Tooltip 
-                                cursor={{fill: '#f8fafc'}}
-                                contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}}
-                                labelFormatter={(label) => `Компетенция: ${label}`}
-                                formatter={(value)=>[value, 'баллы ']}
+                        />
                                 
-                            />
-                                    
-                            <Bar name={year} dataKey="score" fill="rgb(101, 142, 208)" radius={[6, 6, 0, 0]} barSize={22} >
-                                <LabelList
-                                    formatter={(value)=>Math.round(value)}
-                                    position="top"
-                                    offset={5}
-                                    fontSize={12}
-                                    fill="rgb(81, 87, 110)"
-                                /></Bar>
-                            <Bar name={year-1} dataKey="prev_score" fill=" #904acc" radius={[6, 6, 0, 0]} barSize={22} >
-                                <LabelList
-                                    formatter={(value)=>Math.round(value)}
-                                    position="top"
-                                    offset={5}
-                                    fontSize={11}
-                                    fill="rgb(139, 148, 174)"
-                                /></Bar>
-                            <Legend verticalAlign="top" align="right" fontSize={8} 
-                                formatter={(label)=>`${label-1}/${label}`}>
-                            </Legend>
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
+                        <Bar name={year} dataKey="score" fill="rgb(101, 142, 208)" radius={[6, 6, 0, 0]} barSize={22} >
+                            <LabelList
+                                formatter={(value)=>Math.round(value)}
+                                position="top"
+                                offset={5}
+                                fontSize={12}
+                                fill="rgb(81, 87, 110)"
+                            /></Bar>
+                        <Bar name={year-1} dataKey="prev_score" fill=" #904acc" radius={[6, 6, 0, 0]} barSize={22} >
+                            <LabelList
+                                formatter={(value)=>Math.round(value)}
+                                position="top"
+                                offset={5}
+                                fontSize={11}
+                                fill="rgb(139, 148, 174)"
+                            /></Bar>
+                        <Legend verticalAlign="top" align="right" fontSize={8} 
+                            formatter={(label)=>`${label-1}/${label}`}>
+                        </Legend>
+                        </BarChart>
+                    </ResponsiveContainer>
                 </div>
             </div>
-            <div>
-            <CompRadar data={data.radar}/>
-            </div>
+       <div className="radar"><CompRadar data={data.radar}/></div>
+       </div>
        </div>
     );
 }
