@@ -1,6 +1,6 @@
 .idea/
 .vscode/
-
+.venv
 .env
 backend/start.bat
 backend/src/portrait/management/commands/seed_data.py

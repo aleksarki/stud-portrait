@@ -1,7 +1,17 @@
-import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM
-from pathlib import Path
 import threading
+from pathlib import Path
+
+# === БЕЗОПАСНЫЙ ИМПОРТ ML-ЗАВИСИМОСТЕЙ ===
+# Если torch/transformers не установлены, Django не упадёт при старте
+try:
+    import torch
+    from transformers import AutoTokenizer, AutoModelForCausalLM
+    TORCH_AVAILABLE = True
+except ImportError:
+    torch = None
+    AutoTokenizer = None
+    AutoModelForCausalLM = None
+    TORCH_AVAILABLE = False
 
 BASE_DIR = Path(__file__).resolve().parent
 MODEL_PATH = BASE_DIR / "llm_model"
@@ -16,6 +26,9 @@ _LOAD_LOCK = threading.Lock()
 def load_model():
     global _MODEL, _TOKENIZER, _MODEL_AVAILABLE, _LOAD_ATTEMPTED
 
+    # Если библиотека не установлена, сразу возвращаем None
+    if not TORCH_AVAILABLE:
+        return None, None
     if _MODEL_AVAILABLE:
         return _MODEL, _TOKENIZER
     if _LOAD_ATTEMPTED:
@@ -45,7 +58,7 @@ def load_model():
                     MODEL_PATH,
                     device_map="auto",
                     trust_remote_code=True,
-                    torch_dtype=torch.float16,   # экономия памяти без bitsandbytes
+                    torch_dtype=torch.float16,
                     local_files_only=True,
                 )
             else:
@@ -69,10 +82,15 @@ def load_model():
 
 
 def is_model_available():
-    return _MODEL_AVAILABLE
+    """Возвращает True только если библиотека установлена И модель загружена."""
+    return TORCH_AVAILABLE and _MODEL_AVAILABLE
 
 
 def generate_text(prompt, max_length=200, temperature=0.7, top_p=0.9):
+    """Безопасная генерация текста. Не упадёт, если torch отсутствует."""
+    if not TORCH_AVAILABLE:
+        return "[ML OFF] Библиотека torch/transformers не установлена. Аналитический модуль работает независимо."
+
     model, tokenizer = load_model()
     if model is None:
         return None
