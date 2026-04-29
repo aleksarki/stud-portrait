@@ -59,3 +59,59 @@
         }
     }
 }
+
+
+/* ── Панель режима тепловой карты ── */
+.heatmap-mode-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 14px;
+ 
+    .heatmap-mode-label {
+        font-size: 13px;
+        color: #555;
+        margin-right: 4px;
+        white-space: nowrap;
+    }
+ 
+    button {
+        padding: 4px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        cursor: pointer;
+        border: 1px solid #ccc;
+        background: #f0f0f0;
+        color: #333;
+        transition: background 0.15s, color 0.15s;
+        max-width: 240px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+ 
+        &:hover { background: #e0e0e0; }
+        &.active { background: #1565c0; color: #fff; border-color: #1565c0; }
+    }
+}
+ 
+/* ── Секция тепловой карты ── */
+.heatmap-section {
+    margin-bottom: 28px;
+}
+ 
+.heatmap-section-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1565c0;
+    padding: 5px 10px;
+    background: #e3f2fd;
+    border-left: 3px solid #1565c0;
+    border-radius: 0 4px 4px 0;
+    margin-bottom: 8px;
+}
+ 
+/* Горизонтальный скролл для широких таблиц */
+.heatmap-scroll {
+    overflow-x: auto;
+}
