@@ -106,8 +106,16 @@ function AdminUploadView() {
                 }
             });
             setFileHeaders(headers);
-            // ФИX 4: передаём актуальные fields через ref, не из замкнутого стейта
-            autoGenerateConfig(headers, expectedFieldsRef.current);
+
+            // Если шаблон уже выбран — применяем его, иначе автогенерация
+            const chosenTemplate = savedTemplates.find(
+                t => t.name === selectedTemplateName || String(t.id) === String(selectedTemplateName)
+            );
+            if (chosenTemplate) {
+                setMappingConfig(chosenTemplate.config);
+            } else {
+                autoGenerateConfig(headers, expectedFieldsRef.current);
+            }
             setStep("mapping");
         };
         reader.readAsArrayBuffer(file);
@@ -195,9 +203,15 @@ function AdminUploadView() {
         const tmpl = savedTemplates.find(t =>
             (t.name === selectedTemplateName) || (String(t.id) === String(selectedTemplateName))
         );
-        if (tmpl) {
-            setMappingConfig(tmpl.config);
+        if (!tmpl) return;
+        setMappingConfig(tmpl.config);
+        if (selectedFile && Object.keys(fileHeaders).length > 0) {
+            // Файл уже загружен — сразу идём на маппинг
             setStep("mapping");
+        } else {
+            // Файл ещё не выбран — остаёмся на шаге upload,
+            // шаблон будет применён автоматически при выборе файла
+            setError(null);
         }
     };
 
@@ -236,6 +250,40 @@ function AdminUploadView() {
         return (
             <div className="mapping-editor">
                 <h3>Сопоставление колонок (можно изменить вручную)</h3>
+
+                {/* ── Смена файла или шаблона не уходя со страницы маппинга ── */}
+                <div className="mapping-top-controls">
+                    <div className="file-input-row">
+                        <label>{selectedFile ? `📄 ${selectedFile.name}` : "Файл не выбран"}</label>
+                        <input
+                            type="file"
+                            accept=".xlsx, .xls"
+                            onChange={handleFileChange}
+                            disabled={uploading}
+                        />
+                    </div>
+                    {savedTemplates.length > 0 && (
+                        <div className="template-switch-row">
+                            <label>Сменить шаблон:</label>
+                            <select
+                                value={selectedTemplateName}
+                                onChange={e => {
+                                    setSelectedTemplateName(e.target.value);
+                                    if (!e.target.value) return;
+                                    const tmpl = savedTemplates.find(
+                                        t => t.name === e.target.value || String(t.id) === String(e.target.value)
+                                    );
+                                    if (tmpl) setMappingConfig(tmpl.config);
+                                }}
+                            >
+                                <option value="">— автоопределение —</option>
+                                {savedTemplates.map(t => (
+                                    <option key={t.id ?? t.name} value={t.name}>{t.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+                </div>
 
                 {Object.keys(expectedFields).length === 0 && (
                     <div className="warning-banner">
@@ -331,35 +379,36 @@ function AdminUploadView() {
         );
     };
 
+    // true если шаблон выбран и применён к mappingConfig
+    const isTemplateActive = Boolean(
+        selectedTemplateName &&
+        mappingConfig &&
+        savedTemplates.find(t => t.name === selectedTemplateName || String(t.id) === String(selectedTemplateName))
+    );
+
     const renderUploadStep = () => (
         <div>
-            <div className="file-input-row">
-                <label>Выберите Excel файл</label>
-                <input
-                    id="excel-file"
-                    type="file"
-                    accept=".xlsx, .xls"
-                    onChange={handleFileChange}
-                    disabled={uploading}
-                />
-            </div>
-
+            {/* ── Шаблоны — выбираем ДО или ВМЕСТЕ с файлом ── */}
             {templatesLoading ? (
                 <div>Загрузка шаблонов...</div>
             ) : savedTemplates.length > 0 && (
                 <div className="template-load-row">
-                    <label>Загрузить сохранённый шаблон:</label>
+                    <label>Шаблон маппинга (необязательно):</label>
                     <select
                         value={selectedTemplateName}
-                        onChange={e => setSelectedTemplateName(e.target.value)}
+                        onChange={e => {
+                            setSelectedTemplateName(e.target.value);
+                            // Сбрасываем конфиг чтобы не осталось старого шаблона
+                            if (!e.target.value) setMappingConfig(null);
+                        }}
                     >
-                        <option value="">— выберите —</option>
+                        <option value="">— без шаблона —</option>
                         {savedTemplates.map(t => (
                             <option key={t.id ?? t.name} value={t.name}>{t.name}</option>
                         ))}
                     </select>
                     <button onClick={loadTemplate} disabled={!selectedTemplateName}>
-                        Загрузить
+                        Применить
                     </button>
                     {selectedTemplateName && (
                         <button
@@ -374,6 +423,30 @@ function AdminUploadView() {
                     )}
                 </div>
             )}
+
+            {/* Подсказка: шаблон выбран, но файл ещё не загружен */}
+            {isTemplateActive && !selectedFile && (
+                <div className="info-banner">
+                    ✅ Шаблон «{selectedTemplateName}» применён. Теперь выберите Excel-файл.
+                </div>
+            )}
+
+            {/* ── Файл ── */}
+            <div className="file-input-row">
+                <label>Выберите Excel файл</label>
+                <input
+                    id="excel-file"
+                    type="file"
+                    accept=".xlsx, .xls"
+                    onChange={handleFileChange}
+                    disabled={uploading}
+                />
+                {isTemplateActive && (
+                    <span className="template-hint">
+                        Будет использован шаблон «{selectedTemplateName}»
+                    </span>
+                )}
+            </div>
 
             {uploadResult && (
                 <div className="success-banner">
