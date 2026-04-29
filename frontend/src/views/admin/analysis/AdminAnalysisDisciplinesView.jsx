@@ -148,6 +148,9 @@ function AdminAnalysisDisciplinesView() {
     const [selectedDisciplines, setSelectedDisciplines] = useState([]);
     const [activeTab, setActiveTab] = useState('impact');
     const [sankeyImpactData, setSankeyImpactData] = useState(null);
+    const [heatmapByDirection, setHeatmapByDirection] = useState({});
+    const [heatmapDirections, setHeatmapDirections]   = useState([]);
+    const [selectedHeatmapDir, setSelectedHeatmapDir] = useState('__all__');
 
     // Загрузка комплексного анализа всех дисциплин
     const loadAllDisciplinesImpact = async () => {
@@ -209,6 +212,9 @@ function AdminAnalysisDisciplinesView() {
                 const data = await response.json();
                 if (data.status === 'success') {
                     setHeatmapData(data.data);
+                    setHeatmapByDirection(data.data_by_direction || {});
+                    setHeatmapDirections(data.directions || []);
+                    setSelectedHeatmapDir('__all__');
                 } else {
                     alert('Ошибка при загрузке данных тепловой карты: ' + (data.message || 'Неизвестная ошибка'));
                 }
@@ -285,11 +291,45 @@ function AdminAnalysisDisciplinesView() {
             return <NoData text="Нет данных для тепловой карты" />;
         }
 
-        const disciplines = [...new Set(heatmapData.map(d => d.discipline))].sort();
-        const competencies = [...new Set(heatmapData.map(d => d.competency))].sort();
+        // Данные для активного направления или общие
+        const activeData = selectedHeatmapDir === '__all__'
+            ? heatmapData
+            : (heatmapByDirection[selectedHeatmapDir] || []);
+
+        const disciplines  = [...new Set(activeData.map(d => d.discipline))].sort();
+        const competencies = [...new Set(activeData.map(d => d.competency))].sort();
 
         return (
             <div className="heatmap-container">
+                {/* ── Переключатель направлений ── */}
+                {heatmapDirections.length > 0 && (
+                    <div style={{ marginBottom: 12, display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                        <span style={{ fontSize: 13, color: '#555', marginRight: 4 }}>Направление:</span>
+                        <button
+                            onClick={() => setSelectedHeatmapDir('__all__')}
+                            style={{
+                                padding: '3px 10px', borderRadius: 5, fontSize: 12, cursor: 'pointer',
+                                background: selectedHeatmapDir === '__all__' ? '#1565c0' : '#f0f0f0',
+                                color: selectedHeatmapDir === '__all__' ? '#fff' : '#333',
+                                border: '1px solid #ccc'
+                            }}
+                        >Все</button>
+                        {heatmapDirections.map(dir => (
+                            <button
+                                key={dir}
+                                onClick={() => setSelectedHeatmapDir(dir)}
+                                style={{
+                                    padding: '3px 10px', borderRadius: 5, fontSize: 12, cursor: 'pointer',
+                                    background: selectedHeatmapDir === dir ? '#1565c0' : '#f0f0f0',
+                                    color: selectedHeatmapDir === dir ? '#fff' : '#333',
+                                    border: '1px solid #ccc',
+                                    maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                                }}
+                                title={dir}
+                            >{dir}</button>
+                        ))}
+                    </div>
+                )}
                 <Table>
                     <TableHeader>
                         <TableItem>Дисциплина</TableItem>
@@ -301,7 +341,7 @@ function AdminAnalysisDisciplinesView() {
                         <TableRow key={disc}>
                             <TableItem>{disc}</TableItem>
                             {competencies.map(comp => {
-                                const cell = heatmapData.find(
+                                const cell = activeData.find(
                                     d => d.discipline === disc && d.competency === comp
                                 );
                                 const effectSize = cell?.effect_size || 0;
@@ -469,7 +509,10 @@ function AdminAnalysisDisciplinesView() {
     // Функция показа Санки
     const showImpactSankey = () => {
         if (!heatmapData) return;
-        const prepared = prepareSankeyFromHeatmap(heatmapData);
+        const activeData = selectedHeatmapDir === '__all__'
+            ? heatmapData
+            : (heatmapByDirection[selectedHeatmapDir] || heatmapData);
+        const prepared = prepareSankeyFromHeatmap(activeData);
         if (prepared) {
             setSankeyImpactData(prepared);
             setActiveTab('sankey');
@@ -565,7 +608,7 @@ function AdminAnalysisDisciplinesView() {
                             {activeTab === 'all' && renderAllDisciplinesImpact()}
                             {activeTab === 'sankey' && sankeyImpactData && (
                                 <>
-                                    <SankeyDiagram data={sankeyImpactData} title="Влияние дисциплин на компетенции" height={500} />
+                                    <SankeyDiagram data={sankeyImpactData} title={`Влияние дисциплин на компетенции${selectedHeatmapDir !== '__all__' ? ` — ${selectedHeatmapDir}` : ''}`} height={500} />
                                     <details style={{ marginTop: 16, background: '#f8f9fa', borderRadius: 6, padding: '10px 14px', border: '1px solid #e9ecef' }}>
                                         <summary style={{ cursor: 'pointer', fontWeight: 500, color: '#2c3e50' }}>📖 Что показывает эта диаграмма?</summary>
                                         <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.5 }}>
