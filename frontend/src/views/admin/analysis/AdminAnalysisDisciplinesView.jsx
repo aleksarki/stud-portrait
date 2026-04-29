@@ -286,99 +286,123 @@ function AdminAnalysisDisciplinesView() {
         );
     };
 
+    // Вспомогательная функция: одна таблица тепловой карты
+    const renderHeatmapTable = (data, label = null) => {
+        if (!data || data.length === 0) return null;
+        const disciplines  = [...new Set(data.map(d => d.discipline))].sort();
+        const competencies = [...new Set(data.map(d => d.competency))].sort();
+        return (
+            <div className="heatmap-section" key={label}>
+                {label && (
+                    <div className="heatmap-section-label">{label}</div>
+                )}
+                <div className="heatmap-scroll">
+                    <Table>
+                        <TableHeader>
+                            <TableItem>Дисциплина</TableItem>
+                            {competencies.map(comp => (
+                                <TableItem key={comp}>{COMPETENCIES_NAMES[comp] || comp}</TableItem>
+                            ))}
+                        </TableHeader>
+                        {disciplines.map(disc => (
+                            <TableRow key={disc}>
+                                <TableItem>{disc}</TableItem>
+                                {competencies.map(comp => {
+                                    const cell = data.find(d => d.discipline === disc && d.competency === comp);
+                                    const effectSize = cell?.effect_size || 0;
+                                    const intensity = Math.min(Math.abs(effectSize) / 1.0, 1);
+                                    const color = effectSize >= 0
+                                        ? `rgba(76,175,80,${intensity * 0.7})`
+                                        : `rgba(244,67,54,${intensity * 0.7})`;
+                                    return (
+                                        <TableItem
+                                            key={comp}
+                                            className={cell?.significant ? 'significant' : ''}
+                                            cssVars={{ '--bg-color': color }}
+                                            title={`Effect size: ${effectSize.toFixed(2)}, p=${cell?.p_value?.toFixed(3) ?? 'N/A'}, n=${cell?.n_students ?? 0}`}
+                                        >
+                                            {cell ? effectSize.toFixed(2) : '—'}
+                                        </TableItem>
+                                    );
+                                })}
+                            </TableRow>
+                        ))}
+                    </Table>
+                </div>
+            </div>
+        );
+    };
+
     const renderHeatmap = () => {
         if (!heatmapData || heatmapData.length === 0) {
             return <NoData text="Нет данных для тепловой карты" />;
         }
 
-        // Данные для активного направления или общие
-        const activeData = selectedHeatmapDir === '__all__'
-            ? heatmapData
-            : (heatmapByDirection[selectedHeatmapDir] || []);
+        const legend = (
+            <FlexRow margin="12 0 0 0">
+                <Label>
+                    <FlexRow gap="20">
+                        <FlexRow><ColorBox color={BOX_COLOR.GREEN} /><span>Положительный эффект</span></FlexRow>
+                        <FlexRow><ColorBox color={BOX_COLOR.RED} /><span>Отрицательный эффект</span></FlexRow>
+                        <span>Жирная граница = статистически значим (p &lt; 0.05)</span>
+                    </FlexRow>
+                </Label>
+            </FlexRow>
+        );
 
-        const disciplines  = [...new Set(activeData.map(d => d.discipline))].sort();
-        const competencies = [...new Set(activeData.map(d => d.competency))].sort();
+        const hasDirections = heatmapDirections.length > 0;
 
         return (
             <div className="heatmap-container">
-                {/* ── Переключатель направлений ── */}
-                {heatmapDirections.length > 0 && (
-                    <div style={{ marginBottom: 12, display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-                        <span style={{ fontSize: 13, color: '#555', marginRight: 4 }}>Направление:</span>
+                {/* ── Режим просмотра ── */}
+                {hasDirections && (
+                    <div className="heatmap-mode-bar">
+                        <span className="heatmap-mode-label">Показать:</span>
                         <button
+                            className={selectedHeatmapDir === '__all__' ? 'active' : ''}
                             onClick={() => setSelectedHeatmapDir('__all__')}
-                            style={{
-                                padding: '3px 10px', borderRadius: 5, fontSize: 12, cursor: 'pointer',
-                                background: selectedHeatmapDir === '__all__' ? '#1565c0' : '#f0f0f0',
-                                color: selectedHeatmapDir === '__all__' ? '#fff' : '#333',
-                                border: '1px solid #ccc'
-                            }}
-                        >Все</button>
+                        >Сводная</button>
+                        <button
+                            className={selectedHeatmapDir === '__each__' ? 'active' : ''}
+                            onClick={() => setSelectedHeatmapDir('__each__')}
+                        >Все направления сразу</button>
                         {heatmapDirections.map(dir => (
                             <button
                                 key={dir}
+                                className={selectedHeatmapDir === dir ? 'active' : ''}
                                 onClick={() => setSelectedHeatmapDir(dir)}
-                                style={{
-                                    padding: '3px 10px', borderRadius: 5, fontSize: 12, cursor: 'pointer',
-                                    background: selectedHeatmapDir === dir ? '#1565c0' : '#f0f0f0',
-                                    color: selectedHeatmapDir === dir ? '#fff' : '#333',
-                                    border: '1px solid #ccc',
-                                    maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
-                                }}
                                 title={dir}
                             >{dir}</button>
                         ))}
                     </div>
                 )}
-                <Table>
-                    <TableHeader>
-                        <TableItem>Дисциплина</TableItem>
-                        {competencies.map(comp => (
-                            <TableItem>{COMPETENCIES_NAMES[comp]}</TableItem>
-                        ))}
-                    </TableHeader>
-                    {disciplines.map(disc => (
-                        <TableRow key={disc}>
-                            <TableItem>{disc}</TableItem>
-                            {competencies.map(comp => {
-                                const cell = activeData.find(
-                                    d => d.discipline === disc && d.competency === comp
-                                );
-                                const effectSize = cell?.effect_size || 0;
-                                const intensity = Math.min(Math.abs(effectSize) / 1.0, 1);
-                                const color = (
-                                    effectSize >= 0
-                                    ? `rgba(76, 175, 80, ${intensity * 0.7})`
-                                    : `rgba(244, 67, 54, ${intensity * 0.7})`
-                                );
-                                return (
-                                    <TableItem
-                                        className={cell?.significant ? "significant" : ''}
-                                        cssVars={{"--bg-color": color}}
-                                        title={`Effect size: ${effectSize?.toFixed(2) || '0'}, p=${cell?.p_value?.toFixed(3) || 'N/A'}, n=${cell?.n_students || 0}`}
-                                    >
-                                        {cell ? effectSize.toFixed(2) : '-'}
-                                    </TableItem>
-                                );
-                            })}
-                        </TableRow>
-                    ))}
-                </Table>
-                <FlexRow margin="20 0 0 0">
-                    <Label>
-                        <FlexRow gap="20">
-                            <FlexRow>
-                                <ColorBox color={BOX_COLOR.GREEN} />
-                                <span>Положительный эффект</span>
-                            </FlexRow>
-                            <FlexRow>
-                                <ColorBox color={BOX_COLOR.RED} />
-                                <span>Отрицательный эффект</span>
-                            </FlexRow>
-                            <span>Жирная граница = статистически значим (p &lt; 0.05)</span>
-                        </FlexRow>
-                    </Label>
-                </FlexRow>
+
+                {/* ── Сводная таблица ── */}
+                {selectedHeatmapDir === '__all__' && (
+                    <>
+                        {renderHeatmapTable(heatmapData, null)}
+                        {legend}
+                    </>
+                )}
+
+                {/* ── Все направления сразу ── */}
+                {selectedHeatmapDir === '__each__' && (
+                    <>
+                        {renderHeatmapTable(heatmapData, '📊 Все направления (сводная)')}
+                        {heatmapDirections.map(dir =>
+                            renderHeatmapTable(heatmapByDirection[dir], `📂 ${dir}`)
+                        )}
+                        {legend}
+                    </>
+                )}
+
+                {/* ── Одно направление ── */}
+                {selectedHeatmapDir !== '__all__' && selectedHeatmapDir !== '__each__' && (
+                    <>
+                        {renderHeatmapTable(heatmapByDirection[selectedHeatmapDir] || [], null)}
+                        {legend}
+                    </>
+                )}
             </div>
         );
     };
@@ -509,7 +533,8 @@ function AdminAnalysisDisciplinesView() {
     // Функция показа Санки
     const showImpactSankey = () => {
         if (!heatmapData) return;
-        const activeData = selectedHeatmapDir === '__all__'
+        // __each__ → общая сводка; конкретное направление → данные по нему
+        const activeData = (selectedHeatmapDir === '__all__' || selectedHeatmapDir === '__each__')
             ? heatmapData
             : (heatmapByDirection[selectedHeatmapDir] || heatmapData);
         const prepared = prepareSankeyFromHeatmap(activeData);
@@ -564,6 +589,9 @@ function AdminAnalysisDisciplinesView() {
                                 onClick={showImpactSankey}
                                 disabled={!heatmapData || loading}
                                 palette={BUTTON_PALETTE.PURPLE}
+                                title={selectedHeatmapDir !== '__all__' && selectedHeatmapDir !== '__each__'
+                                    ? `Санки по направлению: ${selectedHeatmapDir}`
+                                    : 'Санки по всем направлениям'}
                             />
                         </FlexRow>
                     </div>
