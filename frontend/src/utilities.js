@@ -23,7 +23,8 @@ export const LINK_TREE = [
             {title: "Анализ дисциплин", to: '/admin/analysis/disciplines'},
             {title: "Визуализации", to: '/admin/analysis/advanced'},
             {title: "ИИ-аналитика", to: '/admin/analysis/ai-analytics'},
-            {title: "Области образования", to: '/admin/analysis/edu-profiles'}
+            {title: "Области образования", to: '/admin/analysis/edu-profiles'},
+            {title: "Переведённые студенты", to: '/admin/analysis/transfered-students'}
         ]
     },
     {

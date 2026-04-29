@@ -400,6 +400,28 @@ export function getEducationProfilesComparison(filters) {
     return new AsyncChain(promise);
 }
 
+/** GET /portrait/analyze-transfers/ - сводный анализ переводов */
+export function getAnalyzeTransfers(queryString = '') {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/analyze-transfers/${queryString ? '?' + queryString : ''}`);
+    return new AsyncChain(promise);
+}
+
+/** POST /portrait/analyze-transfer-students/ - детальный список студентов с переводами */
+export function postAnalyzeTransferStudents(body) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/analyze-transfer-students/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body)
+    });
+    return new AsyncChain(promise);
+}
+
+/** GET /portrait/get-institutions/ - список вузов */
+export function getInstitutions() {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-institutions/`);
+    return new AsyncChain(promise);
+}
+
 // Импорт Excel (уже есть, но можно добавить обертку)
 export function importExcel(file, configJson) {
     const formData = new FormData();
