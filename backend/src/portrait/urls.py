@@ -14,7 +14,7 @@ urlpatterns = [
     path('motivation-counts/', stat.get_motivation_counts, name='motivation_counts'),
     path('filter-dash/', stat.filter_dash, name='filter_dash'),
     path('overall-stats/', stat.overall_stats, name='overall_stats'),
-
+    path('scores-result/', stat.get_scores_result, name='scores_result'),
     path('import_excel/', dataload.import_excel, name="import_excel"),
 
     path("create-data-session/",     datasesh.create_data_session,     name="create_data_session"),

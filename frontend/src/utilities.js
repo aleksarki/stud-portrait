@@ -5,7 +5,8 @@ export const LINK_TREE = [
         category: null,
         links: [
             {title: "Статистика тестирования", to: '/admin/stats'},
-            {title: "География тестирования", to: '/admin/geography'}
+            {title: "География тестирования", to: '/admin/geography'},
+            {title: "Дисциплины и компетенции", to: '/admin/AP'}
         ]
     },
     {

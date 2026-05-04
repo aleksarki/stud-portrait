@@ -1,0 +1,22 @@
+.AdminAPView{
+    .filter-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        align-items: center;
+        color: #2a282c;
+        background: #fff;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+    }
+      
+    .select__control {
+        border: 1px solid #e0e0e0 !important;
+        box-shadow: none !important;
+    }
+    
+    .select__control--is-focused {
+        border-color: #4CAF50 !important;
+    }
+}

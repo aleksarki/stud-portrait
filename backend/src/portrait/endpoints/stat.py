@@ -165,8 +165,13 @@ def get_dashboard_stats(request):
             best_comp = {"name": sorted_comps[0][0], "val": sorted_comps[0][1]}
             worst_comp = {"name": sorted_comps[-1][0], "val": sorted_comps[-1][1]}
         chart=[]
+        table=[]
         for k, v in curr_data['all_comps'].items():
+            delta=v-prev_data['all_comps'][k]
+            if prev_data['all_comps'][k]==0:
+                delta=0
             chart.append({"name": k, "score": v, "prev_score": prev_data['all_comps'][k]})
+            #table.append({"name": k, "score": v, "prev_score": prev_data['all_comps'][k], "delta": delta})
         
         base_filter['res_year'] = curr_year
         radar=get_competency_stats_courses(base_filter) #radar
@@ -277,5 +282,14 @@ def get_motivation_counts(request):
         #print("DATA:", results)
         response_data={"status": "success", "data": bar_data}
         return JsonResponse(response_data)
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)
+    
+def get_scores_result(request):
+    try:
+
+
+        response_data={"status": "success", "data": 0}
+        return JsonResponse(response_data) 
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=500)

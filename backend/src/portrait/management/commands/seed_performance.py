@@ -20,7 +20,7 @@ GRADE_SCALE = {
     5: 'отл.',
     4: 'хор.',
     3: 'удовл.',
-    2: 'неуд.',
+    2: 'неудовл.',
 }
 
 
@@ -62,7 +62,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         study_year = options['year']
-
+        
         if options['clear']:
             deleted, _ = Academicperformance.objects.filter(perf_year=study_year).delete()
             self.stdout.write(self.style.WARNING(f'Удалено записей: {deleted}'))
@@ -70,7 +70,7 @@ class Command(BaseCommand):
         results = Results.objects.select_related('res_participant').all()
         created_count = 0
         skipped_count = 0
-
+        self.stdout.write('Заполнение...')
         for result in results:
             course = result.res_course_num
             discipline = COURSE_DISCIPLINES.get(course)

@@ -160,6 +160,53 @@ const Stat = ({ label, value, prev=0, suffix = "", isGrowth = false, isText=fals
     
 };
 
+//таблица
+function CompetencyTable({ data, year }) {
+    //??data: [{ name: 'Командная работа', score, below350, above650 }]
+    const [tableOpen, setTableOpen] = useState(false);
+    if (!data) return null;
+
+    return(
+        <div className='table'>
+            <button className="ct-toggle" onClick={() => setTableOpen(v => !v)}>
+            <span className={`ct-arrow ${tableOpen ? 'open' : ''}`}>▼</span>
+            {tableOpen ? 'Скрыть таблицу' : 'Подробная таблица'}
+            </button>
+            <div className={`ct-table-wrap ${tableOpen ? 'open' : ''}`}>
+            <table className="ct-table">
+                <thead>
+                <tr>
+                    <th>Компетенция</th>
+                    <th>{year - 1}</th>
+                    <th>{year}</th>
+                    <th>Разница</th>
+                </tr>
+                </thead>
+                <tbody>
+                {data.map(row => {
+                    const delta = row.score != 0 && row.prev_score != 0
+                    ? Math.round(row.score) - Math.round(row.prev_score)
+                    : null;
+                    return (
+                    <tr key={row.displayName}>
+                        <td className="ct-name">{row.displayName}</td>
+                        <td>{row.prev_score != 0 ? Math.round(row.prev_score) : '—'}</td>
+                        <td>{row.score != 0 ? Math.round(row.score) : '—'}</td>
+                        <td>
+                        {delta === null ? '—' : (
+                            <span className={delta > 0 ? 'ct-pos' : delta < 0 ? 'ct-neg' : 'ct-zero'}>
+                            {delta > 0 ? '+' : ''}{delta}
+                            </span>
+                        )}
+                        </td>
+                    </tr>
+                    );
+                })}
+                </tbody>
+            </table>
+        </div>
+        </div>);
+}
 
 //паутинка пред
 function CompRadar({ data }) {
@@ -411,6 +458,7 @@ function Dashboard({ data }) {
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
+                <CompetencyTable data={chartData} year={year}/>
             </div>
        <div className="radar"><CompRadar data={data.radar}/></div>
        </div>

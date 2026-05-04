@@ -143,6 +143,71 @@
         }
     }
     
+//табл
+    .table {
+        .ct-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 12px 0;
+            border: none;
+            border-top: 1px solid #f1f5f9;
+            background: none;
+            color: #64748b;
+            font-size: 13px;
+            cursor: pointer;
+            transition: color .15s;
+            &:hover { color: #1e293b; }
+        }
+        
+        .ct-arrow {
+            font-size: 10px;
+            display: inline-block;
+            transition: transform .25s;
+            &.open { transform: rotate(180deg); }
+        }
+        
+        .ct-table-wrap {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height .35s ease;
+            &.open { max-height: None; overflow-y: auto; }
+        }
+        
+        .ct-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        
+            th {
+            background: #f8fafc;
+            color: #94a3b8;
+            font-weight: 500;
+            padding: 8px 12px;
+            text-align: center;
+            border-bottom: 1px solid #e2e8f0;
+            position: sticky;
+            top: 0;
+            &:first-child { text-align: left; }
+            }
+        
+            td {
+            padding: 7px 12px;
+            text-align: center;
+            border-bottom: 1px solid #f1f5f9;
+            color: #334155;
+            }
+        
+            tr:hover td { background: #f8fafc; }
+        }
+        
+        .ct-name { text-align: left !important; color: #64748b; font-weight: 500; }
+        .ct-pos  { color: #0F6E56; }
+        .ct-neg  { color: #E24B4A; }
+        .ct-zero { color: #94a3b8; }
+    }
     .RadarContainer {
         display: flex;
         flex-direction: row;
