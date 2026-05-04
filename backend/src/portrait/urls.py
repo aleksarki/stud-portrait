@@ -14,7 +14,7 @@ urlpatterns = [
     path('dashboard-stats/',  stat.get_dashboard_stats,  name='dashboard_stats'),
     path('motivation-counts/', stat.get_motivation_counts, name='motivation_counts'),
     path('filter-dash/', stat.filter_dash, name='filter_dash'),
-    
+    path('overall-stats/', stat.overall_stats, name='overall_stats'),
 
     path('import_excel/', dataload.import_excel, name="import_excel"),
 

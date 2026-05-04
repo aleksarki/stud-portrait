@@ -3,6 +3,7 @@ from django.http import JsonResponse
 from portrait.models import Results, Participants, Course, Institutions
 import traceback
 from .common import *
+import numpy as np
 
 comp_fields = [
     'res_comp_info_analysis', 'res_comp_planning', 'res_comp_result_orientation',
@@ -64,6 +65,31 @@ def filter_dash(request):
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
+def overall_stats(request):
+    response_data={}
+    try:
+        unis = Results.objects.values_list('res_institution__inst_name', flat=True).distinct().count()
+        results = Results.objects.values_list().distinct().count()
+        centers = Results.objects.values_list('res_center', flat=True).distinct().count()
+        years = Results.objects.values_list('res_year', flat=True).distinct()
+        min_year = 3000
+        max_year = 0
+        for i in years:
+            year=int(i.split('/')[0])
+            min_year=min(min_year, year)
+            max_year=max(max_year, year+1)
+        response_data = {
+            "status": "success", 
+            'unis':unis,
+            'results':results,
+            'centers':centers,
+            'years': {'min':min_year, 'max':max_year}
+        }
+        return JsonResponse(response_data)
+    except Exception as e:
+        print(traceback.format_exc())
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
 def get_dashboard_stats(request):
     response_data = {}
 
@@ -97,17 +123,11 @@ def get_dashboard_stats(request):
 
         rate_list = []
         for uni in unis:
-            rows = Results.objects.filter(res_year=curr_year, res_institution__inst_name=uni) \
+            rows_data = Results.objects.filter(res_year=curr_year, res_institution__inst_name=uni) \
                     .values_list(*comp_fields)
-            total = 0
-            count = 0
-            for row in rows:
-                for val in row:
-                    if val and val != 0:  
-                        total += val
-                        count += 1
-            avg = (total / count) if count > 0 else None
-            rate_list.append({'uni_name': uni, 'overall_avg': avg})
+            rows=np.array([np.array([np.nan if i==0 else i for i in row]) for row in rows_data]).astype(float)
+            avg = np.mean(np.delete(rows, np.where(np.isnan(rows))))
+            rate_list.append({'uni_name': uni, 'overall_avg': round(avg,3)})
         rate_list=sorted(
             rate_list,
             key=lambda x: (x['overall_avg'] is None, -(x['overall_avg'] or 0))
@@ -140,8 +160,8 @@ def get_dashboard_stats(request):
             best_comp = {"name": "-", "val": 0}
             worst_comp = {"name": "-", "val": 0}
         else:
-            best_comp_prev = {"name": sorted_comps[0][0], "val": prev_data['all_comps'][sorted_comps[0][0]]}
-            worst_comp_prev = {"name": sorted_comps[-1][0], "val": prev_data['all_comps'][sorted_comps[-1][0]]}
+            best_comp_prev = {"name": sorted_comps_prev[0][0], "val": prev_data['all_comps'][sorted_comps_prev[0][0]]}
+            worst_comp_prev = {"name": sorted_comps_prev[-1][0], "val": prev_data['all_comps'][sorted_comps_prev[-1][0]]}
             best_comp = {"name": sorted_comps[0][0], "val": sorted_comps[0][1]}
             worst_comp = {"name": sorted_comps[-1][0], "val": sorted_comps[-1][1]}
         chart=[]

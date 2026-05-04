@@ -205,7 +205,7 @@ function CompRadar({ data }) {
         <div className="RadarContainer">
             {/*панель с чекбоксами */}
             <div className="chooseBoxes">
-                <h3 style={{ fontSize: '14px', marginBottom: '10px' }}>Курсы</h3>
+                <h3 style={{ fontSize: '16px', marginBottom: '10px' }}>Курсы</h3>
                 {courseConfig.map(course => (
                 <label key={course.key} style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '8px', cursor: 'pointer' }}>
                     <input 
@@ -323,7 +323,6 @@ function Dashboard({ data }) {
                                 endAngle={-270}
                             >
                             </Pie>
-                            <Tooltip />
                         </PieChart>
                     </ResponsiveContainer>
 
@@ -339,12 +338,12 @@ function Dashboard({ data }) {
             <div className="col-right">
             <h4 className="text-xs uppercase text-gray-400 font-bold mb-6">Компетенции</h4>
             <Stat 
-                label={`Лучшая: ${getLabel(data.col3.best.name)}`} 
+                label={`Самая развитая: ${getLabel(data.col3.best.name)}`} 
                 value={data.col3.best.val} 
                 //prev={data.col3.best_prev.val || 0} 
             /> 
             <Stat 
-                label={`Худшая: ${getLabel(data.col3.worst.name)}`} 
+                label={`Наименее развитая: ${getLabel(data.col3.worst.name)}`} 
                 value={data.col3.worst.val} 
                 //prev={data.col3.worst_prev.val || 0} 
             />
@@ -398,7 +397,7 @@ function Dashboard({ data }) {
                                 fontSize={12}
                                 fill="rgb(81, 87, 110)"
                             /></Bar>
-                        <Bar name={year-1} dataKey="prev_score" fill=" #904acc" radius={[6, 6, 0, 0]} barSize={22} >
+                        <Bar yaxis="Средний балл" name={year-1} dataKey="prev_score" fill=" #904acc" radius={[6, 6, 0, 0]} barSize={22} >
                             <LabelList
                                 formatter={(value)=>Math.round(value)}
                                 position="top"
