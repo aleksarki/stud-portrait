@@ -642,14 +642,17 @@ def analyze_discipline_impact_advanced(request):
                 except:
                     continue
                 
-                before_result = Results.objects.filter(
+                before_result = Results.objects.select_related(
+                    'res_spec', 'res_institution'
+                ).filter(
                     res_participant=student
                 ).filter(
                     Q(res_year__lt=year)
                 ).order_by('-res_year', '-res_course_num').first()
-                
-                after_year = f"{year_start+1}/{year_start+2}"
-                after_result = Results.objects.filter(
+
+                after_result = Results.objects.select_related(
+                    'res_spec', 'res_institution'
+                ).filter(
                     res_participant=student,
                     res_year=year
                 ).order_by('-res_course_num').first()
@@ -659,7 +662,7 @@ def analyze_discipline_impact_advanced(request):
                     after_score = getattr(after_result, competency, None)
                     
                     if before_score is not None and after_score is not None:
-                        # Направление берём из результата (res_spec), т.к. part_spec у участника может быть пустым
+                        # Направление: ищем в результате (res_spec), затем у участника (part_spec)
                         direction = (
                             (after_result.res_spec.spec_name  if after_result.res_spec  else None) or
                             (before_result.res_spec.spec_name if before_result.res_spec else None) or
@@ -833,6 +836,13 @@ def get_discipline_heatmap_data(request):
             ).order_by('-res_course_num').first()
             
             if before_result and after_result:
+                # Направление: ищем в результате, затем у участника
+                direction = (
+                    (after_result.res_spec.spec_name  if after_result.res_spec  else None) or
+                    (before_result.res_spec.spec_name if before_result.res_spec else None) or
+                    (student.part_spec.spec_name      if student.part_spec      else None) or
+                    'Не указано'
+                )
                 for comp in competencies:
                     before_score = getattr(before_result, comp, None)
                     after_score = getattr(after_result, comp, None)
@@ -842,7 +852,8 @@ def get_discipline_heatmap_data(request):
                             'competency': comp,
                             f'{comp}_before': before_score,
                             f'{comp}_after': after_score,
-                            'grade': perf.perf_main_attestation
+                            'grade': perf.perf_main_attestation,
+                            'direction': direction,
                         })
         
         # Вычисляем эффект для каждой пары (дисциплина, компетенция)
@@ -877,6 +888,40 @@ def get_discipline_heatmap_data(request):
                             'n_students': len(before)
                         })
         
+        # ── Эффект по направлениям ──
+        heatmap_by_direction = {}   # { direction: [ {discipline, competency, effect_size, ...} ] }
+        for disc in disciplines:
+            if disc not in perf_data_by_disc or not perf_data_by_disc[disc]:
+                continue
+            df_all = pd.DataFrame(perf_data_by_disc[disc])
+            if 'direction' not in df_all.columns:
+                continue
+            for direction, dir_df in df_all.groupby('direction'):
+                for comp in competencies:
+                    bcol, acol = f'{comp}_before', f'{comp}_after'
+                    if bcol not in dir_df.columns or acol not in dir_df.columns:
+                        continue
+                    before = dir_df[bcol].dropna()
+                    after  = dir_df[acol].dropna()
+                    if len(before) < 3:
+                        continue
+                    mean_diff  = float(after.mean() - before.mean())
+                    std_pooled = np.sqrt((before.std()**2 + after.std()**2) / 2)
+                    cohens_d   = mean_diff / std_pooled if std_pooled > 0 else 0
+                    t_stat, p_value = stats.ttest_rel(after, before)
+                    heatmap_by_direction.setdefault(direction, []).append({
+                        'discipline':       disc,
+                        'competency':       comp,
+                        'competency_label': _get_competency_label(comp),
+                        'effect_size':      float(cohens_d),
+                        'mean_gain':        mean_diff,
+                        'p_value':          float(p_value),
+                        'significant':      bool(p_value < 0.05),
+                        'n_students':       len(before),
+                    })
+
+        heatmap_by_direction = {k: _convert_numpy_types(v) for k, v in heatmap_by_direction.items()}
+
         heatmap_data = _convert_numpy_types(heatmap_data)
         
         full_heatmap = []
@@ -905,7 +950,9 @@ def get_discipline_heatmap_data(request):
         return JsonResponse({
             'status': 'success',
             'data': full_heatmap,
-            'disciplines': list(DISCIPLINE_COMPETENCY_MAP.keys()),  # возвращаем все дисциплины из словаря
+            'data_by_direction': heatmap_by_direction,
+            'directions': sorted(heatmap_by_direction.keys()),
+            'disciplines': list(DISCIPLINE_COMPETENCY_MAP.keys()),
             'competencies': competencies
         })
         
@@ -2042,7 +2089,6 @@ def get_student_comparison_stats(request):
             'status': 'error',
             'message': str(e)
         }, status=500)
-
 
 def get_education_profiles_comparison(request):
     """

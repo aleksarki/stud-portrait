@@ -1,0 +1,162 @@
+.AdminTransferAnalysisView {
+
+    .page-description {
+        color: #555;
+        font-size: 14px;
+        margin: 0 0 18px;
+        max-width: 700px;
+        line-height: 1.5;
+    }
+
+    /* ── Фильтры ── */
+    .filters-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        align-items: flex-end;
+        padding: 14px 16px;
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+
+    /* ── Легенда Санки ── */
+    .sankey-legend {
+        margin-top: 10px;
+        font-size: 13px;
+        color: #666;
+        padding: 8px 12px;
+        background: #f8f9fa;
+        border-radius: 6px;
+    }
+
+    /* ── Подпись под графиком ── */
+    .chart-hint {
+        font-size: 12px;
+        color: #777;
+        margin: 8px 0 0;
+        font-style: italic;
+    }
+
+    /* ── Список студентов ── */
+    .students-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .student-card {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .student-card-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        background: #f8f9fa;
+        cursor: pointer;
+        user-select: none;
+        transition: background 0.15s;
+
+        &:hover {
+            background: #e9ecef;
+        }
+    }
+
+    .student-rsv {
+        font-weight: 600;
+        font-size: 13px;
+        color: #212529;
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .transfer-badges {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+    }
+
+    .transfer-badge {
+        font-size: 11px;
+        color: #fff;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
+    .expand-icon {
+        font-size: 11px;
+        color: #888;
+        margin-left: 4px;
+    }
+
+    .student-card-body {
+        padding: 14px;
+        border-top: 1px solid #dee2e6;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    /* ── События перевода ── */
+    .transfers-history {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .transfer-event {
+        border-left: 3px solid #ccc;
+        padding: 6px 10px;
+        background: #fafafa;
+        border-radius: 0 6px 6px 0;
+    }
+
+    .te-year {
+        font-weight: 700;
+        font-size: 13px;
+        margin-right: 8px;
+        color: #333;
+    }
+
+    .te-type {
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .te-detail {
+        font-size: 12px;
+        color: #555;
+        margin-top: 4px;
+        line-height: 1.5;
+    }
+
+    /* ── График траектории ── */
+    .trajectory-chart {
+        margin: 0 -2px;
+    }
+
+    /* ── Тултип траектории ── */
+    .traj-tooltip {
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 8px 12px;
+        font-size: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+
+        .traj-tooltip-year  { font-weight: 700; color: #333; margin-bottom: 3px; }
+        .traj-tooltip-inst  { color: #555; }
+        .traj-tooltip-dir   { color: #777; font-style: italic; }
+        .traj-tooltip-score { margin-top: 4px; color: #1565c0; }
+    }
+}
