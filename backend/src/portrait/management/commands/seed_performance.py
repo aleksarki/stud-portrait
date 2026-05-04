@@ -1,6 +1,6 @@
 import random
 from django.core.management.base import BaseCommand
-from myapp.models import Results, Academicperformance
+from portrait.models import Results, Academicperformance
 
 COMP_FIELDS = [
     'res_comp_info_analysis', 'res_comp_planning', 'res_comp_result_orientation',
