@@ -4,6 +4,7 @@ from portrait.models import Results, Participants, Course, Institutions
 import traceback
 from .common import *
 import numpy as np
+from collections import defaultdict
 
 comp_fields = [
     'res_comp_info_analysis', 'res_comp_planning', 'res_comp_result_orientation',
@@ -284,12 +285,76 @@ def get_motivation_counts(request):
         return JsonResponse(response_data)
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
-    
+
+scores={
+    'неудовл.':2,
+    'удовл.':3,
+    'хор.':4,
+    'отл.':5
+}
+
 def get_scores_result(request):
     try:
+        inst = request.GET.get('institute')
+        spec = request.GET.get('specialty')
+        year = request.GET.get('year')
 
+        base_filter = {}
+        if inst: base_filter['res_institution__inst_name'] = inst
+        if spec: base_filter['res_spec__spec_name'] = spec
+        if year:    base_filter['res_year'] = year
 
-        response_data={"status": "success", "data": 0}
+        main = Results.objects.filter(**base_filter)
+        participant_ids = list(main.values_list('res_participant__part_id', flat=True).distinct())
+        result=[]
+        avgs = {}
+        avgs_qs = (
+            Results.objects.filter(**base_filter)
+            .values('res_participant__part_id')
+            .annotate(**{f'avg_{f}': Avg(f) for f in comp_fields})
+        )
+
+        avgs = {
+            r['res_participant__part_id']: round(
+                sum(r[f'avg_{f}'] or 0 for f in comp_fields) / len(comp_fields), 1
+            )
+            for r in avgs_qs
+        }
+        ap = Academicperformance.objects.filter(
+            perf_part__in=participant_ids
+        ).values('perf_part_id', 'perf_discipline', 'perf_main_attestation')
+
+        #disciplines = list({r['perf_discipline'] for r in ap})
+        disciplines = ['ПИР','УП','Эксплуатационная практика','Преддипломная практика']
+        by_discipline = defaultdict(list)
+        print('we tuta?')
+        comp_by_part=defaultdict(list)
+        
+        for record in ap:
+            pid = record['perf_part_id']
+            avg=avgs.get(pid)
+            grade=scores.get(record['perf_main_attestation'])
+            if avg is None or grade is None or avg <200:
+                continue
+            comp_by_part[pid] = {
+                field: int(record.get(field)) if record.get(field) is not None else None
+                for field in comp_fields
+            }
+            by_discipline[record['perf_discipline']].append({
+                'participant_id': pid,
+                'grade': grade,
+                'avg': avg,
+                **comp_by_part.get(pid, {}),
+            })
+
+        result = [
+            {'discipline': disc, 'participants': parts}
+            for disc, parts in by_discipline.items()
+        ]
+        print('we tuta1?')
+        response_data={"status": "success", "data": result, "names":disciplines}
         return JsonResponse(response_data) 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return JsonResponse({"status": "error", "message": str(e)}, status=500)

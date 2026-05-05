@@ -2,48 +2,143 @@ import { useState, useEffect } from 'react';
 import { COURSES_NAMES, LINK_TREE } from "../../utilities.js";
 
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import Select from 'react-select';
 
 import "./AdminAPView.scss";
+const competencyLabels = {
+    "res_comp_info_analysis": "Анализ информации",
+    "res_comp_planning": "Планирование",
+    "res_comp_result_orientation": "Ориентация на результат",
+    "res_comp_stress_resistance": "Стрессоустойчивость",
+    "res_comp_partnership": "Партнёрство",
+    "res_comp_rules_compliance": "Соблюдение правил",
+    "res_comp_self_development": "Саморазвитие",
+    "res_comp_leadership": "Лидерство",
+    "res_comp_emotional_intel": "Эмоциональный интеллект",
+    "res_comp_client_focus": "Клиентоориентированность",
+    "res_comp_communication": "Коммуникация",
+    "res_comp_passive_vocab": "Пассивный словарный запас",
 
-
-function ScatterPlot({ data }) {
-    if (!data){
-        console.log('нет данных');
-        return <div className="p-4 text-gray-500 text-center">Нет данных для отображения</div>;
-    }
-
+    'res_mot_autonomy': 'Автономия',
+    'res_mot_altruism': 'Альтруизм',
+    'res_mot_challenge': 'Вызов',
+    'res_mot_salary': 'Заработок',
+    'res_mot_career': 'Карьера',
+    'res_mot_creativity': 'Креативность',
+    'res_mot_relationships': 'Отношения',
+    'res_mot_recognition': 'Признание',
+    'res_mot_affiliation': 'Принадлежность',
+    'res_mot_self_development': 'Саморазвитие',
+    'res_mot_purpose': 'Смысл',
+    'res_mot_cooperation': 'Сотрудничество',
+    'res_mot_stability': 'Стабильность',
+    'res_mot_tradition': 'Традиция',
+    'res_mot_management': 'Управление',
+    'res_mot_work_conditions': 'Условия труда'
+    
+};
+const scores={
+    2:'неудовл.',
+    3:'удовл.',
+    4:'хор.',
+    5:'отл.'
+};
+function DisciplineScatter({ discipline, participants }) {
+    const [selectedComp, setSelectedComp] = useState('avg');
+    console.log(participants[0]);
+    const chartData = participants
+        .map(p => {
+        const x = selectedComp === 'avg' ? p.avg : p[selectedComp];
+        return x != null && p.grade != null
+            ? { x, y: p.grade, id: p.participant_id }
+            : null;
+        })
+        .filter(Boolean);
+    
     return (
-        <ResponsiveContainer width="100%" height={400}>
-          <ScatterChart margin={{ top: 20, right: 30, bottom: 20, left: 20 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
+        <div className="ds-card">
+        <div className="ds-header">
+            <h4 className="ds-title">{discipline}</h4>
+            <select
+            className="ds-select"
+            value={selectedComp}
+            onChange={e => setSelectedComp(e.target.value)}
+            >
+            <option value="avg">Средний балл</option>
+            {Object.keys(competencyLabels).map(k => (
+                <option key={k} value={k}>{competencyLabels[k]}</option>
+            ))}
+            </select>
+        </div>
+        <ResponsiveContainer width="100%" height={300}>
+            <ScatterChart margin={{ top: 16, right: 24, bottom: 32, left: 8 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+            <ReferenceLine y={0} stroke="#333" strokeWidth={1} />
+
             <XAxis
-              dataKey="mean"
-              name="Mean"
-              type="number"
-              label={{ value: 'mean', position: 'insideBottom', offset: -10 }}
-              tick={{ fontSize: 12 }}
+                type="number"
+                dataKey="x"
+                domain={[150, 800]}
+                name="Балл"
+                label={{ value: 'Средний балл', position: 'insideBottom', offset: -16, fontSize: 11, fill: '#94a3b8' }}
+                tick={{ fontSize: 11, fill: '#94a3b8' }}
+                tickLine={false}
             />
             <YAxis
-              dataKey="score"
-              name="Score"
-              label={{ value: 'score', angle: -90, position: 'insideLeft' }}
-              tick={{ fontSize: 12 }}
+                type="number"
+                dataKey="y"
+                domain={[2, 6]}
+                ticks={[2, 3, 4, 5]}
+                name="Оценка"
+                label={{ value: 'Оценка', angle: -90, position: 'insideLeft', fontSize: 11, fill: '#94a3b8' }}
+                tick={{ fontSize: 11, fill: '#94a3b8' }}
+                tickLine={false}
+                axisLine={false}
             />
-            <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+            <Tooltip
+                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: 12 }}
+                formatter={(value, name) => [value, name === 'x' ? 'Балл' : 'Оценка']}
+                cursor={{ strokeDasharray: '3 3' }}
+            />
+
             <Scatter
-              data={data}
-              fill="darkred"
-              fillOpacity={0.1}    
-              stroke="darkred"
-              strokeOpacity={0.3}
-              r={4}       
+                data={chartData}
+                fill="rgb(101, 142, 208)"
+                fillOpacity={0.25}
+                stroke="rgb(101, 142, 208)"
+                strokeOpacity={0.6}
+                r={4}
             />
-          </ScatterChart>
+            </ScatterChart>
         </ResponsiveContainer>
-      );
+
+        </div>
+    );}
+          
+function DisciplineScatterGrid({ data, disciplines }) {
+    console.log(disciplines);
+    if (!disciplines?.length) return <div>Ошибка при загрузке дисциплин</div>;
+
+    const filtered = disciplines.map(disc =>
+    data.find(d => d.discipline === disc)
+    ).filter(Boolean);
+
+    return (
+        <div className="ds-grid">
+        {filtered.map(({ discipline, participants }) => (
+            <DisciplineScatter
+            key={discipline}
+            discipline={discipline}
+            participants={participants}
+            />
+        ))}
+        </div>
+    );
 }
+          
+          
+          
 const FilterHeader = ({ onFilterChange }) => {
     const [options, setOptions] = useState({ institutes: [], specialties: [], years: [] });
     const [loading, setLoading] = useState(true);
@@ -114,6 +209,7 @@ function AdminAPView() {
 
     const loadScoresResult = async (currentFilters) => {
         setLoading(true);
+        setErrorStatus(false);
         try {
             let baseUrl = `http://localhost:8000/portrait/scores-result`;
             const params = new URLSearchParams();
@@ -146,17 +242,17 @@ function AdminAPView() {
         setFilters(prev => ({ ...prev, [name]: value }));
     };
     return (
-        <div className="MainPage">
+        <div className="AdminAPView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
                 <Header title="Академические показатели" name="Админимтратор1" />
                 <Sidebar linkTree={LINK_TREE} />
+                <Content>
                 <FilterHeader onFilterChange={updateFilter} 
                             currentFilters={filters}/>
-                <Content>
                 {isError ? (<div className="p-10 text-center"> Ошибка при загрузке данных </div>) :
                     (<>{LoadingData ? (
                     <div className="p-10 text-center">Загрузка данных...</div>)
-                    : <><ScatterPlot data={ScatterData?.data}/></>}
+                    : <><DisciplineScatterGrid data={ScatterData?.data} disciplines={ScatterData?.names}/></>}
                     </>)}
                 </Content>
             </SidebarLayout>

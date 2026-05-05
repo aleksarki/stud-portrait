@@ -176,16 +176,24 @@ function CompetencyTable({ data, year }) {
             <table className="ct-table">
                 <thead>
                 <tr>
-                    <th>Компетенция</th>
-                    <th>{year - 1}</th>
-                    <th>{year}</th>
-                    <th>Разница</th>
+                    <th rowSpan={2}>Компетенция</th>
+                    <th colSpan={3}>Средний балл</th> 
+                    <th rowSpan={2}>%</th>
+                </tr>
+                <tr>
+                    
+                    <th style={{ textAlign: 'center' }}>{year - 1}</th>
+                    <th style={{ textAlign: 'center' }}>{year}</th>
+                    <th style={{ textAlign: 'center' }}>Разница</th>
                 </tr>
                 </thead>
                 <tbody>
                 {data.map(row => {
                     const delta = row.score != 0 && row.prev_score != 0
                     ? Math.round(row.score) - Math.round(row.prev_score)
+                    : null;
+                    const procent = delta != null
+                    ? Math.round(delta*100/Math.round(row.prev_score),2)
                     : null;
                     return (
                     <tr key={row.displayName}>
@@ -196,6 +204,13 @@ function CompetencyTable({ data, year }) {
                         {delta === null ? '—' : (
                             <span className={delta > 0 ? 'ct-pos' : delta < 0 ? 'ct-neg' : 'ct-zero'}>
                             {delta > 0 ? '+' : ''}{delta}
+                            </span>
+                        )}
+                        </td>
+                        <td>
+                        {procent === null ? '—' : (
+                            <span className={procent > 0 ? 'ct-pos' : procent < 0 ? 'ct-neg' : 'ct-zero'}>
+                            {procent > 0 ? '+' : ''}{procent}
                             </span>
                         )}
                         </td>
@@ -427,6 +442,7 @@ function Dashboard({ data }) {
                             tickLine={false} 
                             axisLine={false} 
                             tick={{fill: ' #94a3b8'}} 
+                            label={{ value: 'Средний балл', angle: -90, position: 'insideLeft', fontSize: 11, fill: 'rgb(122, 136, 156)' }}
                         />
                         <Tooltip 
                             cursor={{fill: '#f8fafc'}}
@@ -444,7 +460,7 @@ function Dashboard({ data }) {
                                 fontSize={12}
                                 fill="rgb(81, 87, 110)"
                             /></Bar>
-                        <Bar yaxis="Средний балл" name={year-1} dataKey="prev_score" fill=" #904acc" radius={[6, 6, 0, 0]} barSize={22} >
+                        <Bar name={year-1} dataKey="prev_score" fill=" #904acc" radius={[6, 6, 0, 0]} barSize={22} >
                             <LabelList
                                 formatter={(value)=>Math.round(value)}
                                 position="top"

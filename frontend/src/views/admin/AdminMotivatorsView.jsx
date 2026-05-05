@@ -221,11 +221,12 @@ function MotivatorStackedChart({ chart_data }) {
                     interval={0}
                     height={80}
                     stroke="#666"
-
                 />
                 <YAxis 
                     tickFormatter={formatValue} 
                     stroke="#666"
+                    label={{ value: 'Количество студентов', angle: -90, position: 'insideLeft', fontSize: 11, fill: '#94a3b8' }}
+                
                 />
                 <Tooltip content={(props) => <Tooltippy {...props} chartHeight={chartHeight}
                 wrapperStyle={{ overflow: "visible", pointerEvents: "none", zIndex: 9999 }} />} />

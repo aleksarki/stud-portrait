@@ -188,6 +188,8 @@
             padding: 8px 12px;
             text-align: center;
             border-bottom: 1px solid #e2e8f0;
+            border-top: 1px solid #e2e8f0;
+            border-right: 1px solid #e2e8f0;
             position: sticky;
             top: 0;
             &:first-child { text-align: left; }
@@ -197,6 +199,7 @@
             padding: 7px 12px;
             text-align: center;
             border-bottom: 1px solid #f1f5f9;
+            border-right: 1px solid #f1f5f9;
             color: #334155;
             }
         
