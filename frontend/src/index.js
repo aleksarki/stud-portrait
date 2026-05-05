@@ -20,11 +20,12 @@ import AdminMainView from "./views/admin/AdminMainView";
 import AdminMotivatorsView from "./views/admin/AdminMotivatorsView";
 import AdminResultsView from "./views/admin/AdminResultsView";
 import AdminStatsView from "./views/admin/AdminStatsView";
-import AdminUploadView from "./views/admin/AdminUploadView";
 import AdminAPView from "./views/admin/AdminAPView";
 
 import StudentMainView from "./views/student/StudentMainView";
 import StudentReportView from "./views/student/StudentReportView";
+
+import SuperUploadView from "./views/super/SuperUploadView";
 
 import reportWebVitals from "./reportWebVitals";
 import "./index.css";
@@ -35,6 +36,9 @@ const router = createBrowserRouter([
     element: <App />,
     errorElement: <ErrorView />
   },
+
+  /* STUDENT VIEWS */
+
   {
     path: "/student/:studentId",
     element: <StudentMainView />
@@ -43,6 +47,9 @@ const router = createBrowserRouter([
     path: "/student/:studentId/report/:reportType",
     element: <StudentReportView />
   },
+
+  /* ADMIN VIEWS */
+
   {
     path: "/admin/",
     element: <AdminMainView />
@@ -92,10 +99,6 @@ const router = createBrowserRouter([
     element: <AdminCoursesView />
   },
   {
-    path: "/admin/upload",
-    element: <AdminUploadView />
-  },
-  {
     path: "/admin/grouping",
     element: <AdminGroupingView />
   },
@@ -106,6 +109,13 @@ const router = createBrowserRouter([
   {
     path: "/admin/AP",
     element: <AdminAPView />
+  },
+
+  /* SUPERADMIN VIEWS */
+
+  {
+    path: "/super/upload",
+    element: <SuperUploadView />
   }
 ])
 

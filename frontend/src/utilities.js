@@ -27,11 +27,14 @@ export const LINK_TREE = [
             {title: "Области образования", to: '/admin/analysis/edu-profiles'},
             {title: "Переведённые студенты", to: '/admin/analysis/transfered-students'}
         ]
-    },
+    }
+];
+
+export const SUPER_LINK_TREE = [
     {
         category: "Управление данными",
         links: [
-            {title: "Загрузка данных", to: '/admin/upload'}
+            {title: "Загрузка данных", to: '/super/upload'}
         ]
     }
 ];
