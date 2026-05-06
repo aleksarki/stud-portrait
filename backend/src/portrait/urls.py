@@ -1,6 +1,9 @@
 from django.urls import path
 
-from .endpoints import stat, dataload, datasesh, statsresult, ai_interp, gen_resume, gen_docx_resume, analysis_end, transfer_analysis
+from .endpoints import (
+    stat, dataload, datasesh, statsresult, ai_interp, gen_resume,
+    gen_docx_resume, analysis_end, transfer_analysis, audit
+)
 
 urlpatterns = [
     path("courses/",                        statsresult.courses,                        name="courses"),
@@ -71,4 +74,10 @@ urlpatterns = [
     path('get-templates/',        dataload.get_templates,        name='get_templates'),
     path('save-template/',        dataload.save_template,        name='save_template'),
     path('delete-template/<int:template_id>/', dataload.delete_template, name='delete_template'),
+
+    # Аудит базы данных
+    path('audit/schema/',     audit.get_database_schema,   name='audit_schema'),
+    path('audit/table-data/', audit.get_table_sample_data, name='audit_table_data'),
+    path('audit/stats/',      audit.get_database_stats,    name='audit_stats'),
+    path('audit/sql/',        audit.execute_raw_sql,       name='audit_sql')
 ]

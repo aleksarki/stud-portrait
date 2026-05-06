@@ -34,7 +34,9 @@ export const SUPER_LINK_TREE = [
     {
         category: "Управление данными",
         links: [
-            {title: "Загрузка данных", to: '/super/upload'}
+            {title: "Аудит данных", to: '/super/audit'},
+            {title: "Загрузка данных", to: '/super/upload'},
+            {title: "SQL-запросник", to: '/super/sql'}
         ]
     }
 ];

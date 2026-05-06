@@ -443,3 +443,38 @@ export function getStudentComparisonStats(studentId, year) {
     const promise = fetch(url);
     return new AsyncChain(promise);
 }
+
+// Аудит базы данных
+export function getAuditSchema(tableName = null) {
+    const params = new URLSearchParams();
+    if (tableName) params.append('table_name', tableName);
+    const url = `${PROTOCOL}://${HOST}/portrait/audit/schema/${params.toString() ? `?${params.toString()}` : ''}`;
+    const promise = fetch(url);
+    return new AsyncChain(promise);
+}
+
+export function getAuditTableData(tableName, limit = 10) {
+    const params = new URLSearchParams();
+    params.append('table_name', tableName);
+    params.append('limit', limit);
+    const url = `${PROTOCOL}://${HOST}/portrait/audit/table-data/?${params.toString()}`;
+    const promise = fetch(url);
+    return new AsyncChain(promise);
+}
+
+export function getAuditStats() {
+    const url = `${PROTOCOL}://${HOST}/portrait/audit/stats/`;
+    const promise = fetch(url);
+    return new AsyncChain(promise);
+}
+
+export function postAuditSQL(query) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/audit/sql/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query })
+    });
+    return new AsyncChain(promise);
+}

@@ -1,0 +1,19 @@
+.SuperSqlView {
+    .sql-input {
+        border-radius: 8px;
+        padding: 12px;
+        font-family: 'Courier New', monospace;
+        font-size: 13px;
+        resize: vertical;
+
+        &:focus {
+            outline: none;
+            border-color: #1976d2;
+        }
+    }
+
+    .sql-result {
+        margin-top: 20px;
+        border-top: 1px solid #3d3d3d;
+    }
+}

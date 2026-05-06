@@ -25,6 +25,8 @@ import AdminAPView from "./views/admin/AdminAPView";
 import StudentMainView from "./views/student/StudentMainView";
 import StudentReportView from "./views/student/StudentReportView";
 
+import SuperAuditView from "./views/super/SuperAuditView";
+import SuperSqlView from "./views/super/SuperSqlView";
 import SuperUploadView from "./views/super/SuperUploadView";
 
 import reportWebVitals from "./reportWebVitals";
@@ -114,8 +116,16 @@ const router = createBrowserRouter([
   /* SUPERADMIN VIEWS */
 
   {
+    path: "/super/audit",
+    element: <SuperAuditView />
+  },
+  {
     path: "/super/upload",
     element: <SuperUploadView />
+  },
+  {
+    path: "/super/sql",
+    element: <SuperSqlView />
   }
 ])
 
