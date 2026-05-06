@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { getAuditSchema, getAuditTableData, getAuditStats, postAuditSQL } from "../../api";
+import { getAuditSchema, getAuditTableData, getAuditStats } from "../../api";
 import { SUPER_LINK_TREE } from "../../utilities";
 
 import FlexColumn from "../../components/FlexColumn";
