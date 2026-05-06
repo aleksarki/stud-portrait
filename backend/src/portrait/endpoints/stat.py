@@ -91,6 +91,7 @@ def overall_stats(request):
         print(traceback.format_exc())
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
+@cached()
 def get_dashboard_stats(request):
     response_data = {}
 
@@ -248,6 +249,7 @@ def get_competency_stats_courses(filter):
     return chart_data
 
 
+@cached()
 def get_motivation_counts(request):
     try:
         
@@ -293,6 +295,7 @@ scores={
     'отл.':5
 }
 
+@cached()
 def get_scores_result(request):
     try:
         inst = request.GET.get('institute')

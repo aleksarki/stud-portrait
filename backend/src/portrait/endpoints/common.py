@@ -1,5 +1,11 @@
 
+from functools import wraps
+import hashlib
+import json
+
+from django.core.cache import cache
 from django.http import JsonResponse
+from django.views.decorators.cache import cache_page
 from django.views.decorators.csrf import csrf_exempt
 
 from ..constants import (
@@ -100,3 +106,52 @@ def jsonResponse(func):
             print(str(e))
             return exceptionResponse(str(e))
     return wrapper
+
+def cached(timeout=3600, key_prefix='api'):
+    """ Automatically cache GET and POST methods wwith parameters.
+    """
+    @csrf_exempt
+    def decorator(func):
+        @wraps(func)
+        @csrf_exempt
+        def wrapper(request):
+            match request.method:
+                case 'GET':
+                    params = request.GET.dict()
+                    cache_data = {
+                        'path':   request.path,
+                        'method': request.method,
+                        'params': params
+                    }
+                case 'POST':
+                    body = json.loads(request.body) if request.body else {}
+                    cache_data = {
+                        'path': request.path,
+                        'body': body
+                    }
+                case _:
+                    raise Exception("Invalid method")
+
+            cache_str = json.dumps(cache_data, sort_keys=True)
+            cache_key = f"{key_prefix}:{hashlib.md5(cache_str.encode()).hexdigest()}"
+
+            try:
+                cached_response = cache.get(cache_key)
+                if cached_response is not None:
+                    print("Cache HIT:", cache_key)
+                    return cached_response
+
+                print("Cache MISS:", cache_key)
+                response = func(request)
+
+                if response.status_code == 200:
+                    cache.set(cache_key, response, timeout=timeout)
+
+                return response
+            
+            except Exception as e:
+                print("Cache UNAVAILABLE")
+                return func(request)
+
+        return wrapper
+    return decorator

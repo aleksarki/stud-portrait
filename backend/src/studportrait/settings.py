@@ -95,6 +95,18 @@ DATABASES = {
     }
 }
 
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",  # URL вашего Redis-сервера
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+        "KEY_PREFIX": "my_portal",  # Префикс для всех ключей кэша
+        "TIMEOUT": 300  # Время жизни кэша по умолчанию: 300 секунд (5 минут)
+    }
+}
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
