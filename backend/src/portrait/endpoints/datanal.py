@@ -16,115 +16,113 @@ from .common import *
 # ============================================================
 
 class ValueAddedModel:
-    """
-    Value-Added Model для оценки прогресса студента.
-    
-    Измеряет, насколько результат студента отличается от ожидаемого
-    на основе его предыдущих показателей и контрольных переменных.
-    """
-    
+
     def __init__(self):
-        self.model = None
-        self.scaler = StandardScaler()
-        self.baseline_mean = None
-        self.baseline_std = None
-    
-    def fit_for_student(self, student_data):
+        self.global_expected_growth = None  # задаётся извне или вычисляется на когорте
+
+    def compute_global_baseline(self, cohort_df):
+        all_growths = []
+        for _, sdf in cohort_df.groupby('student_id'):
+            sdf = sdf.sort_values(['year', 'course'])
+            growths = sdf['competency_score'].diff().dropna()
+            all_growths.extend(growths.tolist())
+
+        if not all_growths:
+            self.global_expected_growth = 0.0
+            return 0.0
+
+        positive_growths = [g for g in all_growths if g > 0]
+
+        if not positive_growths:
+            # Все студенты деградируют — baseline = 0 (ожидаем хотя бы стабильность)
+            self.global_expected_growth = 0.0
+        else:
+            # Медиана только по тем, кто реально вырос
+            self.global_expected_growth = float(np.median(positive_growths))
+
+        return self.global_expected_growth
+
+    def fit_for_student(self, student_data, expected_growth=None):
         """
-        Обучает модель на данных конкретного студента.
-        
-        Args:
-            student_data: DataFrame с колонками [year, course, competency_score]
-        
-        Returns:
-            dict: Результаты анализа для студента
+        expected_growth: если None — используется self.global_expected_growth.
+                         Если и оно None — fallback на 5% от начального балла
+                         (только для одиночного студента без когорты).
         """
         if len(student_data) < 2:
-            return {
-                'status': 'insufficient_data',
-                'message': 'Недостаточно данных для анализа (нужно минимум 2 замера)'
-            }
-        
-        # Сортируем по году/курсу
+            return {'status': 'insufficient_data',
+                    'message': 'Недостаточно данных (нужно минимум 2 замера)'}
+
         student_data = student_data.sort_values(['year', 'course'])
-        
-        # Вычисляем прирост компетенции
+        student_data = student_data.copy()
         student_data['prev_score'] = student_data['competency_score'].shift(1)
         student_data['actual_growth'] = student_data['competency_score'] - student_data['prev_score']
-        
-        # Убираем первую запись (нет предыдущего балла)
+
         growth_data = student_data[student_data['prev_score'].notna()].copy()
-        
         if len(growth_data) == 0:
-            return {
-                'status': 'insufficient_data',
-                'message': 'Недостаточно данных для расчёта прироста'
-            }
-        
-        # Ожидаемый прирост (baseline)
-        expected_growth = growth_data['prev_score'].mean() * 0.05  # 5% рост
-        
-        # Value-Added = фактический прирост - ожидаемый прирост
-        growth_data['value_added'] = growth_data['actual_growth'] - expected_growth
-        
-        # Статистика
-        avg_value_added = growth_data['value_added'].mean()
-        std_value_added = growth_data['value_added'].std()
-        
-        # Классификация студента
-        if avg_value_added > 0.5 * std_value_added:
-            performance = 'above_expected'
-            performance_label = 'Выше ожидаемого'
-        elif avg_value_added < -0.5 * std_value_added:
-            performance = 'below_expected'
-            performance_label = 'Ниже ожидаемого'
+            return {'status': 'insufficient_data',
+                    'message': 'Недостаточно данных для расчёта прироста'}
+
+        # Определяем baseline: приоритет — аргумент → global → fallback
+        if expected_growth is not None:
+            baseline = expected_growth
+        elif self.global_expected_growth is not None:
+            baseline = self.global_expected_growth
         else:
-            performance = 'as_expected'
-            performance_label = 'Соответствует ожиданиям'
-        
+            # fallback только для студента без когорты
+            baseline = float(growth_data['prev_score'].iloc[0]) * 0.05
+
+        growth_data['expected_growth'] = baseline
+        growth_data['value_added'] = growth_data['actual_growth'] - baseline
+
+        avg_va = growth_data['value_added'].mean()
+        std_va = growth_data['value_added'].std() if len(growth_data) > 1 else 0.0
+
+        if std_va and avg_va > 0.5 * std_va:
+            performance, label = 'above_expected', 'Выше ожидаемого'
+        elif std_va and avg_va < -0.5 * std_va:
+            performance, label = 'below_expected', 'Ниже ожидаемого'
+        else:
+            performance, label = 'as_expected', 'Соответствует ожиданиям'
+
         return {
             'status': 'success',
             'measurements': len(growth_data),
-            'average_value_added': float(avg_value_added),
+            'average_value_added': float(avg_va),
             'total_growth': float(growth_data['actual_growth'].sum()),
-            'expected_growth': float(expected_growth * len(growth_data)),
+            'expected_growth_per_period': float(baseline),
             'performance': performance,
-            'performance_label': performance_label,
-            'growth_by_period': growth_data[['year', 'course', 'actual_growth', 'value_added']].to_dict('records')
+            'performance_label': label,
+            'growth_by_period': growth_data[
+                ['year', 'course', 'actual_growth', 'expected_growth', 'value_added']
+            ].to_dict('records')
         }
-    
-    def fit_cohort(self, cohort_data, control_variables=None):
+
+    def fit_cohort(self, cohort_data):
         """
-        Обучает VAM на когорте студентов.
-        
-        Args:
-            cohort_data: DataFrame с данными студентов
-            control_variables: Список контрольных переменных
-        
-        Returns:
-            dict: Результаты анализа когорты
+        Сначала вычисляет глобальный baseline, потом считает VAM для каждого студента.
         """
-        # Группируем по студентам
-        student_groups = cohort_data.groupby('student_id')
+        cohort_df = cohort_data.rename(columns={'time_point': 'course'}) \
+            if 'time_point' in cohort_data.columns else cohort_data.copy()
         
+        # Вычисляем глобальный baseline по всей когорте
+        self.compute_global_baseline(cohort_df)
+
         results = []
-        for student_id, student_df in student_groups:
-            student_result = self.fit_for_student(student_df)
-            if student_result['status'] == 'success':
-                student_result['student_id'] = student_id
-                results.append(student_result)
-        
+        for student_id, sdf in cohort_df.groupby('student_id'):
+            sdf = sdf.rename(columns={'time_point': 'course'}) \
+                if 'time_point' in sdf.columns else sdf
+            r = self.fit_for_student(sdf)
+            if r['status'] == 'success':
+                r['student_id'] = student_id
+                results.append(r)
+
         if not results:
-            return {
-                'status': 'error',
-                'message': 'Нет студентов с достаточными данными'
-            }
-        
-        # Агрегированная статистика
+            return {'status': 'error', 'message': 'Нет студентов с достаточными данными'}
+
         avg_values = [r['average_value_added'] for r in results]
-        
         return {
             'status': 'success',
+            'global_expected_growth': self.global_expected_growth,
             'total_students': len(results),
             'avg_value_added': float(np.mean(avg_values)),
             'std_value_added': float(np.std(avg_values)),

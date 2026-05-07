@@ -28,7 +28,7 @@ import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import Select, { Option } from "../../../components/ui/Select";
 
 import SankeyDiagram from '../../../components/charts/SankeyDiagram';
-import VamCourseScatter from '../../../components/charts/VamCourseScatter';
+import VamDotPlot from '../../../components/charts/VamDotPlot';
 
 import AiInsightPanel from "../../../components/AiInsightPanel";
 import "./AdminAnalysisAdvancedView.scss";
@@ -358,8 +358,15 @@ function AdminAnalysisAdvancedView() {
                         </LineChart>
                     </ResponsiveContainer>
                 ) : (
-                    <div className="lgm-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(450px, 1fr))', gap: 20 }}>
-                        {groups.map(group => {
+                    <div
+                        className="lgm-grid"
+                        style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',  // всегда ровно 2 столбца
+                            gap: 16,
+                        }}
+                    >
+                        {groups.map((group, idx) => {
                             const chartData = [];
                             for (let course = 1; course <= 4; course++) {
                                 chartData.push({
@@ -367,29 +374,46 @@ function AdminAnalysisAdvancedView() {
                                     value: group.mean_intercept + group.mean_slope * (course - 1)
                                 });
                             }
+                            const color = colors[idx % colors.length];
                             return (
-                                <div key={group.group_id} className="lgm-group-card" style={{ border: '1px solid #e0e0e0', borderRadius: 8, padding: 12, background: '#fafafa' }}>
-                                    <h5 style={{ marginBottom: 12 }}>{group.group_name}</h5>
-                                    <ResponsiveContainer width="100%" height={200}>
-                                        <LineChart data={chartData}>
-                                            <XAxis dataKey="course" />
-                                            <YAxis />
-                                            <Tooltip />
-                                            <Line type="monotone" dataKey="value" stroke="#1976d2" strokeWidth={2} name="Средняя траектория" />
+                                <div
+                                    key={group.group_id}
+                                    className="lgm-group-card"
+                                    style={{ border: '1px solid #e0e0e0', borderRadius: 8, padding: '14px 16px', background: '#fafafa' }}
+                                >
+                                    <h5 style={{ marginBottom: 4, fontSize: 13, fontWeight: 600, color: '#2c3e50' }}>
+                                        {group.group_name}
+                                    </h5>
+                                    <div style={{ fontSize: 11, color: '#999', marginBottom: 10 }}>
+                                        {group.n_students} студентов · старт {group.mean_intercept.toFixed(1)} · рост {group.mean_slope > 0 ? '+' : ''}{group.mean_slope.toFixed(3)}/курс
+                                    </div>
+                                    <ResponsiveContainer width="100%" height={260}>
+                                        <LineChart data={chartData} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#ececec" />
+                                            <XAxis dataKey="course" tick={{ fontSize: 11 }} />
+                                            <YAxis tick={{ fontSize: 11 }} width={40} />
+                                            <Tooltip
+                                                formatter={(val) => [val.toFixed(2), 'Траектория']}
+                                                contentStyle={{ fontSize: 12 }}
+                                            />
+                                            <Line
+                                                type="monotone"
+                                                dataKey="value"
+                                                stroke={color}
+                                                strokeWidth={2.5}
+                                                dot={{ r: 4, fill: color }}
+                                                activeDot={{ r: 6 }}
+                                                name="Средняя траектория"
+                                            />
                                         </LineChart>
                                     </ResponsiveContainer>
-                                    <div style={{ fontSize: 12, marginTop: 8 }}>
-                                        <div>Студентов: {group.n_students}</div>
-                                        <div>Начальный уровень: {group.mean_intercept.toFixed(1)}</div>
-                                        <div>Скорость роста: {group.mean_slope.toFixed(3)}</div>
-                                    </div>
                                     {group.interpretation && (
                                         <details style={{ marginTop: 8 }}>
-                                            <summary style={{ fontSize: 12, cursor: 'pointer' }}>Интерпретация</summary>
-                                            <div style={{ fontSize: 12, marginTop: 4 }}>
-                                                <p>Средняя скорость роста: <strong>{group.interpretation.average_growth_rate?.toFixed(3)}</strong></p>
-                                                <p>Быстрорастущие: {group.interpretation.fast_growers_count} ({group.interpretation.fast_growers_pct?.toFixed(1)}%)</p>
-                                                <p>Медленнорастущие: {group.interpretation.slow_growers_count} ({group.interpretation.slow_growers_pct?.toFixed(1)}%)</p>
+                                            <summary style={{ fontSize: 12, cursor: 'pointer', color: '#666' }}>Интерпретация</summary>
+                                            <div style={{ fontSize: 12, marginTop: 4, lineHeight: 1.6 }}>
+                                                <div>Средняя скорость роста: <strong>{group.interpretation.average_growth_rate?.toFixed(3)}</strong></div>
+                                                <div>Быстрорастущие: {group.interpretation.fast_growers_count} ({group.interpretation.fast_growers_pct?.toFixed(1)}%)</div>
+                                                <div>Медленнорастущие: {group.interpretation.slow_growers_count} ({group.interpretation.slow_growers_pct?.toFixed(1)}%)</div>
                                             </div>
                                         </details>
                                     )}
@@ -460,14 +484,14 @@ function AdminAnalysisAdvancedView() {
 
                 {vamChartMode === 'combined' ? (
                     <div className="vam-chart">
-                        <VamCourseScatter data={vamData} groupBy={vamGroupBy} />
+                        <VamDotPlot data={vamData} />
                     </div>
                 ) : (
                     <div className="vam-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(450px, 1fr))', gap: 20 }}>
                         {groups.map(group => (
                             <div key={group.name} className="vam-group-card" style={{ border: '1px solid #e0e0e0', borderRadius: 8, padding: 12, background: '#fafafa' }}>
                                 <h5 style={{ marginBottom: 12, fontSize: 14, fontWeight: 600 }}>{group.name}</h5>
-                                <VamCourseScatter data={group.data} groupBy={vamGroupBy} />
+                                <VamDotPlot data={vamData} />
                                 <div style={{ fontSize: 12, marginTop: 8, color: '#666' }}>
                                     Количество точек: {group.data.length}
                                 </div>

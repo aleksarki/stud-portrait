@@ -1541,25 +1541,25 @@ def get_competency_level_flow(request):
 def get_vam_trend_data(request):
     """
     Возвращает данные для отображения VAM в разрезе курсов для каждой группы.
+    value_added здесь — реальный Value-Added (прирост минус ожидаемый),
+    агрегированный по студентам внутри каждой группы и курса.
     """
     try:
         body = json.loads(request.body)
         group_by = body.get('group_by', 'institution')
         competency = body.get('competency', 'res_comp_leadership')
         selected_groups = body.get('selected_groups', [])
-        
+
         filter_institutions = body.get('filter_institutions', [])
         filter_directions = body.get('filter_directions', [])
         filter_courses = body.get('filter_courses', [])
-        
+
         # Базовый queryset
         results = Results.objects.select_related('res_institution', 'res_spec')
-        
-        # Применяем фильтры
+
         if filter_institutions:
             results = results.filter(res_institution_id__in=filter_institutions)
         if filter_directions:
-            # Преобразуем названия в ID
             dir_ids = []
             for d in filter_directions:
                 if str(d).isdigit():
@@ -1572,20 +1572,12 @@ def get_vam_trend_data(request):
                 results = results.filter(res_spec_id__in=dir_ids)
         if filter_courses:
             results = results.filter(res_course_num__in=filter_courses)
-        
-        # Дополнительно фильтруем по выбранным группам (если они переданы)
+
         if selected_groups:
             if group_by == 'institution':
-                inst_ids = []
-                for g in selected_groups:
-                    if str(g).isdigit():
-                        inst_ids.append(int(g))
-                    # Если нужно поддерживать названия вузов, можно добавить поиск по inst_name
-                if inst_ids:
-                    results = results.filter(res_institution_id__in=inst_ids)
-                else:
-                    results = results.none()
-            else:  # direction
+                inst_ids = [int(g) for g in selected_groups if str(g).isdigit()]
+                results = results.filter(res_institution_id__in=inst_ids) if inst_ids else results.none()
+            else:
                 spec_ids = []
                 for g in selected_groups:
                     if str(g).isdigit():
@@ -1594,65 +1586,97 @@ def get_vam_trend_data(request):
                         spec = Specialties.objects.filter(spec_name=g).first()
                         if spec:
                             spec_ids.append(spec.spec_id)
-                if spec_ids:
-                    results = results.filter(res_spec_id__in=spec_ids)
-                else:
-                    results = results.none()
-        
-        # Собираем данные
+                results = results.filter(res_spec_id__in=spec_ids) if spec_ids else results.none()
+
+        # Собираем данные с лонгитюдной структурой: student -> курс -> балл
         data = []
         for r in results:
             score = getattr(r, competency, None)
             if score is None:
                 continue
             data.append({
-                'group_id': r.res_institution_id if group_by == 'institution' else r.res_spec_id,
-                'group_name': (r.res_institution.inst_name if r.res_institution else 'Неизвестно') if group_by == 'institution' else (r.res_spec.spec_name if r.res_spec else 'Неизвестно'),
-                'course': r.res_course_num,
-                'comp_score': score
+                'group_id':   r.res_institution_id if group_by == 'institution' else r.res_spec_id,
+                'group_name': (r.res_institution.inst_name if r.res_institution else 'Неизвестно')
+                              if group_by == 'institution'
+                              else (r.res_spec.spec_name if r.res_spec else 'Неизвестно'),
+                'student_id': r.res_participant_id,
+                'year':       r.res_year,
+                'course':     r.res_course_num,
+                'comp_score': score,
             })
-        
+
         if not data:
             return JsonResponse({'status': 'error', 'message': 'Нет данных'}, status=404)
-        
+
         df = pd.DataFrame(data)
-        
-        # Агрегируем по группам и курсам
+        vam_model = ValueAddedModel()
+        # Переименовываем course → course (уже так), добавляем year если нет
+        cohort_for_baseline = df.rename(columns={'comp_score': 'competency_score'})
+        global_baseline = vam_model.compute_global_baseline(cohort_for_baseline)
         result_data = []
+
         for (group_id, group_name), group_df in df.groupby(['group_id', 'group_name']):
-            courses_data = []
-            for course, course_df in group_df.groupby('course'):
-                scores = course_df['comp_score'].dropna()
-                if len(scores) < 3:
+            # Словарь: course -> список value_added отдельных студентов
+            va_by_course = {}
+
+            for student_id, student_df in group_df.groupby('student_id'):
+                # Нужно минимум 2 замера для расчёта VAM
+                if len(student_df) < 2:
                     continue
-                mean_score = scores.mean()
-                std_score = scores.std()
-                n = len(scores)
-                se = std_score / np.sqrt(n)
-                ci_lower = mean_score - 1.96 * se
-                ci_upper = mean_score + 1.96 * se
+
+                # Приводим к формату, который ожидает fit_for_student
+                student_input = student_df[['year', 'course', 'comp_score']].rename(
+                    columns={'comp_score': 'competency_score'}
+                ).copy()
+
+                analysis = vam_model.fit_for_student(student_input, expected_growth=global_baseline)
+                if analysis['status'] != 'success':
+                    continue
+
+                # Разносим VA по курсам (берём course из growth_by_period)
+                for period in analysis['growth_by_period']:
+                    course = period['course']
+                    va = period['value_added']
+                    if course not in va_by_course:
+                        va_by_course[course] = []
+                    va_by_course[course].append(va)
+
+            # Агрегируем VA по курсам
+            courses_data = []
+            for course, va_values in sorted(va_by_course.items()):
+                if len(va_values) < 3:
+                    continue
+                va_arr = np.array(va_values)
+                mean_va = va_arr.mean()
+                se = va_arr.std() / np.sqrt(len(va_arr))
                 courses_data.append({
-                    'course': int(course),
-                    'value_added': float(mean_score),
-                    'ci_lower': float(ci_lower),
-                    'ci_upper': float(ci_upper),
-                    'n': int(n)
+                    'course':      int(course),
+                    'value_added': float(mean_va),
+                    'ci_lower':    float(mean_va - 1.96 * se),
+                    'ci_upper':    float(mean_va + 1.96 * se),
+                    'n':           int(len(va_values)),
                 })
+
             if courses_data:
-                courses_data.sort(key=lambda x: x['course'])
                 result_data.append({
-                    'group_id': int(group_id),
+                    'group_id':   int(group_id),
                     'group_name': str(group_name),
-                    'courses': courses_data
+                    'courses':    courses_data,
                 })
-        
+
+        if not result_data:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Недостаточно лонгитюдных данных для VAM (нужны студенты с 2+ замерами)'
+            }, status=404)
+
         return JsonResponse({
-            'status': 'success',
-            'group_by': group_by,
+            'status':     'success',
+            'group_by':   group_by,
             'competency': competency,
-            'data': _convert_numpy_types(result_data)
+            'data':       _convert_numpy_types(result_data),
         })
-        
+
     except Exception as e:
         import traceback
         traceback.print_exc()

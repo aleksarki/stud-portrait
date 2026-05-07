@@ -6,8 +6,13 @@
         border-radius: 6px;
         min-height: 400px;
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: center;
+
+        > * {
+            width: 100%;
+            min-width: 0;
+        }
 
         .two-columns {
             padding: 20px;
