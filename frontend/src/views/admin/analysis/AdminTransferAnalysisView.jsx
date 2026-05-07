@@ -366,35 +366,82 @@ function AdminTransferAnalysisView() {
                     {/* ── Сводка ── */}
                     {summary && (
                         <FlexRow wrap={WRAP.DO} gap="12" margin="16 0">
-                            <ValueCard
-                                title="Студентов с переводами"
-                                value={summary.total_transfer_students}
-                            />
-                            <ValueCard
-                                title="Смен вуза"
-                                value={(byType.institution || 0) + (byType.both || 0)}
-                            />
-                            <ValueCard
-                                title="Смен направления"
-                                value={(byType.direction || 0) + (byType.both || 0)}
-                            />
+                            {/* Студентов с переводами */}
+                            <div style={{ flex: '1 1 180px', minWidth: '140px' }}>
+                                <ValueCard
+                                    title="Студентов с переводами"
+                                    value={summary.total_transfer_students}
+                                    tooltip="Уникальные студенты, у которых зафиксирован хотя бы один перевод (смена вуза, направления или оба)"
+                                />
+                                <div style={{ fontSize: '11px', color: '#6c757d', marginTop: '4px', textAlign: 'center' }}>
+                                    Уникальных студентов
+                                </div>
+                            </div>
+
+                            {/* Смен вуза */}
+                            <div style={{ flex: '1 1 180px', minWidth: '140px' }}>
+                                <ValueCard
+                                    title="Смен вуза"
+                                    value={(byType.institution || 0) + (byType.both || 0)}
+                                    tooltip="Суммарное количество событий, где студент сменил вуз (включая одновременную смену направления)"
+                                />
+                                <div style={{ fontSize: '11px', color: '#6c757d', marginTop: '4px', textAlign: 'center' }}>
+                                    Переводов по ВУЗам
+                                </div>
+                            </div>
+
+                            {/* Смен направления */}
+                            <div style={{ flex: '1 1 180px', minWidth: '140px' }}>
+                                <ValueCard
+                                    title="Смен направления"
+                                    value={(byType.direction || 0) + (byType.both || 0)}
+                                    tooltip="Суммарное количество событий, где студент сменил направление обучения (включая одновременную смену вуза)"
+                                />
+                                <div style={{ fontSize: '11px', color: '#6c757d', marginTop: '4px', textAlign: 'center' }}>
+                                    Переводов по направлениям
+                                </div>
+                            </div>
+
+                            {/* Средний балл ДО перевода */}
                             {summary.avg_comp_before_transfer != null && (
-                                <ValueCard
-                                    title="Ср. балл ДО перевода"
-                                    value={summary.avg_comp_before_transfer}
-                                />
+                                <div style={{ flex: '1 1 180px', minWidth: '140px' }}>
+                                    <ValueCard
+                                        title="Ср. балл ДО перевода"
+                                        value={summary.avg_comp_before_transfer}
+                                        tooltip="Средний балл по выбранной компетенции за год, предшествующий переводу"
+                                    />
+                                    <div style={{ fontSize: '11px', color: '#6c757d', marginTop: '4px', textAlign: 'center' }}>
+                                        Баллы за год до перевода
+                                    </div>
+                                </div>
                             )}
+
+                            {/* Средний балл ПОСЛЕ перевода */}
                             {summary.avg_comp_after_transfer != null && (
-                                <ValueCard
-                                    title="Ср. балл ПОСЛЕ перевода"
-                                    value={summary.avg_comp_after_transfer}
-                                />
+                                <div style={{ flex: '1 1 180px', minWidth: '140px' }}>
+                                    <ValueCard
+                                        title="Ср. балл ПОСЛЕ перевода"
+                                        value={summary.avg_comp_after_transfer}
+                                        tooltip="Средний балл по выбранной компетенции за первый год после перевода"
+                                    />
+                                    <div style={{ fontSize: '11px', color: '#6c757d', marginTop: '4px', textAlign: 'center' }}>
+                                        Баллы за год после перевода
+                                    </div>
+                                </div>
                             )}
+
+                            {/* Дельта (изменение) */}
                             {summary.delta != null && (
-                                <ValueCard
-                                    title="Δ после перевода"
-                                    value={`${summary.delta > 0 ? '+' : ''}${summary.delta}`}
-                                />
+                                <div style={{ flex: '1 1 180px', minWidth: '140px' }}>
+                                    <ValueCard
+                                        title="Δ после перевода"
+                                        value={`${summary.delta > 0 ? '+' : ''}${summary.delta}`}
+                                        tooltip="Разница среднего балла после перевода и до него. Положительное значение = рост компетенции."
+                                    />
+                                    <div style={{ fontSize: '11px', color: '#6c757d', marginTop: '4px', textAlign: 'center' }}>
+                                        Дельта (после − до)
+                                    </div>
+                                </div>
                             )}
                         </FlexRow>
                     )}
