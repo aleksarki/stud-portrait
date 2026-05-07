@@ -142,7 +142,63 @@
             }
         }
     }
+    //слайдер
+    .slider-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+    }
+    .slider-container {
+        width: 120px; 
+        margin-bottom: 25px; 
+        margin-left: -30px !important;
+        margin-right: -25px !important;
+    }
+    .slider-label {
+        font-size: 13px;
+        font-weight: 400;
+        color: #64748b;
+        margin-bottom: 12px;
+        text-align: center;
+    }
+    .slider-note{
+        font-size: 10px;
+        color: #94a2b5;
+        font-style: italic;
+        text-align: right;
+    }
     
+    .rc-slider-rail {
+        background-color: #e2e8f0 !important;
+        height: 4px !important;
+    }
+    .rc-slider-track {
+        background-color: #3b82f6 !important;
+        height: 4px !important;
+    }
+    .rc-slider-handle {
+        width: 15px !important;
+        height: 15px !important;
+        margin-top: -5px !important; 
+        background-color: #ffffff !important;
+        border: 2px solid #3b82f6 !important;
+        opacity: 1 !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+    }
+    
+    .rc-slider-handle:active {
+        box-shadow: 0 0 5px rgba(59, 130, 246, 0.5) !important;
+    }
+    .rc-slider-mark-text {
+        font-size: 10px !important;
+        color: #94a3b8 !important;
+        top: 8px !important;
+        margin-top: -3px;
+    }
+    .rc-slider-mark-text-active {
+        color: #1e293b !important;
+    }
 //табл
     .table {
         .ct-toggle {

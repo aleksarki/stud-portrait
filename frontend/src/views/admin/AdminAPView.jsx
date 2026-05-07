@@ -19,23 +19,6 @@ const competencyLabels = {
     "res_comp_client_focus": "Клиентоориентированность",
     "res_comp_communication": "Коммуникация",
     "res_comp_passive_vocab": "Пассивный словарный запас",
-
-    'res_mot_autonomy': 'Автономия',
-    'res_mot_altruism': 'Альтруизм',
-    'res_mot_challenge': 'Вызов',
-    'res_mot_salary': 'Заработок',
-    'res_mot_career': 'Карьера',
-    'res_mot_creativity': 'Креативность',
-    'res_mot_relationships': 'Отношения',
-    'res_mot_recognition': 'Признание',
-    'res_mot_affiliation': 'Принадлежность',
-    'res_mot_self_development': 'Саморазвитие',
-    'res_mot_purpose': 'Смысл',
-    'res_mot_cooperation': 'Сотрудничество',
-    'res_mot_stability': 'Стабильность',
-    'res_mot_tradition': 'Традиция',
-    'res_mot_management': 'Управление',
-    'res_mot_work_conditions': 'Условия труда'
     
 };
 const scores={
@@ -55,15 +38,16 @@ function DisciplineScatter({ discipline, participants }) {
             : null;
         })
         .filter(Boolean);
-    
+    console.log(participants[0]['res_comp_passive_vocab'])
     return (
         <div className="ds-card">
         <div className="ds-header">
             <h4 className="ds-title">{discipline}</h4>
             <select
-            className="ds-select"
-            value={selectedComp}
-            onChange={e => setSelectedComp(e.target.value)}
+                className="ds-select"
+                value={selectedComp}
+                onChange={e => setSelectedComp(e.target.value)}
+                
             >
             <option value="avg">Средний балл</option>
             {Object.keys(competencyLabels).map(k => (

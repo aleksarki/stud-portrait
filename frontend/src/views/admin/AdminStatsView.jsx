@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, React } from 'react';
 import Select from 'react-select';
 import Chart from 'react-apexcharts';
 import {
@@ -20,6 +20,8 @@ import {
     postPortraitStats,
     postPortraitUpdateSessionFilters
 } from '../../api.js';
+import Slider from 'rc-slider';
+import 'rc-slider/assets/index.css';
 
 import "./AdminStatsView.scss";
 
@@ -222,6 +224,107 @@ function CompetencyTable({ data, year }) {
         </div>
         </div>);
 }
+function CompetencyTable_course({ data }) {
+    const [tableOpen, setTableOpen] = useState(false);
+    const [range, setRange] = useState([1, 4]);
+    if (!data) return null;
+    const course = [
+        { key: 'course_1', name: '1 Курс'},
+        { key: 'course_2', name: '2 Курс'},
+        { key: 'course_3', name: '3 Курс'},
+        { key: 'course_4', name: '4 Курс'},
+    ];
+    const DeltaCell = ({ value }) => {
+        if (value === null) return <span style={{ color: '#ccc' }}>—</span>;
+        
+        const className = value > 0 ? 'ct-pos' : value < 0 ? 'ct-neg' : 'ct-zero';
+        const prefix = value > 0 ? '+' : '';
+        return (
+          <span className={className}>
+            {prefix}{value}%
+          </span>
+        );
+    };
+    const calculateDelta = (row) => {
+        const [start, end] = range;
+        const vStart = Number(row[`course_${start}`]) || 0;
+        const vEnd = Number(row[`course_${end}`]) || 0;
+
+        if (vStart === 0 || vEnd === 0) return null;
+
+        const delta = vEnd - vStart;
+        return Math.round((delta * 100) / vStart);
+    }
+    return(
+        <div className='table'>
+            <button className="ct-toggle" onClick={() => setTableOpen(v => !v)}>
+            <span className={`ct-arrow ${tableOpen ? 'open' : ''}`}>▼</span>
+            {tableOpen ? 'Скрыть таблицу' : 'Подробная таблица'}
+            </button>
+            <div className={`ct-table-wrap ${tableOpen ? 'open' : ''}`}>
+            
+            <p className="slider-note">*перетащите полузнки, чтобы изменить</p>
+            <table className="ct-table">
+                <thead>
+                <tr>
+                    <th rowSpan={2}>Компетенция</th>
+                    <th colSpan={4}>Средний балл</th> 
+                    <th rowSpan={2}> 
+                    <div className="slider-wrapper">
+                        <div className="slider-container">
+                            <p className="slider-label">
+                                Динамика по курсам с {range[0]} по {range[1]}
+                            </p>
+                            <Slider
+                            range
+                            min={1}
+                            max={4}
+                            step={1}
+                            value={range}
+                            onChange={setRange}
+                            marks={{
+                                1: '1',
+                                2: '2',
+                                3: '3',
+                                4: '4'
+                            }}
+                            />
+                        </div>
+                    </div>
+                    </th>
+                </tr>
+                <tr>
+                    {course.map(i =>{
+                        return(
+                            <th style={{ textAlign: 'center' }}>{i.name}</th>
+                        );
+                    })}
+                </tr>
+                </thead>
+                <tbody>
+                {data.map((row) => (
+                    <tr key={row.name}>
+                    <td className="ct-name">{getLabel(row.name)}</td>
+                    {Array.from({ length: 4 }, (_, i) => {
+                        const value = row[`course_${i + 1}`];
+                        const prev = i>1? row[`course_${i + 1}`] : value;
+                        const className = value > prev ? 'ct-pos' : value < prev ? 'ct-neg' : 'ct-zero';
+                        return <td className={className} key={i}>{(value!=0 || value) ? Math.round(value) : '—'}</td>;
+                    })}
+                    <td className="ct-zero">
+                    {(() => {
+                        const delta = calculateDelta(row);
+                        return (
+                            <DeltaCell value={delta}/>
+                        );
+                    })()}</td>
+                    </tr>
+                ))}
+                </tbody>
+            </table>
+        </div>
+        </div>);
+}
 
 //паутинка пред
 function CompRadar({ data }) {
@@ -244,10 +347,6 @@ function CompRadar({ data }) {
         console.log('CompRadar: ошибка загрузки данных');
         return <div className="p-4 text-gray-500">Нет данных для отображения</div>;
     }
-    const getOpacity = (course) => {
-        if (!hoveredCourse) return 0.2;
-        return hoveredCourse === course ? 0.6 : 0.05;
-    };
 
     const getStrokeOpacity = (course) => {
         if (!hoveredCourse) return 1;
@@ -476,7 +575,9 @@ function Dashboard({ data }) {
                 </div>
                 <CompetencyTable data={chartData} year={year}/>
             </div>
-       <div className="radar"><CompRadar data={data.radar}/></div>
+            <CompRadar data={data.radar}/> 
+            <div style={{padding:5, margin:20}}>
+            <CompetencyTable_course data={data.radar} /></div>
        </div>
        </div>
     );
