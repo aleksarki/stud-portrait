@@ -11,17 +11,20 @@ _TOKENIZER = None
 _MODEL_AVAILABLE = False
 _LOAD_ATTEMPTED = False
 _LOAD_LOCK = threading.Lock()
+_LOAD_EVENT = threading.Event()  # сигнализирует об окончании загрузки (успех или провал)
 
 
 def load_model():
     global _MODEL, _TOKENIZER, _MODEL_AVAILABLE, _LOAD_ATTEMPTED
 
+    # Быстрый путь без блокировки
     if _MODEL_AVAILABLE:
         return _MODEL, _TOKENIZER
-    if _LOAD_ATTEMPTED:
+    if _LOAD_ATTEMPTED and not _MODEL_AVAILABLE:
         return None, None
 
     with _LOAD_LOCK:
+        # Повторная проверка внутри блокировки
         if _MODEL_AVAILABLE:
             return _MODEL, _TOKENIZER
         if _LOAD_ATTEMPTED:
@@ -30,6 +33,10 @@ def load_model():
         _LOAD_ATTEMPTED = True
         try:
             print(f"Loading model from {MODEL_PATH}...")
+
+            if not MODEL_PATH.exists():
+                raise FileNotFoundError(f"Папка модели не найдена: {MODEL_PATH}")
+
             device = "cuda" if torch.cuda.is_available() else "cpu"
             print(f"Using device: {device}")
 
@@ -39,36 +46,40 @@ def load_model():
             if _TOKENIZER.pad_token is None:
                 _TOKENIZER.pad_token = _TOKENIZER.eos_token
 
-            # Загрузка модели в зависимости от устройства
+            load_kwargs = dict(
+                trust_remote_code=True,
+                local_files_only=True,
+            )
             if device == "cuda":
-                _MODEL = AutoModelForCausalLM.from_pretrained(
-                    MODEL_PATH,
-                    device_map="auto",
-                    trust_remote_code=True,
-                    torch_dtype=torch.float16,   # экономия памяти без bitsandbytes
-                    local_files_only=True,
-                )
+                load_kwargs.update(device_map="auto", torch_dtype=torch.float16)
             else:
-                _MODEL = AutoModelForCausalLM.from_pretrained(
-                    MODEL_PATH,
-                    device_map="cpu",
-                    trust_remote_code=True,
-                    local_files_only=True,
-                )
+                load_kwargs["device_map"] = "cpu"
 
+            _MODEL = AutoModelForCausalLM.from_pretrained(MODEL_PATH, **load_kwargs)
             _MODEL.eval()
             _MODEL_AVAILABLE = True
-            print("Model loaded successfully.")
+            print("✅ Model loaded successfully.")
+
         except Exception as e:
-            print(f"Failed to load LLM model: {e}")
+            print(f"❌ Failed to load LLM model: {e}")
             _MODEL_AVAILABLE = False
             _MODEL = None
             _TOKENIZER = None
 
-        return _MODEL, _TOKENIZER
+        finally:
+            _LOAD_EVENT.set()  # разблокируем всех ожидающих, даже если была ошибка
+
+    return _MODEL, _TOKENIZER
 
 
-def is_model_available():
+def wait_for_model(timeout: float = 120.0) -> bool:
+    """Блокирует вызывающий поток до завершения загрузки модели.
+    Возвращает True если модель успешно загружена, False — иначе."""
+    _LOAD_EVENT.wait(timeout=timeout)
+    return _MODEL_AVAILABLE
+
+
+def is_model_available() -> bool:
     return _MODEL_AVAILABLE
 
 
@@ -77,18 +88,16 @@ def generate_text(prompt, max_length=400, temperature=0.15, top_p=0.85):
     if model is None:
         return None
 
-    # Формируем сообщения в формате Qwen
     messages = [
         {"role": "system", "content": "Ты — эксперт по оценке компетенций. Отвечай кратко и по делу."},
         {"role": "user", "content": prompt}
     ]
-    # Применяем chat template
     text = tokenizer.apply_chat_template(
-        messages,
-        tokenize=False,
-        add_generation_prompt=True
+        messages, tokenize=False, add_generation_prompt=True
     )
-    inputs = tokenizer(text, return_tensors="pt", truncation=True, max_length=1024).to(model.device)
+    inputs = tokenizer(
+        text, return_tensors="pt", truncation=True, max_length=1024
+    ).to(model.device)
 
     with torch.no_grad():
         outputs = model.generate(
@@ -102,6 +111,5 @@ def generate_text(prompt, max_length=400, temperature=0.15, top_p=0.85):
         )
 
     generated = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    # Убираем системный промпт и пользовательский запрос, оставляем только ответ ассистента
     response = generated.split("<|im_start|>assistant\n")[-1].strip()
     return response
