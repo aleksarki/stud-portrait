@@ -6,6 +6,8 @@ import {
 } from "recharts";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 import { ArrowUpRight, ArrowDownRight, Award, TrendingUp, ArrowUp, ArrowDown } from "lucide-react";
+import Slider from 'rc-slider';
+import 'rc-slider/assets/index.css';
 
 import FlexRow, { ALIGN, JUSTIFY, WRAP } from '../../components/FlexRow.jsx';
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
@@ -14,48 +16,19 @@ import TitledCard from '../../components/cards/TitledCard.jsx';
 import ValueCard from '../../components/cards/ValueCard.jsx';
 import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
 import LoadingSpinner from '../../components/ui/LoadingSpinner.jsx';
-import { FIELD_NAMES, LINK_TREE } from "../../utilities.js";
+
 import {
     postPortraitCreateDataSession,
     postPortraitStats,
     postPortraitUpdateSessionFilters
 } from '../../api.js';
-import Slider from 'rc-slider';
-import 'rc-slider/assets/index.css';
+import { COMPETENCIES_NAMES, FIELD_NAMES, LINK_TREE, MOTIVATORS_NAMES } from "../../utilities.js";
 
 import "./AdminStatsView.scss";
 
 const competencyLabels = {
-    "res_comp_info_analysis": "Анализ информации",
-    "res_comp_planning": "Планирование",
-    "res_comp_result_orientation": "Ориентация на результат",
-    "res_comp_stress_resistance": "Стрессоустойчивость",
-    "res_comp_partnership": "Партнёрство",
-    "res_comp_rules_compliance": "Соблюдение правил",
-    "res_comp_self_development": "Саморазвитие",
-    "res_comp_leadership": "Лидерство",
-    "res_comp_emotional_intel": "Эмоциональный интеллект",
-    "res_comp_client_focus": "Клиентоориентированность",
-    "res_comp_communication": "Коммуникация",
-    "res_comp_passive_vocab": "Пассивный словарный запас",
-
-    'res_mot_autonomy': 'Автономия',
-    'res_mot_altruism': 'Альтруизм',
-    'res_mot_challenge': 'Вызов',
-    'res_mot_salary': 'Заработок',
-    'res_mot_career': 'Карьера',
-    'res_mot_creativity': 'Креативность',
-    'res_mot_relationships': 'Отношения',
-    'res_mot_recognition': 'Признание',
-    'res_mot_affiliation': 'Принадлежность',
-    'res_mot_self_development': 'Саморазвитие',
-    'res_mot_purpose': 'Смысл',
-    'res_mot_cooperation': 'Сотрудничество',
-    'res_mot_stability': 'Стабильность',
-    'res_mot_tradition': 'Традиция',
-    'res_mot_management': 'Управление',
-    'res_mot_work_conditions': 'Условия труда'
-    
+    ...COMPETENCIES_NAMES,
+    ...MOTIVATORS_NAMES
 };
 
 const max_comp=25; //самые длинные названия

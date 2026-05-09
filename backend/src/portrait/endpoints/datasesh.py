@@ -281,7 +281,7 @@ def stats_with_filters(request):
             "years":  [str(stat['res_year'])              for stat in yearly_stats1 if stat['res_year']],
             "values": [round(float(stat['avg_value']), 1) for stat in yearly_stats1 if stat['res_year']]
         }
-        for field in COMP.names.keys()
+        for field in COMP.list
         if (
             yearly_stats1 := Results.objects                                   \
                 .filter(**{f'{field}__isnull': False}, res_year__isnull=False) \
@@ -297,7 +297,7 @@ def stats_with_filters(request):
             "years":  [str(stat['res_year'])              for stat in yearly_stats2 if stat['res_year']],
             "values": [round(float(stat['avg_value']), 1) for stat in yearly_stats2 if stat['res_year']]
         }
-        for field in MOT.names.keys()
+        for field in MOT.list
         if (
             yearly_stats2 := Results.objects                                   \
                 .filter(**{f'{field}__isnull': False}, res_year__isnull=False) \
@@ -313,7 +313,7 @@ def stats_with_filters(request):
             "years":  [str(stat['res_year'])              for stat in yearly_stats3 if stat['res_year']],
             "values": [round(float(stat['avg_value']), 1) for stat in yearly_stats3 if stat['res_year']]
         }
-        for field in VAL.names.keys()
+        for field in VAL.list
         if (
             yearly_stats3 := Results.objects                                   \
                 .filter(**{f'{field}__isnull': False}, res_year__isnull=False) \
@@ -378,7 +378,7 @@ def group_data(request):
     ]}
     groups = sorted(list(groups))
 
-    for field in COMP.names.keys():
+    for field in COMP.list:
         values_by_group = []
         for group in groups:
             group_results = [r for r in results_query if get_group_value(r, grouping_column) == group]
@@ -391,7 +391,7 @@ def group_data(request):
             "values": values_by_group
         }
 
-    for field in MOT.names.keys():
+    for field in MOT.list:
         values_by_group = []
         for group in groups:
             group_results = [r for r in results_query if get_group_value(r, grouping_column) == group]
@@ -404,7 +404,7 @@ def group_data(request):
             "values": values_by_group
         }
 
-    for field in VAL.names.keys():
+    for field in VAL.list:
         values_by_group = []
         for group in groups:
             group_results = [r for r in results_query if get_group_value(r, grouping_column) == group]
@@ -494,26 +494,26 @@ def format_result_data(result, visible_columns=None):
             if field in base_data:
                 filtered_data[field] = base_data[field]
 
-            elif field in COMP.names.keys():
+            elif field in COMP.list:
                 if 'competences' not in filtered_data:
                     filtered_data['competences'] = {}
                 filtered_data['competences'][field] = getattr(result, field)
 
-            elif field in MOT.names.keys():
+            elif field in MOT.list:
                 if 'motivators' not in filtered_data:
                     filtered_data['motivators'] = {}
                 filtered_data['motivators'][field] = getattr(result, field)
 
-            elif field in VAL.names.keys():
+            elif field in VAL.list:
                 if 'values' not in filtered_data:
                     filtered_data['values'] = {}
                 filtered_data['values'][field] = getattr(result, field)
 
         return filtered_data
 
-    base_data['competences'] = {field: getattr(result, field) for field in COMP.names.keys()}
-    base_data['motivators'] =  {field: getattr(result, field) for field in MOT.names.keys()}
-    base_data['values'] =      {field: getattr(result, field) for field in VAL.names.keys()}
+    base_data['competences'] = {field: getattr(result, field) for field in COMP.list}
+    base_data['motivators'] =  {field: getattr(result, field) for field in MOT.list}
+    base_data['values'] =      {field: getattr(result, field) for field in VAL.list}
 
     return base_data
 

@@ -197,7 +197,7 @@ def import_excel(request):
 
                     # Обновляем компетенции
                     Results.objects.filter(pk=result.pk).update(**{
-                        comp: clean_value(row_data.get(comp), int) for comp in COMP.names.keys()
+                        comp: clean_value(row_data.get(comp), int) for comp in COMP.list
                     })
                     
                     created_count += 1 if created_res else 0
@@ -227,7 +227,7 @@ def import_excel(request):
                         res_participant=participant,
                         res_year=year
                     ).update(**{
-                        mot: clean_value(row_data.get(mot), float) for mot in MOT.names.keys()
+                        mot: clean_value(row_data.get(mot), float) for mot in MOT.list
                     })
                     
                     updated_count += 1
@@ -249,7 +249,7 @@ def import_excel(request):
 
                     Course.objects.update_or_create(
                         course_participant=participant.part_id,
-                        defaults={cur: clean_value(row_data.get(cur), float) for cur in CUR.names.keys()}
+                        defaults={cur: clean_value(row_data.get(cur), float) for cur in CUR.list}
                     )
                     
                     updated_count += 1
@@ -279,7 +279,7 @@ def import_excel(request):
                         res_participant=participant,
                         res_year=year
                     ).update(**{
-                        val: clean_value(row_data.get(val), float) for val in VAL.names.keys()
+                        val: clean_value(row_data.get(val), float) for val in VAL.list
                     })
                     if DEBUG and updated == 0:
                         print(f"   ⚠️  Ценности: Results для RSV ID {rsv_id} год {year} не найден, пропуск")
@@ -374,11 +374,11 @@ def get_expected_fields(request):
             "part_edu_level", "part_form", "part_course_num",
             "res_center", "res_institution", "res_edu_level", "res_form",
             "res_spec", "res_course_num", "res_year", "res_high_potential",
-            "res_summary_report", *COMP.names.keys(), "spec_name", "form_name"
+            "res_summary_report", *COMP.list, "spec_name", "form_name"
         ],
-        "Мотивационный профиль": ["part_rsv_id", "res_year", *MOT.names.keys()],
-        "Ценностный профиль": ["part_rsv_id", "res_year", *VAL.names.keys()],
-        "Образовательные курсы": ["part_rsv_id", *CUR.names.keys()],
+        "Мотивационный профиль": ["part_rsv_id", "res_year", *MOT.list],
+        "Ценностный профиль": ["part_rsv_id", "res_year", *VAL.list],
+        "Образовательные курсы": ["part_rsv_id", *CUR.list],
         "Итоги успеваемости участников": [
             "perf_year", "student_name", "perf_discipline",
             "perf_main_attestation"

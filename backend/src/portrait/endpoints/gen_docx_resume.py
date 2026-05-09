@@ -76,6 +76,7 @@ def generate_docx_resume(request):
         }
         
         # Список компетенций в порядке, который используется в ml_utils
+        # fixme why the order??????????
         competencies_order = [
             'res_comp_leadership', 'res_comp_communication', 'res_comp_self_development',
             'res_comp_result_orientation', 'res_comp_stress_resistance', 'res_comp_client_focus',

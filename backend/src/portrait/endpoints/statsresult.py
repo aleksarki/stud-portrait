@@ -33,7 +33,7 @@ def courses(request):
                 "edu_level":   attrIfObj(course.course_participant.part_edu_level,   'edu_level_name'),
                 "study_form":  attrIfObj(course.course_participant.part_form,        'form_name'),
             },
-            **{c: zeroIfNull(getattr(course, c)) for c in CUR.names.keys()}
+            **{c: zeroIfNull(getattr(course, c)) for c in CUR.list}
         }
         for course in Course.objects
             .all()
@@ -85,9 +85,9 @@ def student_results(request):
             "study_form":  attrIfObj(result.res_form,        'form_name'),
             "specialty":   attrIfObj(result.res_spec,        'spec_name'),
 
-            **{c: getattr(result, c)             for c in COMP.names.keys()},
-            **{m: zeroIfNull(getattr(result, m)) for m in MOT.names.keys()},
-            **{v: getattr(result, v)             for v in VAL.names.keys()},
+            **{c: getattr(result, c)             for c in COMP.list},
+            **{m: zeroIfNull(getattr(result, m)) for m in MOT.list},
+            **{v: getattr(result, v)             for v in VAL.list},
         }
         for result in Results.objects
             .filter(res_participant=stud_id)
@@ -342,7 +342,7 @@ def get_filter_options_with_counts(request):
 
     competencies_data = [
         {'id': comp, 'name': COMP.names[comp]}
-        for comp in COMP.names.keys()
+        for comp in COMP.list
     ]
 
     competencies_list = [

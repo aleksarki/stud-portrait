@@ -114,6 +114,23 @@ export const RESULT_PROFILES = {
     }
 };
 
+/* RSV competencies */
+
+export const COMPETENCIES = {
+    INFO_ANALYSIS: 'res_comp_info_analysis',
+    PLANNING:      'res_comp_planning',
+    RESULT_ORIENT: 'res_comp_result_orientation',
+    STRESS_RESIST: 'res_comp_stress_resistance',
+    PARTNERSHIP:   'res_comp_partnership',
+    RULE_COMPLY:   'res_comp_rules_compliance',
+    SELF_DEVELOP:  'res_comp_self_development',
+    LEADERSHIP:    'res_comp_leadership',
+    EMOTE_INTEL:   'res_comp_emotional_intel',
+    CLIENT_FOCUS:  'res_comp_client_focus',
+    COMMUNICATION: 'res_comp_communication',
+    PASSIVE_VOCAB: 'res_comp_passive_vocab'
+};
+
 export const COMPETENCIES_NAMES = {
     res_comp_info_analysis:      "Анализ информации",
     res_comp_planning:           "Планирование",
@@ -142,6 +159,27 @@ export const COMPETENCIES_DESCRIPTIONS = {
     res_comp_client_focus:       "Ориентация на потребности клиента",
     res_comp_communication:      "Коммуникативные навыки",
     res_comp_passive_vocab:      "Пассивный словарный запас"
+};
+
+/* RSV motivators */
+
+export const MOTIVATORS = {
+    AUTONOMY:     'res_mot_autonomy',
+    ALTRUISM:     'res_mot_altruism',
+    CHALLENGE:    'res_mot_challenge',
+    SALARY:       'res_mot_salary',
+    CAREER:       'res_mot_career',
+    CREATIVITY:   'res_mot_creativity',
+    RELATION:     'res_mot_relationships',
+    RECOGNITION:  'res_mot_recognition',
+    AFFILIATION:  'res_mot_affiliation',
+    SELF_DEVELOP: 'res_mot_self_development',
+    PURPOSE:      'res_mot_purpose',
+    COOPERATION:  'res_mot_cooperation',
+    STABILITY:    'res_mot_stability',
+    TRADITION:    'res_mot_tradition',
+    MARAGEMENT:   'res_mot_management',
+    WORK_CONDIT:  'res_mot_work_conditions'
 };
 
 export const MOTIVATORS_NAMES = {
@@ -180,6 +218,17 @@ export const MOTIVATORS_DESCRIPTIONS = {
     res_mot_tradition:        "Следование традициям и устоявшимся нормам",
     res_mot_management:       "Стремление к управленческой деятельности",
     res_mot_work_conditions:  "Комфортные условия труда"
+};
+
+/* RSV values */
+
+export const VALUES = {
+    HONEST_JUST: 'res_val_honesty_justice',
+    HUMANISM:    'res_val_humanism',
+    PATRIOTISM:  'res_val_patriotism',
+    FAMILY:      'res_val_family',
+    HEALTH:      'res_val_health',
+    ENVIRONMENT: 'res_val_environment'
 };
 
 export const VALUES_NAMES = {

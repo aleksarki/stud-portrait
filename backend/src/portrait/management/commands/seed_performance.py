@@ -1,13 +1,7 @@
 import random
 from django.core.management.base import BaseCommand
-from portrait.models import Results, Academicperformance
-
-COMP_FIELDS = [
-    'res_comp_info_analysis', 'res_comp_planning', 'res_comp_result_orientation',
-    'res_comp_stress_resistance', 'res_comp_partnership', 'res_comp_rules_compliance',
-    'res_comp_self_development', 'res_comp_leadership', 'res_comp_emotional_intel',
-    'res_comp_client_focus', 'res_comp_communication', 'res_comp_passive_vocab',
-]
+from ...models import Results, Academicperformance
+from ...constants import RsvCompetencies as COMP
 
 COURSE_DISCIPLINES = {
     1: 'ПИР',
@@ -27,7 +21,7 @@ GRADE_SCALE = {
 def get_mean_comp(result: Results) -> float:
     scores = [
         getattr(result, field)
-        for field in COMP_FIELDS
+        for field in COMP.list
         if getattr(result, field) is not None
     ]
     return sum(scores) / len(scores) if scores else 0.0

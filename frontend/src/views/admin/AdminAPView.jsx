@@ -1,32 +1,19 @@
 import { useState, useEffect } from 'react';
-import { COURSES_NAMES, LINK_TREE } from "../../utilities.js";
-
-import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import Select from 'react-select';
+import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+
+import { COMPETENCIES_NAMES, COURSES_NAMES, LINK_TREE } from "../../utilities.js";
+import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 
 import "./AdminAPView.scss";
-const competencyLabels = {
-    "res_comp_info_analysis": "Анализ информации",
-    "res_comp_planning": "Планирование",
-    "res_comp_result_orientation": "Ориентация на результат",
-    "res_comp_stress_resistance": "Стрессоустойчивость",
-    "res_comp_partnership": "Партнёрство",
-    "res_comp_rules_compliance": "Соблюдение правил",
-    "res_comp_self_development": "Саморазвитие",
-    "res_comp_leadership": "Лидерство",
-    "res_comp_emotional_intel": "Эмоциональный интеллект",
-    "res_comp_client_focus": "Клиентоориентированность",
-    "res_comp_communication": "Коммуникация",
-    "res_comp_passive_vocab": "Пассивный словарный запас",
-    
-};
+
 const scores={
     2:'неудовл.',
     3:'удовл.',
     4:'хор.',
     5:'отл.'
 };
+
 function DisciplineScatter({ discipline, participants }) {
     const [selectedComp, setSelectedComp] = useState('avg');
     console.log(participants[0]);
@@ -50,8 +37,8 @@ function DisciplineScatter({ discipline, participants }) {
                 
             >
             <option value="avg">Средний балл</option>
-            {Object.keys(competencyLabels).map(k => (
-                <option key={k} value={k}>{competencyLabels[k]}</option>
+            {Object.keys(COMPETENCIES_NAMES).map(k => (
+                <option key={k} value={k}>{COMPETENCIES_NAMES[k]}</option>
             ))}
             </select>
         </div>
@@ -120,9 +107,7 @@ function DisciplineScatterGrid({ data, disciplines }) {
         </div>
     );
 }
-          
-          
-          
+
 const FilterHeader = ({ onFilterChange }) => {
     const [options, setOptions] = useState({ institutes: [], specialties: [], years: [] });
     const [loading, setLoading] = useState(true);

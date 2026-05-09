@@ -31,6 +31,8 @@ class RsvCompetencies:
         PASSIVE_VOCAB: "Пассивный словарный запас"
     }
 
+    list = [*names.keys()]
+
 
 class RsvMotivators:
     """ Tested RSV motivators mapped to their names.
@@ -71,6 +73,8 @@ class RsvMotivators:
         WORK_CONDIT :  "Условия работы"
     }
 
+    list = [*names.keys()]
+
 
 class RsvValues:
     """ Tested RSV values mapped to their names.
@@ -90,6 +94,8 @@ class RsvValues:
         HEALTH :      "Здоровье",
         ENVIRONMENT : "Окружающая среда"
     }
+
+    list = [*names.keys()]
 
 
 class RsvCourses:
@@ -142,6 +148,8 @@ class RsvCourses:
         CULTUR_COMMUNIC: "Эффективные межкультурные коммуникации",
         MENTORING:       "Я — наставник"
     }
+
+    list = [*names.keys()]
 
 
 class TableResults:

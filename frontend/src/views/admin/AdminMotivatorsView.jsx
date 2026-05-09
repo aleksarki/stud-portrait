@@ -1,53 +1,25 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
-
-import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
-
-import { COURSES_NAMES, LINK_TREE } from "../../utilities.js";
+import Select from 'react-select';
 import {
     Cell, LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
     BarChart, Bar, CartesianGrid, ReferenceLine,
 } from "recharts";
-import Select from 'react-select';
 
 import MotivatorStatistics from "../../components/MotivatorStatistics.jsx";
+import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
+
+import { COMPETENCIES_NAMES, COURSES_NAMES, LINK_TREE, MOTIVATORS_NAMES } from "../../utilities.js";
 
 import "./AdminMotivatorsView.scss";
 
 const competencyLabels = {
-    "res_comp_info_analysis": "Анализ информации",
-    "res_comp_planning": "Планирование",
-    "res_comp_result_orientation": "Ориентация на результат",
-    "res_comp_stress_resistance": "Стрессоустойчивость",
-    "res_comp_partnership": "Партнёрство",
-    "res_comp_rules_compliance": "Соблюдение правил",
-    "res_comp_self_development": "Саморазвитие",
-    "res_comp_leadership": "Лидерство",
-    "res_comp_emotional_intel": "Эмоциональный интеллект",
-    "res_comp_client_focus": "Клиентоориентированность",
-    "res_comp_communication": "Коммуникация",
-    "res_comp_passive_vocab": "Пассивный словарь",
-
-    'res_mot_autonomy': 'Автономия',
-    'res_mot_altruism': 'Альтруизм',
-    'res_mot_challenge': 'Вызов',
-    'res_mot_salary': 'Заработок',
-    'res_mot_career': 'Карьера',
-    'res_mot_creativity': 'Креативность',
-    'res_mot_relationships': 'Отношения',
-    'res_mot_recognition': 'Признание',
-    'res_mot_affiliation': 'Принадлежность',
-    'res_mot_self_development': 'Саморазвитие',
-    'res_mot_purpose': 'Смысл',
-    'res_mot_cooperation': 'Сотрудничество',
-    'res_mot_stability': 'Стабильность',
-    'res_mot_tradition': 'Традиция',
-    'res_mot_management': 'Управление',
-    'res_mot_work_conditions': 'Условия труда'
-    
+    ...COMPETENCIES_NAMES,
+    ...MOTIVATORS_NAMES
 };
-const getLabel = (key) => competencyLabels[key] || competencyLabels[key.replace('res_comp_', '').replace('_', ' ')] || key.replace('res_comp_', '').replace('_', ' ');
 
-const formatValue = (value) => Math.abs(value);
+const getLabel = key => competencyLabels[key] || competencyLabels[key.replace('res_comp_', '').replace('_', ' ')] || key.replace('res_comp_', '').replace('_', ' ');
+
+const formatValue = value => Math.abs(value);
 
 const Legendy = ({ selectedCourses, colors }) => (
     <div style={{ marginBottom: '24px', marginLeft: '40px' }}>
