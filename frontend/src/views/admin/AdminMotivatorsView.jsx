@@ -112,7 +112,70 @@ const Tooltippy = ({ active, payload = [], coordinate = {}, chartHeight = 0, lab
     );
 };
   
-  
+function MotTable({ data }) {
+
+    const [tableOpen, setTableOpen] = useState(false);
+    if (!data) return null;
+
+    return(
+        <div className='table'>
+            <button className="ct-toggle" onClick={() => setTableOpen(v => !v)}>
+            <span className={`ct-arrow ${tableOpen ? 'open' : ''}`}>▼</span>
+            {tableOpen ? 'Скрыть таблицу' : 'Таблица'}
+            </button>
+            <div className={`ct-table-wrap ${tableOpen ? 'open' : ''}`}>
+            <table className="ct-table">
+                <thead>
+                <tr>
+                    <th rowSpan={2} colSpan={1}>Мотиватор</th>
+                    <th></th> 
+                    <th rowSpan={1} colSpan={4}>Количество студентов</th>
+                </tr>
+                <tr>
+                    <th style={{ textAlign: 'right' }}>Курс: </th> 
+                    <th style={{ textAlign: 'center' }}>{1}</th>
+                    <th style={{ textAlign: 'center' }}>{2}</th>
+                    <th style={{ textAlign: 'center' }}>3</th>
+                    <th style={{ textAlign: 'center' }}>4</th>
+                </tr>
+                </thead>
+                <tbody>
+                {data.map((row) => (
+                    <React.Fragment key={row.name}>
+                    <tr>
+                        <td rowSpan={2} className="ct-name" style={{ verticalAlign: 'middle' }}>
+                        {getLabel(row.name)}
+                        </td>
+                        <td className="ct-pos">М</td>
+                        {Array.from({ length: 4 }, (_, i) => {
+                        const val = row[`course_${i + 1}_high`];
+                        return (
+                            <td key={`m-${i}`} className="mot">
+                            {val || val === 0 ? val : '—'}
+                            </td>
+                        );
+                        })}
+                    </tr>
+
+                    <tr>
+                        <td className="ct-neg">Д</td>
+                        {Array.from({ length: 4 }, (_, i) => {
+                        const val = row[`course_${i + 1}_low`];
+                        return (
+                            <td key={`d-${i}`} className="demot">
+                            {val || val === 0 ? val : '—'}
+                            </td>
+                        );
+                        })}
+                    </tr>
+                    </React.Fragment>
+                ))}
+                
+                </tbody>
+            </table>
+        </div>
+        </div>);
+}
 
 //до 400 - демотиватор, 600+ мотиватор
 
@@ -263,7 +326,10 @@ function MotivatorStackedChart({ chart_data }) {
                 ))}
                 </BarChart>
             </ResponsiveContainer>
+            
         </div>
+        <div style={{margin:20, marginTop:5}}>
+        <MotTable data={chart_data}/></div>
       </div>
     );
 }
