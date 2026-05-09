@@ -124,6 +124,9 @@ function MotTable({ data }) {
             {tableOpen ? 'Скрыть таблицу' : 'Таблица'}
             </button>
             <div className={`ct-table-wrap ${tableOpen ? 'open' : ''}`}>
+            <div className="table-container">
+                <div className="ct-note"><span className="ct-pos">М</span> - мотиватор, <span>   </span> 
+                <span className="ct-neg"> Д</span> - демотиватор</div>            
             <table className="ct-table">
                 <thead>
                 <tr>
@@ -173,6 +176,7 @@ function MotTable({ data }) {
                 
                 </tbody>
             </table>
+            </div>
         </div>
         </div>);
 }
