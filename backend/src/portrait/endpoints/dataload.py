@@ -8,18 +8,16 @@ from django.db import transaction
 
 from .common import *
 
-from ..models import PortraitUploadtemplate as UploadTemplate
 
-# ====== ENDPOINTS ====== #
+# ============================== ENDPOINTS ============================== #
 
-@method('POST')
+@method(POST)
 @jsonResponse
 @csrf_exempt
 def import_excel(request):
     """
-    Импорт данных из Excel файлов.
-    
-    Поддерживаемые листы:
+    Import data from an Excel file.
+    Supported sheets:
     1. Связь ФИО и ID - маппинг RSV ID → ФИО
     2. Сравнение по компетенциям - результаты РСВ
     3. Мотивационный профиль
@@ -27,10 +25,10 @@ def import_excel(request):
     5. Итоги успеваемости участников - данные по дисциплинам
     """
     excel_file = request.FILES.get("file")
+    config_json = request.POST.get("config_json")
+
     if not excel_file:
         raise ResponseError("No file uploaded")
-
-    config_json = request.POST.get("config_json")
     if not config_json:
         raise ResponseError("Missing config_json")
 
@@ -45,8 +43,6 @@ def import_excel(request):
     updated_count = 0
     mapping_count = 0
 
-    DEBUG = True
-
     with transaction.atomic():
         for sheet_info in config["sheets"]:
             sheet_name = sheet_info["name"]
@@ -54,16 +50,16 @@ def import_excel(request):
             columns = sheet_info["columns"]
 
             if sheet_name not in wb.sheetnames:
-                if DEBUG: print(f"⚠️  Лист '{sheet_name}' отсутствует в файле")
+                debugPrint(f"[xls load] (!):  лист '{sheet_name}' отсутствует в файле")
                 continue
 
             ws = wb[sheet_name]
 
-            if DEBUG: print(f"\n{'='*60}\n=== ОБРАБОТКА ЛИСТА: '{sheet_name}' ===\n{'='*60}")
+            debugPrint(f"[xls load] (i): *** ОБРАБОТКА ЛИСТА '{sheet_name}' ***")
 
             # Ключевое поле для определения конца данных
             KEY_FIELD = {
-                "Связь ФИО и ID":               "rsv_id",
+                "Связь ФИО и ID":                "rsv_id",
                 "Сравнение по компетенциям":     "part_rsv_id",
                 "Мотивационный профиль":         "part_rsv_id",
                 "Образовательные курсы":         "part_rsv_id",
@@ -97,7 +93,7 @@ def import_excel(request):
                     if not key_value:
                         empty_streak += 1
                         if empty_streak >= EMPTY_ROWS_LIMIT:
-                            if DEBUG: print(f"   📊 {EMPTY_ROWS_LIMIT} пустых строк подряд — завершение ({row_count} строк обработано)")
+                            debugPrint(f"[xls load] (i): {EMPTY_ROWS_LIMIT} пустых строк подряд — завершение; {row_count} строк обработано")
                             break
                         continue
                     else:
@@ -110,10 +106,10 @@ def import_excel(request):
                     rsv_id = clean_value(row_data.get("rsv_id"))
                     student_name = clean_value(row_data.get("student_name"))
                     student_gender = clean_value(row_data.get("student_gender"))
-                    
+
                     if not rsv_id or not student_name:
                         continue
-                    
+
                     # Создаём или обновляем маппинг
                     mapping, created = Studentmapping.objects.update_or_create(
                         rsv_id=str(rsv_id),
@@ -122,13 +118,13 @@ def import_excel(request):
                             'student_gender': student_gender
                         }
                     )
-                    
+
                     mapping_count += 1
                     row_count += 1
-                    
-                    if DEBUG and row_count % 100 == 0:
-                        print(f"   ✅ Обработано {row_count} связей...")
-                    
+
+                    if row_count % 100 == 0:
+                        debugPrint(f"[xls load] (i): обработано {row_count} связей")
+
                     continue
 
                 # ============================================================
@@ -165,16 +161,14 @@ def import_excel(request):
                     # Получаем или создаём участника (модель содержит только part_rsv_id и part_gender)
                     participant, created = Participants.objects.get_or_create(
                         part_rsv_id=str(rsv_id),
-                        defaults={
-                            'part_gender': parse_gender(row_data.get("part_gender")),
-                        }
+                        defaults={'part_gender': parse_gender(row_data.get("part_gender"))}
                     )
 
                     # Если участник уже существует, обновляем только gender
                     if not created:
-                        Participants.objects.filter(pk=participant.pk).update(
-                            part_gender=parse_gender(row_data.get("part_gender")),
-                        )
+                        Participants.objects           \
+                            .filter(pk=participant.pk) \
+                            .update(part_gender=parse_gender(row_data.get("part_gender")))
 
                     # Создаём или обновляем результат
                     year = clean_value(row_data.get("res_year"))
@@ -196,16 +190,16 @@ def import_excel(request):
                     )
 
                     # Обновляем компетенции
-                    Results.objects.filter(pk=result.pk).update(**{
-                        comp: clean_value(row_data.get(comp), int) for comp in COMP.list
-                    })
-                    
+                    Results.objects           \
+                        .filter(pk=result.pk) \
+                        .update(**{comp: clean_value(row_data.get(comp), int) for comp in COMP.list})
+
                     created_count += 1 if created_res else 0
                     updated_count += 0 if created_res else 1
                     row_count += 1
-                    
-                    if DEBUG and row_count % 100 == 0:
-                        print(f"   ✅ Обработано {row_count} результатов РСВ...")
+
+                    if row_count % 100 == 0:
+                        debugPrint(f"[xls load] (i): обработано {row_count} результатов РСВ")
 
                 # ============================================================
                 # ЛИСТ 3: "Мотивационный профиль"
@@ -218,17 +212,14 @@ def import_excel(request):
                     try:
                         participant = Participants.objects.get(part_rsv_id=str(rsv_id))
                     except Participants.DoesNotExist:
-                        if DEBUG: print(f"   ⚠️  Участник RSV ID {rsv_id} не найден")
+                        debugPrint(f"[xls load] (!): участник RSV ID {rsv_id} не найден")
                         continue
 
                     year = clean_value(row_data.get("res_year"))
 
-                    Results.objects.filter(
-                        res_participant=participant,
-                        res_year=year
-                    ).update(**{
-                        mot: clean_value(row_data.get(mot), float) for mot in MOT.list
-                    })
+                    Results.objects                                         \
+                        .filter(res_participant=participant, res_year=year) \
+                        .update(**{mot: clean_value(row_data.get(mot), float) for mot in MOT.list})
                     
                     updated_count += 1
                     row_count += 1
@@ -240,11 +231,11 @@ def import_excel(request):
                     rsv_id = clean_value(row_data.get("part_rsv_id"))
                     if not rsv_id:
                         continue
-                    
+
                     try:
                         participant = Participants.objects.get(part_rsv_id=str(rsv_id))
                     except Participants.DoesNotExist:
-                        if DEBUG: print(f"   ⚠️  Участник RSV ID {rsv_id} не найден")
+                        debugPrint(f"[xls load] (!): участник RSV ID {rsv_id} не найден")
                         continue
 
                     Course.objects.update_or_create(
@@ -266,7 +257,7 @@ def import_excel(request):
                     try:
                         participant = Participants.objects.get(part_rsv_id=str(rsv_id))
                     except Participants.DoesNotExist:
-                        if DEBUG: print(f"   ⚠️  Участник RSV ID {rsv_id} не найден")
+                        debugPrint(f"[xls load] (!): участник RSV ID {rsv_id} не найден")
                         continue
 
                     year = clean_value(row_data.get("res_year"))
@@ -275,14 +266,12 @@ def import_excel(request):
                     # т.к. unique_together(res_participant, res_year, res_course_num) требует
                     # res_course_num, которого в этом листе нет.
                     # Записи создаются листом "Сравнение по компетенциям".
-                    updated = Results.objects.filter(
-                        res_participant=participant,
-                        res_year=year
-                    ).update(**{
-                        val: clean_value(row_data.get(val), float) for val in VAL.list
-                    })
-                    if DEBUG and updated == 0:
-                        print(f"   ⚠️  Ценности: Results для RSV ID {rsv_id} год {year} не найден, пропуск")
+                    updated = Results.objects                               \
+                        .filter(res_participant=participant, res_year=year) \
+                        .update(**{val: clean_value(row_data.get(val), float) for val in VAL.list})
+
+                    if updated == 0:
+                        debugPrint(f"[xls load] (!): ценности: Results для RSV ID {rsv_id} год {year} не найден, пропуск")
                     updated_count += updated
                     row_count += 1
 
@@ -300,10 +289,10 @@ def import_excel(request):
                         mapping = Studentmapping.objects.get(student_name=student_name)
                         rsv_id = mapping.rsv_id
                     except Studentmapping.DoesNotExist:
-                        if DEBUG: print(f"   ⚠️  ФИО '{student_name}' не найдено в маппинге")
+                        debugPrint(f"[xls load] (!): ФИО '{student_name}' не найдено в маппинге")
                         continue
                     except Studentmapping.MultipleObjectsReturned:
-                        if DEBUG: print(f"   ⚠️  Несколько записей для ФИО '{student_name}'")
+                        debugPrint(f"[xls load] (!): несколько записей для ФИО '{student_name}'")
                         mapping = Studentmapping.objects.filter(student_name=student_name).first()
                         rsv_id = mapping.rsv_id
 
@@ -311,7 +300,7 @@ def import_excel(request):
                     try:
                         participant = Participants.objects.get(part_rsv_id=rsv_id)
                     except Participants.DoesNotExist:
-                        if DEBUG: print(f"   ⚠️  Участник RSV ID {rsv_id} не найден")
+                        debugPrint(f"[xls load] (!): участник RSV ID {rsv_id} не найден")
                         continue
 
                     year = clean_value(row_data.get("perf_year"))
@@ -324,29 +313,21 @@ def import_excel(request):
                         perf_part_id=participant.part_id,
                         perf_year=year,
                         perf_discipline=discipline,
-                        defaults={
-                            "perf_main_attestation": clean_value(row_data.get("perf_main_attestation")),
-                        }
+                        defaults={"perf_main_attestation": clean_value(row_data.get("perf_main_attestation"))}
                     )
 
                     updated_count += 1
                     row_count += 1
                     
-                    if DEBUG and row_count % 100 == 0:
-                        print(f"   ✅ Обработано {row_count} записей дисциплин...")
+                    if row_count % 100 == 0:
+                        debugPrint(f"[xls load] (i): обработано {row_count} записей дисциплин")
 
-            if DEBUG: 
-                print(f"   ✅ Лист '{sheet_name}' завершён: {row_count} строк")
+            debugPrint(f"[xls load] (i): лист '{sheet_name}' завершён; {row_count} строк")
 
-    if DEBUG:
-        print(f"\n{'='*60}")
-        print(f"✅ ИМПОРТ ЗАВЕРШЁН")
-        print(f"{'='*60}")
-        print(f"📊 Статистика:")
-        print(f"   • Создано записей: {created_count}")
-        print(f"   • Обновлено записей: {updated_count}")
-        print(f"   • Связей ФИО→ID: {mapping_count}")
-        print(f"{'='*60}\n")
+    debugPrint(f"[xls load] (i): импорт завершён")
+    debugPrint(f"[xls load] (i): создано записей: {created_count}")
+    debugPrint(f"[xls load] (i): обновлено записей: {updated_count}")
+    debugPrint(f"[xls load] (i): связей ФИО→ID: {mapping_count}")
 
     return {
         "status": "success", 
@@ -355,85 +336,89 @@ def import_excel(request):
         "mapped": mapping_count
     }
 
-# ====== ШАБЛОНЫ ЗАГРУЗКИ ====== #
 
-@method('GET')
+# fixme: get rid of this endpoint, it should be hardcoded in frontend
+@method(GET)
 @jsonResponse
+@csrf_exempt
 def get_expected_fields(request):
+    """ Return expected field for each sheet.
     """
-    Возвращает ожидаемые поля для каждого листа.
-    Используется на фронтенде для автоматического сопоставления колонок.
-    """
-    from .common import COMP, MOT, VAL, CUR
-    
-    expected = {
-        "Связь ФИО и ID": ["rsv_id", "student_name", "student_gender"],
+    return {
+        "Связь ФИО и ID":            ["rsv_id", "student_name", "student_gender"],
         "Сравнение по компетенциям": [
-            "center_name", "edu_level_name", "inst_name",
-            "part_rsv_id", "part_gender", "part_institution", "part_spec",
-            "part_edu_level", "part_form", "part_course_num",
-            "res_center", "res_institution", "res_edu_level", "res_form",
-            "res_spec", "res_course_num", "res_year", "res_high_potential",
-            "res_summary_report", *COMP.list, "spec_name", "form_name"
+            "center_name",   "edu_level_name",     "inst_name",          "part_rsv_id",
+            "part_gender",   "part_institution",   "part_spec",          "part_edu_level",
+            "part_form",     "part_course_num",    "res_center",         "res_institution",
+            "res_edu_level", "res_form",           "res_spec",           "res_course_num",
+            "res_year",      "res_high_potential", "res_summary_report", *COMP.list,
+            "spec_name",     "form_name"
         ],
-        "Мотивационный профиль": ["part_rsv_id", "res_year", *MOT.list],
-        "Ценностный профиль": ["part_rsv_id", "res_year", *VAL.list],
-        "Образовательные курсы": ["part_rsv_id", *CUR.list],
+        "Мотивационный профиль":         ["part_rsv_id", "res_year", *MOT.list],
+        "Ценностный профиль":            ["part_rsv_id", "res_year", *VAL.list],
+        "Образовательные курсы":         ["part_rsv_id", *CUR.list],
         "Итоги успеваемости участников": [
-            "perf_year", "student_name", "perf_discipline",
-            "perf_main_attestation"
+            "perf_year", "student_name", "perf_discipline", "perf_main_attestation"
         ]
     }
-    return expected
 
 
-@method('GET')
+@method(GET)
 @jsonResponse
+@csrf_exempt
 def get_templates(request):
-    """Список всех шаблонов загрузки"""
-    templates = UploadTemplate.objects.all().values('id', 'name', 'description', 'config', 'updated_at')
-    return {'templates': list(templates)}
+    """ Get list of all data load templates.
+    """
+    return {'templates': list(
+        PortraitUploadtemplate.objects
+            .all()
+            .values('id', 'name', 'description', 'config', 'updated_at')
+    )}
 
 
-@method('POST')
+@method(POST)
 @jsonResponse
 @csrf_exempt
 def save_template(request):
-    """Сохранить шаблон (создать или обновить по имени)"""
-    import json
-    
+    """ Save or update data load template.
+    """
     data = json.loads(request.body)
     name = data.get('name')
+    config = data.get('config')
+    description = data.get('description', '')
+
     if not name:
         raise ResponseError("Missing template name")
-    config = data.get('config')
     if not config:
         raise ResponseError("Missing config")
-    description = data.get('description', '')
-    
-    template, created = UploadTemplate.objects.update_or_create(
+
+    template, created = PortraitUploadtemplate.objects.update_or_create(
         name=name,
         defaults={'config': config, 'description': description}
     )
-    return {'id': template.id, 'name': template.name, 'created': created}
+
+    return {
+        'id':      template.id,  # fixme looks like error
+        'name':    template.name,
+        'created': created
+    }
 
 
-@method('DELETE')
+@method(DELETE)
 @jsonResponse
 @csrf_exempt
 def delete_template(request, template_id):
-    """Удалить шаблон по ID"""
-    try:
-        template = UploadTemplate.objects.get(id=template_id)
-        template.delete()
-        return {'status': 'deleted'}
-    except UploadTemplate.DoesNotExist:
-        raise ResponseError("Template not found")
+    """ Delete data load template.
+    """
+    PortraitUploadtemplate.objects.get(id=template_id).delete()
+    return {'status': 'deleted'}
 
-# ====== UTILITIES ====== #
+
+# ============================== UTILITIES ============================== #
 
 def parse_gender(value) -> int | None:
-    """Конвертирует обозначение пола в число: М/Муж/Male → 1, Ж/Жен/Female → 2."""
+    """ Конвертирует обозначение пола в число: М/Муж/Male → 1, Ж/Жен/Female → 2.
+    """
     if value is None:
         return None
     s = str(value).strip().lower()
@@ -445,8 +430,7 @@ def parse_gender(value) -> int | None:
 
 
 def clean_value(value, value_type: type[str] | type[int] | type[float] = str) -> str | int | float | None:
-    """
-    Преобразует значение из Excel ячейки в нужный формат.
+    """ Преобразует значение из Excel ячейки в нужный формат.
     """
     if value is None:
         return None

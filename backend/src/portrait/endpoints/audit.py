@@ -7,6 +7,9 @@ import json
 
 from .common import *
 
+
+# ============================== ENDPOINTS ============================== #
+
 @method(GET)
 @jsonResponse
 @csrf_exempt

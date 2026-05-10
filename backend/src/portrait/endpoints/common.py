@@ -16,6 +16,7 @@ from ..constants import (
 from ..models import *
 
 
+DELETE = "DELETE"
 GET = "GET"
 PATCH = "PATCH"
 POST = "POST"
@@ -27,7 +28,7 @@ def debugPrint(*messages):
         print(*messages)
 
 
-# ====== GETTERS ====== #
+# ============================== GETTERS ============================== #
 
 def zeroIfNull(value: Any | None) -> float:
     """ Get float if value is not None; else zero.
@@ -45,7 +46,7 @@ def attrElseNone(obj: Any, attr: str) -> Any | None:
     return getattr(obj, attr) if hasattr(obj, attr) else None
 
 
-# ====== EXCEPTION ====== #
+# ============================== EXCEPTION ============================== #
 
 class ResponseError(Exception):
     """ Raised inside @jsonResponse decorator to break the execution to report client error.
@@ -58,7 +59,7 @@ class ResponseError(Exception):
         super().__init__(message)
 
 
-# ====== RESPONSES ====== #
+# ============================== RESPONSES ============================== #
 
 def successResponse(data: dict = dict(), status: int = 200) -> JsonResponse:
     """ Take in dict data, unpack it into returned JSON response with success status.
@@ -91,7 +92,7 @@ def exceptionResponse(message: str = "", status: int = 500) -> JsonResponse:
     return JsonResponse({"status": "exception", "message": message}, status=status)
 
 
-# ====== DECORATORS ====== #
+# ============================== DECORATORS ============================== #
 
 def method(method):
     """ Automatically reject requests of wrong methods.

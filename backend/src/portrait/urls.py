@@ -19,11 +19,11 @@ urlpatterns = [
     path('audit/stats/',       audit.get_database_stats,    name='audit_stats'),
 
     # DATALOAD module
-    path('import_excel/',                      dataload.import_excel,        name="import_excel"),
-    path('get-expected-fields/',               dataload.get_expected_fields, name='get_expected_fields'),
-    path('get-templates/',                     dataload.get_templates,       name='get_templates'),
-    path('save-template/',                     dataload.save_template,       name='save_template'),
-    path('delete-template/<int:template_id>/', dataload.delete_template,     name='delete_template'),
+    path('dataload/import-excel/',                      dataload.import_excel,        name="dataload_import_excel"),
+    path('dataload/expected-fields/',                   dataload.get_expected_fields, name='dataload_expected_fields'),
+    path('dataload/templates/',                         dataload.get_templates,       name='dataload_templates'),
+    path('dataload/template-save/',                     dataload.save_template,       name='dataload_template_save'),
+    path('dataload/template-delete/<int:template_id>/', dataload.delete_template,     name='dataload_template_delete'),
 
     # DATASESH module
     path("create-data-session/",     datasesh.create_data_session,     name="create_data_session"),

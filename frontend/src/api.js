@@ -88,6 +88,46 @@ export function postAuditExecuteSQL(query) {
     return new AsyncChain(promise);
 }
 
+/* *** DATALOAD *** */
+
+export function postDataloadImportExcel(file, configJson) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('config_json', JSON.stringify(configJson));
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/dataload/import-excel/`, {
+        method: 'POST',
+        body: formData
+    });
+    return new AsyncChain(promise);
+}
+
+// Шаблоны загрузки
+export function getDataloadExpectedFields() {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/dataload/expected-fields/`);
+    return new AsyncChain(promise);
+}
+
+export function getDataloadTemplates() {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/dataload/templates/`);
+    return new AsyncChain(promise);
+}
+
+export function postDataloadTemplateSave(name, config, description = "") {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/dataload/template-save/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, config, description })
+    });
+    return new AsyncChain(promise);
+}
+
+export function deleteDataloadTemplateDelete(templateId) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/dataload/template-delete/${templateId}/`, {
+        method: 'DELETE'
+    });
+    return new AsyncChain(promise);
+}
+
 /* *** statsresult *** */
 
 export function getPortraitCourses() {
@@ -342,33 +382,6 @@ export function postAiAnalyticsSummary(contextType, filters) {
     return new AsyncChain(promise);
 }
 
-// Шаблоны загрузки
-export function getExpectedFields() {
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-expected-fields/`);
-    return new AsyncChain(promise);
-}
-
-export function getTemplates() {
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-templates/`);
-    return new AsyncChain(promise);
-}
-
-export function saveTemplate(name, config, description = "") {
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/save-template/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, config, description })
-    });
-    return new AsyncChain(promise);
-}
-
-export function deleteTemplate(templateId) {
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/delete-template/${templateId}/`, {
-        method: 'DELETE'
-    });
-    return new AsyncChain(promise);
-}
-
 export function getEducationProfilesComparison(filters) {
     const params = new URLSearchParams();
     if (filters.specialties && filters.specialties.length) {
@@ -406,18 +419,6 @@ export function postAnalyzeTransferStudents(body) {
 /** GET /portrait/get-institutions/ - список вузов */
 export function getInstitutions() {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-institutions/`);
-    return new AsyncChain(promise);
-}
-
-// Импорт Excel (уже есть, но можно добавить обертку)
-export function importExcel(file, configJson) {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('config_json', JSON.stringify(configJson));
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/import_excel/`, {
-        method: 'POST',
-        body: formData
-    });
     return new AsyncChain(promise);
 }
 
