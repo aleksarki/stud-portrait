@@ -44,7 +44,7 @@ function SuperAuditView() {
             .onSuccess(async response => {
                 const data = await response.json();
                 if (data.status === 'success') {
-                    setStats(data.data);
+                    setStats(data.info);
                 }
             })
             .onError(error => console.error("Ошибка загрузки статистики:", error));
@@ -56,7 +56,7 @@ function SuperAuditView() {
             .onSuccess(async response => {
                 const data = await response.json();
                 if (data.status === 'success') {
-                    setSchema(data.data);
+                    setSchema(data.schema);
                 }
             })
             .onError(error => console.error("Ошибка загрузки схемы:", error))
@@ -68,7 +68,7 @@ function SuperAuditView() {
             .onSuccess(async response => {
                 const data = await response.json();
                 if (data.status === 'success') {
-                    setTableData(data.data);
+                    setTableData(data.sample);
                 }
             })
             .onError(error => console.error("Ошибка загрузки данных таблицы:", error));

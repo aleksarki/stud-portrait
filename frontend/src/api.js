@@ -22,8 +22,71 @@ class AsyncChain {
     }
 }
 
+class WindowChain {
+    constructor(url) {
+        this.url = url;
+        this.timeoutCallback = null
+        this.errorCallback = null;
+    }
+
+    onTimeout(fn) {
+        this.timeoutCallback = fn;
+        return this;
+    }
+
+    onError(fn) {
+        this.errorCallback = fn;
+        return this;
+    }
+
+    open() {
+        try {
+            window.open(this.url, '_blank');
+            setTimeout(this.timeoutCallback, 1000);
+        } catch (error) {
+            this.errorCallback?.();
+        }
+    }
+}
+
 const PROTOCOL = "http";
 const HOST = "localhost:8000";
+
+/* *** AUDIT *** */
+
+export function getAuditSchema(tableName = null) {
+    const params = new URLSearchParams();
+    if (tableName) params.append('table_name', tableName);
+    const url = `${PROTOCOL}://${HOST}/portrait/audit/schema/${params.toString() ? `?${params.toString()}` : ''}`;
+    const promise = fetch(url);
+    return new AsyncChain(promise);
+}
+
+export function getAuditTableData(tableName, limit = 10) {
+    const params = new URLSearchParams();
+    params.append('table_name', tableName);
+    params.append('limit', limit);
+    const url = `${PROTOCOL}://${HOST}/portrait/audit/table-data/?${params.toString()}`;
+    const promise = fetch(url);
+    return new AsyncChain(promise);
+}
+
+export function getAuditStats() {
+    const url = `${PROTOCOL}://${HOST}/portrait/audit/stats/`;
+    const promise = fetch(url);
+    return new AsyncChain(promise);
+}
+
+export function postAuditExecuteSQL(query) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/audit/execute-sql/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query })
+    });
+    return new AsyncChain(promise);
+}
 
 /* *** statsresult *** */
 
@@ -368,41 +431,6 @@ export function getStudentComparisonStats(studentId, year) {
     return new AsyncChain(promise);
 }
 
-// Аудит базы данных
-export function getAuditSchema(tableName = null) {
-    const params = new URLSearchParams();
-    if (tableName) params.append('table_name', tableName);
-    const url = `${PROTOCOL}://${HOST}/portrait/audit/schema/${params.toString() ? `?${params.toString()}` : ''}`;
-    const promise = fetch(url);
-    return new AsyncChain(promise);
-}
-
-export function getAuditTableData(tableName, limit = 10) {
-    const params = new URLSearchParams();
-    params.append('table_name', tableName);
-    params.append('limit', limit);
-    const url = `${PROTOCOL}://${HOST}/portrait/audit/table-data/?${params.toString()}`;
-    const promise = fetch(url);
-    return new AsyncChain(promise);
-}
-
-export function getAuditStats() {
-    const url = `${PROTOCOL}://${HOST}/portrait/audit/stats/`;
-    const promise = fetch(url);
-    return new AsyncChain(promise);
-}
-
-export function postAuditSQL(query) {
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/audit/sql/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ query })
-    });
-    return new AsyncChain(promise);
-}
-
 export function getFilterDash() {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/filter-dash/`);
     return new AsyncChain(promise);
@@ -442,33 +470,6 @@ export function getStudentResumeData(studentId, year) {
     params.append('with_ai', 'true');
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/student-resume-data/?${params}`);
     return new AsyncChain(promise);
-}
-
-class WindowChain {
-    constructor(url) {
-        this.url = url;
-        this.timeoutCallback = null
-        this.errorCallback = null;
-    }
-
-    onTimeout(fn) {
-        this.timeoutCallback = fn;
-        return this;
-    }
-
-    onError(fn) {
-        this.errorCallback = fn;
-        return this;
-    }
-
-    open() {
-        try {
-            window.open(this.url, '_blank');
-            setTimeout(this.timeoutCallback, 1000);
-        } catch (error) {
-            this.errorCallback?.();
-        }
-    }
 }
 
 export function windowGenerateDocxResume(studentId) {
