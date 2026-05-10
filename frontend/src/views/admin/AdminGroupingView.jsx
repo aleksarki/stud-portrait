@@ -10,8 +10,9 @@ import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../com
 
 import TitledCard from "../../components/cards/TitledCard";
 
-import Button, { BUTTON_PALETTE } from '../../components/ui/Button';
+import Button from '../../components/ui/Button';
 import Label from '../../components/ui/Label';
+import { ADMIN_PALETTE } from '../../components/ui/palette.js';
 import Select, { Option } from '../../components/ui/Select.jsx';
 
 import "./AdminGroupingView.scss";
@@ -121,7 +122,7 @@ function AdminGroupingView() {
                                 <Button
                                     text="← Назад к результатам"
                                     onClick={() => navigate('/admin/results')}
-                                    palette={BUTTON_PALETTE.GRAY}
+                                    palette={ADMIN_PALETTE.GRAY}
                                 />
                                 {groupingData && (
                                     <Label>
@@ -138,17 +139,17 @@ function AdminGroupingView() {
                             <Button
                                 text="Компетенции"
                                 onClick={() => setActiveTab('competences')}
-                                palette={activeTab === 'competences' ? BUTTON_PALETTE.BLUE : BUTTON_PALETTE.GRAY}
+                                palette={activeTab === 'competences' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
                             />
                             <Button
                                 text="Мотиваторы"
                                 onClick={() => setActiveTab('motivators')}
-                                palette={activeTab === 'motivators' ? BUTTON_PALETTE.BLUE : BUTTON_PALETTE.GRAY}
+                                palette={activeTab === 'motivators' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
                             />
                             <Button
                                 text="Ценности"
                                 onClick={() => setActiveTab('values')}
-                                palette={activeTab === 'values' ? BUTTON_PALETTE.BLUE : BUTTON_PALETTE.GRAY}
+                                palette={activeTab === 'values' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
                             />
                         </FlexRow>
                         <div className="data-tabs">

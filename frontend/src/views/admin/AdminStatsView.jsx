@@ -11,11 +11,14 @@ import 'rc-slider/assets/index.css';
 
 import FlexRow, { ALIGN, JUSTIFY, WRAP } from '../../components/FlexRow.jsx';
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
+
 import Card from '../../components/cards/Card.jsx';
 import TitledCard from '../../components/cards/TitledCard.jsx';
 import ValueCard from '../../components/cards/ValueCard.jsx';
-import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
+
+import Button from '../../components/ui/Button.jsx';
 import LoadingSpinner from '../../components/ui/LoadingSpinner.jsx';
+import { ADMIN_PALETTE } from '../../components/ui/palette.js';
 
 import {
     getDashboardStats,
@@ -818,13 +821,13 @@ function AdminStatsView() {
                                 <Button
                                     text={showFilters ? 'Скрыть фильтры' : 'Показать фильтры'}
                                     onClick={() => setShowFilters(!showFilters)}
-                                    palette={BUTTON_PALETTE.YELLOW}
+                                    palette={ADMIN_PALETTE.YELLOW}
                                 />
                                 <Button
                                     text={loading ? "Загрузка..." : "Обновить"}
                                     onClick={() => fetchStats(sessionId)}
                                     disabled={loading}
-                                    palette={BUTTON_PALETTE.CYAN}
+                                    palette={ADMIN_PALETTE.CYAN}
                                 />
                             </FlexRow>
                         </div>
@@ -864,13 +867,13 @@ function AdminStatsView() {
                                                         text={loading ? "Загрузка..." :  "Применить"}
                                                         onClick={applyFilters}
                                                         disabled={pendingFilters.length === 0 || !sessionId || loading}
-                                                        palette={BUTTON_PALETTE.GREEN}
+                                                        palette={ADMIN_PALETTE.GREEN}
                                                     />
                                                     <Button
                                                         text="Очистить"
                                                         onClick={clearAllFilters}
                                                         disabled={!sessionId || loading}
-                                                        palette={BUTTON_PALETTE.RED}
+                                                        palette={ADMIN_PALETTE.RED}
                                                     />
                                                 </>
                                             )}
@@ -960,22 +963,22 @@ function AdminStatsView() {
                             <Button
                                 text="Обзор"
                                 onClick={() => setActiveTab('overview')}
-                                palette={activeTab === 'overview' ? BUTTON_PALETTE.BLUE : BUTTON_PALETTE.GRAY}
+                                palette={activeTab === 'overview' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
                             />
                             <Button
                                 text="Компетенции"
                                 onClick={() => setActiveTab('competences')}
-                                palette={activeTab === 'competences' ? BUTTON_PALETTE.BLUE : BUTTON_PALETTE.GRAY}
+                                palette={activeTab === 'competences' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
                             />
                             <Button
                                 text="Мотиваторы"
                                 onClick={() => setActiveTab('motivators')}
-                                palette={activeTab === 'motivators' ? BUTTON_PALETTE.BLUE : BUTTON_PALETTE.GRAY}
+                                palette={activeTab === 'motivators' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
                             />
                             <Button
                                 text="Ценности"
                                 onClick={() => setActiveTab('values')}
-                                palette={activeTab === 'values' ? BUTTON_PALETTE.BLUE : BUTTON_PALETTE.GRAY}
+                                palette={activeTab === 'values' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
                             />
                         </FlexRow>
 
@@ -1097,7 +1100,7 @@ function AdminStatsView() {
                                             <Button
                                                 text={showAllCenters ? 'Скрыть' : 'Показать все'}
                                                 onClick={() => setShowAllCenters(!showAllCenters)}
-                                                palette={BUTTON_PALETTE.CYAN}
+                                                palette={ADMIN_PALETTE.CYAN}
                                             />
                                         </FlexRow>
                                         <div className="centers-list">
@@ -1122,7 +1125,7 @@ function AdminStatsView() {
                                             <Button
                                                 text={showAllInstitutions ? 'Скрыть' : 'Показать все'}
                                                 onClick={() => setShowAllInstitutions(!showAllInstitutions)}
-                                                palette={BUTTON_PALETTE.CYAN}
+                                                palette={ADMIN_PALETTE.CYAN}
                                             />
                                         </FlexRow>
                                         <div className="institutions-list">

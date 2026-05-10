@@ -72,7 +72,7 @@ const MotivatorStatistics = ({ filters }) => {
             if (!course) return [];
 
             return Object.entries(course.motivators).map(([key, value]) => ({
-                name: MOTIVATOR_NAMES[key],
+                name: MOTIVATORS_NAMES[key],
                 мотиваторы: value.motivator_percent,
                 демотиваторы: value.demotivator_percent,
                 total: value.total_count
@@ -89,7 +89,7 @@ const MotivatorStatistics = ({ filters }) => {
             if (!course) return [];
 
             return Object.entries(course.motivators).map(([key, value]) => ({
-                name: MOTIVATOR_NAMES[key],
+                name: MOTIVATORS_NAMES[key],
                 мотиваторы: value.motivator_percent,
                 демотиваторы: value.demotivator_percent,
                 total: value.total_count

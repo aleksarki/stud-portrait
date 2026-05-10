@@ -22,13 +22,14 @@ import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../com
 
 import Table, { TableHeader, TableItem, TableRow } from '../../components/tables/Table.jsx';
 
-import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
+import Button from '../../components/ui/Button.jsx';
 import ColorBox, { BOX_COLOR } from '../../components/ui/ColorBox.jsx';
 import Dropdown from '../../components/ui/Dropdown.jsx';
 import Label from '../../components/ui/Label.jsx';
 import LoadingSpinner from '../../components/ui/LoadingSpinner.jsx';
 import MultiSelect from "../../components/ui/MultiSelect.jsx";
 import NumberField from '../../components/ui/NumberField.jsx';
+import { ADMIN_PALETTE } from '../../components/ui/palette.js';
 import Select, { Option, OptionGroup } from "../../components/ui/Select.jsx";
 
 import "./AdminResultsView.scss";
@@ -503,31 +504,31 @@ function AdminResultsView() {
                                 <Button
                                     text="Фильтры..."
                                     onClick={() => setFiltersModalWindowVisible(filters)}
-                                    palette={BUTTON_PALETTE.YELLOW}
+                                    palette={ADMIN_PALETTE.YELLOW}
                                 />
                                 <Button
                                     text="Колонки"
                                     onClick={() => setShowColumnSelector(!showColumnSelector)}
                                     disabled={!sessionId}
-                                    palette={BUTTON_PALETTE.PURPLE}
+                                    palette={ADMIN_PALETTE.PURPLE}
                                 />
                                 <Button
                                     text="Группировка"
                                     onClick={handleGrouping}
                                     disabled={!sessionId || selectedRows.size === 0}
-                                    palette={BUTTON_PALETTE.PURPLE}
+                                    palette={ADMIN_PALETTE.PURPLE}
                                 />
                                 <Button
                                     text={exportLoading ? "Загрузка..." : `Выгрузить выделенные (${selectedRows.size})`}
                                     onClick={handleExportSelected}
                                     disabled={!sessionId || exportLoading || selectedRows.size === 0}
-                                    palette={BUTTON_PALETTE.GREEN}
+                                    palette={ADMIN_PALETTE.GREEN}
                                 />
                                 <Button
                                     text={loading ? "Загрузка..." : "Обновить"}
                                     onClick={() => loadSessionData()}
                                     disabled={!sessionId || loading}
-                                    palette={BUTTON_PALETTE.CYAN}
+                                    palette={ADMIN_PALETTE.CYAN}
                                 />
                                 <Label>
                                     {sessionId ? <>
@@ -550,18 +551,18 @@ function AdminResultsView() {
                                             text="Показать все"
                                             onClick={showAllColumns}
                                             disabled={!sessionId || loading}
-                                            palette={BUTTON_PALETTE.BLUE}
+                                            palette={ADMIN_PALETTE.BLUE}
                                         />
                                         <Button
                                             text="Скрыть все"
                                             onClick={hideAllColumns}
                                             disabled={!sessionId || loading}
-                                            palette={BUTTON_PALETTE.BLUE}
+                                            palette={ADMIN_PALETTE.BLUE}
                                         />
                                         <Button
                                             text="✕"
                                             onClick={() => setShowColumnSelector(false)}
-                                            palette={BUTTON_PALETTE.RED}
+                                            palette={ADMIN_PALETTE.RED}
                                         />
                                     </div>
                                 </div>
@@ -708,7 +709,7 @@ function AdminResultsView() {
                                     text={loading ? 'Загрузка...' : "Загрузить ещё"}
                                     onClick={loadMoreData}
                                     disabled={loading}
-                                    palette={BUTTON_PALETTE.BLUE}
+                                    palette={ADMIN_PALETTE.BLUE}
                                 />
                             )}
                         </FlexRow>
@@ -765,13 +766,13 @@ function AdminResultsView() {
                                         text={loading ? "Загрузка..." : "Применить"}
                                         onClick={applyFilters}
                                         disabled={pendingFilters.length === 0 || !sessionId || loading}
-                                        palette={BUTTON_PALETTE.GREEN}
+                                        palette={ADMIN_PALETTE.GREEN}
                                     />
                                     <Button
                                         text="Очистить"
                                         onClick={clearAllFilters}
                                         disabled={!sessionId || loading}
-                                        palette={BUTTON_PALETTE.RED}
+                                        palette={ADMIN_PALETTE.RED}
                                     />
                                 </>
                             )}
@@ -807,7 +808,7 @@ function AdminResultsView() {
                                             <Button
                                                 text="✕"
                                                 onClick={() => removePendingFilter(filter.id)}
-                                                palette={BUTTON_PALETTE.RED}
+                                                palette={ADMIN_PALETTE.RED}
                                             />
                                         </FlexRow>
                                     </LabelledBox>
@@ -839,7 +840,7 @@ function AdminResultsView() {
                     <Button
                         text="Отмена"
                         onClick={() => setFiltersModalWindowVisible(false)}
-                        palette={BUTTON_PALETTE.GRAY}
+                        palette={ADMIN_PALETTE.GRAY}
                     />
                 </ModalFooter>
             </FiltersModalWindow>
@@ -870,13 +871,13 @@ function AdminResultsView() {
                     <Button
                         text="Отмена"
                         onClick={() => setGrouppingModalVisible(false)}
-                        palette={BUTTON_PALETTE.GRAY}
+                        palette={ADMIN_PALETTE.GRAY}
                     />
                     <Button
                         text="Перейти к группировке"
                         onClick={handleConfirmGrouping}
                         disabled={!groupingColumn}
-                        palette={BUTTON_PALETTE.BLUE}
+                        palette={ADMIN_PALETTE.BLUE}
                     />
                 </ModalFooter>
             </GrouppingModalWindow>

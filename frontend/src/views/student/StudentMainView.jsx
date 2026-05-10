@@ -12,7 +12,8 @@ import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../com
 import StudentComparisonStats from "../../components/StudentComparisonStats";
 import Title from "../../components/Title";
 
-import Button, { BUTTON_PALETTE } from "../../components/ui/Button";
+import Button from "../../components/ui/Button";
+import { STUDENT_PALETTE } from "../../components/ui/palette";
 import Select, { Option } from "../../components/ui/Select";
 
 import ChartSwitcher from "../../components/charts/ChartSwitcher";
@@ -315,13 +316,13 @@ function StudentMainView() {
                                 text={analyticsLoading ? "Загрузка..." : showAnalytics ? "Скрыть аналитику" : "Показать аналитику"}
                                 onClick={toggleAnalytics}
                                 disabled={analyticsLoading}
-                                palette={BUTTON_PALETTE.STUDENT_BLUE}
+                                palette={STUDENT_PALETTE.BLUE}
                             />
                             <Button
                                 text={resumeGenerating ? "Загрузка..." : "Скачать резюме DOCX"}
                                 onClick={generateDocxResume}
                                 disabled={resumeGenerating}
-                                palette={BUTTON_PALETTE.STUDENT_GREEN}
+                                palette={STUDENT_PALETTE.GREEN}
                             />
                         </div>
                     </div>

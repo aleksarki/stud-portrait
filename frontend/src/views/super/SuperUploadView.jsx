@@ -13,10 +13,11 @@ import TitledCard from "../../components/cards/TitledCard";
 
 import Table, { TableHeader, TableItem, TableRow } from "../../components/tables/Table";
 
-import Button, { BUTTON_PALETTE } from "../../components/ui/Button";
-import FileInput, { FILE_INPUT_PALETTE } from "../../components/ui/FileInput";
+import Button from "../../components/ui/Button";
+import FileInput from "../../components/ui/FileInput";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import NumberField from "../../components/ui/NumberField";
+import { ADMIN_PALETTE } from "../../components/ui/palette";
 import Select, { Option } from "../../components/ui/Select";
 
 import "./SuperUploadView.scss";
@@ -267,7 +268,7 @@ function SuperUploadView() {
                 <Button
                     text="← Назад"
                     onClick={() => setStep("upload")}
-                    palette={BUTTON_PALETTE.CYAN}
+                    palette={ADMIN_PALETTE.CYAN}
                 />
 
                 <h3>Сопоставление колонок (можно изменить вручную)</h3>
@@ -369,13 +370,13 @@ function SuperUploadView() {
                         <Button
                             text="Сохранить шаблон"
                             onClick={handleSaveTemplate}
-                            palette={BUTTON_PALETTE.BLUE}
+                            palette={ADMIN_PALETTE.BLUE}
                         />
                         <Button
                             text={uploading ? "Импорт..." : "Импортировать данные"}
                             onClick={handleImport}
                             disabled={uploading || !allFieldsMapped}
-                            palette={BUTTON_PALETTE.GREEN}
+                            palette={ADMIN_PALETTE.GREEN}
                         />
                         {!allFieldsMapped && (
                             <span className="hint">Заполните хотя бы одно поле в каждом листе</span>
@@ -449,7 +450,7 @@ function SuperUploadView() {
                         accept=".xlsx, .xls"
                         onChange={handleFileChange}
                         disabled={uploading}
-                        palette={FILE_INPUT_PALETTE.GRAY}
+                        palette={ADMIN_PALETTE.GRAY}
                     />
                     {isTemplateActive && (
                         <span className="template-hint">

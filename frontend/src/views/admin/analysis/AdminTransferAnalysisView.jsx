@@ -7,16 +7,21 @@ import {
 import { COMPETENCIES_NAMES, LINK_TREE } from "../../../utilities";
 import { getInstitutions, getAnalyzeTransfers, postAnalyzeTransferStudents } from "../../../api";
 
-import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
 import FlexRow, { WRAP } from "../../../components/FlexRow";
 import LabelledBox from "../../../components/LabelledBox";
+import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
+
 import TitledCard from "../../../components/cards/TitledCard";
 import ValueCard from "../../../components/cards/ValueCard";
-import Button, { BUTTON_PALETTE } from "../../../components/ui/Button";
+
+import Button from "../../../components/ui/Button";
 import Select, { Option } from "../../../components/ui/Select";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import NoData from "../../../components/ui/NoData";
+import { ADMIN_PALETTE } from "../../../components/ui/palette";
+
 import Table, { TableHeader, TableItem, TableRow } from "../../../components/tables/Table";
+
 import SankeyDiagram from "../../../components/charts/SankeyDiagram";
 
 import "./AdminTransferAnalysisView.scss";
@@ -186,7 +191,7 @@ function AdminTransferAnalysisView() {
                     text={loadingStudents ? "Загрузка..." : "Загрузить список студентов"}
                     onClick={loadStudents}
                     disabled={loadingStudents || !summary}
-                    palette={BUTTON_PALETTE.BLUE}
+                    palette={ADMIN_PALETTE.BLUE}
                 />
             </div>
         );
@@ -357,7 +362,7 @@ function AdminTransferAnalysisView() {
                             text={loading ? "Анализ..." : "Запустить анализ"}
                             onClick={runAnalysis}
                             disabled={loading}
-                            palette={BUTTON_PALETTE.CYAN}
+                            palette={ADMIN_PALETTE.CYAN}
                         />
                     </div>
 
@@ -453,18 +458,18 @@ function AdminTransferAnalysisView() {
                                 <Button
                                     text="Диаграмма Санки"
                                     onClick={() => setActiveTab('sankey')}
-                                    palette={activeTab === 'sankey' ? BUTTON_PALETTE.CYAN : BUTTON_PALETTE.GRAY}
+                                    palette={activeTab === 'sankey' ? ADMIN_PALETTE.CYAN : ADMIN_PALETTE.GRAY}
                                 />
                                 <Button
                                     text="Динамика по курсам"
                                     onClick={() => setActiveTab('dynamics')}
-                                    palette={activeTab === 'dynamics' ? BUTTON_PALETTE.BLUE : BUTTON_PALETTE.GRAY}
+                                    palette={activeTab === 'dynamics' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
                                 />
                                 <Button
                                     text={`Студенты${studentsLoaded ? ` (${students.length})` : ''}`}
                                     onClick={() => { setActiveTab('students'); if (!studentsLoaded) loadStudents(); }}
                                     disabled={loadingStudents}
-                                    palette={activeTab === 'students' ? BUTTON_PALETTE.BROWN : BUTTON_PALETTE.GRAY}
+                                    palette={activeTab === 'students' ? ADMIN_PALETTE.BROWN : ADMIN_PALETTE.GRAY}
                                 />
                             </FlexRow>
 

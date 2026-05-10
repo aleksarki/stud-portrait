@@ -1,5 +1,6 @@
 // AdminAnalysisVamLgmView.jsx
 import { useEffect, useState } from "react";
+
 import {
     postGetVamTrendData,
     postPortraitCreateDataSession,
@@ -10,13 +11,18 @@ import { COMPETENCIES_NAMES, LINK_TREE } from "../../../utilities";
 
 import FlexRow, { WRAP } from "../../../components/FlexRow";
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
+
 import TitledCard from "../../../components/cards/TitledCard";
+
 import VamCourseScatter from "../../../components/charts/VamCourseScatter";
-import Button, { BUTTON_PALETTE } from "../../../components/ui/Button";
+
+import Button from "../../../components/ui/Button";
 import MultiSelect from "../../../components/ui/MultiSelect";
 import Select, { Option } from "../../../components/ui/Select";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import NoData from "../../../components/ui/NoData";
+import { ADMIN_PALETTE } from "../../../components/ui/palette";
+
 import "./AdminAnalysisVamLgmView.scss";
 
 function AdminAnalysisVamLgmView() {
@@ -183,12 +189,12 @@ function AdminAnalysisVamLgmView() {
                             <Button
                                 text="Value-Added Model (VAM)"
                                 onClick={() => setAnalysisMethod('vam')}
-                                palette={analysisMethod === 'vam' ? BUTTON_PALETTE.BLUE : BUTTON_PALETTE.GRAY}
+                                palette={analysisMethod === 'vam' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
                             />
                             <Button
                                 text="Latent Growth Model (LGM)"
                                 onClick={() => setAnalysisMethod('lgm')}
-                                palette={analysisMethod === 'lgm' ? BUTTON_PALETTE.BLUE : BUTTON_PALETTE.GRAY}
+                                palette={analysisMethod === 'lgm' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
                             />
                             {analysisMethod === 'vam' && (
                                 <>
@@ -272,9 +278,9 @@ function AdminAnalysisVamLgmView() {
                             text={loading ? "Загрузка..." : "Построить график"}
                             onClick={loadChartData}
                             disabled={loading || !selectedCompetency}
-                            palette={BUTTON_PALETTE.CYAN}
+                            palette={ADMIN_PALETTE.CYAN}
                         />
-                        <Button text="Очистить всё" onClick={clearFilters} palette={BUTTON_PALETTE.GRAY} />
+                        <Button text="Очистить всё" onClick={clearFilters} palette={ADMIN_PALETTE.GRAY} />
                     </FlexRow>
 
                     <LoadingSpinner loading={loading} text="Загрузка данных..." />

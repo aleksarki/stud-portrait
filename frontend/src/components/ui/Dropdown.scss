@@ -1,3 +1,5 @@
+@use 'palette';
+
 .Dropdown {
     font-size: 14px !important;
     // font-weight: 500 !important;
@@ -17,11 +19,7 @@
         justify-content: space-between;
         align-items: center;
 
-        color: var(--fg);
-        background: var(--bg);
-        border: var(--border);
-        text-shadow: var(--textShadow);
-        box-shadow: var(--boxShadow);
+        @include palette.paletted();
 
         transition: all 0.2s ease;
 
@@ -72,11 +70,7 @@
         max-height: 250px;
         overflow-y: auto;
 
-        color: var(--fg);
-        background: var(--bg);
-        border: var(--border);
-        text-shadow: var(--textShadow);
-        box-shadow: var(--boxShadow);
+        @include palette.paletted();
 
         &:not(.open), &.disabled {
             display: none;

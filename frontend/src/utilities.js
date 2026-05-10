@@ -1,5 +1,6 @@
 // utilities.js
 
+/** Link tree for admin navigation. */
 export const LINK_TREE = [
     {
         category: null,
@@ -30,6 +31,7 @@ export const LINK_TREE = [
     }
 ];
 
+/** Link tree for superadmin navigation. */
 export const SUPER_LINK_TREE = [
     {
         category: "Управление данными",

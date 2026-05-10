@@ -1,3 +1,5 @@
+import { unpackPaletteOptions } from "./palette";
+
 import "./Label.scss";
 
 export const LABEL_PALETTE = {
@@ -32,23 +34,10 @@ export const LABEL_PALETTE = {
 };
 
 function Label({ text, children, palette = LABEL_PALETTE.GRAY }) {
-
-    const fg =         palette?.fg;
-    const bg =         palette?.bg;
-    const border =     palette?.border;
-    const textShadow = palette?.textShadow;
-    const boxShadow =  palette?.boxShadow;
-
     return (
         <span
             className="Label"
-            style={{
-                "--fg":         fg,
-                "--bg":         bg,
-                "--border":     border,
-                "--textShadow": textShadow,
-                "--boxShadow":  boxShadow
-            }}
+            style={unpackPaletteOptions(palette)}
         >
             {text}
             {children}

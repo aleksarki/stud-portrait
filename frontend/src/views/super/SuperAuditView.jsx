@@ -13,7 +13,6 @@ import ValueCard from "../../components/cards/ValueCard";
 import Table, { TableHeader, TableItem, TableRow } from "../../components/tables/Table";
 import DbContentTable from "../../components/tables/DbContentTable";
 
-import Button, { BUTTON_PALETTE } from "../../components/ui/Button";
 import Label from "../../components/ui/Label";
 import NoData from "../../components/ui/NoData";
 

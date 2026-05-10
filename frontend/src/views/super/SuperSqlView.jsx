@@ -11,9 +11,10 @@ import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../com
 
 import DbContentTable from "../../components/tables/DbContentTable";
 
-import Button, { BUTTON_PALETTE } from "../../components/ui/Button";
+import Button from "../../components/ui/Button";
 import Dropdown from "../../components/ui/Dropdown";
 import Label, { LABEL_PALETTE } from "../../components/ui/Label";
+import { ADMIN_PALETTE } from "../../components/ui/palette";
 import { Option } from "../../components/ui/Select";
 
 import "./SuperSqlView.scss";
@@ -168,19 +169,19 @@ LIMIT 50;`
                             <Button
                                 text="Results"
                                 onClick={() => insertExampleQuery('results')}
-                                palette={BUTTON_PALETTE.CYAN}
+                                palette={ADMIN_PALETTE.CYAN}
                                 small
                             />
                             <Button
                                 text="Participants"
                                 onClick={() => insertExampleQuery('participants')}
-                                palette={BUTTON_PALETTE.CYAN}
+                                palette={ADMIN_PALETTE.CYAN}
                                 small
                             />
                             <Button
                                 text="JOIN"
                                 onClick={() => insertExampleQuery('join')}
-                                palette={BUTTON_PALETTE.CYAN}
+                                palette={ADMIN_PALETTE.CYAN}
                                 small
                             />
                         </FlexRow>
@@ -199,13 +200,13 @@ LIMIT 50;`
                                 <Button
                                     text="Очистить"
                                     onClick={clearConsole}
-                                    palette={BUTTON_PALETTE.RED}
+                                    palette={ADMIN_PALETTE.RED}
                                 />
                                 <Button
                                     text={loading ? 'Выполнение...' : 'Выполнить'}
                                     onClick={executeQuery}
                                     disabled={loading}
-                                    palette={BUTTON_PALETTE.GREEN}
+                                    palette={ADMIN_PALETTE.GREEN}
                                 />
                             </FlexRow>
                         </FlexRow>

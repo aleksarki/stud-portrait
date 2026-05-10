@@ -10,12 +10,13 @@ import ValueCard from '../../components/cards/ValueCard.jsx';
 
 import Table, { TableHeader, TableItem, TableRow } from '../../components/tables/Table.jsx';
 
-import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
+import Button from '../../components/ui/Button.jsx';
 import ColorBox, { BOX_COLOR } from '../../components/ui/ColorBox.jsx';
 import Label from '../../components/ui/Label.jsx';
 import LoadingSpinner from '../../components/ui/LoadingSpinner.jsx';
 
 import "./AdminCoursesView.scss";
+import { ADMIN_PALETTE } from '../../components/ui/palette.js';
 
 function AdminCoursesView() {
     const [coursesData, setCoursesData] = useState([]);
@@ -176,7 +177,7 @@ function AdminCoursesView() {
                                     text="Обновить"
                                     onClick={fetchCoursesData}
                                     disabled={loading}
-                                    palette={BUTTON_PALETTE.CYAN}
+                                    palette={ADMIN_PALETTE.CYAN}
                                 />
                             </FlexRow>
                         </div>

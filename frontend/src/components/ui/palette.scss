@@ -1,0 +1,46 @@
+@mixin paletted($bg: true) {
+    color: var(--fg);
+    @if $bg == true {
+        background: var(--bg);
+    }
+    border: var(--border);
+    text-shadow: var(--textShadow);
+    box-shadow: var(--boxShadow);
+}
+
+@mixin paletted-activable() {
+    @include paletted();
+    
+    transition: all 0.2s ease;
+    
+    &:hover:not(:disabled) {
+        color: var(--hoverFg);
+        background: var(--hoverBg);
+        border: var(--hoverBorder);
+        text-shadow: var(--hoverTextShadow);
+        box-shadow: var(--hoverBoxShadow);
+        transform: var(--hoverTransform);
+    }
+
+    &:active:not(:disabled) {
+        color: var(--activeFg);
+        background: var(--activeBg);
+        border: var(--activeBorder);
+        text-shadow: var(--activeTextShadow);
+        box-shadow: var(--activeBoxShadow);
+        transform: var(--activeTransform);
+    }
+
+    &:disabled {
+        cursor: not-allowed;
+        transform: none;
+        // opacity: 0.6;
+        
+        color: var(--disabledFg);
+        background: var(--disabledBg);
+        border: var(--disabledBorder);
+        text-shadow: var(--disabledTextShadow);
+        box-shadow: var(--disabledBoxShadow);
+        transform: var(--disabledTransform);
+    }
+}
