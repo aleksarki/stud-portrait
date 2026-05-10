@@ -18,6 +18,8 @@ import Button, { BUTTON_PALETTE } from '../../components/ui/Button.jsx';
 import LoadingSpinner from '../../components/ui/LoadingSpinner.jsx';
 
 import {
+    getDashboardStats,
+    getFilterDash,
     postPortraitCreateDataSession,
     postPortraitStats,
     postPortraitUpdateSessionFilters
@@ -43,14 +45,14 @@ const FilterHeader = ({ onFilterChange }) => {
 
     //загрузка вариантов
     useEffect(() => {
-        fetch(`http://localhost:8000/portrait/filter-dash`)
-        .then(response => response.json()) 
-        .then(data => {
-        setOptions(data.data); 
-        console.log(data.data);
-        setLoading(false);
-        })
-        .catch(err => console.error("Ошибка загрузки опций", err));
+        getFilterDash()
+            .onSuccess(async response => {
+                const data = await response.json();
+                setOptions(data.data); 
+                console.log(data.data);
+                setLoading(false);
+            })
+            .onError(err => console.error("Ошибка загрузки опций", err));
     }, []);
     const handleChange = (selectedOption, action) => {
         const value = selectedOption ? selectedOption.value : '';
@@ -762,32 +764,15 @@ function AdminStatsView() {
     const [loadingDash, setLoadingDash] = useState(false);
     const [filters_, setFilters_] = useState({ institute: '', specialty: '', year: '' });
              
-    const loadDashboardStats = async (currentFilters) => {
+    const loadDashboardStats = async currentFilters => {
         setLoadingDash(true)
-        try {
-            console.log(currentFilters);
-            let baseUrl = `http://localhost:8000/portrait/dashboard-stats`;
-            const params = new URLSearchParams();
-
-            if (currentFilters.institute) params.append('institute', currentFilters.institute);
-            if (currentFilters.specialty) params.append('specialty', currentFilters.specialty);
-            if (currentFilters.year) params.append('year', currentFilters.year);
-
-            const queryString = params.toString();
-            const finalUrl = queryString ? `${baseUrl}?${queryString}` : baseUrl;
-
-            const response = await fetch(finalUrl);
-            
-            if (!response.ok) throw new Error('Ошибка сервера');
-    
-            const data = await response.json();
-            setDashboardData(data); 
-    
-        } catch (error) {
-            console.error("Ошибка при загрузке дашборда:", error);
-        } finally {
-            setLoadingDash(false); 
-        }
+        getDashboardStats(currentFilters.institute, currentFilters.specialty, currentFilters.year)
+            .onSuccess(async response => {
+                const data = await response.json();
+                setDashboardData(data);
+            })
+            .onError(err => console.error("Ошибка при загрузке дашборда:", err))
+            .finally(() => setLoadingDash(false));
     };
     useEffect(() => {
             loadDashboardStats(filters_);

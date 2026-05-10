@@ -402,3 +402,77 @@ export function postAuditSQL(query) {
     });
     return new AsyncChain(promise);
 }
+
+export function getFilterDash() {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/filter-dash/`);
+    return new AsyncChain(promise);
+}
+
+export function getScoresResult(institute, specialty, year) {
+    const params = new URLSearchParams();
+    if (institute) params.append('institute', institute);
+    if (specialty) params.append('specialty', specialty);
+    if (year)      params.append('year', year);
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/scores-result/?${params}`);
+    return new AsyncChain(promise);
+}
+
+export function getDashboardStats(institute, specialty, year) {
+    const params = new URLSearchParams();
+    if (institute) params.append('institute', institute);
+    if (specialty) params.append('specialty', specialty);
+    if (year)      params.append('year', year);
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/dashboard-stats/?${params}`);
+    return new AsyncChain(promise);
+}
+
+export function getMotivationCounts(institute, specialty, year) {
+    const params = new URLSearchParams();
+    if (institute) params.append('institute', institute);
+    if (specialty) params.append('specialty', specialty);
+    if (year)      params.append('year', year);
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/motivation-counts/?${params}`);
+    return new AsyncChain(promise);
+}
+
+export function getStudentResumeData(studentId, year) {
+    const params = new URLSearchParams();
+    params.append('student_id', studentId);
+    params.append('year', year);
+    params.append('with_ai', 'true');
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/student-resume-data/?${params}`);
+    return new AsyncChain(promise);
+}
+
+class WindowChain {
+    constructor(url) {
+        this.url = url;
+        this.timeoutCallback = null
+        this.errorCallback = null;
+    }
+
+    onTimeout(fn) {
+        this.timeoutCallback = fn;
+        return this;
+    }
+
+    onError(fn) {
+        this.errorCallback = fn;
+        return this;
+    }
+
+    open() {
+        try {
+            window.open(this.url, '_blank');
+            setTimeout(this.timeoutCallback, 1000);
+        } catch (error) {
+            this.errorCallback?.();
+        }
+    }
+}
+
+export function windowGenerateDocxResume(studentId) {
+    const params = new URLSearchParams();
+    params.append('student_id', studentId);
+    return new WindowChain(`${PROTOCOL}://${HOST}/portrait/generate-docx-resume/?${params}`);
+}

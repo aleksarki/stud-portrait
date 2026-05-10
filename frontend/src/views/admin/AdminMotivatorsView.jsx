@@ -8,6 +8,7 @@ import {
 import MotivatorStatistics from "../../components/MotivatorStatistics.jsx";
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 
+import { getFilterDash, getMotivationCounts } from "../../api.js";
 import { COMPETENCIES_NAMES, COURSES_NAMES, LINK_TREE, MOTIVATORS_NAMES } from "../../utilities.js";
 
 import "./AdminMotivatorsView.scss";
@@ -317,14 +318,14 @@ const FilterHeader = ({ onFilterChange }) => {
 
     //загрузка вариантов
     useEffect(() => {
-        fetch(`http://localhost:8000/portrait/filter-dash`)
-        .then(response => response.json()) 
-        .then(data => {
-        setOptions(data.data); 
-        console.log(data.data);
-        setLoading(false);
-        })
-        .catch(err => console.error("Ошибка загрузки опций", err));
+        getFilterDash()
+            .onSuccess(async response => {
+                const data = await response.json();
+                setOptions(data.data); 
+                console.log(data.data);
+                setLoading(false);
+            })
+            .onError(err => console.error("Ошибка загрузки опций", err));
     }, []);
     const handleChange = (selectedOption, action) => {
         const value = selectedOption ? selectedOption.value : '';
@@ -381,33 +382,19 @@ function AdminMotivatorsView(){
     const [isError, setErrorStatus] = useState(false);
     const [filters, setFilters] = useState({ institute: '', specialty: '', year: '' });
     
-    const loadMotivationCounts = async (currentFilters) => {
+    const loadMotivationCounts = async currentFilters => {
         setLoadingMotDash(true)
         setErrorStatus(false)
-        try {
-            console.log(currentFilters);
-            let baseUrl = `http://localhost:8000/portrait/motivation-counts`;
-            const params = new URLSearchParams();
-
-            if (currentFilters.institute) params.append('institute', currentFilters.institute);
-            if (currentFilters.specialty) params.append('specialty', currentFilters.specialty);
-            if (currentFilters.year) params.append('year', currentFilters.year);
-
-            const queryString = params.toString();
-            const finalUrl = queryString ? `${baseUrl}?${queryString}` : baseUrl;
-
-            const response = await fetch(finalUrl);
-            if (!response.ok) {setErrorStatus(true); throw new Error('Ошибка сервера');}
-            
-            const data = await response.json();
-            setMotivationData(data); 
-            
-        } catch (error) {
-            console.error("Ошибка при загрузке мотиваторов:", error);
-            setErrorStatus(true);
-        } finally {
-            setLoadingMotDash(false); 
-        }
+        getMotivationCounts(currentFilters.institute, currentFilters.specialty, currentFilters.year)
+            .onSuccess(async response => {
+                const data = await response.json();
+                setMotivationData(data);
+            })
+            .onError(err => {
+                console.error("Ошибка при загрузке мотиваторов:", err);
+                setErrorStatus(true);
+            })
+            .finally(() => setLoadingMotDash(false));
     };
     useEffect(() => {
         loadMotivationCounts(filters);

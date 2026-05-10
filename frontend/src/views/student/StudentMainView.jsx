@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
-import { getPortraitStudentResults, getStudentComparisonStats } from "../../api";
+import { getPortraitStudentResults, getStudentComparisonStats, getStudentResumeData, windowGenerateDocxResume } from "../../api";
 import {
     getAvailableProfiles, getAvailableCategories, getAvailableYears,
     getCategoryDataForYear, COMPETENCIES_NAMES,
@@ -162,30 +162,28 @@ function StudentMainView() {
     };
 
     // АНАЛИТИКА КОМПЕТЕНЦИЙ
-    const loadAnalytics = async (year) => {
+    const loadAnalytics = async year => {
         // Если данные уже загружены для этого года, просто показываем
         if (analyticsData && analyticsData.year === year) {
             setShowAnalytics(true);
             return;
         }
         setAnalyticsLoading(true);
-        try {
-            const response = await fetch(
-                `http://localhost:8000/portrait/student-resume-data/?student_id=${studentId}&year=${year}&with_ai=true`
-            );
-            const data = await response.json();
-            if (data.status === 'success') {
-                setAnalyticsData({ ...data.data, year });
-                setShowAnalytics(true);
-            } else {
-                alert('Не удалось загрузить аналитику: ' + data.message);
-            }
-        } catch (error) {
-            console.error('Ошибка загрузки аналитики:', error);
-            alert('Ошибка подключения к серверу: ' + error.message);
-        } finally {
-            setAnalyticsLoading(false);
-        }
+        getStudentResumeData(studentId, year)
+            .onSuccess(async response => {
+                const data = await response.json();
+                if (data.status === 'success') {
+                    setAnalyticsData({ ...data.data, year });
+                    setShowAnalytics(true);
+                } else {
+                    alert('Не удалось загрузить аналитику: ' + data.message);
+                }
+            })
+            .onError(err => {
+                console.error('Ошибка загрузки аналитики:', err);
+                alert('Ошибка подключения к серверу: ' + err.message);
+            })
+            .finally(() => setAnalyticsLoading(false));
     };
 
     const toggleAnalytics = () => {
@@ -234,15 +232,14 @@ function StudentMainView() {
     // ГЕНЕРАЦИЯ DOCX РЕЗЮМЕ
     const generateDocxResume = async () => {
         setResumeGenerating(true);
-        try {
-            const url = `http://localhost:8000/portrait/generate-docx-resume/?student_id=${studentId}`;
-            window.open(url, '_blank');
-            setTimeout(() => setResumeGenerating(false), 1000);
-        } catch (error) {
-            console.error(error);
-            alert('Ошибка генерации резюме: ' + error.message);
-            setResumeGenerating(false);
-        }
+        windowGenerateDocxResume(studentId)
+            .onTimeout(() => setResumeGenerating(false))
+            .onError(err => {
+                console.error(err);
+                alert('Ошибка генерации резюме: ' + err.message);
+                setResumeGenerating(false);
+            })
+            .open();
     };
     const [resumeGenerating, setResumeGenerating] = useState(false);
 
