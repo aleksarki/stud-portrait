@@ -452,45 +452,11 @@ def get_motivator_statistics(request):
 
         # Применяем фильтры
         if institute_id:
-            queryset = queryset.filter(
-                res_participant__part_institution__inst_id=institute_id
-            )
+            queryset = queryset.filter(res_participant__part_institution__inst_id=institute_id)
         if specialty_id:
-            queryset = queryset.filter(
-                res_participant__part_spec__spec_id=specialty_id
-            )
+            queryset = queryset.filter(res_participant__part_spec__spec_id=specialty_id)
         if year:
             queryset = queryset.filter(res_year=year)
-
-        # Список полей мотиваторов
-        motivator_fields = [
-            'res_mot_autonomy', 'res_mot_altruism', 'res_mot_challenge',
-            'res_mot_salary', 'res_mot_career', 'res_mot_creativity',
-            'res_mot_relationships', 'res_mot_recognition', 'res_mot_affiliation',
-            'res_mot_self_development', 'res_mot_purpose', 'res_mot_cooperation',
-            'res_mot_stability', 'res_mot_tradition', 'res_mot_management',
-            'res_mot_work_conditions'
-        ]
-
-        # Названия мотиваторов на русском
-        motivator_names = {
-            'res_mot_autonomy': 'Автономия',
-            'res_mot_altruism': 'Альтруизм',
-            'res_mot_challenge': 'Вызов',
-            'res_mot_salary': 'Заработок',
-            'res_mot_career': 'Карьера',
-            'res_mot_creativity': 'Креативность',
-            'res_mot_relationships': 'Отношения',
-            'res_mot_recognition': 'Признание',
-            'res_mot_affiliation': 'Принадлежность',
-            'res_mot_self_development': 'Саморазвитие',
-            'res_mot_purpose': 'Смысл',
-            'res_mot_cooperation': 'Сотрудничество',
-            'res_mot_stability': 'Стабильность',
-            'res_mot_tradition': 'Традиция',
-            'res_mot_management': 'Управление',
-            'res_mot_work_conditions': 'Условия труда'
-        }
 
         # Группировка данных
         if group_by == 'specialty':
@@ -499,9 +465,7 @@ def get_motivator_statistics(request):
             specialties = Specialties.objects.all()
             
             for specialty in specialties:
-                specialty_results = queryset.filter(
-                    res_participant__part_spec=specialty
-                )
+                specialty_results = queryset.filter(res_participant__part_spec=specialty)
                 
                 if not specialty_results.exists():
                     continue
@@ -509,7 +473,7 @@ def get_motivator_statistics(request):
                 motivator_stats = {}
                 total_count = specialty_results.count()
                 
-                for field in motivator_fields:
+                for field in MOT.list:
                     # Считаем мотиваторы (600-800)
                     motivator_count = specialty_results.filter(
                         **{f'{field}__gte': 600, f'{field}__lte': 800}
@@ -551,13 +515,13 @@ def get_motivator_statistics(request):
                 motivator_stats = {}
                 total_count = course_results.count()
                 
-                for field in motivator_fields:
-                    motivator_count = course_results.filter(
-                        **{f'{field}__gte': 600, f'{field}__lte': 800}
-                    ).count()
-                    demotivator_count = course_results.filter(
-                        **{f'{field}__gte': 200, f'{field}__lte': 399}
-                    ).count()
+                for field in MOT.list:
+                    motivator_count = course_results                            \
+                        .filter(**{f'{field}__gte': 600, f'{field}__lte': 800}) \
+                        .count()
+                    demotivator_count = course_results                          \
+                        .filter(**{f'{field}__gte': 200, f'{field}__lte': 399}) \
+                        .count()
                     
                     motivator_stats[field] = {
                         'motivator_percent': round(motivator_count / total_count * 100, 1) if total_count > 0 else 0,
@@ -602,7 +566,7 @@ def get_motivator_statistics(request):
                     motivator_stats = {}
                     total_count = course_results.count()
                     
-                    for field in motivator_fields:
+                    for field in MOT.list:
                         motivator_count = course_results.filter(
                             **{f'{field}__gte': 600, f'{field}__lte': 800}
                         ).count()

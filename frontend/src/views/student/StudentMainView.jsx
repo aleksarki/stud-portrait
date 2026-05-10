@@ -9,6 +9,7 @@ import {
 } from "../../utilities";
 
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
+import StudentComparisonStats from "../../components/StudentComparisonStats";
 import Title from "../../components/Title";
 
 import Button, { BUTTON_PALETTE } from "../../components/ui/Button";
@@ -18,10 +19,9 @@ import ChartSwitcher from "../../components/charts/ChartSwitcher";
 import StudentVamChart from "../../components/charts/StudentVamChart";
 import StudentLgmChart from '../../components/charts/StudentLgmChart';
 import StudentDisciplineImpact from '../../components/charts/StudentDisciplineImpact';
+import PlanetaryChart from "../../components/charts/PlanetaryChart";
 
 import "./StudentMainView.scss";
-import PlanetaryChart from "../../components/charts/PlanetaryChart";
-import StudentComparisonStats from "../../components/StudentComparisonStats";
 
 function StudentMainView() {
     const { studentId } = useParams();
@@ -273,27 +273,6 @@ function StudentMainView() {
         if (!yearResults) return [];
 
         const motivatorItems = [];
-
-        // Сбор мотиваторов (если у вас есть MOTIVATORS_NAMES)
-        // Если нет - замените на ваши ключи мотиваторов
-        const MOTIVATORS_NAMES = {
-            res_mot_autonomy: "Автономия",
-            res_mot_altruism: "Альтруизм",
-            res_mot_challenge: "Вызов",
-            res_mot_salary: "Зарплата",
-            res_mot_career: "Карьера",
-            res_mot_creativity: "Креативность",
-            res_mot_relationships: "Отношения",
-            res_mot_recognition: "Признание",
-            res_mot_affiliation: "Принадлежность",
-            res_mot_self_development: "Саморазвитие",
-            res_mot_purpose: "Цель",
-            res_mot_cooperation: "Сотрудничество",
-            res_mot_stability: "Стабильность",
-            res_mot_tradition: "Традиции",
-            res_mot_management: "Управление",
-            res_mot_work_conditions: "Условия труда"
-        };
 
         Object.keys(MOTIVATORS_NAMES).forEach(motKey => {
             const value = yearResults[motKey];

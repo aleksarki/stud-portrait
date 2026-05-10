@@ -192,7 +192,7 @@ export const MOTIVATORS_NAMES = {
     res_mot_relationships:    "Отношения",
     res_mot_recognition:      "Признание",
     res_mot_affiliation:      "Принадлежность",
-    res_mot_self_development: "Саморазвитие (мотиватор)",
+    res_mot_self_development: "Саморазвитие",
     res_mot_purpose:          "Цель",
     res_mot_cooperation:      "Сотрудничество",
     res_mot_stability:        "Стабильность",

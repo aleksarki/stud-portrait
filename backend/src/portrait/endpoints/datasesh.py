@@ -79,7 +79,7 @@ def get_session_data(request):
         elif filter_['type'] == 'numeric':
             field, min_val, max_val = filter_['field'], filter_['min'], filter_['max']
 
-            if field.startswith(('res_comp', 'res_mot_', 'res_val_')):
+            if field.startswith(('res_comp_', 'res_mot_', 'res_val_')):
                 results_query = results_query.filter(**{f'{field}__gte': min_val, f'{field}__lte': max_val})
 
     total_count = results_query.count()
