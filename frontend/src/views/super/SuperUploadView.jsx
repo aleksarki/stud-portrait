@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import * as XLSX from "xlsx";
 
 import { getExpectedFields, getTemplates, saveTemplate, deleteTemplate, importExcel } from "../../api";
-import { SUPER_LINK_TREE } from "../../utilities";
+import { SUPER_LINK_TREE, xlsxReadColumns } from "../../utilities";
 
 import FlexColumn from "../../components/FlexColumn";
 import FlexRow from "../../components/FlexRow";
@@ -111,17 +110,7 @@ function SuperUploadView() {
         const reader = new FileReader();
         reader.onload = (evt) => {
             const data = new Uint8Array(evt.target.result);
-            const workbook = XLSX.read(data, { type: "array" });
-            const headers = {};
-            workbook.SheetNames.forEach(sheetName => {
-                const sheet = workbook.Sheets[sheetName];
-                const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
-                if (rows.length > 0) {
-                    headers[sheetName] = rows[0].map(cell => (cell || "").toString().trim());
-                } else {
-                    headers[sheetName] = [];
-                }
-            });
+            const headers = xlsxReadColumns(data);
             setFileHeaders(headers);
 
             // Если шаблон уже выбран — применяем его, иначе автогенерация

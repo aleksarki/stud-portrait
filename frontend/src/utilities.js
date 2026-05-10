@@ -1,5 +1,7 @@
 // utilities.js
 
+import * as XLSX from "xlsx";
+
 /** Link tree for admin navigation. */
 export const LINK_TREE = [
     {
@@ -298,6 +300,45 @@ export const COURSES_NAMES = {
     course_cross_cultural_comm:    "Межкультурные коммуникации",
     course_mentoring:              "Я — наставник"
 };
+
+export function xlsxReadColumns(data) {
+    const workbook = XLSX.read(data, { type: "array" });
+    const headers = {};
+    workbook.SheetNames.forEach(sheetName => {
+        const sheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+        if (rows.length > 0) {
+            headers[sheetName] = rows[0].map(cell => (cell || "").toString().trim());
+        } else {
+            headers[sheetName] = [];
+        }
+    });
+    return headers;
+}
+
+export function xlsxWriteFile(data, headers) {
+    // Создаем Workbook
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    
+    // Настройка ширины колонок
+    const colWidths = headers.map(header => ({ wch: Math.max(header.length, 15) }));
+    ws['!cols'] = colWidths;
+    
+    // Стилизация заголовков (жирный шрифт)
+    headers.forEach((_, idx) => {
+        const cellRef = XLSX.utils.encode_cell({ r: 0, c: idx });
+        if (!ws[cellRef]) ws[cellRef] = {};
+        ws[cellRef].s = { font: { bold: true } };
+    });
+    
+    // Создаем Workbook и добавляем лист
+    const wb = XLSX.utils.book_new();
+    const sheetName = `SQL_Result_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}`;
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    
+    // Сохраняем файл
+    XLSX.writeFile(wb, `query_result_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.xlsx`);
+}
 
 /** Получить доступные профили на основе данных */
 export function getAvailableProfiles(data) {
