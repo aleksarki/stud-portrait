@@ -464,17 +464,19 @@ export function getMotivationCounts(institute, specialty, year) {
     return new AsyncChain(promise);
 }
 
+/* *** GENDOX *** */
+
 export function getStudentResumeData(studentId, year) {
     const params = new URLSearchParams();
     params.append('student_id', studentId);
     params.append('year', year);
     params.append('with_ai', 'true');
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/student-resume-data/?${params}`);
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/gendox/student-resume-data/?${params}`);
     return new AsyncChain(promise);
 }
 
 export function windowGenerateDocxResume(studentId) {
     const params = new URLSearchParams();
     params.append('student_id', studentId);
-    return new WindowChain(`${PROTOCOL}://${HOST}/portrait/generate-docx-resume/?${params}`);
+    return new WindowChain(`${PROTOCOL}://${HOST}/portrait/gendox/generate-resume-docx/?${params}`);
 }

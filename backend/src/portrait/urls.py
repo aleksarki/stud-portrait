@@ -6,8 +6,8 @@ from .endpoints import (
     datasesh,
     analysis_end, transfer_analysis,
     statsresult, stat,
-    ai_interp,
-    gen_docx_resume, gen_resume
+    ainterp,
+    gendox
 )
 
 urlpatterns = [
@@ -69,12 +69,12 @@ urlpatterns = [
     path('scores-result/',     stat.get_scores_result,     name='scores_result'),
 
     # AINTERP module
-    path('ai-interpret/',     ai_interp.ai_interpret_competency,       name='ai_interpret'),
-    path('ai-interpret-all/', ai_interp.ai_interpret_all_competencies, name='ai_interpret_all'),
-    path('ai-generate/',      ai_interp.ai_generate_interpretation,    name='ai_generate_interpretation'),
+    path('ai/interpret/',     ainterp.ai_interpret_competency,       name='ai_interpret'),
+    path('ai/interpret-all/', ainterp.ai_interpret_all_competencies, name='ai_interpret_all'),
+    path('ai/generate/',      ainterp.ai_generate_interpretation,    name='ai_generate'),
 
     # GENDOX module
-    path('generate-docx-resume/', gen_docx_resume.generate_docx_resume, name='generate_docx_resume'),
-    path('student-resume-data/',  gen_resume.get_student_resume_data,   name='student-resume-data'),
+    path('gendox/generate-resume-docx/', gendox.generate_docx_resume,    name='gendox_generate_resume_docx'),
+    path('gendox/student-resume-data/',  gendox.get_student_resume_data, name='gendox_student_resume_data'),
 
 ]

@@ -21,7 +21,7 @@ from .datanal import (
     CrossSectionalAnalyzer
 )
 
-from ..ml_model import generate_text
+from ..mlmodel import MlModel
 
 # Ключ: название дисциплины, значение: множество кодов компетенций
 # fixme this should not be hardcoded
@@ -1341,7 +1341,7 @@ def ai_analytics_summary(request):
         else:
             prompt = "Неизвестный тип анализа."
 
-        result = generate_text(prompt, max_length=600, temperature=0.2)
+        result = MlModel.generate(prompt, max_length=600, temperature=0.2)
         if result is None:
             result = "⚠️ Модель временно недоступна. Попробуйте позже."
 

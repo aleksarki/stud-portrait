@@ -159,17 +159,17 @@ def cached(timeout=3600, prefix='api'):
             try:
                 cached_response = cache.get(cache_key)
                 if cached_response is not None:
-                    debugPrint("Cache HIT:", cache_key)
+                    debugPrint("[cache] (i): hit", cache_key)
                     return cached_response
 
-                debugPrint("Cache MISS:", cache_key)
+                debugPrint("[cache] (!): miss", cache_key)
                 response = func(request)
                 if response.status_code == 200:
                     cache.set(cache_key, response, timeout=timeout)
                 return response
             
             except Exception as e:
-                debugPrint("Cache UNAVAILABLE:", cache_key)
+                debugPrint("[cache] (!): unavailable", cache_key)
                 return func(request)
 
         return wrapper

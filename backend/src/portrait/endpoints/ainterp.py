@@ -1,17 +1,10 @@
 import json
 
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-
-from .ml_utils import (
-    predict_competency_level,
-    generate_interpretation,
-    generate_recommendations,
-    get_level_emoji,
-    get_level_color
-)
 
 from .common import *
+from .genutils import *
+from ..mlmodel import MlModel
 
 
 # ====== ENDPOINTS ====== #
@@ -234,6 +227,7 @@ def ai_interpret_all_competencies(request):
             'traceback': traceback.format_exc()
         }, status=500)
 
+
 @method('POST')
 @csrf_exempt
 def ai_generate_interpretation(request):
@@ -258,13 +252,10 @@ def ai_generate_interpretation(request):
         if not competency_field or score is None:
             return JsonResponse({'status': 'error', 'message': 'competency and score required'}, status=400)
 
-        # Импортируем функции генерации (пока заглушка)
-        from .ml_model import generate_text
-
         comp_name = COMP.names.get(competency_field, competency_field)
         # Простой промпт
         prompt = f"Студент {course} курса. Компетенция '{comp_name}' = {score}/800. Напиши интерпретацию уровня (начальный, средний, высокий) и 3 рекомендации по развитию."
-        result = generate_text(prompt, max_length=600, temperature=0.3, top_p=0.85)
+        result = MlModel.generate(prompt, max_length=600, temperature=0.3, top_p=0.85)
         if result is None:
             return JsonResponse({
                 'status': 'fallback',
