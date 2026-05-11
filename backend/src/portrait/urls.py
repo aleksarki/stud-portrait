@@ -69,9 +69,7 @@ urlpatterns = [
     path('scores-result/',     stat.get_scores_result,     name='scores_result'),
 
     # AINTERP module
-    path('ai/interpret/',     ainterp.ai_interpret_competency,       name='ai_interpret'),
-    path('ai/interpret-all/', ainterp.ai_interpret_all_competencies, name='ai_interpret_all'),
-    path('ai/generate/',      ainterp.ai_generate_interpretation,    name='ai_generate'),
+    # *empty*
 
     # GENDOX module
     path('gendox/generate-resume-docx/', gendox.generate_docx_resume,    name='gendox_generate_resume_docx'),
