@@ -22,8 +22,111 @@ class AsyncChain {
     }
 }
 
+class WindowChain {
+    constructor(url) {
+        this.url = url;
+        this.timeoutCallback = null
+        this.errorCallback = null;
+    }
+
+    onTimeout(fn) {
+        this.timeoutCallback = fn;
+        return this;
+    }
+
+    onError(fn) {
+        this.errorCallback = fn;
+        return this;
+    }
+
+    open() {
+        try {
+            window.open(this.url, '_blank');
+            setTimeout(this.timeoutCallback, 1000);
+        } catch (error) {
+            this.errorCallback?.();
+        }
+    }
+}
+
 const PROTOCOL = "http";
 const HOST = "localhost:8000";
+
+/* *** AUDIT *** */
+
+export function getAuditSchema(tableName = null) {
+    const params = new URLSearchParams();
+    if (tableName) params.append('table_name', tableName);
+    const url = `${PROTOCOL}://${HOST}/portrait/audit/schema/${params.toString() ? `?${params.toString()}` : ''}`;
+    const promise = fetch(url);
+    return new AsyncChain(promise);
+}
+
+export function getAuditTableData(tableName, limit = 10) {
+    const params = new URLSearchParams();
+    params.append('table_name', tableName);
+    params.append('limit', limit);
+    const url = `${PROTOCOL}://${HOST}/portrait/audit/table-data/?${params.toString()}`;
+    const promise = fetch(url);
+    return new AsyncChain(promise);
+}
+
+export function getAuditStats() {
+    const url = `${PROTOCOL}://${HOST}/portrait/audit/stats/`;
+    const promise = fetch(url);
+    return new AsyncChain(promise);
+}
+
+export function postAuditExecuteSQL(query) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/audit/execute-sql/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query })
+    });
+    return new AsyncChain(promise);
+}
+
+/* *** DATALOAD *** */
+
+export function postDataloadImportExcel(file, configJson) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('config_json', JSON.stringify(configJson));
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/dataload/import-excel/`, {
+        method: 'POST',
+        body: formData
+    });
+    return new AsyncChain(promise);
+}
+
+// Шаблоны загрузки
+export function getDataloadExpectedFields() {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/dataload/expected-fields/`);
+    return new AsyncChain(promise);
+}
+
+export function getDataloadTemplates() {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/dataload/templates/`);
+    return new AsyncChain(promise);
+}
+
+export function postDataloadTemplateSave(name, config, description = "") {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/dataload/template-save/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, config, description })
+    });
+    return new AsyncChain(promise);
+}
+
+export function deleteDataloadTemplateDelete(templateId) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/dataload/template-delete/${templateId}/`, {
+        method: 'DELETE'
+    });
+    return new AsyncChain(promise);
+}
 
 /* *** statsresult *** */
 
@@ -191,13 +294,6 @@ export function postAnalyzeCohortLgm(competency, institutionIds = [], directionI
     return new AsyncChain(promise);
 }
 
-/** GET /portrait/analyze-discipline-impact/ - Анализ влияния дисциплин */
-export function getAnalyzeDisciplineImpact(discipline, competency = 'res_comp_leadership') {
-    const params = new URLSearchParams({discipline, competency});
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/analyze-discipline-impact/?${params}`);
-    return new AsyncChain(promise);
-}
-
 /** GET /portrait/analyze-all-disciplines-impact/ - Комплексный анализ всех дисциплин */
 export function getAnalyzeAllDisciplinesImpact() {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/analyze-all-disciplines-impact/`);
@@ -234,75 +330,6 @@ export function postGetDisciplineHeatmapData(institutionIds = [], directionIds =
         body: JSON.stringify({
             institution_ids: institutionIds,
             direction_ids: directionIds
-        })
-    });
-    return new AsyncChain(promise);
-}
-
-/** GET /portrait/analyze-by-dimension/ - Анализ в разрезе */
-export function getAnalyzeByDimension(dimension = 'institution', competency = 'res_comp_leadership') {
-    const params = new URLSearchParams({dimension, competency});
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/analyze-by-dimension/?${params}`);
-    return new AsyncChain(promise);
-}
-
-/** POST /portrait/get-vam-dotplot-data/ - Точечный график VAM */
-export function postGetVamDotplotData(
-    groupBy = 'institution', 
-    competency = 'res_comp_leadership', 
-    filterInstitutions = [],
-    filterDirections = [],
-    filterCourses = [],
-    filterTestAttempts = []
-) {
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-vam-dotplot-data/`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-            group_by: groupBy,
-            competency: competency,
-            filter_institutions: filterInstitutions,
-            filter_directions: filterDirections,
-            filter_courses: filterCourses,
-            filter_test_attempts: filterTestAttempts
-        })
-    });
-    return new AsyncChain(promise);
-}
-
-/** POST /portrait/get-lgm-spaghetti-data/ - Паутинный график LGM */
-export function postGetLgmSpaghettiData(
-        groupBy = 'institution', 
-        competency = 'res_comp_leadership', 
-        filterInstitutions = [],
-        filterDirections = [],
-        filterCourses = [],
-        filterTestAttempts = []
-) {
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-lgm-spaghetti-data/`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-            group_by: groupBy,
-            competency: competency,
-            filter_institutions: filterInstitutions,
-            filter_directions: filterDirections,
-            filter_courses: filterCourses,
-            filter_test_attempts: filterTestAttempts
-        })
-    });
-    return new AsyncChain(promise);
-}
-
-/** POST /portrait/get-waterfall-decomposition/ - Ватерфалльная диаграмма */
-export function postGetWaterfallDecomposition(institutionId, directionId = null, competency = 'res_comp_leadership') {
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-waterfall-decomposition/`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-            institution_id: institutionId,
-            direction_id: directionId,
-            competency: competency
         })
     });
     return new AsyncChain(promise);
@@ -355,33 +382,6 @@ export function postAiAnalyticsSummary(contextType, filters) {
     return new AsyncChain(promise);
 }
 
-// Шаблоны загрузки
-export function getExpectedFields() {
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-expected-fields/`);
-    return new AsyncChain(promise);
-}
-
-export function getTemplates() {
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-templates/`);
-    return new AsyncChain(promise);
-}
-
-export function saveTemplate(name, config, description = "") {
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/save-template/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, config, description })
-    });
-    return new AsyncChain(promise);
-}
-
-export function deleteTemplate(templateId) {
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/delete-template/${templateId}/`, {
-        method: 'DELETE'
-    });
-    return new AsyncChain(promise);
-}
-
 export function getEducationProfilesComparison(filters) {
     const params = new URLSearchParams();
     if (filters.specialties && filters.specialties.length) {
@@ -422,18 +422,6 @@ export function getInstitutions() {
     return new AsyncChain(promise);
 }
 
-// Импорт Excel (уже есть, но можно добавить обертку)
-export function importExcel(file, configJson) {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('config_json', JSON.stringify(configJson));
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/import_excel/`, {
-        method: 'POST',
-        body: formData
-    });
-    return new AsyncChain(promise);
-}
-
 export function getStudentComparisonStats(studentId, year) {
     const params = new URLSearchParams();
     params.append('student_id', studentId);
@@ -444,37 +432,51 @@ export function getStudentComparisonStats(studentId, year) {
     return new AsyncChain(promise);
 }
 
-// Аудит базы данных
-export function getAuditSchema(tableName = null) {
+export function getFilterDash() {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/filter-dash/`);
+    return new AsyncChain(promise);
+}
+
+export function getScoresResult(institute, specialty, year) {
     const params = new URLSearchParams();
-    if (tableName) params.append('table_name', tableName);
-    const url = `${PROTOCOL}://${HOST}/portrait/audit/schema/${params.toString() ? `?${params.toString()}` : ''}`;
-    const promise = fetch(url);
+    if (institute) params.append('institute', institute);
+    if (specialty) params.append('specialty', specialty);
+    if (year)      params.append('year', year);
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/scores-result/?${params}`);
     return new AsyncChain(promise);
 }
 
-export function getAuditTableData(tableName, limit = 10) {
+export function getDashboardStats(institute, specialty, year) {
     const params = new URLSearchParams();
-    params.append('table_name', tableName);
-    params.append('limit', limit);
-    const url = `${PROTOCOL}://${HOST}/portrait/audit/table-data/?${params.toString()}`;
-    const promise = fetch(url);
+    if (institute) params.append('institute', institute);
+    if (specialty) params.append('specialty', specialty);
+    if (year)      params.append('year', year);
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/dashboard-stats/?${params}`);
     return new AsyncChain(promise);
 }
 
-export function getAuditStats() {
-    const url = `${PROTOCOL}://${HOST}/portrait/audit/stats/`;
-    const promise = fetch(url);
+export function getMotivationCounts(institute, specialty, year) {
+    const params = new URLSearchParams();
+    if (institute) params.append('institute', institute);
+    if (specialty) params.append('specialty', specialty);
+    if (year)      params.append('year', year);
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/motivation-counts/?${params}`);
     return new AsyncChain(promise);
 }
 
-export function postAuditSQL(query) {
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/audit/sql/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ query })
-    });
+/* *** GENDOX *** */
+
+export function getStudentResumeData(studentId, year) {
+    const params = new URLSearchParams();
+    params.append('student_id', studentId);
+    params.append('year', year);
+    params.append('with_ai', 'true');
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/gendox/student-resume-data/?${params}`);
     return new AsyncChain(promise);
+}
+
+export function windowGenerateDocxResume(studentId) {
+    const params = new URLSearchParams();
+    params.append('student_id', studentId);
+    return new WindowChain(`${PROTOCOL}://${HOST}/portrait/gendox/generate-resume-docx/?${params}`);
 }

@@ -1,21 +1,8 @@
 // components/charts/StudentDisciplineImpact.jsx
 import React, { useState, useEffect } from 'react';
-import { getStudentDisciplineImpact } from '../../api';
 
-const competencyLabels = {
-    "res_comp_info_analysis": "Анализ информации",
-    "res_comp_planning": "Планирование",
-    "res_comp_result_orientation": "Ориентация на результат",
-    "res_comp_stress_resistance": "Стрессоустойчивость",
-    "res_comp_partnership": "Партнёрство",
-    "res_comp_rules_compliance": "Соблюдение правил",
-    "res_comp_self_development": "Саморазвитие",
-    "res_comp_leadership": "Лидерство",
-    "res_comp_emotional_intel": "Эмоциональный интеллект",
-    "res_comp_client_focus": "Клиентоориентированность",
-    "res_comp_communication": "Коммуникация",
-    "res_comp_passive_vocab": "Пассивный словарь"
-};
+import { getStudentDisciplineImpact } from '../../api';
+import { COMPETENCIES_NAMES } from '../../utilities';
 
 const StudentDisciplineImpact = ({ studentId }) => {
     const [data, setData] = useState(null);
@@ -76,7 +63,7 @@ const StudentDisciplineImpact = ({ studentId }) => {
                                     const diffClass = diff > 0 ? 'positive' : diff < 0 ? 'negative' : 'neutral';
                                     return (
                                         <tr key={comp}>
-                                            <td>{competencyLabels[comp] || comp}</td>
+                                            <td>{COMPETENCIES_NAMES[comp] || comp}</td>
                                             <td>{before}</td>
                                             <td>{after}</td>
                                             <td className={`diff ${diffClass}`}>

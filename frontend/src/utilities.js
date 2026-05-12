@@ -1,5 +1,8 @@
 // utilities.js
 
+import * as XLSX from "xlsx";
+
+/** Link tree for admin navigation. */
 export const LINK_TREE = [
     {
         category: null,
@@ -30,6 +33,7 @@ export const LINK_TREE = [
     }
 ];
 
+/** Link tree for superadmin navigation. */
 export const SUPER_LINK_TREE = [
     {
         category: "Управление данными",
@@ -114,6 +118,23 @@ export const RESULT_PROFILES = {
     }
 };
 
+/* RSV competencies */
+
+export const COMPETENCIES = {
+    INFO_ANALYSIS: 'res_comp_info_analysis',
+    PLANNING:      'res_comp_planning',
+    RESULT_ORIENT: 'res_comp_result_orientation',
+    STRESS_RESIST: 'res_comp_stress_resistance',
+    PARTNERSHIP:   'res_comp_partnership',
+    RULE_COMPLY:   'res_comp_rules_compliance',
+    SELF_DEVELOP:  'res_comp_self_development',
+    LEADERSHIP:    'res_comp_leadership',
+    EMOTE_INTEL:   'res_comp_emotional_intel',
+    CLIENT_FOCUS:  'res_comp_client_focus',
+    COMMUNICATION: 'res_comp_communication',
+    PASSIVE_VOCAB: 'res_comp_passive_vocab'
+};
+
 export const COMPETENCIES_NAMES = {
     res_comp_info_analysis:      "Анализ информации",
     res_comp_planning:           "Планирование",
@@ -144,6 +165,27 @@ export const COMPETENCIES_DESCRIPTIONS = {
     res_comp_passive_vocab:      "Пассивный словарный запас"
 };
 
+/* RSV motivators */
+
+export const MOTIVATORS = {
+    AUTONOMY:     'res_mot_autonomy',
+    ALTRUISM:     'res_mot_altruism',
+    CHALLENGE:    'res_mot_challenge',
+    SALARY:       'res_mot_salary',
+    CAREER:       'res_mot_career',
+    CREATIVITY:   'res_mot_creativity',
+    RELATION:     'res_mot_relationships',
+    RECOGNITION:  'res_mot_recognition',
+    AFFILIATION:  'res_mot_affiliation',
+    SELF_DEVELOP: 'res_mot_self_development',
+    PURPOSE:      'res_mot_purpose',
+    COOPERATION:  'res_mot_cooperation',
+    STABILITY:    'res_mot_stability',
+    TRADITION:    'res_mot_tradition',
+    MARAGEMENT:   'res_mot_management',
+    WORK_CONDIT:  'res_mot_work_conditions'
+};
+
 export const MOTIVATORS_NAMES = {
     res_mot_autonomy:         "Автономия",
     res_mot_altruism:         "Альтруизм",
@@ -154,7 +196,7 @@ export const MOTIVATORS_NAMES = {
     res_mot_relationships:    "Отношения",
     res_mot_recognition:      "Признание",
     res_mot_affiliation:      "Принадлежность",
-    res_mot_self_development: "Саморазвитие (мотиватор)",
+    res_mot_self_development: "Саморазвитие",
     res_mot_purpose:          "Цель",
     res_mot_cooperation:      "Сотрудничество",
     res_mot_stability:        "Стабильность",
@@ -180,6 +222,17 @@ export const MOTIVATORS_DESCRIPTIONS = {
     res_mot_tradition:        "Следование традициям и устоявшимся нормам",
     res_mot_management:       "Стремление к управленческой деятельности",
     res_mot_work_conditions:  "Комфортные условия труда"
+};
+
+/* RSV values */
+
+export const VALUES = {
+    HONEST_JUST: 'res_val_honesty_justice',
+    HUMANISM:    'res_val_humanism',
+    PATRIOTISM:  'res_val_patriotism',
+    FAMILY:      'res_val_family',
+    HEALTH:      'res_val_health',
+    ENVIRONMENT: 'res_val_environment'
 };
 
 export const VALUES_NAMES = {
@@ -247,6 +300,45 @@ export const COURSES_NAMES = {
     course_cross_cultural_comm:    "Межкультурные коммуникации",
     course_mentoring:              "Я — наставник"
 };
+
+export function xlsxReadColumns(data) {
+    const workbook = XLSX.read(data, { type: "array" });
+    const headers = {};
+    workbook.SheetNames.forEach(sheetName => {
+        const sheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+        if (rows.length > 0) {
+            headers[sheetName] = rows[0].map(cell => (cell || "").toString().trim());
+        } else {
+            headers[sheetName] = [];
+        }
+    });
+    return headers;
+}
+
+export function xlsxWriteFile(data, headers) {
+    // Создаем Workbook
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    
+    // Настройка ширины колонок
+    const colWidths = headers.map(header => ({ wch: Math.max(header.length, 15) }));
+    ws['!cols'] = colWidths;
+    
+    // Стилизация заголовков (жирный шрифт)
+    headers.forEach((_, idx) => {
+        const cellRef = XLSX.utils.encode_cell({ r: 0, c: idx });
+        if (!ws[cellRef]) ws[cellRef] = {};
+        ws[cellRef].s = { font: { bold: true } };
+    });
+    
+    // Создаем Workbook и добавляем лист
+    const wb = XLSX.utils.book_new();
+    const sheetName = `SQL_Result_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}`;
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    
+    // Сохраняем файл
+    XLSX.writeFile(wb, `query_result_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.xlsx`);
+}
 
 /** Получить доступные профили на основе данных */
 export function getAvailableProfiles(data) {

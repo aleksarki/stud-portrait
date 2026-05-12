@@ -2,6 +2,7 @@
 from functools import wraps
 import hashlib
 import json
+from typing import Any
 
 from django.core.cache import cache
 from django.http import JsonResponse
@@ -15,20 +16,37 @@ from ..constants import (
 from ..models import *
 
 
-# ====== GETTERS ====== #
+DELETE = "DELETE"
+GET = "GET"
+PATCH = "PATCH"
+POST = "POST"
 
-def zeroIfNull(value):
+DEBUG = True
+
+def debugPrint(*messages):
+    if DEBUG:
+        print(*messages)
+
+
+# ============================== GETTERS ============================== #
+
+def zeroIfNull(value: Any | None) -> float:
     """ Get float if value is not None; else zero.
     """
     return float(value) if value is not None else 0
 
-def attrIfObj(obj, attr):
+def attrIfObj(obj: Any | None, attr: str) -> Any | None:
     """ Get attribute of an object if it is not None; else None.
     """
     return getattr(obj, attr) if obj is not None else None
 
+def attrElseNone(obj: Any, attr: str) -> Any | None:
+    """ Get attribute if the object has it; else None.
+    """
+    return getattr(obj, attr) if hasattr(obj, attr) else None
 
-# ====== EXCEPTION ====== #
+
+# ============================== EXCEPTION ============================== #
 
 class ResponseError(Exception):
     """ Raised inside @jsonResponse decorator to break the execution to report client error.
@@ -41,44 +59,46 @@ class ResponseError(Exception):
         super().__init__(message)
 
 
-# ====== RESPONSES ====== #
+# ============================== RESPONSES ============================== #
 
 def successResponse(data: dict = dict(), status: int = 200) -> JsonResponse:
     """ Take in dict data, unpack it into returned JSON response with success status.
     """
+    debugPrint(f"success {status}:", json.dumps(data, indent=4))
     return JsonResponse({**{"status": "success"}, **data}, status=status)
-
 
 def errorResponse(message: str = "", status: int = 400) -> JsonResponse:
     """ Return client error JSON response with provided message and status (400 by default).
     """
+    debugPrint(f"error {status}:", message)
     return JsonResponse({"status": "error", "message": message}, status=status)
-
 
 def notFoundResponse(message: str = "") -> JsonResponse:
     """ Return not found JSON response (status 404).
     """
+    debugPrint(f"error {404}:", message)
     return JsonResponse({"status": "error", "message": message}, status=404)
-
 
 def notAllowedResponse() -> JsonResponse:
     """ Return not allowed JSON response (status 405).
     """
+    debugPrint(f"error {405}")
     return JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
-
 
 def exceptionResponse(message: str = "", status: int = 500) -> JsonResponse:
     """ Return server error JSON response with provided message and status (500) by default.
     """
+    debugPrint(f"error {status}:", message)
     return JsonResponse({"status": "exception", "message": message}, status=status)
 
 
-# ====== DECORATORS ====== #
+# ============================== DECORATORS ============================== #
 
 def method(method):
     """ Automatically reject requests of wrong methods.
     """
     def inner(func):
+        @wraps(func)
         @csrf_exempt
         def wrapper(request):
             if request.method != method:
@@ -95,23 +115,23 @@ def jsonResponse(func):
     On ResponseError return JsonResponse (status 4**).
     On other exceptions return JsonResponse (status 5**).
     """
+    @wraps(func)
     @csrf_exempt
     def wrapper(request):
         try:
             return successResponse(func(request))
         except ResponseError as e:
-            print(e.message)
+            # print(e.message)
             return errorResponse(e.message, e.status)
         except Exception as e:
-            print(str(e))
+            # print(str(e))
             return exceptionResponse(str(e))
     return wrapper
 
-def cached(timeout=3600, key_prefix='api'):
-    """ Automatically cache GET and POST methods wwith parameters.
+def cached(timeout=3600, prefix='api'):
+    """ Automatically cache GET and POST methods given their parameters.
     """
-    @csrf_exempt
-    def decorator(func):
+    def inner(func):
         @wraps(func)
         @csrf_exempt
         def wrapper(request):
@@ -126,32 +146,31 @@ def cached(timeout=3600, key_prefix='api'):
                 case 'POST':
                     body = json.loads(request.body) if request.body else {}
                     cache_data = {
-                        'path': request.path,
-                        'body': body
+                        'path':   request.path,
+                        'method': request.method,
+                        'body':   body
                     }
                 case _:
-                    raise Exception("Invalid method")
+                    raise ValueError("Invalid method for caching")
 
             cache_str = json.dumps(cache_data, sort_keys=True)
-            cache_key = f"{key_prefix}:{hashlib.md5(cache_str.encode()).hexdigest()}"
+            cache_key = f"{prefix}:{hashlib.md5(cache_str.encode()).hexdigest()}"
 
             try:
                 cached_response = cache.get(cache_key)
                 if cached_response is not None:
-                    print("Cache HIT:", cache_key)
+                    debugPrint("[cache] (i): hit", cache_key)
                     return cached_response
 
-                print("Cache MISS:", cache_key)
+                debugPrint("[cache] (!): miss", cache_key)
                 response = func(request)
-
                 if response.status_code == 200:
                     cache.set(cache_key, response, timeout=timeout)
-
                 return response
             
             except Exception as e:
-                print("Cache UNAVAILABLE")
+                debugPrint("[cache] (!): unavailable", cache_key)
                 return func(request)
 
         return wrapper
-    return decorator
+    return inner

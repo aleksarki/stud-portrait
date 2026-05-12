@@ -1,8 +1,7 @@
 import { useState } from "react";
-import * as XLSX from "xlsx";
 
-import { postAuditSQL } from "../../api";
-import { SUPER_LINK_TREE } from "../../utilities";
+import { postAuditExecuteSQL } from "../../api";
+import { SUPER_LINK_TREE, xlsxWriteFile } from "../../utilities";
 
 import FlexColumn from "../../components/FlexColumn";
 import FlexRow from "../../components/FlexRow";
@@ -11,14 +10,14 @@ import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../com
 
 import DbContentTable from "../../components/tables/DbContentTable";
 
-import Button, { BUTTON_PALETTE } from "../../components/ui/Button";
+import Button from "../../components/ui/Button";
 import Dropdown from "../../components/ui/Dropdown";
 import Label, { LABEL_PALETTE } from "../../components/ui/Label";
+import { ADMIN_PALETTE } from "../../components/ui/palette";
 import { Option } from "../../components/ui/Select";
 
 import "./SuperSqlView.scss";
 
-// fixme: move these two to utils (and other uses of XLSX)
 const exportToExcel = (data, query) => {
     if (!data.rows || data.rows.length === 0) {
         alert('Нет данных для экспорта');
@@ -34,28 +33,7 @@ const exportToExcel = (data, query) => {
         ...data.rows.map(row => headers.map(header => row[header] !== null && row[header] !== undefined ? row[header] : ''))
     ];
 
-    // Создаем Workbook
-    const XLSX = require('xlsx');
-    const ws = XLSX.utils.aoa_to_sheet(excelData);
-    
-    // Настройка ширины колонок
-    const colWidths = headers.map(header => ({ wch: Math.max(header.length, 15) }));
-    ws['!cols'] = colWidths;
-    
-    // Стилизация заголовков (жирный шрифт)
-    headers.forEach((_, idx) => {
-        const cellRef = XLSX.utils.encode_cell({ r: 0, c: idx });
-        if (!ws[cellRef]) ws[cellRef] = {};
-        ws[cellRef].s = { font: { bold: true } };
-    });
-    
-    // Создаем Workbook и добавляем лист
-    const wb = XLSX.utils.book_new();
-    const sheetName = `SQL_Result_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}`;
-    XLSX.utils.book_append_sheet(wb, ws, sheetName);
-    
-    // Сохраняем файл
-    XLSX.writeFile(wb, `query_result_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.xlsx`);
+    xlsxWriteFile(excelData, headers);
 };
 
 // Функция для экспорта в CSV
@@ -109,7 +87,7 @@ function SuperSqlView() {
         setError(null);
         setResult(null);
         
-        postAuditSQL(query)
+        postAuditExecuteSQL(query)
             .onSuccess(async response => {
                 const data = await response.json();
                 if (data.status === 'success') {
@@ -168,19 +146,19 @@ LIMIT 50;`
                             <Button
                                 text="Results"
                                 onClick={() => insertExampleQuery('results')}
-                                palette={BUTTON_PALETTE.CYAN}
+                                palette={ADMIN_PALETTE.CYAN}
                                 small
                             />
                             <Button
                                 text="Participants"
                                 onClick={() => insertExampleQuery('participants')}
-                                palette={BUTTON_PALETTE.CYAN}
+                                palette={ADMIN_PALETTE.CYAN}
                                 small
                             />
                             <Button
                                 text="JOIN"
                                 onClick={() => insertExampleQuery('join')}
-                                palette={BUTTON_PALETTE.CYAN}
+                                palette={ADMIN_PALETTE.CYAN}
                                 small
                             />
                         </FlexRow>
@@ -199,13 +177,13 @@ LIMIT 50;`
                                 <Button
                                     text="Очистить"
                                     onClick={clearConsole}
-                                    palette={BUTTON_PALETTE.RED}
+                                    palette={ADMIN_PALETTE.RED}
                                 />
                                 <Button
                                     text={loading ? 'Выполнение...' : 'Выполнить'}
                                     onClick={executeQuery}
                                     disabled={loading}
-                                    palette={BUTTON_PALETTE.GREEN}
+                                    palette={ADMIN_PALETTE.GREEN}
                                 />
                             </FlexRow>
                         </FlexRow>

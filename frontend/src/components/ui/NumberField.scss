@@ -1,3 +1,5 @@
+@use 'palette';
+
 input[type="number"].NumberField {
     padding: 8px 16px !important;
     border-radius: 4px;
@@ -8,8 +10,5 @@ input[type="number"].NumberField {
     font-size: 14px !important;
     font-weight: 500 !important;
     
-    color: var(--fg);
-    border: var(--border);
-    text-shadow: var(--textShadow);
-    box-shadow: var(--boxShadow);
+    @include palette.paletted($bg: false);
 }

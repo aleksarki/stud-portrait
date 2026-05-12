@@ -1,23 +1,9 @@
 import React, { createContext, useContext, useState } from "react";
 
 import Dropdown, { DropdownContext } from "./Dropdown";
+import { ADMIN_PALETTE } from "./palette";
 
 import "./Select.scss";
-
-export const SELECT_PALETTE = {
-    GRAY: {
-        normal: {
-            fg: "rgb(71, 71, 71)",
-            bg: "#f0f0f0",
-            border: "solid 1px rgba(126, 126, 126, 0.8)",
-            textShadow: "0 1px 1px rgba(255, 255, 255, .75)",
-            boxShadow: "inset 0 1px #fff3, 0 1px 2px #0000000d"
-        },
-        hover: {
-            bg: "#cacaca"
-        }
-    }
-};
 
 const SelectContext = createContext({
     selectedValue: undefined,
@@ -28,7 +14,7 @@ const SelectContext = createContext({
 
 function Select({
     children, initValue, onChange, placeholder = "Выберите...",
-    palette = SELECT_PALETTE.GRAY, disabled = false
+    palette = ADMIN_PALETTE.GRAY, disabled = false
 }) {
     const arr = React.Children.toArray(children);
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
-import { getPortraitStudentResults, getStudentComparisonStats } from "../../api";
+import { getPortraitStudentResults, getStudentComparisonStats, getStudentResumeData, windowGenerateDocxResume } from "../../api";
 import {
     getAvailableProfiles, getAvailableCategories, getAvailableYears,
     getCategoryDataForYear, COMPETENCIES_NAMES,
@@ -9,19 +9,20 @@ import {
 } from "../../utilities";
 
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
+import StudentComparisonStats from "../../components/StudentComparisonStats";
 import Title from "../../components/Title";
 
-import Button, { BUTTON_PALETTE } from "../../components/ui/Button";
+import Button from "../../components/ui/Button";
+import { STUDENT_PALETTE } from "../../components/ui/palette";
 import Select, { Option } from "../../components/ui/Select";
 
 import ChartSwitcher from "../../components/charts/ChartSwitcher";
 import StudentVamChart from "../../components/charts/StudentVamChart";
 import StudentLgmChart from '../../components/charts/StudentLgmChart';
 import StudentDisciplineImpact from '../../components/charts/StudentDisciplineImpact';
+import PlanetaryChart from "../../components/charts/PlanetaryChart";
 
 import "./StudentMainView.scss";
-import PlanetaryChart from "../../components/charts/PlanetaryChart";
-import StudentComparisonStats from "../../components/StudentComparisonStats";
 
 function StudentMainView() {
     const { studentId } = useParams();
@@ -162,30 +163,28 @@ function StudentMainView() {
     };
 
     // АНАЛИТИКА КОМПЕТЕНЦИЙ
-    const loadAnalytics = async (year) => {
+    const loadAnalytics = async year => {
         // Если данные уже загружены для этого года, просто показываем
         if (analyticsData && analyticsData.year === year) {
             setShowAnalytics(true);
             return;
         }
         setAnalyticsLoading(true);
-        try {
-            const response = await fetch(
-                `http://localhost:8000/portrait/student-resume-data/?student_id=${studentId}&year=${year}&with_ai=true`
-            );
-            const data = await response.json();
-            if (data.status === 'success') {
-                setAnalyticsData({ ...data.data, year });
-                setShowAnalytics(true);
-            } else {
-                alert('Не удалось загрузить аналитику: ' + data.message);
-            }
-        } catch (error) {
-            console.error('Ошибка загрузки аналитики:', error);
-            alert('Ошибка подключения к серверу: ' + error.message);
-        } finally {
-            setAnalyticsLoading(false);
-        }
+        getStudentResumeData(studentId, year)
+            .onSuccess(async response => {
+                const data = await response.json();
+                if (data.status === 'success') {
+                    setAnalyticsData({ ...data.data, year });
+                    setShowAnalytics(true);
+                } else {
+                    alert('Не удалось загрузить аналитику: ' + data.message);
+                }
+            })
+            .onError(err => {
+                console.error('Ошибка загрузки аналитики:', err);
+                alert('Ошибка подключения к серверу: ' + err.message);
+            })
+            .finally(() => setAnalyticsLoading(false));
     };
 
     const toggleAnalytics = () => {
@@ -234,15 +233,14 @@ function StudentMainView() {
     // ГЕНЕРАЦИЯ DOCX РЕЗЮМЕ
     const generateDocxResume = async () => {
         setResumeGenerating(true);
-        try {
-            const url = `http://localhost:8000/portrait/generate-docx-resume/?student_id=${studentId}`;
-            window.open(url, '_blank');
-            setTimeout(() => setResumeGenerating(false), 1000);
-        } catch (error) {
-            console.error(error);
-            alert('Ошибка генерации резюме: ' + error.message);
-            setResumeGenerating(false);
-        }
+        windowGenerateDocxResume(studentId)
+            .onTimeout(() => setResumeGenerating(false))
+            .onError(err => {
+                console.error(err);
+                alert('Ошибка генерации резюме: ' + err.message);
+                setResumeGenerating(false);
+            })
+            .open();
     };
     const [resumeGenerating, setResumeGenerating] = useState(false);
 
@@ -276,27 +274,6 @@ function StudentMainView() {
         if (!yearResults) return [];
 
         const motivatorItems = [];
-
-        // Сбор мотиваторов (если у вас есть MOTIVATORS_NAMES)
-        // Если нет - замените на ваши ключи мотиваторов
-        const MOTIVATORS_NAMES = {
-            res_mot_autonomy: "Автономия",
-            res_mot_altruism: "Альтруизм",
-            res_mot_challenge: "Вызов",
-            res_mot_salary: "Зарплата",
-            res_mot_career: "Карьера",
-            res_mot_creativity: "Креативность",
-            res_mot_relationships: "Отношения",
-            res_mot_recognition: "Признание",
-            res_mot_affiliation: "Принадлежность",
-            res_mot_self_development: "Саморазвитие",
-            res_mot_purpose: "Цель",
-            res_mot_cooperation: "Сотрудничество",
-            res_mot_stability: "Стабильность",
-            res_mot_tradition: "Традиции",
-            res_mot_management: "Управление",
-            res_mot_work_conditions: "Условия труда"
-        };
 
         Object.keys(MOTIVATORS_NAMES).forEach(motKey => {
             const value = yearResults[motKey];
@@ -339,13 +316,13 @@ function StudentMainView() {
                                 text={analyticsLoading ? "Загрузка..." : showAnalytics ? "Скрыть аналитику" : "Показать аналитику"}
                                 onClick={toggleAnalytics}
                                 disabled={analyticsLoading}
-                                palette={BUTTON_PALETTE.STUDENT_BLUE}
+                                palette={STUDENT_PALETTE.BLUE}
                             />
                             <Button
                                 text={resumeGenerating ? "Загрузка..." : "Скачать резюме DOCX"}
                                 onClick={generateDocxResume}
                                 disabled={resumeGenerating}
-                                palette={BUTTON_PALETTE.STUDENT_GREEN}
+                                palette={STUDENT_PALETTE.GREEN}
                             />
                         </div>
                     </div>

@@ -6,27 +6,9 @@ import {
 import Select from "react-select";
 
 import { getMotivatorStatistics } from "../api";
+import { MOTIVATORS_NAMES } from "../utilities";
 
 import "./MotivatorStatistics.scss";
-
-const MOTIVATOR_NAMES = {
-    'res_mot_autonomy': 'Автономия',
-    'res_mot_altruism': 'Альтруизм',
-    'res_mot_challenge': 'Вызов',
-    'res_mot_salary': 'Заработок',
-    'res_mot_career': 'Карьера',
-    'res_mot_creativity': 'Креативность',
-    'res_mot_relationships': 'Отношения',
-    'res_mot_recognition': 'Признание',
-    'res_mot_affiliation': 'Принадлежность',
-    'res_mot_self_development': 'Саморазвитие',
-    'res_mot_purpose': 'Смысл',
-    'res_mot_cooperation': 'Сотрудничество',
-    'res_mot_stability': 'Стабильность',
-    'res_mot_tradition': 'Традиция',
-    'res_mot_management': 'Управление',
-    'res_mot_work_conditions': 'Условия труда'
-};
 
 const GROUP_BY_OPTIONS = [
     { value: 'specialty', label: 'По направлениям подготовки' },
@@ -76,7 +58,7 @@ const MotivatorStatistics = ({ filters }) => {
             if (!specialty) return [];
 
             return Object.entries(specialty.motivators).map(([key, value]) => ({
-                name: MOTIVATOR_NAMES[key],
+                name: MOTIVATORS_NAMES[key],
                 мотиваторы: value.motivator_percent,
                 демотиваторы: value.demotivator_percent,
                 total: value.total_count
@@ -90,7 +72,7 @@ const MotivatorStatistics = ({ filters }) => {
             if (!course) return [];
 
             return Object.entries(course.motivators).map(([key, value]) => ({
-                name: MOTIVATOR_NAMES[key],
+                name: MOTIVATORS_NAMES[key],
                 мотиваторы: value.motivator_percent,
                 демотиваторы: value.demotivator_percent,
                 total: value.total_count
@@ -107,7 +89,7 @@ const MotivatorStatistics = ({ filters }) => {
             if (!course) return [];
 
             return Object.entries(course.motivators).map(([key, value]) => ({
-                name: MOTIVATOR_NAMES[key],
+                name: MOTIVATORS_NAMES[key],
                 мотиваторы: value.motivator_percent,
                 демотиваторы: value.demotivator_percent,
                 total: value.total_count

@@ -18,12 +18,13 @@ import TitledCard from "../../../components/cards/TitledCard";
 
 import Table, { TableHeader, TableItem, TableRow } from "../../../components/tables/Table";
 
-import Button, { BUTTON_PALETTE } from '../../../components/ui/Button';
+import Button from '../../../components/ui/Button';
 import ColorBox, { BOX_COLOR } from "../../../components/ui/ColorBox";
 import Label from "../../../components/ui/Label";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import MultiSelect from '../../../components/ui/MultiSelect';
 import NoData from "../../../components/ui/NoData";
+import { ADMIN_PALETTE } from "../../../components/ui/palette";
 
 import SankeyDiagram from '../../../components/charts/SankeyDiagram';
 
@@ -570,25 +571,25 @@ function AdminAnalysisDisciplinesView() {
                                 text="Анализ влияния"
                                 onClick={loadDisciplineImpact}
                                 disabled={loading}
-                                palette={BUTTON_PALETTE.BLUE}
+                                palette={ADMIN_PALETTE.BLUE}
                             />
                             <Button
                                 text="Тепловая карта"
                                 onClick={loadHeatmapData}
                                 disabled={loading}
-                                palette={BUTTON_PALETTE.BROWN}
+                                palette={ADMIN_PALETTE.BROWN}
                             />
                             <Button
                                 text="Все дисциплины"
                                 onClick={loadAllDisciplinesImpact}
                                 disabled={loading}
-                                palette={BUTTON_PALETTE.GREEN}
+                                palette={ADMIN_PALETTE.GREEN}
                             />
                             <Button
                                 text="Санки влияния"
                                 onClick={showImpactSankey}
                                 disabled={!heatmapData || loading}
-                                palette={BUTTON_PALETTE.PURPLE}
+                                palette={ADMIN_PALETTE.PURPLE}
                                 title={selectedHeatmapDir !== '__all__' && selectedHeatmapDir !== '__each__'
                                     ? `Санки по направлению: ${selectedHeatmapDir}`
                                     : 'Санки по всем направлениям'}
@@ -604,28 +605,28 @@ function AdminAnalysisDisciplinesView() {
                                 <Button
                                     text="Влияние дисциплин"
                                     onClick={() => setActiveTab('impact')}
-                                    palette={activeTab === 'impact' ? BUTTON_PALETTE.BLUE : BUTTON_PALETTE.GRAY}
+                                    palette={activeTab === 'impact' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
                                 />
                             )}
                             {heatmapData && (
                                 <Button
                                     text="Тепловая карта"
                                     onClick={() => setActiveTab('heatmap')}
-                                    palette={activeTab === 'heatmap' ? BUTTON_PALETTE.BROWN : BUTTON_PALETTE.GRAY}
+                                    palette={activeTab === 'heatmap' ? ADMIN_PALETTE.BROWN : ADMIN_PALETTE.GRAY}
                                 />
                             )}
                             {allDisciplinesData && (
                                 <Button
                                     text="Комплексный анализ"
                                     onClick={() => setActiveTab('all')}
-                                    palette={activeTab === 'all' ? BUTTON_PALETTE.GREEN : BUTTON_PALETTE.GRAY}
+                                    palette={activeTab === 'all' ? ADMIN_PALETTE.GREEN : ADMIN_PALETTE.GRAY}
                                 />
                             )}
                             {sankeyImpactData && (
                                 <Button
                                     text="Санки влияния"
                                     onClick={() => setActiveTab('sankey')}
-                                    palette={activeTab === 'sankey' ? BUTTON_PALETTE.PURPLE : BUTTON_PALETTE.GRAY}
+                                    palette={activeTab === 'sankey' ? ADMIN_PALETTE.PURPLE : ADMIN_PALETTE.GRAY}
                                 />
                             )}
                         </FlexRow>

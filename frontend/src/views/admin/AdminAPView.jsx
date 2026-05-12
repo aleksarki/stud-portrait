@@ -1,32 +1,20 @@
 import { useState, useEffect } from 'react';
-import { COURSES_NAMES, LINK_TREE } from "../../utilities.js";
-
-import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import Select from 'react-select';
+import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+
+import { getFilterDash, getScoresResult } from '../../api.js';
+import { COMPETENCIES_NAMES, COURSES_NAMES, LINK_TREE } from "../../utilities.js";
+import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 
 import "./AdminAPView.scss";
-const competencyLabels = {
-    "res_comp_info_analysis": "Анализ информации",
-    "res_comp_planning": "Планирование",
-    "res_comp_result_orientation": "Ориентация на результат",
-    "res_comp_stress_resistance": "Стрессоустойчивость",
-    "res_comp_partnership": "Партнёрство",
-    "res_comp_rules_compliance": "Соблюдение правил",
-    "res_comp_self_development": "Саморазвитие",
-    "res_comp_leadership": "Лидерство",
-    "res_comp_emotional_intel": "Эмоциональный интеллект",
-    "res_comp_client_focus": "Клиентоориентированность",
-    "res_comp_communication": "Коммуникация",
-    "res_comp_passive_vocab": "Пассивный словарный запас",
-    
-};
+
 const scores={
     2:'неудовл.',
     3:'удовл.',
     4:'хор.',
     5:'отл.'
 };
+
 function DisciplineScatter({ discipline, participants }) {
     const [selectedComp, setSelectedComp] = useState('avg');
     console.log(participants[0]);
@@ -50,8 +38,8 @@ function DisciplineScatter({ discipline, participants }) {
                 
             >
             <option value="avg">Средний балл</option>
-            {Object.keys(competencyLabels).map(k => (
-                <option key={k} value={k}>{competencyLabels[k]}</option>
+            {Object.keys(COMPETENCIES_NAMES).map(k => (
+                <option key={k} value={k}>{COMPETENCIES_NAMES[k]}</option>
             ))}
             </select>
         </div>
@@ -120,23 +108,21 @@ function DisciplineScatterGrid({ data, disciplines }) {
         </div>
     );
 }
-          
-          
-          
+
 const FilterHeader = ({ onFilterChange }) => {
     const [options, setOptions] = useState({ institutes: [], specialties: [], years: [] });
     const [loading, setLoading] = useState(true);
 
     //загрузка вариантов
     useEffect(() => {
-        fetch(`http://localhost:8000/portrait/filter-dash`)
-        .then(response => response.json()) 
-        .then(data => {
-        setOptions(data.data); 
-        console.log(data.data);
-        setLoading(false);
-        })
-        .catch(err => console.error("Ошибка загрузки опций", err));
+        getFilterDash()
+            .onSuccess(async response => {
+                const data = await response.json();
+                setOptions(data.data);
+                console.log(data.data);
+                setLoading(false);
+            })
+            .onError(err => console.error("Ошибка загрузки опций", err));
     }, []);
     const handleChange = (selectedOption, action) => {
         const value = selectedOption ? selectedOption.value : '';
@@ -153,33 +139,33 @@ const FilterHeader = ({ onFilterChange }) => {
     return (
         <div className="filter-row">
             <Select
-            name="institute"
-            placeholder="Институт..."
-            isClearable
-            isSearchable
-            options={options?.institutes || []}
-            onChange={handleChange}
-            styles={customStyles}
+                name="institute"
+                placeholder="Институт..."
+                isClearable
+                isSearchable
+                options={options?.institutes || []}
+                onChange={handleChange}
+                styles={customStyles}
             />
             
             <Select
-            name="specialty"
-            placeholder="Направление..."
-            isClearable
-            isSearchable
-            options={options?.specialties || []}
-            onChange={handleChange}
-            styles={customStyles}
+                name="specialty"
+                placeholder="Направление..."
+                isClearable
+                isSearchable
+                options={options?.specialties || []}
+                onChange={handleChange}
+                styles={customStyles}
             />
     
             <Select
-            name="year"
-            placeholder="Год..."
-            isClearable
-            isSearchable
-            options={options?.years || []}
-            onChange={handleChange}
-            styles={customStyles}
+                name="year"
+                placeholder="Год..."
+                isClearable
+                isSearchable
+                options={options?.years || []}
+                onChange={handleChange}
+                styles={customStyles}
             />
         </div>
     );
@@ -194,29 +180,16 @@ function AdminAPView() {
     const loadScoresResult = async (currentFilters) => {
         setLoading(true);
         setErrorStatus(false);
-        try {
-            let baseUrl = `http://localhost:8000/portrait/scores-result`;
-            const params = new URLSearchParams();
-
-            if (currentFilters.institute) params.append('institute', currentFilters.institute);
-            if (currentFilters.specialty) params.append('specialty', currentFilters.specialty);
-            if (currentFilters.year) params.append('year', currentFilters.year);
-
-            const queryString = params.toString();
-            const finalUrl = queryString ? `${baseUrl}?${queryString}` : baseUrl;
-
-            const response = await fetch(finalUrl);
-            if (!response.ok) {setErrorStatus(true); throw new Error('Ошибка сервера');}
-            
-            const data = await response.json();
-            setScatterData(data); 
-            
-        } catch (error) {
-            console.error("Ошибка при загрузке данных:", error);
-            setErrorStatus(true);
-        } finally {
-            setLoading(false); 
-        }
+        getScoresResult(currentFilters.institute, currentFilters.specialty, currentFilters.year)
+            .onSuccess(async response => {
+                const data = await response.json();
+                setScatterData(data); 
+            })
+            .onError(err => {
+                console.error("Ошибка при загрузке данных:", err);
+                setErrorStatus(true);
+            })
+            .finally(() => setLoading(false));
     };
     useEffect(() => {
         loadScoresResult(filters);

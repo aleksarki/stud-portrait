@@ -14,23 +14,24 @@ import {
 } from "../../../api";
 import { COMPETENCIES_NAMES, LINK_TREE } from "../../../utilities";
 
+import AiInsightPanel from "../../../components/AiInsightPanel";
 import FlexRow, { JUSTIFY, WRAP } from "../../../components/FlexRow";
 import LabelledBox from "../../../components/LabelledBox";
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
-import MultiSelect from '../../../components/ui/MultiSelect';
 
 import TitledCard from "../../../components/cards/TitledCard";
 import ValueCard from "../../../components/cards/ValueCard";
 
-import Button, { BUTTON_PALETTE } from "../../../components/ui/Button";
+import Button from "../../../components/ui/Button";
 import NoData from "../../../components/ui/NoData";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
+import MultiSelect from '../../../components/ui/MultiSelect';
+import { ADMIN_PALETTE } from "../../../components/ui/palette";
 import Select, { Option } from "../../../components/ui/Select";
 
 import SankeyDiagram from '../../../components/charts/SankeyDiagram';
 import VamDotPlot from '../../../components/charts/VamDotPlot';
 
-import AiInsightPanel from "../../../components/AiInsightPanel";
 import "./AdminAnalysisAdvancedView.scss";
 
 function AdminAnalysisAdvancedView() {
@@ -551,7 +552,7 @@ function AdminAnalysisAdvancedView() {
                                     else if (activeVisualization === 'flow') loadLevelFlow();
                                     else if (activeVisualization === 'vam') loadVAMData();
                                 }}
-                                palette={BUTTON_PALETTE.CYAN}
+                                palette={ADMIN_PALETTE.CYAN}
                                 disabled={loading}
                             />
                             <Button
@@ -563,7 +564,7 @@ function AdminAnalysisAdvancedView() {
                                     setSelectedTestAttempts([]);
                                     setSelectedCompetencies([]);
                                 }}
-                                palette={BUTTON_PALETTE.GRAY}
+                                palette={ADMIN_PALETTE.GRAY}
                                 disabled={loading}
                             />
                         </FlexRow>
@@ -574,19 +575,19 @@ function AdminAnalysisAdvancedView() {
                             text="Поток уровней"
                             onClick={() => { setActiveVisualization('flow'); loadLevelFlow(); }}
                             disabled={loading}
-                            palette={activeVisualization === 'flow' ? BUTTON_PALETTE.CYAN : BUTTON_PALETTE.GRAY}
+                            palette={activeVisualization === 'flow' ? ADMIN_PALETTE.CYAN : ADMIN_PALETTE.GRAY}
                         />
                         <Button
                             text="LGM Когорта"
                             onClick={() => setActiveVisualization('lgm')}
                             disabled={loading}
-                            palette={activeVisualization === 'lgm' ? BUTTON_PALETTE.BROWN : BUTTON_PALETTE.GRAY}
+                            palette={activeVisualization === 'lgm' ? ADMIN_PALETTE.BROWN : ADMIN_PALETTE.GRAY}
                         />
                         <Button
                             text="VAM динамика"
                             onClick={() => { setActiveVisualization('vam'); loadVAMData(); }}
                             disabled={loading}
-                            palette={activeVisualization === 'vam' ? BUTTON_PALETTE.CYAN : BUTTON_PALETTE.GRAY}
+                            palette={activeVisualization === 'vam' ? ADMIN_PALETTE.CYAN : ADMIN_PALETTE.GRAY}
                         />
 
                         {activeVisualization === 'flow' && (
@@ -598,7 +599,12 @@ function AdminAnalysisAdvancedView() {
                                         ))}
                                     </Select>
                                 </LabelledBox>
-                                <Button text="Загрузить" onClick={loadLevelFlow} disabled={loading} palette={BUTTON_PALETTE.CYAN} />
+                                <Button
+                                    text="Загрузить"
+                                    onClick={loadLevelFlow}
+                                    disabled={loading}
+                                    palette={ADMIN_PALETTE.CYAN}
+                                />
                             </>
                         )}
 
@@ -617,7 +623,12 @@ function AdminAnalysisAdvancedView() {
                                         <Option value="direction" label="По направлениям" />
                                     </Select>
                                 </LabelledBox>
-                                <Button text="Загрузить LGM" onClick={loadLGMCohortData} disabled={loading} palette={BUTTON_PALETTE.CYAN} />
+                                <Button
+                                    text="Загрузить LGM"
+                                    onClick={loadLGMCohortData}
+                                    disabled={loading}
+                                    palette={ADMIN_PALETTE.CYAN}
+                                />
                             </div>
                         )}
 
@@ -636,7 +647,12 @@ function AdminAnalysisAdvancedView() {
                                         <Option value="direction" label="По направлениям" />
                                     </Select>
                                 </LabelledBox>
-                                <Button text="Загрузить VAM" onClick={loadVAMData} disabled={loading} palette={BUTTON_PALETTE.CYAN} />
+                                <Button
+                                    text="Загрузить VAM"
+                                    onClick={loadVAMData}
+                                    disabled={loading}
+                                    palette={ADMIN_PALETTE.CYAN}
+                                />
                             </div>
                         )}
                     </FlexRow>

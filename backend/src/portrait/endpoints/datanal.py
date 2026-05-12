@@ -355,11 +355,11 @@ class DisciplineImpactAnalyzer:
             dict: Комплексные результаты
         """
         competencies = [
-            'res_comp_leadership',
-            'res_comp_planning',
-            'res_comp_result_orientation',
-            'res_comp_info_analysis',
-            'res_comp_communication'
+            COMP.LEADERSHIP,
+            COMP.PLANNING,
+            COMP.RESULT_ORIENT,
+            COMP.INFO_ANALYSIS,
+            COMP.COMMUNICATION
         ]
         
         all_results = {}

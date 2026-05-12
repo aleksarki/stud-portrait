@@ -1,48 +1,22 @@
 import { useEffect, useState } from "react";
+import Select from 'react-select';
+import {
+    Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+    PieChart, Pie, ReferenceLine, LabelList, BarChart, Bar, Cell,
+    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+} from "recharts";
+import { ArrowUpRight, ArrowDownRight, Award, TrendingUp, ArrowUp, ArrowDown } from "lucide-react";
 
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 
-import { COURSES_NAMES, LINK_TREE } from "../../utilities.js";
-import {
-    PieChart, Pie, ReferenceLine, LabelList, BarChart, Bar, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
-} from "recharts";
+import { getDashboardStats, getFilterDash } from "../../api.js";
+import { COMPETENCIES_NAMES, COURSES_NAMES, LINK_TREE, MOTIVATORS_NAMES } from "../../utilities.js";
 
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
-import Select from 'react-select';
-import { ArrowUpRight, ArrowDownRight, Award, TrendingUp, ArrowUp, ArrowDown } from "lucide-react";
 import "./AdminMainView.scss";
 
 const competencyLabels = {
-    "res_comp_info_analysis": "Анализ информации",
-    "res_comp_planning": "Планирование",
-    "res_comp_result_orientation": "Ориентация на результат",
-    "res_comp_stress_resistance": "Стрессоустойчивость",
-    "res_comp_partnership": "Партнёрство",
-    "res_comp_rules_compliance": "Соблюдение правил",
-    "res_comp_self_development": "Саморазвитие",
-    "res_comp_leadership": "Лидерство",
-    "res_comp_emotional_intel": "Эмоциональный интеллект",
-    "res_comp_client_focus": "Клиентоориентированность",
-    "res_comp_communication": "Коммуникация",
-    "res_comp_passive_vocab": "Пассивный словарный запас",
-
-    'res_mot_autonomy': 'Автономия',
-    'res_mot_altruism': 'Альтруизм',
-    'res_mot_challenge': 'Вызов',
-    'res_mot_salary': 'Заработок',
-    'res_mot_career': 'Карьера',
-    'res_mot_creativity': 'Креативность',
-    'res_mot_relationships': 'Отношения',
-    'res_mot_recognition': 'Признание',
-    'res_mot_affiliation': 'Принадлежность',
-    'res_mot_self_development': 'Саморазвитие',
-    'res_mot_purpose': 'Смысл',
-    'res_mot_cooperation': 'Сотрудничество',
-    'res_mot_stability': 'Стабильность',
-    'res_mot_tradition': 'Традиция',
-    'res_mot_management': 'Управление',
-    'res_mot_work_conditions': 'Условия труда'
-    
+    ...COMPETENCIES_NAMES,
+    ...MOTIVATORS_NAMES
 };
 
 const max_comp=25; //самые длинные названия
@@ -57,14 +31,14 @@ const FilterHeader = ({ onFilterChange }) => {
 
     //загрузка вариантов
     useEffect(() => {
-        fetch(`http://localhost:8000/portrait/filter-dash`)
-        .then(response => response.json()) 
-        .then(data => {
-        setOptions(data.data); 
-        console.log(data.data);
-        setLoading(false);
-        })
-        .catch(err => console.error("Ошибка загрузки опций", err));
+        getFilterDash()
+            .onSuccess(async response => {
+                const data = await response.json();
+                setOptions(data.data);
+                console.log(data.data);
+                setLoading(false);
+            })
+            .onError(err => console.error("Ошибка загрузки опций", err));
     }, []);
     const handleChange = (selectedOption, action) => {
         const value = selectedOption ? selectedOption.value : '';
@@ -419,30 +393,13 @@ function AdminMainView() {
              
     const loadDashboardStats = async (currentFilters) => {
         setLoadingDash(true)
-        try {
-            console.log(currentFilters);
-            let baseUrl = `http://localhost:8000/portrait/dashboard-stats`;
-            const params = new URLSearchParams();
-
-            if (currentFilters.institute) params.append('institute', currentFilters.institute);
-            if (currentFilters.specialty) params.append('specialty', currentFilters.specialty);
-            if (currentFilters.year) params.append('year', currentFilters.year);
-
-            const queryString = params.toString();
-            const finalUrl = queryString ? `${baseUrl}?${queryString}` : baseUrl;
-
-            const response = await fetch(finalUrl);
-            
-            if (!response.ok) throw new Error('Ошибка сервера');
-    
-            const data = await response.json();
-            setDashboardData(data); 
-    
-        } catch (error) {
-            console.error("Ошибка при загрузке дашборда:", error);
-        } finally {
-            setLoadingDash(false); 
-        }
+        getDashboardStats(currentFilters.institute, currentFilters.specialty, currentFilters.year)
+            .onSuccess(async response => {
+                const data = await response.json();
+                setDashboardData(data);
+            })
+            .onError(err => console.error("Ошибка при загрузке дашборда:", err))
+            .finally(() => setLoadingDash(false));
     };
     useEffect(() => {
             loadDashboardStats(filters);

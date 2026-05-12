@@ -1,8 +1,13 @@
 import { useState, useEffect, useRef } from "react";
-import * as XLSX from "xlsx";
 
-import { getExpectedFields, getTemplates, saveTemplate, deleteTemplate, importExcel } from "../../api";
-import { SUPER_LINK_TREE } from "../../utilities";
+import {
+    getDataloadExpectedFields,
+    getDataloadTemplates,
+    postDataloadTemplateSave,
+    deleteDataloadTemplateDelete,
+    postDataloadImportExcel
+} from "../../api";
+import { SUPER_LINK_TREE, xlsxReadColumns } from "../../utilities";
 
 import FlexColumn from "../../components/FlexColumn";
 import FlexRow from "../../components/FlexRow";
@@ -13,10 +18,11 @@ import TitledCard from "../../components/cards/TitledCard";
 
 import Table, { TableHeader, TableItem, TableRow } from "../../components/tables/Table";
 
-import Button, { BUTTON_PALETTE } from "../../components/ui/Button";
-import FileInput, { FILE_INPUT_PALETTE } from "../../components/ui/FileInput";
+import Button from "../../components/ui/Button";
+import FileInput from "../../components/ui/FileInput";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import NumberField from "../../components/ui/NumberField";
+import { ADMIN_PALETTE } from "../../components/ui/palette";
 import Select, { Option } from "../../components/ui/Select";
 
 import "./SuperUploadView.scss";
@@ -65,7 +71,7 @@ function SuperUploadView() {
 
     useEffect(() => {
         // ФИX 1: добавлен .onSuccess(r => r.json()) для парсинга ответа
-        getExpectedFields()
+        getDataloadExpectedFields()
             .onSuccess(r => r.json())
             .onSuccess(data => {
                 const { status, ...sheets } = data;
@@ -84,7 +90,7 @@ function SuperUploadView() {
     const loadTemplatesFromServer = () => {
         setTemplatesLoading(true);
         // ФИX 3: используем серверное хранение шаблонов вместо localStorage
-        getTemplates()
+        getDataloadTemplates()
             .onSuccess(r => r.json())
             .onSuccess(data => {
                 setSavedTemplates(data.templates || []);
@@ -110,17 +116,7 @@ function SuperUploadView() {
         const reader = new FileReader();
         reader.onload = (evt) => {
             const data = new Uint8Array(evt.target.result);
-            const workbook = XLSX.read(data, { type: "array" });
-            const headers = {};
-            workbook.SheetNames.forEach(sheetName => {
-                const sheet = workbook.Sheets[sheetName];
-                const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
-                if (rows.length > 0) {
-                    headers[sheetName] = rows[0].map(cell => (cell || "").toString().trim());
-                } else {
-                    headers[sheetName] = [];
-                }
-            });
+            const headers = xlsxReadColumns(data);
             setFileHeaders(headers);
 
             // Если шаблон уже выбран — применяем его, иначе автогенерация
@@ -196,7 +192,7 @@ function SuperUploadView() {
             return;
         }
         // ФИX 6: сохраняем на сервер, не в localStorage
-        saveTemplate(newTemplateName.trim(), mappingConfig)
+        postDataloadTemplateSave(newTemplateName.trim(), mappingConfig)
             .onSuccess(r => r.json())
             .onSuccess(() => {
                 setNewTemplateName("");
@@ -209,7 +205,7 @@ function SuperUploadView() {
     const handleDeleteTemplate = (templateId, e) => {
         e.stopPropagation();
         if (!window.confirm("Удалить шаблон?")) return;
-        deleteTemplate(templateId)
+        deleteDataloadTemplateDelete(templateId)
             .onSuccess(r => r.json())
             .onSuccess(() => loadTemplatesFromServer())
             .onError(err => setError(`Ошибка удаления: ${err.message}`));
@@ -236,7 +232,7 @@ function SuperUploadView() {
         setUploading(true);
         setError(null);
         // ФИX 7: добавлен .onSuccess(r => r.json()) для парсинга ответа импорта
-        importExcel(selectedFile, mappingConfig)
+        postDataloadImportExcel(selectedFile, mappingConfig)
             .onSuccess(r => r.json())
             .onSuccess(data => {
                 if (data.status === "success") {
@@ -267,7 +263,7 @@ function SuperUploadView() {
                 <Button
                     text="← Назад"
                     onClick={() => setStep("upload")}
-                    palette={BUTTON_PALETTE.CYAN}
+                    palette={ADMIN_PALETTE.CYAN}
                 />
 
                 <h3>Сопоставление колонок (можно изменить вручную)</h3>
@@ -369,13 +365,13 @@ function SuperUploadView() {
                         <Button
                             text="Сохранить шаблон"
                             onClick={handleSaveTemplate}
-                            palette={BUTTON_PALETTE.BLUE}
+                            palette={ADMIN_PALETTE.BLUE}
                         />
                         <Button
                             text={uploading ? "Импорт..." : "Импортировать данные"}
                             onClick={handleImport}
                             disabled={uploading || !allFieldsMapped}
-                            palette={BUTTON_PALETTE.GREEN}
+                            palette={ADMIN_PALETTE.GREEN}
                         />
                         {!allFieldsMapped && (
                             <span className="hint">Заполните хотя бы одно поле в каждом листе</span>
@@ -449,7 +445,7 @@ function SuperUploadView() {
                         accept=".xlsx, .xls"
                         onChange={handleFileChange}
                         disabled={uploading}
-                        palette={FILE_INPUT_PALETTE.GRAY}
+                        palette={ADMIN_PALETTE.GRAY}
                     />
                     {isTemplateActive && (
                         <span className="template-hint">

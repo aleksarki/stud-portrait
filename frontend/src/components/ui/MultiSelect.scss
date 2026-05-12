@@ -1,3 +1,5 @@
+@use 'palette';
+
 .MultiSelect {
   position: relative;
   width: 100%;
@@ -27,31 +29,7 @@
     justify-content: space-between;
     align-items: center;
 
-    color: var(--fg);
-    background: var(--bg);
-    border: var(--border);
-    text-shadow: var(--textShadow);
-    box-shadow: var(--boxShadow);
-
-    transition: all 0.2s ease;
-
-    &:hover {
-      color: var(--hoverFg);
-      background: var(--hoverBg);
-      border: var(--hoverBorder);
-      text-shadow: var(--hoverTextShadow);
-      box-shadow: var(--hoverBoxShadow);
-      transform: var(--hoverTransform);
-    }
-
-    &:active {
-      color: var(--activeFg);
-      background: var(--activeBg);
-      border: var(--activeBorder);
-      text-shadow: var(--activeTextShadow);
-      box-shadow: var(--activeBoxShadow);
-      transform: var(--activeTransform);
-    }
+    @include palette.paletted-activable();
 
     .multiselect-text {
       flex: 1;
@@ -81,11 +59,7 @@
     padding: 8px 8px !important;
     border-radius: 4px;
 
-    color: var(--fg);
-    background: var(--bg);
-    border: var(--border);
-    text-shadow: var(--textShadow);
-    box-shadow: var(--boxShadow);
+    @include palette.paletted();
 
     animation: slideDown 0.2s ease-out;
 

@@ -21,49 +21,35 @@ from .datanal import (
     CrossSectionalAnalyzer
 )
 
-from ..ml_model import generate_text
-
-COMPETENCIES = [
-    'res_comp_info_analysis',
-    'res_comp_planning',
-    'res_comp_result_orientation',
-    'res_comp_stress_resistance',
-    'res_comp_partnership',
-    'res_comp_rules_compliance',
-    'res_comp_self_development',
-    'res_comp_leadership',
-    'res_comp_emotional_intel',
-    'res_comp_client_focus',
-    'res_comp_communication',
-    'res_comp_passive_vocab'
-]
+from ..mlmodel import MlModel
 
 # Ключ: название дисциплины, значение: множество кодов компетенций
+# fixme this should not be hardcoded
 DISCIPLINE_COMPETENCY_MAP = {
     'Проектно-исследовательская работа': {
-        'res_comp_leadership',
-        'res_comp_result_orientation',
-        'res_comp_passive_vocab',
-        'res_comp_planning'
+        COMP.LEADERSHIP,
+        COMP.RESULT_ORIENT,
+        COMP.PASSIVE_VOCAB,
+        COMP.PLANNING
     },
     'Управление проектами': {
-        'res_comp_client_focus',
-        'res_comp_leadership',
-        'res_comp_result_orientation',
-        'res_comp_planning'
+        COMP.CLIENT_FOCUS,
+        COMP.LEADERSHIP,
+        COMP.RESULT_ORIENT,
+        COMP.PLANNING
     },
     'Эксплуатационная практика': {
-        'res_comp_info_analysis',
-        'res_comp_leadership',
-        'res_comp_passive_vocab',
-        'res_comp_planning'
+        COMP.INFO_ANALYSIS,
+        COMP.LEADERSHIP,
+        COMP.PASSIVE_VOCAB,
+        COMP.PLANNING
     },
     'Преддипломная практика': {
-        'res_comp_client_focus',
-        'res_comp_leadership',
-        'res_comp_result_orientation',
-        'res_comp_passive_vocab',
-        'res_comp_planning'
+        COMP.CLIENT_FOCUS,
+        COMP.LEADERSHIP,
+        COMP.RESULT_ORIENT,
+        COMP.PASSIVE_VOCAB,
+        COMP.PLANNING
     }
 }
 
@@ -279,96 +265,6 @@ def analyze_cohort_lgm(request):
             'message': str(e)
         }, status=500)
 
-
-# ============================================================
-# Анализ влияния дисциплин
-# ============================================================
-
-@cached()
-@csrf_exempt
-@require_http_methods(["GET"])
-def analyze_discipline_impact(request):
-    """
-    Анализирует влияние дисциплин на компетенции.
-    
-    GET /portrait/analyze-discipline-impact/?discipline=ПИР&competency=res_comp_leadership
-    """
-    try:
-        discipline_filter = request.GET.get('discipline')
-        competency = request.GET.get('competency', 'res_comp_leadership')
-        
-        # Получаем данные по успеваемости
-        perf_query = Academicperformance.objects.select_related('perf_part')
-        
-        if discipline_filter:
-            perf_query = perf_query.filter(perf_discipline__icontains=discipline_filter)
-        
-        perf_data = []
-        
-        for perf in perf_query:
-            # Получаем результаты РСВ до и после дисциплины
-            year = perf.perf_year
-            student = perf.perf_part
-            
-            # Парсим год (формат "2021/2022")
-            try:
-                year_start = int(year.split('/')[0])
-            except:
-                continue
-            
-            # Результат до дисциплины (предыдущий год или тот же год, но меньший курс)
-            before_result = Results.objects.filter(
-                res_participant=student
-            ).filter(
-                Q(res_year__lt=year) | 
-                Q(res_year=year, res_course_num__lt=perf.perf_part.part_course_num)
-            ).order_by('-res_year', '-res_course_num').first()
-            
-            # Результат после дисциплины (следующий год)
-            after_year = f"{year_start+1}/{year_start+2}"
-            after_result = Results.objects.filter(
-                res_participant=student,
-                res_year=after_year
-            ).first()
-            
-            if before_result and after_result:
-                before_score = getattr(before_result, competency, None)
-                after_score = getattr(after_result, competency, None)
-                
-                if before_score is not None and after_score is not None:
-                    perf_data.append({
-                        'student_id': student.part_id,
-                        'discipline': perf.perf_discipline,
-                        'grade': perf.perf_main_attestation,
-                        'year': year,
-                        f'{competency}_before': before_score,
-                        f'{competency}_after': after_score
-                    })
-        
-        if not perf_data:
-            return JsonResponse({
-                'status': 'error',
-                'message': 'Недостаточно данных для анализа влияния дисциплин'
-            }, status=404)
-        
-        # Преобразуем в DataFrame
-        df = pd.DataFrame(perf_data)
-        
-        # Применяем анализ
-        analyzer = DisciplineImpactAnalyzer()
-        analysis = analyzer.analyze_discipline_impact(df, competency)
-        
-        return JsonResponse(analysis)
-        
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return JsonResponse({
-            'status': 'error',
-            'message': str(e)
-        }, status=500)
-
-
 # ============================================================
 # Комплексный анализ всех дисциплин
 # ============================================================
@@ -385,12 +281,12 @@ def analyze_all_disciplines_impact(request):
     try:
         # Список компетенций для анализа
         competencies = [
-            'res_comp_leadership',
-            'res_comp_planning',
-            'res_comp_result_orientation',
-            'res_comp_info_analysis',
-            'res_comp_passive_vocab',
-            'res_comp_client_focus'
+            COMP.LEADERSHIP,
+            COMP.PLANNING,
+            COMP.RESULT_ORIENT,
+            COMP.INFO_ANALYSIS,
+            COMP.PASSIVE_VOCAB,
+            COMP.CLIENT_FOCUS
         ]
         
         all_results = {}
@@ -408,7 +304,7 @@ def analyze_all_disciplines_impact(request):
                 for disc_result in comp_data['results']:
                     impact_matrix.append({
                         'competency': comp,
-                        'competency_label': _get_competency_label(comp),
+                        'competency_label': COMP.names[comp],
                         'discipline': disc_result['discipline'],
                         'impact_data': disc_result['grade_impacts']
                     })
@@ -479,107 +375,6 @@ def _get_discipline_impact_for_competency(competency):
     except:
         return None
 
-
-def _get_competency_label(competency_field):
-    """Возвращает читаемое название компетенции."""
-    labels = {
-        'res_comp_leadership': 'Лидерство',
-        'res_comp_planning': 'Планирование',
-        'res_comp_result_orientation': 'Ориентация на результат',
-        'res_comp_info_analysis': 'Анализ информации',
-        'res_comp_passive_vocab': 'Пассивный словарь',
-        'res_comp_client_focus': 'Клиентоориентированность',
-        'res_comp_communication': 'Коммуникация',
-        'res_comp_stress_resistance': 'Стрессоустойчивость'
-    }
-    return labels.get(competency_field, competency_field)
-
-
-# ============================================================
-# Анализ в разрезе (cross-sectional)
-# ============================================================
-
-@cached()
-@csrf_exempt
-@require_http_methods(["GET"])
-def analyze_by_dimension(request):
-    try:
-        dimension = request.GET.get('dimension', 'institution')
-        competency = request.GET.get('competency', 'res_comp_leadership')
-        
-        dimension_map = {
-            'institution': 'res_institution__inst_name',
-            'spec': 'res_spec__spec_name',
-            'form': 'res_form__form_name',
-            'course': 'res_course_num'
-        }
-        if dimension not in dimension_map:
-            return JsonResponse({'status': 'error', 'message': f'Неверное измерение: {dimension}'}, status=400)
-        
-        results = Results.objects.select_related('res_institution', 'res_spec', 'res_form').all()
-        
-        data = []
-        for r in results:
-            score = getattr(r, competency, None)
-            if score is not None:
-                if dimension == 'institution':
-                    dim_value = r.res_institution.inst_name if r.res_institution else 'Неизвестно'
-                elif dimension == 'spec':
-                    dim_value = r.res_spec.spec_name if r.res_spec else 'Неизвестно'
-                elif dimension == 'form':
-                    dim_value = r.res_form.form_name if r.res_form else 'Неизвестно'
-                else:  # course
-                    dim_value = str(r.res_course_num) if r.res_course_num else 'Неизвестно'
-                data.append({
-                    'dimension_value': dim_value,
-                    'comp_score': score
-                })
-        
-        if not data:
-            return JsonResponse({'status': 'error', 'message': 'Нет данных'}, status=404)
-        
-        df = pd.DataFrame(data)
-        grouped = df.groupby('dimension_value')['comp_score'].agg([
-            ('n', 'count'),
-            ('mean', 'mean'),
-            ('std', 'std'),
-            ('median', 'median'),
-            ('min', 'min'),
-            ('max', 'max')
-        ]).reset_index()
-        
-        grouped = grouped.sort_values('mean', ascending=False)
-        
-        anova_result = None
-        if len(grouped) >= 2:
-            groups_data = []
-            for group_value in grouped['dimension_value']:
-                group_scores = df[df['dimension_value'] == group_value]['comp_score'].dropna()
-                if len(group_scores) > 0:
-                    groups_data.append(group_scores)
-            if len(groups_data) >= 2:
-                f_stat, p_value = stats.f_oneway(*groups_data)
-                anova_result = {
-                    'f_statistic': float(f_stat),
-                    'p_value': float(p_value),
-                    'significant_difference': p_value < 0.05
-                }
-        
-        response_data = {
-            'status': 'success',
-            'dimension': dimension,
-            'competency': competency,
-            'groups': grouped.to_dict('records'),
-            'anova': anova_result
-        }
-        
-        return JsonResponse(_convert_numpy_types(response_data))
-        
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
-
 # ============================================================
 # ENHANCED DISCIPLINE IMPACT ANALYSIS WITH FILTERS
 # ============================================================
@@ -648,20 +443,16 @@ def analyze_discipline_impact_advanced(request):
                 except:
                     continue
                 
-                before_result = Results.objects.select_related(
-                    'res_spec', 'res_institution'
-                ).filter(
-                    res_participant=student
-                ).filter(
-                    Q(res_year__lt=year)
-                ).order_by('-res_year', '-res_course_num').first()
+                before_result = Results.objects                    \
+                    .select_related('res_spec', 'res_institution') \
+                    .filter(res_participant=student)               \
+                    .filter(Q(res_year__lt=year))                  \
+                    .order_by('-res_year', '-res_course_num').first()
 
-                after_result = Results.objects.select_related(
-                    'res_spec', 'res_institution'
-                ).filter(
-                    res_participant=student,
-                    res_year=year
-                ).order_by('-res_course_num').first()
+                after_result = Results.objects                      \
+                    .select_related('res_spec', 'res_institution')  \
+                    .filter(res_participant=student, res_year=year) \
+                    .order_by('-res_course_num').first()
                 
                 if before_result and after_result:
                     before_score = getattr(before_result, competency, None)
@@ -713,7 +504,7 @@ def analyze_discipline_impact_advanced(request):
             
             if analysis['status'] == 'success':
                 analysis['competency'] = competency
-                analysis['competency_label'] = _get_competency_label(competency)
+                analysis['competency_label'] = COMP.names[competency]
                 
                 # Конвертируем bool значения в строки JSON
                 analysis = _convert_numpy_types(analysis)
@@ -783,11 +574,11 @@ def get_discipline_heatmap_data(request):
         direction_ids = body.get('direction_ids', [])
         
         competencies = [
-            'res_comp_leadership',
-            'res_comp_planning',
-            'res_comp_result_orientation',
-            'res_comp_info_analysis',
-            'res_comp_communication'
+            COMP.LEADERSHIP,
+            COMP.PLANNING,
+            COMP.RESULT_ORIENT,
+            COMP.INFO_ANALYSIS,
+            COMP.COMMUNICATION
         ]
         
         # Собираем все дисциплины и их эффекты
@@ -887,7 +678,7 @@ def get_discipline_heatmap_data(request):
                         heatmap_data.append({
                             'discipline': disc,
                             'competency': comp,
-                            'competency_label': _get_competency_label(comp),
+                            'competency_label': COMP.names[comp],
                             'effect_size': float(cohens_d),
                             'mean_gain': float(mean_diff),
                             'p_value': float(p_value),
@@ -919,7 +710,7 @@ def get_discipline_heatmap_data(request):
                     heatmap_by_direction.setdefault(direction, []).append({
                         'discipline':       disc,
                         'competency':       comp,
-                        'competency_label': _get_competency_label(comp),
+                        'competency_label': COMP.names[comp],
                         'effect_size':      float(cohens_d),
                         'mean_gain':        mean_diff,
                         'p_value':          float(p_value),
@@ -945,7 +736,7 @@ def get_discipline_heatmap_data(request):
                     full_heatmap.append({
                         'discipline': disc,
                         'competency': comp,
-                        'competency_label': _get_competency_label(comp),
+                        'competency_label': COMP.names[comp],
                         'effect_size': None,
                         'mean_gain': None,
                         'p_value': None,
@@ -961,339 +752,6 @@ def get_discipline_heatmap_data(request):
             'directions': sorted(heatmap_by_direction.keys()),
             'disciplines': list(DISCIPLINE_COMPETENCY_MAP.keys()),
             'competencies': competencies
-        })
-        
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return JsonResponse({
-            'status': 'error',
-            'message': str(e)
-        }, status=500)
-
-
-# ============================================================
-# DOT PLOT DATA - для сравнения VAM с доверительными интервалами
-# ============================================================
-
-@cached()
-@csrf_exempt
-@require_http_methods(["POST"])
-def get_vam_dotplot_data(request):
-    try:
-        body = json.loads(request.body)
-        group_by = body.get('group_by', 'institution')
-        competency = body.get('competency', 'res_comp_leadership')
-        filter_institutions = body.get('filter_institutions', [])
-        filter_directions = body.get('filter_directions', [])
-        filter_courses = body.get('filter_courses', [])
-        filter_test_attempts = body.get('filter_test_attempts', [])
-        
-        # Базовый queryset
-        results = Results.objects.select_related('res_institution', 'res_spec').all()
-        
-        # Применяем фильтры
-        if filter_institutions:
-            results = results.filter(res_institution_id__in=filter_institutions)
-        
-        if filter_directions:
-            # Преобразуем названия в ID, если нужно, или предполагаем, что приходят ID
-            # Для простоты будем считать, что приходят ID (числа)
-            results = results.filter(res_spec_id__in=filter_directions)
-        
-        if filter_courses:
-            results = results.filter(res_course_num__in=filter_courses)
-        
-        # filter_test_attempts - можно интерпретировать как количество записей на студента, 
-        # но для VAM мы используем все записи, поэтому этот фильтр пока игнорируем.
-        
-        # Собираем данные
-        data = []
-        for result in results:
-            score = getattr(result, competency, None)
-            if score is not None:
-                data.append({
-                    'res_participant_id': result.res_participant_id,
-                    'res_course_num': result.res_course_num,
-                    'comp_score': score,
-                    'inst_name': result.res_institution.inst_name if result.res_institution else 'Неизвестно',
-                    'spec_name': result.res_spec.spec_name if result.res_spec else 'Неизвестно'
-                })
-        
-        if not data:
-            return JsonResponse({'status': 'error', 'message': 'Нет данных'}, status=404)
-        
-        df = pd.DataFrame(data)
-        
-        # Определяем колонку для группировки
-        if group_by == 'institution':
-            group_col = 'inst_name'
-        elif group_by == 'direction':
-            group_col = 'spec_name'
-        else:
-            group_col = 'res_course_num'
-        
-        dotplot_data = []
-        for group_value, group_df in df.groupby(group_col):
-            scores = group_df['comp_score'].dropna()
-            if len(scores) < 5:
-                continue
-            mean_score = scores.mean()
-            std_score = scores.std()
-            n = len(scores)
-            se = std_score / np.sqrt(n)
-            ci_lower = mean_score - 1.96 * se
-            ci_upper = mean_score + 1.96 * se
-            dotplot_data.append({
-                'group': str(group_value),
-                'value_added': float(mean_score),
-                'ci_lower': float(ci_lower),
-                'ci_upper': float(ci_upper),
-                'std_error': float(se),
-                'n': int(n),
-                'significant': ci_lower > 0 or ci_upper < 0
-            })
-        
-        dotplot_data = sorted(dotplot_data, key=lambda x: x['value_added'], reverse=True)
-        dotplot_data = _convert_numpy_types(dotplot_data)
-        
-        return JsonResponse({
-            'status': 'success',
-            'group_by': group_by,
-            'competency': competency,
-            'data': dotplot_data
-        })
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
-
-
-# ============================================================
-# SPAGHETTI PLOT DATA - траектории развития
-# ============================================================
-
-@cached()
-@csrf_exempt
-@require_http_methods(["POST"])
-def get_lgm_spaghetti_data(request):
-    """
-    Получить данные для паутинного графика траекторий развития
-    
-    POST /portrait/get-lgm-spaghetti-data/
-    Body: {
-        "competency": "res_comp_leadership",
-        "group_by": "institution",  # или null для всех
-        "include_trend": true,
-        "filter_institutions": [1, 2]
-    }
-    """
-    try:
-        body = json.loads(request.body)
-        competency = body.get('competency', 'res_comp_leadership')
-        group_by = body.get('group_by', None)  # institution или direction
-        include_trend = body.get('include_trend', True)
-        filter_institutions = body.get('filter_institutions', [])
-        
-        # Получаем результаты
-        results = Results.objects.select_related(
-            'res_participant', 'res_institution', 'res_spec'
-        ).order_by('res_participant_id', 'res_course_num')
-        
-        if filter_institutions:
-            results = results.filter(res_institution_id__in=filter_institutions)
-        
-        # Собираем данные вручную, чтобы избежать проблем с annotate
-        data = []
-        for result in results:
-            score = getattr(result, competency, None)
-            if score is not None:
-                data.append({
-                    'student_id': result.res_participant_id,
-                    'time_point': result.res_course_num,
-                    'competency_score': score,
-                    'inst_name': result.res_institution.inst_name if result.res_institution else 'Неизвестно',
-                    'spec_name': result.res_spec.spec_name if result.res_spec else 'Неизвестно'
-                })
-        
-        if not data:
-            return JsonResponse({
-                'status': 'error',
-                'message': 'Нет данных для анализа'
-            }, status=404)
-        
-        df = pd.DataFrame(data)
-        
-        spaghetti_data = {
-            'individual_trajectories': [],
-            'trend_lines': []
-        }
-        
-        # Индивидуальные траектории
-        for student_id, student_df in df.groupby('student_id'):
-            student_df = student_df.sort_values('time_point')
-            
-            trajectory = {
-                'student_id': int(student_id),
-                'points': [
-                    {
-                        'course': int(row['time_point']),
-                        'score': float(row['competency_score']) if pd.notna(row['competency_score']) else None
-                    }
-                    for _, row in student_df.iterrows()
-                ]
-            }
-            
-            # Фильтруем null значения
-            trajectory['points'] = [p for p in trajectory['points'] if p['score'] is not None]
-            
-            if len(trajectory['points']) >= 2:
-                if group_by == 'institution':
-                    trajectory['group'] = student_df.iloc[0]['inst_name']
-                elif group_by == 'direction':
-                    trajectory['group'] = student_df.iloc[0]['spec_name']
-                
-                spaghetti_data['individual_trajectories'].append(trajectory)
-        
-        # Тренд-линии (если requested)
-        if include_trend:
-            if group_by:
-                # По группам
-                for group_value, group_df in df.groupby(
-                    'inst_name' if group_by == 'institution' else 'spec_name'
-                ):
-                    trend = _calculate_trend_line(group_df, group_value)
-                    if trend:
-                        spaghetti_data['trend_lines'].append(trend)
-            else:
-                # Общий тренд
-                trend = _calculate_trend_line(df, 'Все студенты')
-                if trend:
-                    spaghetti_data['trend_lines'].append(trend)
-        
-        spaghetti_data = _convert_numpy_types(spaghetti_data)
-        
-        return JsonResponse({
-            'status': 'success',
-            'competency': competency,
-            'group_by': group_by,
-            'data': spaghetti_data
-        })
-        
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return JsonResponse({
-            'status': 'error',
-            'message': str(e)
-        }, status=500)
-
-
-def _calculate_trend_line(df, group_name):
-    """Вспомогательная функция для вычисления тренд-линии"""
-    try:
-        by_course = df.groupby('time_point')['competency_score'].mean()
-        
-        if len(by_course) < 2:
-            return None
-        
-        courses = by_course.index.values
-        scores = by_course.values
-        
-        # Линейная регрессия
-        z = np.polyfit(courses, scores, 1)
-        p = np.poly1d(z)
-        
-        trend_points = [
-            {'course': int(c), 'score': float(p(c))}
-            for c in range(int(courses.min()), int(courses.max()) + 1)
-        ]
-        
-        return {
-            'group': group_name,
-            'points': trend_points,
-            'slope': float(z[0]),
-            'intercept': float(z[1])
-        }
-    except Exception as e:
-        print(f"Error calculating trend line: {e}")
-        return None
-
-
-# ============================================================
-# WATERFALL DATA - Декомпозиция прироста
-# ============================================================
-
-@cached()
-@csrf_exempt
-@require_http_methods(["POST"])
-def get_waterfall_decomposition(request):
-    """
-    Получить данные для ватерфалльной диаграммы
-    
-    POST /portrait/get-waterfall-decomposition/
-    Body: {
-        "institution_id": 1,
-        "direction_id": 10,
-        "competency": "res_comp_leadership"
-    }
-    """
-    try:
-        body = json.loads(request.body)
-        institution_id = body.get('institution_id')
-        direction_id = body.get('direction_id')
-        competency = body.get('competency', 'res_comp_leadership')
-        
-        # Получаем все результаты студентов
-        results = Results.objects.filter(
-            res_institution_id=institution_id,
-            res_spec_id=direction_id
-        ).order_by('res_course_num')
-        
-        df = pd.DataFrame(list(results.values(
-            'res_participant_id',
-            'res_course_num',
-            comp_score=competency
-        )))
-        
-        # Начальный балл (1 курс)
-        course1 = df[df['res_course_num'] == 1][competency].mean()
-        
-        waterfall_data = {
-            'initial': float(course1) if not np.isnan(course1) else 0,
-            'stages': []
-        }
-        
-        current_value = course1 if not np.isnan(course1) else 0
-        
-        # Для каждого курса
-        for course in sorted(df['res_course_num'].unique()):
-            if course == 1:
-                continue
-            
-            course_data = df[df['res_course_num'] == course][competency].mean()
-            
-            if not np.isnan(course_data):
-                increment = course_data - current_value
-                
-                waterfall_data['stages'].append({
-                    'course': int(course),
-                    'value': float(course_data),
-                    'increment': float(increment),
-                    'label': f'После курса {course}'
-                })
-                
-                current_value = course_data
-        
-        waterfall_data['final'] = float(current_value)
-        waterfall_data['total_gain'] = float(current_value - waterfall_data['initial'])
-
-        waterfall_data = _convert_numpy_types(waterfall_data)
-        
-        return JsonResponse({
-            'status': 'success',
-            'competency': competency,
-            'data': waterfall_data
         })
         
     except Exception as e:
@@ -1375,16 +833,16 @@ def analyze_student_discipline_impact(request):
         for disc in disciplines:
             year = disc.perf_year
             # Результат до (предыдущий год)
-            before_result = Results.objects.filter(
-                res_participant=participant,
-                res_year__lt=year
-            ).order_by('-res_year', '-res_course_num').first()
+            before_result = Results.objects                             \
+                .filter(res_participant=participant, res_year__lt=year) \
+                .order_by('-res_year', '-res_course_num')               \
+                .first()
 
             # Результат после (тот же год)
-            after_result = Results.objects.filter(
-                res_participant=participant,
-                res_year=year
-            ).order_by('-res_course_num').first()
+            after_result = Results.objects                          \
+                .filter(res_participant=participant, res_year=year) \
+                .order_by('-res_course_num')                        \
+                .first()
 
             if not before_result or not after_result:
                 continue  # недостаточно данных для этой дисциплины
@@ -1392,7 +850,7 @@ def analyze_student_discipline_impact(request):
             # Собираем баллы по всем компетенциям
             competencies_before = {}
             competencies_after = {}
-            for comp in COMPETENCIES:
+            for comp in COMP.list:
                 before_score = getattr(before_result, comp, None)
                 after_score = getattr(after_result, comp, None)
                 if before_score is not None and after_score is not None:
@@ -1746,7 +1204,7 @@ def ai_analytics_summary(request):
         if context_type == 'general':
             total_students = results_qs.values('res_participant_id').distinct().count()
             avg_scores = {}
-            for comp in COMPETENCIES[:6]:
+            for comp in COMP.list[:6]:
                 avg = results_qs.aggregate(Avg(comp))[f'{comp}__avg']
                 if avg:
                     comp_name = COMP.names.get(comp, comp)
@@ -1883,7 +1341,7 @@ def ai_analytics_summary(request):
         else:
             prompt = "Неизвестный тип анализа."
 
-        result = generate_text(prompt, max_length=600, temperature=0.2)
+        result = MlModel.generate(prompt, max_length=600, temperature=0.2)
         if result is None:
             result = "⚠️ Модель временно недоступна. Попробуйте позже."
 
@@ -1948,22 +1406,6 @@ def get_student_comparison_stats(request):
         
         # Фильтруем по курсу
         course_results = all_results.filter(res_course_num=course_num)
-        
-        # Список компетенций
-        competencies = [
-            'res_comp_info_analysis', 'res_comp_planning', 'res_comp_result_orientation',
-            'res_comp_stress_resistance', 'res_comp_partnership', 'res_comp_rules_compliance',
-            'res_comp_self_development', 'res_comp_leadership', 'res_comp_emotional_intel',
-            'res_comp_client_focus', 'res_comp_communication', 'res_comp_passive_vocab'
-        ]
-        
-        # Список мотиваторов
-        motivators = [
-            'res_mot_autonomy', 'res_mot_altruism', 'res_mot_challenge', 'res_mot_salary',
-            'res_mot_career', 'res_mot_creativity', 'res_mot_relationships', 'res_mot_recognition',
-            'res_mot_affiliation', 'res_mot_self_development', 'res_mot_purpose', 'res_mot_cooperation',
-            'res_mot_stability', 'res_mot_tradition', 'res_mot_management', 'res_mot_work_conditions'
-        ]
         
         # Функция расчета процентиля
         def calculate_percentile(student_value, all_values):
@@ -2037,43 +1479,8 @@ def get_student_comparison_stats(request):
             return stats
         
         # Рассчитываем статистику
-        competencies_stats = calculate_stats(all_results, competencies)
-        motivators_stats = calculate_stats(all_results, motivators)
-        
-        # Названия для отображения
-        competency_names = {
-            'res_comp_info_analysis': 'Анализ информации',
-            'res_comp_planning': 'Планирование',
-            'res_comp_result_orientation': 'Ориентация на результат',
-            'res_comp_stress_resistance': 'Стрессоустойчивость',
-            'res_comp_partnership': 'Партнёрство',
-            'res_comp_rules_compliance': 'Соблюдение правил',
-            'res_comp_self_development': 'Саморазвитие',
-            'res_comp_leadership': 'Лидерство',
-            'res_comp_emotional_intel': 'Эмоциональный интеллект',
-            'res_comp_client_focus': 'Клиентоориентированность',
-            'res_comp_communication': 'Коммуникация',
-            'res_comp_passive_vocab': 'Пассивный словарь'
-        }
-        
-        motivator_names = {
-            'res_mot_autonomy': 'Автономия',
-            'res_mot_altruism': 'Альтруизм',
-            'res_mot_challenge': 'Вызов',
-            'res_mot_salary': 'Заработок',
-            'res_mot_career': 'Карьера',
-            'res_mot_creativity': 'Креативность',
-            'res_mot_relationships': 'Отношения',
-            'res_mot_recognition': 'Признание',
-            'res_mot_affiliation': 'Принадлежность',
-            'res_mot_self_development': 'Саморазвитие',
-            'res_mot_purpose': 'Смысл',
-            'res_mot_cooperation': 'Сотрудничество',
-            'res_mot_stability': 'Стабильность',
-            'res_mot_tradition': 'Традиция',
-            'res_mot_management': 'Управление',
-            'res_mot_work_conditions': 'Условия труда'
-        }
+        competencies_stats = calculate_stats(all_results, COMP.list)
+        motivators_stats = calculate_stats(all_results, MOT.list)
         
         # Формируем результат
         result = {
@@ -2095,30 +1502,30 @@ def get_student_comparison_stats(request):
         
         for field, stats in competencies_stats.items():
             result['competencies'].append({
-                'name': competency_names.get(field, field),
-                'score': stats['student_score'],
+                'name':                   COMP.names.get(field, field),
+                'score':                  stats['student_score'],
                 'percentile_institution': stats['percentile_institution'],
-                'percentile_specialty': stats['percentile_specialty'],
-                'percentile_course': stats['percentile_course'],
-                'avg_institution': stats['avg_institution'],
-                'avg_specialty': stats['avg_specialty'],
-                'avg_course': stats['avg_course'],
-                'min_institution': stats['min_institution'],
-                'max_institution': stats['max_institution']
+                'percentile_specialty':   stats['percentile_specialty'],
+                'percentile_course':      stats['percentile_course'],
+                'avg_institution':        stats['avg_institution'],
+                'avg_specialty':          stats['avg_specialty'],
+                'avg_course':             stats['avg_course'],
+                'min_institution':        stats['min_institution'],
+                'max_institution':        stats['max_institution']
             })
         
         for field, stats in motivators_stats.items():
             result['motivators'].append({
-                'name': motivator_names.get(field, field),
-                'score': stats['student_score'],
+                'name':                   MOT.names.get(field, field),
+                'score':                  stats['student_score'],
                 'percentile_institution': stats['percentile_institution'],
-                'percentile_specialty': stats['percentile_specialty'],
-                'percentile_course': stats['percentile_course'],
-                'avg_institution': stats['avg_institution'],
-                'avg_specialty': stats['avg_specialty'],
-                'avg_course': stats['avg_course'],
-                'min_institution': stats['min_institution'],
-                'max_institution': stats['max_institution']
+                'percentile_specialty':   stats['percentile_specialty'],
+                'percentile_course':      stats['percentile_course'],
+                'avg_institution':        stats['avg_institution'],
+                'avg_specialty':          stats['avg_specialty'],
+                'avg_course':             stats['avg_course'],
+                'min_institution':        stats['min_institution'],
+                'max_institution':        stats['max_institution']
             })
         
         return JsonResponse({
@@ -2143,9 +1550,6 @@ def get_education_profiles_comparison(request):
         - include_values: включить ценности (true/false)
     """
     try:
-        import json
-        from django.db.models import Avg, Count, StdDev
-        
         specialties_param = request.GET.get('specialties', '')
         year = request.GET.get('year')
         include_motivators = request.GET.get('include_motivators', 'true').lower() == 'true'
@@ -2159,38 +1563,9 @@ def get_education_profiles_comparison(request):
             # Если не указаны, берем топ-10 по количеству студентов
             specialties = Specialties.objects.all()
         
-        # Словари для названий
-        motivator_names = {
-            'res_mot_autonomy': 'Автономия',
-            'res_mot_altruism': 'Альтруизм',
-            'res_mot_challenge': 'Вызов',
-            'res_mot_salary': 'Заработок',
-            'res_mot_career': 'Карьера',
-            'res_mot_creativity': 'Креативность',
-            'res_mot_relationships': 'Отношения',
-            'res_mot_recognition': 'Признание',
-            'res_mot_affiliation': 'Принадлежность',
-            'res_mot_self_development': 'Саморазвитие',
-            'res_mot_purpose': 'Смысл',
-            'res_mot_cooperation': 'Сотрудничество',
-            'res_mot_stability': 'Стабильность',
-            'res_mot_tradition': 'Традиция',
-            'res_mot_management': 'Управление',
-            'res_mot_work_conditions': 'Условия труда'
-        }
-        
-        value_names = {
-            'res_val_honesty_justice': 'Честность и справедливость',
-            'res_val_humanism': 'Гуманизм',
-            'res_val_patriotism': 'Патриотизм',
-            'res_val_family': 'Семья',
-            'res_val_health': 'Здоровье',
-            'res_val_environment': 'Окружающая среда'
-        }
-        
         # Поля для анализа
-        motivator_fields = list(motivator_names.keys()) if include_motivators else []
-        value_fields = list(value_names.keys()) if include_values else []
+        motivator_fields = MOT.list if include_motivators else []
+        value_fields = VAL.list if include_values else []
         all_fields = motivator_fields + value_fields
         
         results = []
@@ -2257,7 +1632,7 @@ def get_education_profiles_comparison(request):
                                 'abs_delta': abs(delta),
                                 'spec1_avg': val1,
                                 'spec2_avg': val2,
-                                'name': motivator_names[field]
+                                'name': MOT.names[field]
                             }
                     
                     # Рассчитываем дельты для ценностей
@@ -2271,7 +1646,7 @@ def get_education_profiles_comparison(request):
                                 'abs_delta': abs(delta),
                                 'spec1_avg': val1,
                                 'spec2_avg': val2,
-                                'name': value_names[field]
+                                'name': VAL.names[field]
                             }
         
         return JsonResponse({
@@ -2280,8 +1655,8 @@ def get_education_profiles_comparison(request):
                 'specialties': results,
                 'deltas': deltas,
                 'fields': {
-                    'motivators': motivator_names,
-                    'values': value_names
+                    'motivators': MOT.names,
+                    'values': VAL.names
                 }
             }
         })

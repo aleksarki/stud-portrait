@@ -6,13 +6,6 @@ from .common import *
 import numpy as np
 from collections import defaultdict
 
-comp_fields = [
-    'res_comp_info_analysis', 'res_comp_planning', 'res_comp_result_orientation',
-    'res_comp_stress_resistance', 'res_comp_partnership', 'res_comp_rules_compliance',
-    'res_comp_self_development', 'res_comp_leadership', 'res_comp_emotional_intel',
-    'res_comp_client_focus', 'res_comp_communication', 'res_comp_passive_vocab'
-]
-
 def get_year_metrics(year, filter):
     res_queryset = Results.objects.filter(res_year=year, **filter)
     max_mot={"name": "-", "count": 0}
@@ -20,14 +13,14 @@ def get_year_metrics(year, filter):
         return {
             "total_avg": 0,
             "course_percent": 0,
-            "all_comps": {f: 0 for f in comp_fields},
+            "all_comps": {f: 0 for f in COMP.list},
             "motivator": max_mot,
             "participated" : {"amount_in": 0, "students_all": 0}
         }
-    avgs = res_queryset.aggregate(**{f'avg_{f}': Avg(f) for f in comp_fields})
+    avgs = res_queryset.aggregate(**{f'avg_{f}': Avg(f) for f in COMP.list})
     
     valid_values = [v for v in avgs.values() if v is not None]
-    total_avg = sum(valid_values) / len(comp_fields) if valid_values else 0
+    total_avg = sum(valid_values) / len(COMP.list) if valid_values else 0
 
     participant_ids = list(res_queryset.values_list('res_participant__part_id', flat=True).distinct())
     total_students = res_queryset.values('res_participant').distinct().count()
@@ -35,7 +28,7 @@ def get_year_metrics(year, filter):
         course_participant__in=participant_ids 
     ).count()
     
-    for f in MOT_FIELDS:
+    for f in MOT.list:
         cnt_high = res_queryset.filter(**{f"{f}__gte": 600}).count() 
         if cnt_high>max_mot["count"]: 
             max_mot["count"]=cnt_high
@@ -45,7 +38,7 @@ def get_year_metrics(year, filter):
     return {
         "total_avg": round(total_avg, 2),
         "course_percent": round(course_percent, 1),
-        "all_comps": {f: round(avgs.get(f'avg_{f}') or 0, 2) for f in comp_fields},
+        "all_comps": {f: round(avgs.get(f'avg_{f}') or 0, 2) for f in COMP.list},
         "motivator": max_mot,
         "participated" : {"amount_in": total_students, "students_all": students_uni}
     }
@@ -119,14 +112,15 @@ def get_dashboard_stats(request):
         if curr_data and prev_data:
             growth = ((curr_data['total_avg'] - prev_data['total_avg']) / prev_data['total_avg']) * 100 if prev_data['total_avg']!=0 else 0
 
-        unis = Results.objects.filter(res_year=curr_year) \
+        unis = Results.objects.filter(res_year=curr_year)         \
             .values_list('res_institution__inst_name', flat=True) \
             .distinct()
 
         rate_list = []
         for uni in unis:
-            rows_data = Results.objects.filter(res_year=curr_year, res_institution__inst_name=uni) \
-                    .values_list(*comp_fields)
+            rows_data = Results.objects                                     \
+                .filter(res_year=curr_year, res_institution__inst_name=uni) \
+                .values_list(*COMP.list)
             rows=np.array([np.array([np.nan if i==0 else i for i in row]) for row in rows_data]).astype(float)
             avg = np.mean(np.delete(rows, np.where(np.isnan(rows))))
             rate_list.append({'uni_name': uni, 'overall_avg': round(avg,3)})
@@ -219,14 +213,6 @@ def get_dashboard_stats(request):
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
 
-MOT_FIELDS = [
-    'res_mot_autonomy', 'res_mot_altruism', 'res_mot_challenge', 'res_mot_salary',
-    'res_mot_career', 'res_mot_creativity', 'res_mot_relationships', 'res_mot_recognition',
-    'res_mot_affiliation', 'res_mot_self_development', 'res_mot_purpose', 'res_mot_cooperation',
-    'res_mot_stability', 'res_mot_tradition', 'res_mot_management', 'res_mot_work_conditions'
-]
-
-
 def get_competency_stats_courses(filter):
     courses = [1, 2, 3, 4]
     results = {}
@@ -234,13 +220,13 @@ def get_competency_stats_courses(filter):
     for course in courses:
         qs = main.filter(res_course_num=course)
         if qs.exists():
-            avgs = qs.aggregate(**{field: Avg(field) for field in comp_fields})
+            avgs = qs.aggregate(**{field: Avg(field) for field in COMP.list})
             results[course] = avgs
         else:
-            results[course] = {f: 0 for f in comp_fields}
+            results[course] = {f: 0 for f in COMP.list}
     #print(results)
     chart_data = []
-    for field in comp_fields:
+    for field in COMP.list:
         row = {"name": field}
         for course in courses:
             val = results[course].get(field) or 0
@@ -265,9 +251,9 @@ def get_motivation_counts(request):
         results = {}
         
         for course in courses:
-            results[course] = {'low': {f: 0 for f in MOT_FIELDS},
-                                'high': {f: 0 for f in MOT_FIELDS}}
-            for field in MOT_FIELDS:
+            results[course] = {'low': {f: 0 for f in MOT.list},
+                                'high': {f: 0 for f in MOT.list}}
+            for field in MOT.list:
                 cnt_low = Results.objects.filter(res_course_num=course, **base_filter).filter(**{f"{field}__lt": 400})
                 cnt_high = Results.objects.filter(res_course_num=course, **base_filter).filter(**{f"{field}__gte": 600})
         
@@ -276,7 +262,7 @@ def get_motivation_counts(request):
                 if cnt_high.exists():
                     results[course]['high'][field] = cnt_high.count()
         bar_data = []
-        for field in MOT_FIELDS:
+        for field in MOT.list:
             row = {"name": field}
             for course in courses:
                 row[f"course_{course}_high"] = results[course]['high'].get(field, 0)
@@ -314,12 +300,12 @@ def get_scores_result(request):
         avgs_qs = (
             Results.objects.filter(**base_filter)
             .values('res_participant__part_id')
-            .annotate(**{f'avg_{f}': Avg(f) for f in comp_fields})
+            .annotate(**{f'avg_{f}': Avg(f) for f in COMP.list})
         )
 
         avgs = {
             r['res_participant__part_id']: round(
-                sum(r[f'avg_{f}'] or 0 for f in comp_fields) / len(comp_fields), 1
+                sum(r[f'avg_{f}'] or 0 for f in COMP.list) / len(COMP.list), 1
             )
             for r in avgs_qs
         }
@@ -341,7 +327,7 @@ def get_scores_result(request):
                 continue
             comp_by_part[pid] = {
                 field: int(record.get(field)) if record.get(field) is not None else None
-                for field in comp_fields
+                for field in COMP.list
             }
             by_discipline[record['perf_discipline']].append({
                 'participant_id': pid,
@@ -354,7 +340,7 @@ def get_scores_result(request):
             {'discipline': disc, 'participants': parts}
             for disc, parts in by_discipline.items()
         ]
-        print('we tuta1?')
+        print('we tuta1?')  ## lol what
         response_data={"status": "success", "data": result, "names":disciplines}
         return JsonResponse(response_data) 
     except Exception as e:

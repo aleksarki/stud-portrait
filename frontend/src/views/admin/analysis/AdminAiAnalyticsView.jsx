@@ -1,11 +1,16 @@
 import { useState, useEffect } from "react";
-import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
-import { LINK_TREE, COMPETENCIES_NAMES } from "../../../utilities";
+
 import { postPortraitCreateDataSession, getPortraitGetFilterOptionsWithCounts, postAiAnalyticsSummary } from "../../../api";
+import { LINK_TREE, COMPETENCIES_NAMES } from "../../../utilities";
+
+import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
+
 import MultiSelect from "../../../components/ui/MultiSelect";
-import Button, { BUTTON_PALETTE } from "../../../components/ui/Button";
+import Button from "../../../components/ui/Button";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
+import { ADMIN_PALETTE } from "../../../components/ui/palette";
 import Select, { Option } from "../../../components/ui/Select";
+
 import "./AdminAiAnalyticsView.scss";
 
 function AdminAiAnalyticsView() {
@@ -153,7 +158,7 @@ function AdminAiAnalyticsView() {
                             text={generating ? "Генерация..." : "Сгенерировать отчёт"}
                             onClick={generateReport}
                             disabled={generating || loading}
-                            palette={BUTTON_PALETTE.CYAN}
+                            palette={ADMIN_PALETTE.CYAN}
                         />
                     </div>
 
@@ -168,7 +173,7 @@ function AdminAiAnalyticsView() {
                             <Button
                                 text="Копировать текст"
                                 onClick={() => navigator.clipboard.writeText(summary)}
-                                palette={BUTTON_PALETTE.GRAY}
+                                palette={ADMIN_PALETTE.GRAY}
                                 style={{ marginTop: 15 }}
                             />
                         </div>

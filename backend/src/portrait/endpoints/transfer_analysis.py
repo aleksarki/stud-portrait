@@ -24,9 +24,6 @@ from .common import COMP
 from ..models import Results, Participants, Institutions, Specialties
 
 
-COMP_FIELDS = list(COMP.names.keys())
-
-
 def _year_sort_key(year_str):
     """'2023/2024' → 2023; для сортировки."""
     try:
@@ -74,7 +71,7 @@ def _detect_transfers(results_sorted):
 
 def _avg_comp(result):
     """Среднее по всем компетенциям для одного Result."""
-    vals = [getattr(result, f) for f in COMP_FIELDS if getattr(result, f)]
+    vals = [getattr(result, f) for f in COMP.list if getattr(result, f)]
     return float(np.mean(vals)) if vals else None
 
 
@@ -104,8 +101,8 @@ def analyze_transfers(request):
         competency     = request.GET.get('competency', 'res_comp_leadership')
         transfer_type  = request.GET.get('transfer_type', '')
 
-        if competency not in COMP_FIELDS:
-            competency = 'res_comp_leadership'
+        if competency not in COMP.list:
+            competency = COMP.LEADERSHIP
 
         # Берём всех участников у которых есть хотя бы 2 результата
         qs = (
@@ -254,8 +251,8 @@ def analyze_transfer_students(request):
         transfer_type  = body.get('transfer_type', '')
         limit          = min(int(body.get('limit', 50)), 200)
 
-        if competency not in COMP_FIELDS:
-            competency = 'res_comp_leadership'
+        if competency not in COMP.list:
+            competency = COMP.LEADERSHIP
 
         qs = (
             Participants.objects
