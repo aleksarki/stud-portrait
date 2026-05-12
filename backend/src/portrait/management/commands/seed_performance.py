@@ -36,19 +36,19 @@ def get_mean_comp(result: Results) -> float:
 def generate_grade(mean: float) -> str:
     decide = random.randint(1, 10)
 
-    if decide > 3:
-        raw = round(mean / 150)          
-        score = max(2, min(5, raw))      
+    if decide ==2 or decide == 3:
+        score = random.randint(2, 3)    
     elif decide == 1:
         score = 5
     else:
-        score = random.randint(2, 3)
+        raw = round(mean / 130)          
+        score = max(2, min(5, raw))  
 
     return GRADE_SCALE[score]
 
 
 class Command(BaseCommand):
-    help = 'Seed Academicperformance with grades based on competency mean'
+    help = 'Seed Academic performance with grades based on competency mean'
 
     def add_arguments(self, parser):
         parser.add_argument(
