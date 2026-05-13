@@ -10,6 +10,7 @@ import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../com
 
 import { getFilterDash, getMotivationCounts } from "../../api.js";
 import { COMPETENCIES_NAMES, COURSES_NAMES, LINK_TREE, MOTIVATORS_NAMES } from "../../utilities.js";
+import * as XLSX from 'xlsx';
 
 import "./AdminMotivatorsView.scss";
 
@@ -85,12 +86,59 @@ const Tooltippy = ({ active, payload = [], coordinate = {}, chartHeight = 0, lab
     );
 };
   
-function MotTable({ data }) {
+
+
+function MotTable({ data, currentFilters }) {
 
     const [tableOpen, setTableOpen] = useState(false);
     if (!data) return null;
     let all_m = 0;
     let all_d = 0;
+
+    const exportToExcel = () => {
+        const excelData = [];
+        if (!data){
+            alert('Отсутствуют данные для скачивания');
+            return;
+        }
+        data.forEach((row) => {
+            if (!row) return;
+
+            const label = getLabel(row.name);
+        
+            // Строка для М
+            excelData.push({
+                'Показатель': label,
+                'Тип': 'М',
+                '1 курс': row.course_1_high || 0,
+                '2 курс': row.course_2_high || 0,
+                '3 курс': row.course_3_high || 0,
+                '4 курс': row.course_4_high || 0,
+                'Всего' : (row.course_1_high || 0) + (row.course_2_high || 0) + (row.course_3_high || 0) + (row.course_4_high || 0),
+            });
+        
+            // Строка для Д
+            excelData.push({
+                'Показатель': label,
+                'Тип': 'Д',
+                '1 курс': row.course_1_low || 0,
+                '2 курс': row.course_2_low || 0,
+                '3 курс': row.course_3_low || 0,
+                '4 курс': row.course_4_low || 0,
+                'Всего' : (row.course_1_low || 0) + (row.course_2_low || 0) + (row.course_3_low || 0) + (row.course_4_low || 0),
+            });
+        });
+        
+        const header = `${currentFilters.institute ? `${currentFilters.institute}, ` : ''} ${currentFilters.speciality ? `${currentFilters.speciality}, ` : ''} ${currentFilters.year ? `${currentFilters.year} учебный год ` : ''}`; 
+        const worksheet = XLSX.utils.aoa_to_sheet([[header]]);
+        XLSX.utils.sheet_add_json(worksheet, excelData,{ origin: "A2", skipHeader: false });
+        
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Статистика Мотиваторов");
+    
+        XLSX.writeFile(workbook, `Статистика_Мотиваторов_${currentFilters.year || ''}.xlsx`);
+    };
+
     return(
         <div className='table'>
             <button className="ct-toggle" onClick={() => setTableOpen(v => !v)}>
@@ -98,9 +146,19 @@ function MotTable({ data }) {
             {tableOpen ? 'Скрыть таблицу' : 'Таблица'}
             </button>
             <div className={`ct-table-wrap ${tableOpen ? 'open' : ''}`}>
+
             <div className="table-container">
+            <div className="ct-top">
                 <div className="ct-note"><span className="ct-pos">М</span> - мотиватор, <span>   </span> 
-                <span className="ct-neg"> Д</span> - демотиватор</div>            
+                <span className="ct-neg"> Д</span> - демотиватор</div>
+                <button className="btnExcel"
+                    onClick={() => exportToExcel()}
+                    onMouseOver={(e) => e.target.style.backgroundColor = '#15803d'}
+                    onMouseOut={(e) => e.target.style.backgroundColor = '#16a34a'}
+                >
+            Скачать
+          </button></div>
+
             <table className="ct-table">
                 <thead>
                 <tr>
@@ -163,7 +221,7 @@ function MotTable({ data }) {
 
 //до 400 - демотиватор, 600+ мотиватор
 
-function MotivatorStackedChart({ chart_data }) {
+function MotivatorStackedChart({ chart_data, currentFilters }) {
     const allCourses = [1, 2, 3, 4];
     const [selectedCourses, setSelectedCourses] = useState(allCourses);
   
@@ -313,7 +371,7 @@ function MotivatorStackedChart({ chart_data }) {
             
         </div>
         <div style={{margin:20, marginTop:5}}>
-        <MotTable data={chart_data}/></div>
+        <MotTable data={chart_data} currentFilters={currentFilters}/></div>
       </div>
     );
 }
@@ -423,7 +481,7 @@ function AdminMotivatorsView(){
                         (<>{loadingMotDash ? (
                             <div className="p-10 text-center">Загрузка данных...</div>
                                 
-                            ) : <><MotivatorStackedChart chart_data={MotivationData?.data}/>
+                            ) : <><MotivatorStackedChart chart_data={MotivationData?.data} currentFilters={filters}/>
                             <MotivatorStatistics filters={filters} />
                         </>}</>)}
                         
