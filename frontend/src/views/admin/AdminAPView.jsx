@@ -11,110 +11,6 @@ import FlexRow, { WRAP } from '../../components/FlexRow.jsx';
 
 import "./AdminAPView.scss";
 
-import ReactApexChart from 'react-apexcharts';
-//
-function BoxPlots({data}){
-    const [selected, setSelected] = useState(null);
-    if (!data){
-        return <div> Boxplot: Нет данных для отображения</div>
-    }
-    const series = [
-        {
-          name: 'boxplot',
-          type: 'boxPlot',
-          data: data.map(item => ({
-            x: COMPETENCIES_NAMES[item.comp],
-            y: item.box,  // [min_fence, q1, median, q3, max_fence]
-          })),
-        },
-        {
-          name: 'outliers',
-          type: 'scatter',
-          data: data.flatMap(item =>
-            item.out.map(o => ({
-              x: COMPETENCIES_NAMES[item.comp],
-              y: o.y,
-              id: o.id,
-            }))
-          ),
-        },
-      ];
-      
-    const options = {
-        chart: {
-          type: 'boxPlot',
-          toolbar: { show: false },
-          events: {
-            dataPointSelection: (e, chart, config) => {
-              if (config.seriesIndex !== 1) return;
-              const point = series[1].data[config.dataPointIndex];
-              setSelected(point);
-            },
-          },
-        },
-        colors: ['rgb(101,142,208)', '#e24b4a'],
-        markers: { size: [0, 4] },
-        plotOptions: {
-          boxPlot: {
-            colors: {
-              upper: 'rgba(101,142,208,0.35)',
-              lower: 'rgba(101,142,208,0.15)',
-            },
-          },
-        },
-        tooltip: {
-          shared: false,
-          intersect: true,
-          custom: ({ seriesIndex, dataPointIndex, w }) => {
-            if (seriesIndex === 0) {
-              // тултип для ящика
-              const d = w.config.series[0].data[dataPointIndex];
-              const [min, q1, med, q3, max] = d.y;
-              return `
-                <div style="padding:12px 16px;font-size:12px;line-height:1.8">
-                  <b style="color:#334155">${d.x}</b><br/>
-                  <span style="color:#94a3b8">Макс (ус):</span> <b>${max}</b><br/>
-                  <span style="color:#94a3b8">Q3:</span> <b>${q3}</b><br/>
-                  <span style="color:#94a3b8">Медиана:</span> <b>${med}</b><br/>
-                  <span style="color:#94a3b8">Q1:</span> <b>${q1}</b><br/>
-                  <span style="color:#94a3b8">Мин (ус):</span> <b>${min}</b>
-                </div>`;
-            }
-            if (seriesIndex === 1) {
-              const d = series[1].data[dataPointIndex];
-              return `
-                <div style="padding:12px 16px;font-size:12px;line-height:1.8">
-                  <b style="color:#e24b4a">Выброс</b><br/>
-                  <span style="color:#94a3b8">ID:</span> <b>${d.id}</b><br/>
-                  <span style="color:#94a3b8">Балл:</span> <b>${d.y}</b>
-                </div>`;
-            }
-          },
-        },
-        yaxis: { min: 150, max: 850, labels: { style: { fontSize: '11px' } } },
-        xaxis: { labels: { style: { fontSize: '11px', colors: '#64748b' }, rotate: -20 } },
-        grid: { borderColor: '#f1f5f9', xaxis: { lines: { show: false } } },
-        legend: { show: false },
-    };
-    return (
-        <div className="ds-card">
-          <h4 className="ds-title">Распределение по компетенциям</h4>
-          <ReactApexChart type="boxPlot" series={series} options={options} height={420} />
-    
-          {selected && (
-            <div className="bp-modal-overlay" onClick={() => setSelected(null)}>
-              <div className="bp-modal" onClick={e => e.stopPropagation()}>
-                <button className="bp-modal__close" onClick={() => setSelected(null)}>✕</button>
-                <p className="bp-modal__title">Выброс</p>
-                <p>ID участника: <b>{selected.id}</b></p>
-                <p>Компетенция: <b>{COMPETENCIES_NAMES[selected.comp]}</b></p>
-                <p>Балл: <b>{selected.y}</b></p>
-              </div>
-            </div>
-          )}
-        </div>
-    );
-}
 
 
 const scores={
@@ -286,7 +182,6 @@ function AdminAPView() {
     const [LoadingData, setLoading] = useState(false);
     const [filters, setFilters] = useState({ institute: '', specialty: '', year: '' });
     const [isError, setErrorStatus] = useState(false);
-    const [BoxplotData, setBoxplotData] = useState(null);
     const [activeTab, setActiveTab] = useState('pir');
 
     const loadScoresResult = async (currentFilters) => {
@@ -307,21 +202,6 @@ function AdminAPView() {
         loadScoresResult(filters);
     }, [filters]);
     
-    const loadBoxPlot = async (currentFilters) => {
-        setLoading(true);
-        getDataBoxplot(currentFilters.institute, currentFilters.specialty, currentFilters.year)
-            .onSuccess(async response => {
-                const data = await response.json();
-                setBoxplotData(data); 
-            })
-            .onError(err => {
-                console.error("Ошибка при загрузке данных:", err);
-            })
-            .finally(() => setLoading(false));
-    };
-    useEffect(() => {
-        loadBoxPlot(filters);
-    }, [filters]);
 
     const updateFilter = (name, value) => {
         setFilters(prev => ({ ...prev, [name]: value }));
@@ -334,31 +214,27 @@ function AdminAPView() {
                 <Content>
                 <FilterHeader onFilterChange={updateFilter} 
                             currentFilters={filters}/>
-                {<>{LoadingData ? (
-                    <div className="p-10 text-center">Загрузка данных...</div>)
-                    : <><BoxPlots data={BoxplotData?.data}/></>}
-                    </>}
 
                 <FlexRow margin="0 0 30 0" wrap={WRAP.DO}>
                         <Button
-                            text="Обзор"
+                            text="ПИР"
                             onClick={() => setActiveTab('pir')}
-                            palette={activeTab === 'ПИР' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
+                            palette={activeTab === 'pir' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
                         />
                         <Button
-                            text="Компетенции"
-                            onClick={() => setActiveTab('up')}
-                            palette={activeTab === 'УП' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
+                            text="УП"
+                            onClick={() => setActiveTab('yp')}
+                            palette={activeTab === 'yp' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
                         />
                         <Button
-                            text="Мотиваторы"
+                            text="Экспл. практика"
                             onClick={() => setActiveTab('pract3')}
-                            palette={activeTab === 'Экспл. практика' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
+                            palette={activeTab === 'pract3' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
                         />
                         <Button
-                            text="Ценности"
+                            text="Преддипл. практика"
                             onClick={() => setActiveTab('pract4')}
-                            palette={activeTab === 'Преддипл. практика' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
+                            palette={activeTab === 'pract4' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
                         />
                     </FlexRow>
                 

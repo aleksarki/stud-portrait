@@ -1,6 +1,5 @@
 import { useState, useEffect, React } from 'react';
 import Select from 'react-select';
-import Chart from 'react-apexcharts';
 import {
     PieChart, Pie, ReferenceLine, LabelList, BarChart, Bar, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from "recharts";
@@ -12,9 +11,7 @@ import 'rc-slider/assets/index.css';
 import FlexRow, { ALIGN, JUSTIFY, WRAP } from '../../components/FlexRow.jsx';
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 
-import Card from '../../components/cards/Card.jsx';
-import TitledCard from '../../components/cards/TitledCard.jsx';
-import ValueCard from '../../components/cards/ValueCard.jsx';
+import ReactApexChart from 'react-apexcharts';
 
 import Button from '../../components/ui/Button.jsx';
 import LoadingSpinner from '../../components/ui/LoadingSpinner.jsx';
@@ -22,7 +19,8 @@ import { ADMIN_PALETTE } from '../../components/ui/palette.js';
 
 import {
     getDashboardStats,
-    getFilterDash
+    getFilterDash,
+    getDataBoxplot
 } from '../../api.js';
 import { COMPETENCIES_NAMES, FIELD_NAMES, LINK_TREE, MOTIVATORS_NAMES } from "../../utilities.js";
 
@@ -426,7 +424,7 @@ function Dashboard({ data }) {
         <div>
         <div className="dashboard-container">
         <h2 className="dashboard-title">Статистика
-        <p className="extra-title">  за {year-1}/{year} год</p></h2>
+        <p className="extra-title">  за {year-1}/{year} учебный год</p></h2>
         
         <div className="dashboard-grid">
             {/* Левая колонка */}
@@ -434,6 +432,7 @@ function Dashboard({ data }) {
             <Stat label="студентов прошли доп. курсы" value={data.col1.courses.val} prev={data.col1.courses.prev} suffix="%" />
             <Stat label="средний уровень компетенций" value={data.col1.avg_lvl.val} prev={data.col1.avg_lvl.prev} />
             <Stat label={data.col1.motiv.count.curr!=0 ?`Наибольший мотиватор (${data.col1.motiv.count.curr})` : "Нет данных за этот год"} value={getLabel(data.col1.motiv.name.curr)} prev={data.col1.motiv.count.prev!=0 ? getLabel(data.col1.motiv.name.prev)+`(${data.col1.motiv.count.prev})` : 0 } isText={true} />
+            <Stat label={data.col1.demotiv.count.curr!=0 ?`Наибольший демотиватор (${data.col1.demotiv.count.curr})` : "Нет данных за этот год"} value={getLabel(data.col1.demotiv.name.curr)} prev={data.col1.demotiv.count.prev!=0 ? getLabel(data.col1.demotiv.name.prev)+`(${data.col1.demotiv.count.prev})` : 0 } isText={true} />
             </div>
 
             {/* Центральная колонка */} 
@@ -442,7 +441,7 @@ function Dashboard({ data }) {
                 (<div className="uni-info mb-6"> 
                     <h4 className="text-xs uppercase text-gray-400 font-bold">{col2_data['header']}</h4>
                     <div className="text-xl font-bold text-blue-600">{col2_data['name']}</div>
-                    <div className="text-sm text-gray-500">{col2_data['score']} баллов (среднее)</div>
+                    <div className="text-sm text-gray-500">{Math.round(col2_data['score'],1)} баллов (среднее)</div>
                 </div>)}
                 <div class="chart-wrapper">
                     <ResponsiveContainer width="100%" height="300">
@@ -472,7 +471,7 @@ function Dashboard({ data }) {
             <div className="col-right">
             <h4 className="text-xs uppercase text-gray-400 font-bold mb-6">Компетенции</h4>
             <Stat 
-                label={`Самая развитая: ${getLabel(data.col3.best.name)}`} 
+                label={`Наиболее развитая: ${getLabel(data.col3.best.name)}`} 
                 value={data.col3.best.val} 
                 //prev={data.col3.best_prev.val || 0} 
             /> 
@@ -556,13 +555,118 @@ function Dashboard({ data }) {
     );
 }
 
-function AdminCompetencesView() {
-    const [loading, setLoading] = useState(true);
+//
+function BoxPlots({data}){
+    const [selected, setSelected] = useState(null);
+    if (!data){
+        return <div> Boxplot: Нет данных для отображения</div>
+    }
+    const series = [
+        {
+          name: 'boxplot',
+          type: 'boxPlot',
+          data: data.map(item => ({
+            x: COMPETENCIES_NAMES[item.comp],
+            y: item.box,  // [min_fence, q1, median, q3, max_fence]
+          })),
+        },
+        {
+          name: 'outliers',
+          type: 'scatter',
+          data: data.flatMap(item =>
+            item.out.map(o => ({
+              x: COMPETENCIES_NAMES[item.comp],
+              y: o.y,
+              id: o.id,
+            }))
+          ),
+        },
+      ];
+      
+    const options = {
+        chart: {
+          type: 'boxPlot',
+          toolbar: { show: false },
+          events: {
+            dataPointSelection: (e, chart, config) => {
+              if (config.seriesIndex !== 1) return;
+              const point = series[1].data[config.dataPointIndex];
+              setSelected(point);
+            },
+          },
+        },
+        colors: ['rgb(101,142,208)', '#e24b4a'],
+        markers: { size: [0, 4] },
+        plotOptions: {
+          boxPlot: {
+            colors: {
+              upper: 'rgba(101,142,208,0.35)',
+              lower: 'rgba(101,142,208,0.15)',
+            },
+          },
+        },
+        tooltip: {
+          shared: false,
+          intersect: true,
+          custom: ({ seriesIndex, dataPointIndex, w }) => {
+            if (seriesIndex === 0) {
+              // тултип для ящика
+              const d = w.config.series[0].data[dataPointIndex];
+              const [min, q1, med, q3, max] = d.y;
+              return `
+                <div style="padding:12px 16px;font-size:12px;line-height:1.8">
+                  <b style="color:#334155">${d.x}</b><br/>
+                  <span style="color:#94a3b8">Макс (ус):</span> <b>${max}</b><br/>
+                  <span style="color:#94a3b8">Q3:</span> <b>${q3}</b><br/>
+                  <span style="color:#94a3b8">Медиана:</span> <b>${med}</b><br/>
+                  <span style="color:#94a3b8">Q1:</span> <b>${q1}</b><br/>
+                  <span style="color:#94a3b8">Мин (ус):</span> <b>${min}</b>
+                </div>`;
+            }
+            if (seriesIndex === 1) {
+              const d = series[1].data[dataPointIndex];
+              return `
+                <div style="padding:12px 16px;font-size:12px;line-height:1.8">
+                  <b style="color:#e24b4a">Выброс</b><br/>
+                  <span style="color:#94a3b8">ID:</span> <b>${d.id}</b><br/>
+                  <span style="color:#94a3b8">Балл:</span> <b>${d.y}</b>
+                </div>`;
+            }
+          },
+        },
+        yaxis: { min: 150, max: 850, labels: { style: { fontSize: '11px' } } },
+        xaxis: { labels: { style: { fontSize: '11px', colors: '#64748b' }, rotate: -20 } },
+        grid: { borderColor: '#f1f5f9', xaxis: { lines: { show: false } } },
+        legend: { show: false },
+    };
+    return (
+        <div className="ds-card">
+          <h4 className="ds-title">Распределение по компетенциям</h4>
+          <ReactApexChart type="boxPlot" series={series} options={options} height={420} />
+    
+          {selected && (
+            <div className="bp-modal-overlay" onClick={() => setSelected(null)}>
+              <div className="bp-modal" onClick={e => e.stopPropagation()}>
+                <button className="bp-modal__close" onClick={() => setSelected(null)}>✕</button>
+                <p className="bp-modal__title">Выброс</p>
+                <p>ID участника: <b>{selected.id}</b></p>
+                <p>Компетенция: <b>{COMPETENCIES_NAMES[selected.comp]}</b></p>
+                <p>Балл: <b>{selected.y}</b></p>
+              </div>
+            </div>
+          )}
+        </div>
+    );
+}
 
+function AdminCompetencesView() {
+    const [loading, setLoading] = useState(false);
     const [dashboardData, setDashboardData] = useState(null);
     const [loadingDash, setLoadingDash] = useState(false);
     const [filters_, setFilters_] = useState({ institute: '', specialty: '', year: '' });
-             
+    
+    const [BoxplotData, setBoxplotData] = useState(null);
+
     const loadDashboardStats = async currentFilters => {
         setLoadingDash(true)
         getDashboardStats(currentFilters.institute, currentFilters.specialty, currentFilters.year)
@@ -579,6 +683,21 @@ function AdminCompetencesView() {
     const updateFilter = (name, value) => {
         setFilters_(prev => ({ ...prev, [name]: value }));
     };
+    const loadBoxPlot = async (currentFilters) => {
+            setLoading(true);
+            getDataBoxplot(currentFilters.institute, currentFilters.specialty, currentFilters.year)
+                .onSuccess(async response => {
+                    const data = await response.json();
+                    setBoxplotData(data); 
+                })
+                .onError(err => {
+                    console.error("Ошибка при загрузке данных:", err);
+                })
+                .finally(() => setLoading(false));
+        };
+        useEffect(() => {
+            loadBoxPlot(filters_);
+        }, [filters_]);
 
     if (loadingDash) {
         return (
@@ -606,6 +725,9 @@ function AdminCompetencesView() {
                     <span><>
                         <Dashboard data={dashboardData} />
                     </></span>
+                    {loading? <div>Загрузка диаграммы..</div> :
+                    <><BoxPlots data={BoxplotData?.data}/>
+                    </>}
                 </Content>
             </SidebarLayout>
         </div>);

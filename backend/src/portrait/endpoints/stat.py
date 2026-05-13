@@ -9,6 +9,7 @@ from collections import defaultdict
 def get_year_metrics(year, filter):
     res_queryset = Results.objects.filter(res_year=year, **filter)
     max_mot={"name": "-", "count": 0}
+    max_demot={"name": "-", "count": 0}
     if not res_queryset.exists():
         return {
             "total_avg": 0,
@@ -28,11 +29,17 @@ def get_year_metrics(year, filter):
         course_participant__in=participant_ids 
     ).count()
     
-    for f in MOT.list:
+    for f in MOT.list: ## мотиваторы
         cnt_high = res_queryset.filter(**{f"{f}__gte": 600}).count() 
         if cnt_high>max_mot["count"]: 
             max_mot["count"]=cnt_high
             max_mot["name"]=f
+        
+        cnt_low = res_queryset.filter(**{f"{f}__lt": 400}).count() 
+        if cnt_low>max_demot["count"]: 
+            max_demot["count"]=cnt_low
+            max_demot["name"]=f
+    
     course_percent = (students_with_courses / total_students * 100) if total_students > 0 else 0
     students_uni = total_students * 1.2 #тут должны быть обучающиеся в унике вообще
     return {
@@ -40,6 +47,7 @@ def get_year_metrics(year, filter):
         "course_percent": round(course_percent, 1),
         "all_comps": {f: round(avgs.get(f'avg_{f}') or 0, 2) for f in COMP.list},
         "motivator": max_mot,
+        "demotivator" : max_demot,
         "participated" : {"amount_in": total_students, "students_all": students_uni}
     }
 
@@ -172,6 +180,7 @@ def get_dashboard_stats(request):
         radar=get_competency_stats_courses(base_filter) #radar
         
         motiv={'name':{'prev': '-', 'curr':'-'}, 'count': {'prev': 0, 'curr': 0}}
+        
         #топ мотиватор
         if prev_data["motivator"]["name"]==curr_data["motivator"]["name"]:
             motiv['name']={'prev': curr_data["motivator"]["name"], 'curr': curr_data["motivator"]["name"]}
@@ -180,13 +189,24 @@ def get_dashboard_stats(request):
             motiv['name']={'prev':prev_data["motivator"]["name"], 'curr':curr_data["motivator"]["name"]}
             motiv['count']={'prev':prev_data["motivator"]["count"], 'curr':curr_data["motivator"]["count"]}
         
+        #демотиватор
+        demotiv={'name':{'prev': '-', 'curr':'-'}, 'count': {'prev': 0, 'curr': 0}}
+        if prev_data["demotivator"]["name"]==curr_data["demotivator"]["name"]:
+            demotiv['name']={'prev': curr_data["demotivator"]["name"], 'curr': curr_data["demotivator"]["name"]}
+            demotiv['count']={'prev':prev_data["demotivator"]["count"], 'curr':curr_data["demotivator"]["count"]}
+        else:
+            demotiv['name']={'prev':prev_data["demotivator"]["name"], 'curr':curr_data["demotivator"]["name"]}
+            demotiv['count']={'prev':prev_data["demotivator"]["count"], 'curr':curr_data["demotivator"]["count"]}
+        
+
         response_data = {
             "status": "success",
             "col1": {
                 "courses": {"val": curr_data['course_percent'], "prev": prev_data['course_percent']},
                 "avg_lvl": {"val": curr_data['total_avg'], "prev": prev_data['total_avg']},
                 "growth": {"val": round(growth, 1), "prev": 0},
-                "motiv": motiv
+                "motiv": motiv,
+                "demotiv" : demotiv
             },
             "col2": {
                 "uni_name": uni_name,
@@ -340,8 +360,7 @@ def get_scores_result(request):
             {'discipline': disc, 'participants': parts}
             for disc, parts in by_discipline.items()
         ]
-        #print('we tuta1?')  ## lol what
-                            #just checkinn
+        #print('we tuta1?')  ## lol what # )))
         response_data={"status": "success", "data": result, "names":disciplines}
         return JsonResponse(response_data) 
     except Exception as e:
