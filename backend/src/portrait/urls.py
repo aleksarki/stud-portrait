@@ -64,6 +64,8 @@ urlpatterns = [
     path("get-filter-options-with-counts/", statsresult.get_filter_options_with_counts, name="get_filter_options_with_counts"),
     path("student-results/",                statsresult.student_results,                name="student_results"),
     path("centers-by-region/",              statsresult.centers_by_region,              name='centers_by_region'),
+    path('students/list/',                  statsresult.get_students_list,              name='students_list'),
+    path('students/portrait/',              statsresult.get_student_portrait,           name='student_portrait'),
 
     path('dashboard-stats/',   stat.get_dashboard_stats,   name='dashboard_stats'),
     path('motivation-counts/', stat.get_motivation_counts, name='motivation_counts'),
