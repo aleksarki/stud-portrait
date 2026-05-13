@@ -231,85 +231,89 @@
             transition: max-height .35s ease;
             &.open { max-height: None; overflow-y: auto; }
         }
-        .ct-top{
+        .table-container{
+            align-items: flex-start;
+            align-items: center;
+            .ct-top{
 
-            justify-content: space-between;
-            display: flex;
-            
-            .ct-note{
-                font-size: 12px;
-                margin: 10px;
-                margin-left: 120px;
-                font-weight: 400;
-                color: #556377;
-                font-style: italic;
-            }
-            .btnExcel{
-                display: inline-flex;
-                align-content: center !important;
-                gap: 8px;                
-                background-color: #16a34a;   
-                color: #ffffff;
-                border: 1px solid #15803d;  
-                padding: 6px 14px !important;
-                margin: 7px !important;
-                border-radius: 6px;
-                font-size: 13px;
-                font-weight: 600;
-                cursor: pointer;
-                transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
-                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-            }
-        
-            .btnExcel:hover {
-                background-color: #15803d;     
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            }
-                .btn-excel:focus-visible {
-                outline: 2px solid #22c55e;
-                outline-offset: 2px;
+                justify-content: space-between;
+                display: flex;
+
+                .ct-note{
+                    font-size: 12px;
+                    margin: 10px;
+                    margin-left: 120px;
+                    font-weight: 400;
+                    color: #556377;
+                    font-style: italic;
                 }
-        
-                .btn-excel:active {
-                background-color: #37697e;     
-                transform: scale(0.98);    
-                box-shadow: inline 0 1px 2px rgba(0, 0, 0, 0.1);
+                .btnExcel{
+                    display: inline-flex;
+                    align-content: center !important;
+                    gap: 8px;                
+                    background-color: #16a34a;   
+                    color: #ffffff;
+                    border: 1px solid #15803d;  
+                    padding: 6px 14px !important;
+                    margin: 7px !important;
+                    border-radius: 6px;
+                    font-size: 13px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+                    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+                }
+            
+                .btnExcel:hover {
+                    background-color: #15803d;     
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                }
+                    .btn-excel:focus-visible {
+                    outline: 2px solid #22c55e;
+                    outline-offset: 2px;
+                    }
+            
+                    .btn-excel:active {
+                    background-color: #37697e;     
+                    transform: scale(0.98);    
+                    box-shadow: inline 0 1px 2px rgba(0, 0, 0, 0.1);
+                }
             }
+            .ct-table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 12px;
+            
+                th {
+                background: #f8fafc;
+                color: #94a3b8;
+                font-weight: 500;
+                padding: 8px 12px;
+                text-align: center;
+                border-bottom: 1px solid #e2e8f0;
+                border-top: 1px solid #e2e8f0;
+                border-right: 1px solid #e2e8f0;
+                position: sticky;
+                top: 0;
+                &:first-child { text-align: left; }
+                }
+            
+                td {
+                padding: 7px 12px;
+                text-align: center;
+                border-bottom: 1px solid #f1f5f9;
+                border-right: 1px solid #f1f5f9;
+                color: #334155;
+                }
+            
+                tr:hover td { background: #f8fafc; }
+            }
+            
+            .ct-name { text-align: left !important; color: #64748b; font-weight: 500; }
+            .ct-pos  { color: #0F6E56; }
+            .ct-neg  { color: #E24B4A; }
+            .ct-zero { color: #94a3b8; }
         }
-        .ct-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 12px;
-        
-            th {
-            background: #f8fafc;
-            color: #94a3b8;
-            font-weight: 500;
-            padding: 8px 12px;
-            text-align: center;
-            border-bottom: 1px solid #e2e8f0;
-            border-top: 1px solid #e2e8f0;
-            border-right: 1px solid #e2e8f0;
-            position: sticky;
-            top: 0;
-            &:first-child { text-align: left; }
-            }
-        
-            td {
-            padding: 7px 12px;
-            text-align: center;
-            border-bottom: 1px solid #f1f5f9;
-            border-right: 1px solid #f1f5f9;
-            color: #334155;
-            }
-        
-            tr:hover td { background: #f8fafc; }
-        }
-        
-        .ct-name { text-align: left !important; color: #64748b; font-weight: 500; }
-        .ct-pos  { color: #0F6E56; }
-        .ct-neg  { color: #E24B4A; }
-        .ct-zero { color: #94a3b8; }
     }
 
 

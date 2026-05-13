@@ -7,6 +7,7 @@ import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'r
 import { ArrowUpRight, ArrowDownRight, Award, TrendingUp, ArrowUp, ArrowDown } from "lucide-react";
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
+import * as XLSX from 'xlsx';
 
 import FlexRow, { ALIGN, JUSTIFY, WRAP } from '../../components/FlexRow.jsx';
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
@@ -134,68 +135,123 @@ const Stat = ({ label, value, prev=0, suffix = "", isGrowth = false, isText=fals
 };
 
 //таблица
-function CompetencyTable({ data, year }) {
+function CompetencyTable({ data, filters, year }) {
     //??data: [{ name: 'Командная работа', score, below350, above650 }]
     const [tableOpen, setTableOpen] = useState(false);
     if (!data) return null;
+
+    const exportToExcel = () => {
+        try{
+            const excelData = [];
+            data.forEach((row) => {
+                if (!row) return;
+    
+                const hasPrev = row.prev_score !== 0 && row.prev_score;
+                const hasCurrent = row.score !== 0 && row.score;
+    
+                const delta = hasPrev && hasCurrent
+                    ? Math.round(row.score) - Math.round(row.prev_score)
+                    : null;
+    
+                const procent = delta !== null && hasPrev
+                    ? Math.round((delta * 100) / Math.round(row.prev_score))
+                    : null;
+    
+                const formatValue = (val) => val === 0 ? 0 : (val || '—');
+                const formatDelta = (val) => val === null ? '—' : (val > 0 ? `+${val}` : val);
+                const formatPercent = (val) => val === null ? '—' : (val > 0 ? `+${val}%` : `${val}%`);
+    
+                excelData.push({
+                    'Компетенция': row.displayName || '—',
+                    [`Средний балл ${year - 2}/${year - 1}`]: formatValue(hasPrev ? Math.round(row.prev_score) : null),
+                    [`Средний балл ${year - 1}/${year}`]: formatValue(hasCurrent ? Math.round(row.score) : null),
+                    'Разница': formatDelta(delta),
+                    '%': formatPercent(procent)
+                });
+            });
+
+            const header = `${filters.institute ? `${filters.institute}, ` : ''} ${filters.speciality ? `${filters.speciality}, ` : ''} ${filters.year ? `${filters.year} учебный год ` : ''}`; 
+            const worksheet = XLSX.utils.aoa_to_sheet([[header]]);
+            XLSX.utils.sheet_add_json(worksheet, excelData,{ origin: "A2", skipHeader: false });
+            
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, `Компетенции ${ year ? `${year-2}_${year}` : ''}`);
+            XLSX.writeFile(workbook, `Показатели_Компетенций${ year ? `_${year-2}_${year}` : ''}.xlsx`);
+    
+        } catch (error) {
+            console.error("Ошибка при генерации Excel файла:", error);
+            alert("Не удалось сгенерировать Excel.");
+        }
+    
+    }
 
     return(
         <div className='table'>
             <button className="ct-toggle" onClick={() => setTableOpen(v => !v)}>
             <span className={`ct-arrow ${tableOpen ? 'open' : ''}`}>▼</span>
-            {tableOpen ? 'Скрыть таблицу' : 'Подробная таблица'}
+            {tableOpen ? 'Скрыть таблицу' : 'Показать таблицу'}
             </button>
             <div className={`ct-table-wrap ${tableOpen ? 'open' : ''}`}>
-            <table className="ct-table">
-                <thead>
-                <tr>
-                    <th rowSpan={2}>Компетенция</th>
-                    <th colSpan={3}>Средний балл</th> 
-                    <th rowSpan={2}>%</th>
-                </tr>
-                <tr>
-                    
-                    <th style={{ textAlign: 'center' }}>{year - 1}</th>
-                    <th style={{ textAlign: 'center' }}>{year}</th>
-                    <th style={{ textAlign: 'center' }}>Разница</th>
-                </tr>
-                </thead>
-                <tbody>
-                {data.map(row => {
-                    const delta = row.score != 0 && row.prev_score != 0
-                    ? Math.round(row.score) - Math.round(row.prev_score)
-                    : null;
-                    const procent = delta != null
-                    ? Math.round(delta*100/Math.round(row.prev_score),2)
-                    : null;
-                    return (
-                    <tr key={row.displayName}>
-                        <td className="ct-name">{row.displayName}</td>
-                        <td>{row.prev_score != 0 ? Math.round(row.prev_score) : '—'}</td>
-                        <td>{row.score != 0 ? Math.round(row.score) : '—'}</td>
-                        <td>
-                        {delta === null ? '—' : (
-                            <span className={delta > 0 ? 'ct-pos' : delta < 0 ? 'ct-neg' : 'ct-zero'}>
-                            {delta > 0 ? '+' : ''}{delta}
-                            </span>
-                        )}
-                        </td>
-                        <td>
-                        {procent === null ? '—' : (
-                            <span className={procent > 0 ? 'ct-pos' : procent < 0 ? 'ct-neg' : 'ct-zero'}>
-                            {procent > 0 ? '+' : ''}{procent}
-                            </span>
-                        )}
-                        </td>
+            <div className="table-container">
+                <div className="ct-top">
+                <button className="btnExcel"
+                            onClick={() => exportToExcel()}
+                            onMouseOver={(e) => e.target.style.backgroundColor = '#15803d'}
+                            onMouseOut={(e) => e.target.style.backgroundColor = '#16a34a'}
+                        >
+                    Скачать
+                </button></div>
+                <table className="ct-table">
+                    <thead>
+                    <tr>
+                        <th rowSpan={2}>Компетенция</th>
+                        <th colSpan={3}>Средний балл</th> 
+                        <th rowSpan={2}>%</th>
                     </tr>
-                    );
-                })}
-                </tbody>
-            </table>
+                    <tr>
+                        
+                        <th style={{ textAlign: 'center' }}>{year - 2}/{year - 1}</th>
+                        <th style={{ textAlign: 'center' }}>{year - 1}/{year}</th>
+                        <th style={{ textAlign: 'center' }}>Разница</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {data.map(row => {
+                        const delta = row.score != 0 && row.prev_score != 0
+                        ? Math.round(row.score) - Math.round(row.prev_score)
+                        : null;
+                        const procent = delta != null
+                        ? Math.round(delta*100/Math.round(row.prev_score),2)
+                        : null;
+                        return (
+                        <tr key={row.displayName}>
+                            <td className="ct-name">{row.displayName}</td>
+                            <td>{row.prev_score != 0 ? Math.round(row.prev_score) : '—'}</td>
+                            <td>{row.score != 0 ? Math.round(row.score) : '—'}</td>
+                            <td>
+                            {delta === null ? '—' : (
+                                <span className={delta > 0 ? 'ct-pos' : delta < 0 ? 'ct-neg' : 'ct-zero'}>
+                                {delta > 0 ? '+' : ''}{delta}
+                                </span>
+                            )}
+                            </td>
+                            <td>
+                            {procent === null ? '—' : (
+                                <span className={procent > 0 ? 'ct-pos' : procent < 0 ? 'ct-neg' : 'ct-zero'}>
+                                {procent > 0 ? '+' : ''}{procent}
+                                </span>
+                            )}
+                            </td>
+                        </tr>
+                        );
+                    })}
+                    </tbody>
+                </table>
+            </div>
         </div>
         </div>);
 }
-function CompetencyTable_course({ data }) {
+function CompetencyTable_course({ data, filters }) {
     const [tableOpen, setTableOpen] = useState(false);
     const [range, setRange] = useState([1, 4]);
     if (!data) return null;
@@ -225,7 +281,59 @@ function CompetencyTable_course({ data }) {
 
         const delta = vEnd - vStart;
         return Math.round((delta * 100) / vStart);
+    };
+    const exportToExcel = () =>{
+        try{
+            const year = filters.year.split('/')[1];
+            const excelData = [];
+            data.forEach((row) => {
+                if (!row) return;
+    
+                const label = getLabel(row.name);
+    
+                // Вычисляем динамику по ползунку
+                let deltaValue = '—';
+                if (typeof calculateDelta === 'function') {
+                    const delta = calculateDelta(row);
+                    
+                    if (delta !== null && delta !== undefined && !isNaN(delta)) {
+                        deltaValue = delta > 0 ? `+${delta}` : delta;
+                    }
+                }
+    
+                const rowObject = {
+                    'Компетенция': label
+                };
+    
+                for (let i = 1; i <= 4; i++) {
+                    const val = row[`course_${i}`];
+                    const columnName = `${i} курс`;
+                    
+                    rowObject[columnName] = (val !== 0 && !val) ? '—' : Math.round(val);
+                }
+    
+                const deltaHeader = range && range.length === 2 
+                    ? `Динамика (курсы с ${range[0]} по ${range[1]})` 
+                    : 'Динамика';
+                    
+                rowObject[deltaHeader] = deltaValue;
+    
+                excelData.push(rowObject);
+            });
+            const header = `${filters.institute ? `${filters.institute}, ` : ''} ${filters.speciality ? `${filters.speciality}, ` : ''} ${filters.year ? `${filters.year} учебный год ` : ''}`; 
+            const worksheet = XLSX.utils.aoa_to_sheet([[header]]);
+            XLSX.utils.sheet_add_json(worksheet, excelData,{ origin: "A2", skipHeader: false });
+            
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, `Компетенции ${ year ? `${year-1}/${year}` : ''}`);
+            XLSX.writeFile(workbook, `Компетенции_по_курсам_${ year || ''}.xlsx`);
+                
+        } catch (error) {
+            console.error("Ошибка при генерации Excel файла:", error);
+            alert("Не удалось сгенерировать Excel.");
+        }
     }
+
     return(
         <div className='table'>
             <button className="ct-toggle" onClick={() => setTableOpen(v => !v)}>
@@ -233,8 +341,17 @@ function CompetencyTable_course({ data }) {
             {tableOpen ? 'Скрыть таблицу' : 'Подробная таблица'}
             </button>
             <div className={`ct-table-wrap ${tableOpen ? 'open' : ''}`}>
-            
-            <p className="slider-note">*перетащите полузнки, чтобы изменить</p>
+            <div className="table-container">
+                <div className="ct-top">
+                <button className="btnExcel"
+                            onClick={() => exportToExcel()}
+                            onMouseOver={(e) => e.target.style.backgroundColor = '#15803d'}
+                            onMouseOut={(e) => e.target.style.backgroundColor = '#16a34a'}
+                        >
+                    Скачать
+                </button>
+                <p className="slider-note">*перетащите полузнки, чтобы изменить</p>
+                </div>
             <table className="ct-table">
                 <thead>
                 <tr>
@@ -294,7 +411,8 @@ function CompetencyTable_course({ data }) {
                 </tbody>
             </table>
         </div>
-        </div>);
+        </div>
+    </div>);
 }
 
 //паутинка пред
@@ -395,7 +513,7 @@ function CompRadar({ data }) {
     );
 }
 
-function Dashboard({ data }) {
+function Dashboard({ data, filters }) {
     if (!data) return null;
     const year = data.year;
     const chartData = data.chart.map(item => { 
@@ -545,11 +663,11 @@ function Dashboard({ data }) {
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
-                <CompetencyTable data={chartData} year={year}/>
+                <CompetencyTable data={chartData} filters={filters} year={year}/>
             </div>
             <CompRadar data={data.radar}/> 
             <div style={{padding:5, margin:20}}>
-            <CompetencyTable_course data={data.radar} /></div>
+            <CompetencyTable_course data={data.radar} filters={filters}/></div>
        </div>
        </div>
     );
@@ -723,7 +841,7 @@ function AdminCompetencesView() {
                 <Content>
                     <FilterHeader onFilterChange={updateFilter} currentFilters={filters_}/>
                     <span><>
-                        <Dashboard data={dashboardData} />
+                        <Dashboard data={dashboardData} filters={filters_} />
                     </></span>
                     {loading? <div>Загрузка диаграммы..</div> :
                     <><BoxPlots data={BoxplotData?.data}/>

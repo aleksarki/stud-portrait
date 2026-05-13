@@ -16,6 +16,7 @@ def get_year_metrics(year, filter):
             "course_percent": 0,
             "all_comps": {f: 0 for f in COMP.list},
             "motivator": max_mot,
+            "demotivator" : max_demot,
             "participated" : {"amount_in": 0, "students_all": 0}
         }
     avgs = res_queryset.aggregate(**{f'avg_{f}': Avg(f) for f in COMP.list})
