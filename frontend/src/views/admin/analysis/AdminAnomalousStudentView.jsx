@@ -6,7 +6,7 @@ import { ResponsiveContainer } from "recharts";
 import {
     postGetBoxplotData,
     getPortraitGetFilterOptionsWithCounts,
-    postPortraitCreateDataSession,
+    postPortraitDataseshNew,
     getPortraitGetInstitutionDirections,
 } from "../../../api";
 import { COMPETENCIES_NAMES, LINK_TREE } from "../../../utilities";
@@ -49,7 +49,7 @@ function AdminAnomalousStudentView() {
 
     // Инициализация сессии фильтров
     useEffect(() => {
-        postPortraitCreateDataSession()
+        postPortraitDataseshNew()
             .onSuccess(async res => {
                 const data = await res.json();
                 if (data.status === 'success') {
