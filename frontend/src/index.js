@@ -7,7 +7,6 @@ import ErrorView from "./views/ErrorView";
 
 import AdminAnalysisAdvancedView from "./views/admin/analysis/AdminAnalysisAdvancedView";
 import AdminAnalysisDisciplinesView from "./views/admin/analysis/AdminAnalysisDisciplinesView";
-import AdminAnalysisVamLgmView from "./views/admin/analysis/AdminAnalysisVamLgmView";
 import AdminAiAnalyticsView from "./views/admin/analysis/AdminAiAnalyticsView";
 import AdminAnalysisEduProfilesView from "./views/admin/analysis/AdminAnalysisEduProfilesView";
 import AdminTransferAnalysisView from "./views/admin/analysis/AdminTransferAnalysisView";
@@ -71,10 +70,6 @@ const router = createBrowserRouter([
   {
     path: "/admin/results",
     element: <AdminResultsView />
-  },
-  {
-    path: "/admin/analysis/vam-lgm",
-    element: <AdminAnalysisVamLgmView />
   },
   {
     path: "/admin/analysis/disciplines",
