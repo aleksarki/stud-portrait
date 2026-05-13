@@ -89,7 +89,8 @@ function MotTable({ data }) {
 
     const [tableOpen, setTableOpen] = useState(false);
     if (!data) return null;
-
+    let all_m = 0;
+    let all_d = 0;
     return(
         <div className='table'>
             <button className="ct-toggle" onClick={() => setTableOpen(v => !v)}>
@@ -105,7 +106,7 @@ function MotTable({ data }) {
                 <tr>
                     <th rowSpan={2} colSpan={1}>Мотиватор</th>
                     <th></th> 
-                    <th rowSpan={1} colSpan={4}>Количество студентов</th>
+                    <th rowSpan={1} colSpan={5}>Количество студентов</th>
                 </tr>
                 <tr>
                     <th style={{ textAlign: 'right' }}>Курс: </th> 
@@ -113,6 +114,7 @@ function MotTable({ data }) {
                     <th style={{ textAlign: 'center' }}>{2}</th>
                     <th style={{ textAlign: 'center' }}>3</th>
                     <th style={{ textAlign: 'center' }}>4</th>
+                    <th style={{ textAlign: 'center' }}>Всего</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -123,26 +125,31 @@ function MotTable({ data }) {
                         {getLabel(row.name)}
                         </td>
                         <td className="ct-pos">М</td>
-                        {Array.from({ length: 4 }, (_, i) => {
+                        { 
+                        Array.from({ length: 4 }, (_, i) => {
                         const val = row[`course_${i + 1}_high`];
+                        all_m = all_m + val;
                         return (
                             <td key={`m-${i}`} className="mot">
                             {val || val === 0 ? val : '—'}
                             </td>
                         );
                         })}
+                        <td className="ct-zero">{all_m}</td>
                     </tr>
 
                     <tr>
                         <td className="ct-neg">Д</td>
                         {Array.from({ length: 4 }, (_, i) => {
                         const val = row[`course_${i + 1}_low`];
+                        all_d = all_d + val;
                         return (
                             <td key={`d-${i}`} className="demot">
                             {val || val === 0 ? val : '—'}
                             </td>
                         );
                         })}
+                        <td className="ct-zero">{all_d}</td>
                     </tr>
                     </React.Fragment>
                 ))}
