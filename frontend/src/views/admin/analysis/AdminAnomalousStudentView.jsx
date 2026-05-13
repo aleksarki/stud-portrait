@@ -1,7 +1,6 @@
 // views/admin/analysis/AdminAnomalousStudentView.jsx
 
 import { useEffect, useState } from "react";
-import { ResponsiveContainer } from "recharts";
 
 import {
     postGetBoxplotData,
@@ -24,14 +23,13 @@ import MultiSelect from "../../../components/ui/MultiSelect";
 import { ADMIN_PALETTE } from "../../../components/ui/palette";
 import Select, { Option } from "../../../components/ui/Select";
 
-import BoxplotChart from "../../../components/charts/BoxplotChart.jsx";
+import BoxplotChart from "../../../components/charts/BoxplotChart";
 import "./AdminAnomalousStudentView.scss";
 
 function AdminAnomalousStudentView() {
     const [sessionId, setSessionId] = useState(null);
     const [loading, setLoading] = useState(false);
 
-    // Фильтры
     const [selectedInstitutions, setSelectedInstitutions] = useState([]);
     const [selectedDirections, setSelectedDirections] = useState([]);
     const [selectedCompetency, setSelectedCompetency] = useState('res_comp_leadership');
@@ -42,12 +40,10 @@ function AdminAnomalousStudentView() {
         allDirections: [],
     });
 
-    // Данные boxplot
     const [boxplotData, setBoxplotData] = useState(null);
     const [outliers, setOutliers] = useState([]);
     const [stats, setStats] = useState(null);
 
-    // Инициализация сессии фильтров
     useEffect(() => {
         postPortraitDataseshNew()
             .onSuccess(async res => {
@@ -61,7 +57,7 @@ function AdminAnomalousStudentView() {
     }, []);
 
     const loadFilterOptions = async (sid) => {
-        getPortraitGetFilterOptionsWithCounts(sid)
+        getPortraitGetFilterOptionsWithCounts(sid, [], [], [], [], [])
             .onSuccess(async res => {
                 const data = await res.json();
                 if (data.status === 'success') {
@@ -85,7 +81,6 @@ function AdminAnomalousStudentView() {
             .onError(console.error);
     };
 
-    // Обновление списка направлений при выборе вузов
     useEffect(() => {
         if (!sessionId) return;
         if (selectedInstitutions.length === 0) {
@@ -98,7 +93,6 @@ function AdminAnomalousStudentView() {
                 if (data.status === 'success') {
                     const directions = data.directions.map(d => ({ id: d.id, name: d.name, count: 0 }));
                     setFilterOptions(prev => ({ ...prev, directions }));
-                    // очищаем выбранные направления, если их нет в новом списке
                     const newIds = new Set(directions.map(d => d.id));
                     setSelectedDirections(prev => prev.filter(id => newIds.has(id)));
                 }
@@ -154,7 +148,6 @@ function AdminAnomalousStudentView() {
                 <Content>
                     <h2>Выявление выбросов по компетенциям (метод ящиков с усами)</h2>
 
-                    {/* Фильтры */}
                     <div className="filters-section">
                         <FlexRow wrap={WRAP.DO} gap="15" alignItems="end">
                             <MultiSelect
@@ -201,7 +194,6 @@ function AdminAnomalousStudentView() {
 
                     {!loading && stats && (
                         <>
-                            {/* Карточки со статистикой */}
                             <FlexRow justify={JUSTIFY.CENTER} gap="10" wrap={WRAP.DO}>
                                 <ValueCard value={stats.count} text="Всего студентов" />
                                 <ValueCard value={stats.mean.toFixed(1)} text="Средний балл" />
@@ -210,7 +202,6 @@ function AdminAnomalousStudentView() {
                                 <ValueCard value={outliers.length} text="Аномальных студентов" />
                             </FlexRow>
 
-                            {/* Boxplot */}
                             <TitledCard title="📊 Распределение баллов (ящик с усами)">
                                 <div className="boxplot-container">
                                     <BoxplotChart stats={stats} />
@@ -223,7 +214,6 @@ function AdminAnomalousStudentView() {
                                 </div>
                             </TitledCard>
 
-                            {/* Таблица аномальных студентов */}
                             <TitledCard title="⚠️ Список аномальных студентов">
                                 {outliers.length === 0 ? (
                                     <NoData text="Аномалий не обнаружено" />
@@ -253,7 +243,6 @@ function AdminAnomalousStudentView() {
                                 )}
                             </TitledCard>
 
-                            {/* AI-инсайт (опционально) */}
                             <AiInsightPanel
                                 contextType="general"
                                 filters={{
