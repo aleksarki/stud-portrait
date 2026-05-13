@@ -466,6 +466,19 @@ export function getMotivationCounts(institute, specialty, year) {
     return new AsyncChain(promise);
 }
 
+export function postGetBoxplotData(competency, institutionIds = [], directionIds = []) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-boxplot-data/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            competency,
+            institution_ids: institutionIds,
+            direction_ids: directionIds,
+        })
+    });
+    return new AsyncChain(promise);
+}
+
 // Цифровой портрет студента
 export function getStudentsList(search = '', limit = 50) {
     const params = new URLSearchParams();
@@ -499,15 +512,9 @@ export function windowGenerateDocxResume(studentId) {
     return new WindowChain(`${PROTOCOL}://${HOST}/portrait/gendox/generate-resume-docx/?${params}`);
 }
 
-export function postGetBoxplotData(competency, institutionIds = [], directionIds = []) {
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-boxplot-data/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            competency,
-            institution_ids: institutionIds,
-            direction_ids: directionIds,
-        })
-    });
+// Генерация отчёта по географии
+export function getGeographyReport(year) {
+    const url = `${PROTOCOL}://${HOST}/portrait/gendox/geography-report/?year=${encodeURIComponent(year)}`;
+    const promise = fetch(url);
     return new AsyncChain(promise);
 }

@@ -1,8 +1,11 @@
+from collections import defaultdict
 from datetime import datetime
 from docx import Document
 from docx.shared import Pt, Inches, RGBColor, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.table import WD_TABLE_ALIGNMENT
 from io import BytesIO
+import json
 
 from django.http import JsonResponse, HttpResponse
 
@@ -370,6 +373,272 @@ def get_student_resume_data(request):
         resume_data['general_interpretation'] = None
 
     return {'data': resume_data}
+
+
+@method("GET")
+@csrf_exempt
+def generate_geography_report(request):
+    """
+    Генерация DOCX отчёта о географии тестирования.
+    GET параметры:
+        - year: год для отчёта (опционально)
+    """
+    try:
+        year = request.GET.get('year', '2024/2025')
+        available_years = ['2021/2022', '2022/2023', '2023/2024', '2024/2025', '2025/2026']
+        
+        if year not in available_years:
+            year = '2024/2025'
+        
+        # Создаём документ
+        doc = Document()
+        
+        # Заголовок
+        title = doc.add_heading(f'Отчёт о географии тестирования', 0)
+        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        
+        # Подзаголовок с датой
+        date_paragraph = doc.add_paragraph(f'Дата формирования: {datetime.now().strftime("%d.%m.%Y %H:%M")}')
+        date_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        
+        doc.add_paragraph(f'Учебный год: {year}')
+        doc.add_paragraph()
+        
+        # ========== 1. ГЕОГРАФИЯ ЦЕНТРОВ КОМПЕТЕНЦИЙ ==========
+        doc.add_heading('1. География центров компетенций', level=1)
+        
+        # Получаем данные по центрам
+        results = Results.objects.filter(res_year=year).select_related('res_center')
+        
+        center_counts = defaultdict(int)
+        for result in results:
+            if result.res_center:
+                center_name = result.res_center.center_name
+                center_counts[center_name] += 1
+        
+        # Группируем по регионам
+        region_stats = defaultdict(int)
+        center_region_map = {}
+        
+        for center_name, count in center_counts.items():
+            region = CENTERS_REGIONS.get(center_name)
+            if region:
+                region_stats[region] += count
+                if region not in center_region_map:
+                    center_region_map[region] = []
+                center_region_map[region].append(center_name)
+        
+        # Таблица регионов
+        doc.add_heading('Распределение центров по регионам:', level=2)
+        table = doc.add_table(rows=1, cols=3)
+        table.style = 'Table Grid'
+        table.alignment = WD_TABLE_ALIGNMENT.CENTER
+        
+        # Заголовки таблицы
+        header_cells = table.rows[0].cells
+        header_cells[0].text = 'Регион'
+        header_cells[1].text = 'Количество центров'
+        header_cells[2].text = 'Процент от общего числа'
+        
+        total_regions = sum(region_stats.values())
+        
+        for region, count in sorted(region_stats.items(), key=lambda x: x[1], reverse=True):
+            row_cells = table.add_row().cells
+            row_cells[0].text = region
+            row_cells[1].text = str(count)
+            percent = round(count / total_regions * 100, 1) if total_regions > 0 else 0
+            row_cells[2].text = f'{percent}%'
+        
+        doc.add_paragraph()
+        
+        # Список центров по регионам
+        doc.add_heading('Центры компетенций по регионам:', level=2)
+        for region, centers in sorted(center_region_map.items(), key=lambda x: x[0]):
+            doc.add_paragraph(f'📍 {region}', style='List Bullet')
+            for center in centers[:5]:  # Показываем первые 5 центров
+                doc.add_paragraph(f'   • {center}', style='List Bullet')
+            if len(centers) > 5:
+                doc.add_paragraph(f'   • ... и ещё {len(centers) - 5} центров', style='List Bullet')
+        
+        doc.add_page_break()
+        
+        # ========== 2. СТАТИСТИКА ПО ГОДАМ ==========
+        doc.add_heading('2. Динамика по годам', level=1)
+        
+        yearly_stats = []
+        for yr in available_years:
+            yr_results = Results.objects.filter(res_year=yr)
+            yr_centers = set()
+            for res in yr_results:
+                if res.res_center:
+                    yr_centers.add(res.res_center.center_name)
+            yearly_stats.append({
+                'year': yr,
+                'total_results': yr_results.count(),
+                'unique_centers': len(yr_centers)
+            })
+        
+        # Таблица динамики
+        doc.add_heading('Динамика тестирования по годам:', level=2)
+        table = doc.add_table(rows=1, cols=4)
+        table.style = 'Table Grid'
+        
+        header_cells = table.rows[0].cells
+        header_cells[0].text = 'Учебный год'
+        header_cells[1].text = 'Всего тестирований'
+        header_cells[2].text = 'Уникальных центров'
+        header_cells[3].text = 'Динамика тестирований'
+        
+        prev_total = None
+        for stat in yearly_stats:
+            row_cells = table.add_row().cells
+            row_cells[0].text = stat['year']
+            row_cells[1].text = str(stat['total_results'])
+            row_cells[2].text = str(stat['unique_centers'])
+            
+            if prev_total is not None and prev_total > 0:
+                growth = round((stat['total_results'] - prev_total) / prev_total * 100, 1)
+                growth_text = f'+{growth}%' if growth > 0 else f'{growth}%'
+                row_cells[3].text = growth_text
+            else:
+                row_cells[3].text = '-'
+            
+            prev_total = stat['total_results']
+        
+        doc.add_paragraph()
+        
+        # ========== 3. ГЕОГРАФИЯ СТУДЕНТОВ ==========
+        doc.add_heading('3. География студентов', level=1)
+        
+        # Получаем данные о студентах
+        students_data = []
+        for result in results:
+            participant = result.res_participant
+            if participant and participant.part_institution:
+                students_data.append({
+                    'student_id': participant.part_rsv_id,
+                    'institution': participant.part_institution.inst_name,
+                    'specialty': participant.part_spec.spec_name if participant.part_spec else None,
+                    'course': participant.part_course_num
+                })
+        
+        # Группировка по вузам
+        institution_stats = defaultdict(int)
+        for student in students_data:
+            institution_stats[student['institution']] += 1
+        
+        doc.add_heading('Распределение студентов по учебным заведениям:', level=2)
+        table = doc.add_table(rows=1, cols=3)
+        table.style = 'Table Grid'
+        
+        header_cells = table.rows[0].cells
+        header_cells[0].text = 'Учебное заведение'
+        header_cells[1].text = 'Количество студентов'
+        header_cells[2].text = 'Процент'
+        
+        total_students = len(students_data)
+        for inst, count in sorted(institution_stats.items(), key=lambda x: x[1], reverse=True)[:20]:
+            row_cells = table.add_row().cells
+            row_cells[0].text = inst
+            row_cells[1].text = str(count)
+            percent = round(count / total_students * 100, 1) if total_students > 0 else 0
+            row_cells[2].text = f'{percent}%'
+        
+        doc.add_paragraph()
+        
+        # ========== 4. РАСПРЕДЕЛЕНИЕ ПО КУРСАМ ==========
+        doc.add_heading('4. Распределение по курсам', level=1)
+        
+        course_stats = defaultdict(int)
+        for student in students_data:
+            if student['course']:
+                course_stats[student['course']] += 1
+        
+        table = doc.add_table(rows=1, cols=3)
+        table.style = 'Table Grid'
+        
+        header_cells = table.rows[0].cells
+        header_cells[0].text = 'Курс'
+        header_cells[1].text = 'Количество студентов'
+        header_cells[2].text = 'Процент'
+        
+        for course in sorted(course_stats.keys()):
+            row_cells = table.add_row().cells
+            row_cells[0].text = f'{course} курс'
+            row_cells[1].text = str(course_stats[course])
+            percent = round(course_stats[course] / total_students * 100, 1) if total_students > 0 else 0
+            row_cells[2].text = f'{percent}%'
+        
+        doc.add_page_break()
+        
+        # ========== 5. РАСПРЕДЕЛЕНИЕ ПО СПЕЦИАЛЬНОСТЯМ ==========
+        doc.add_heading('5. Топ-20 направлений подготовки', level=1)
+        
+        specialty_stats = defaultdict(int)
+        for student in students_data:
+            if student['specialty']:
+                specialty_stats[student['specialty']] += 1
+        
+        table = doc.add_table(rows=1, cols=3)
+        table.style = 'Table Grid'
+        
+        header_cells = table.rows[0].cells
+        header_cells[0].text = 'Направление подготовки'
+        header_cells[1].text = 'Количество студентов'
+        header_cells[2].text = 'Процент'
+        
+        for specialty, count in sorted(specialty_stats.items(), key=lambda x: x[1], reverse=True)[:20]:
+            row_cells = table.add_row().cells
+            row_cells[0].text = specialty
+            row_cells[1].text = str(count)
+            percent = round(count / total_students * 100, 1) if total_students > 0 else 0
+            row_cells[2].text = f'{percent}%'
+        
+        doc.add_paragraph()
+        
+        # ========== 6. ИТОГОВАЯ СТАТИСТИКА ==========
+        doc.add_heading('6. Итоговая статистика', level=1)
+        
+        stats_paragraph = doc.add_paragraph()
+        stats_paragraph.add_run(f'• Всего тестирований за {year}: ').bold = True
+        stats_paragraph.add_run(f'{len(results)}\n')
+        
+        stats_paragraph.add_run(f'• Всего уникальных центров компетенций: ').bold = True
+        stats_paragraph.add_run(f'{len(center_counts)}\n')
+        
+        stats_paragraph.add_run(f'• Всего регионов с центрами: ').bold = True
+        stats_paragraph.add_run(f'{len(region_stats)}\n')
+        
+        stats_paragraph.add_run(f'• Всего студентов: ').bold = True
+        stats_paragraph.add_run(f'{total_students}\n')
+        
+        stats_paragraph.add_run(f'• Всего учебных заведений: ').bold = True
+        stats_paragraph.add_run(f'{len(institution_stats)}\n')
+        
+        # ========== 7. ПРИМЕЧАНИЕ ==========
+        doc.add_heading('Примечание', level=1)
+        doc.add_paragraph('Данный отчёт сформирован на основе данных системы тестирования и может быть использован для анализа географического распределения участников.')
+        
+        # Сохраняем документ в буфер
+        buffer = BytesIO()
+        doc.save(buffer)
+        buffer.seek(0)
+        
+        # Формируем ответ
+        response = HttpResponse(
+            buffer.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+        response['Content-Disposition'] = f'attachment; filename="geography_report_{year}.docx"'
+        
+        return response
+        
+    except Exception as e:
+        return HttpResponse(
+            json.dumps({'status': 'error', 'message': str(e)}),
+            content_type='application/json',
+            status=500
+        )
 
 
 # ============================== UTILS ============================== #

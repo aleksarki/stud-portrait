@@ -77,7 +77,8 @@ urlpatterns = [
     # *empty*
 
     # GENDOX module
-    path('gendox/generate-resume-docx/', gendox.generate_docx_resume,    name='gendox_generate_resume_docx'),
-    path('gendox/student-resume-data/',  gendox.get_student_resume_data, name='gendox_student_resume_data'),
+    path('gendox/generate-resume-docx/', gendox.generate_docx_resume,      name='gendox_generate_resume_docx'),
+    path('gendox/student-resume-data/',  gendox.get_student_resume_data,   name='gendox_student_resume_data'),
+    path('gendox/geography-report/',     gendox.generate_geography_report, name='gendox_geography_report'),
 
 ]
