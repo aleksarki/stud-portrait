@@ -46,8 +46,8 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--year', default='2023/2024',
-            help='Учебный год (по умолчанию: 2023/2024)'
+            '--year', default='2024/2025',
+            help='Учебный год (по умолчанию: 2024/2025)'
         )
         parser.add_argument(
             '--clear', action='store_true',

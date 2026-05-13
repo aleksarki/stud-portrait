@@ -161,7 +161,6 @@ def get_dashboard_stats(request):
             best_comp = {"name": sorted_comps[0][0], "val": sorted_comps[0][1]}
             worst_comp = {"name": sorted_comps[-1][0], "val": sorted_comps[-1][1]}
         chart=[]
-        table=[]
         for k, v in curr_data['all_comps'].items():
             delta=v-prev_data['all_comps'][k]
             if prev_data['all_comps'][k]==0:
@@ -294,18 +293,20 @@ def get_scores_result(request):
         if year:    base_filter['res_year'] = year
 
         main = Results.objects.filter(**base_filter)
+        if not main:
+            response_data={"status": "success", "data": 0, "names": 0}
+            return JsonResponse(response_data) 
         participant_ids = list(main.values_list('res_participant__part_id', flat=True).distinct())
         result=[]
         avgs = {}
         avgs_qs = (
-            Results.objects.filter(**base_filter)
+            main
             .values('res_participant__part_id')
             .annotate(**{f'avg_{f}': Avg(f) for f in COMP.list})
         )
-
         avgs = {
             r['res_participant__part_id']: round(
-                sum(r[f'avg_{f}'] or 0 for f in COMP.list) / len(COMP.list), 1
+                sum(r[f'avg_{f}'] or 0 for f in COMP.list) / len(COMP.list)
             )
             for r in avgs_qs
         }
@@ -316,7 +317,6 @@ def get_scores_result(request):
         #disciplines = list({r['perf_discipline'] for r in ap})
         disciplines = ['ПИР','УП','Эксплуатационная практика','Преддипломная практика']
         by_discipline = defaultdict(list)
-        print('we tuta?')
         comp_by_part=defaultdict(list)
         
         for record in ap:
@@ -340,8 +340,73 @@ def get_scores_result(request):
             {'discipline': disc, 'participants': parts}
             for disc, parts in by_discipline.items()
         ]
-        print('we tuta1?')  ## lol what
+        #print('we tuta1?')  ## lol what
+                            #just checkinn
         response_data={"status": "success", "data": result, "names":disciplines}
+        return JsonResponse(response_data) 
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+
+def calc_boxplot(values, ids):
+    vals_with_ids = [
+        (v, i) for v, i in zip(values, ids)
+        if v is not None and v > 0 and (v < 350 or v > 650)
+    ]
+    if not vals_with_ids:
+        return None, []
+
+    arr = np.array([v for v, _ in vals_with_ids])
+    q1  = np.percentile(arr, 25)
+    q3  = np.percentile(arr, 75)
+    iqr = q3 - q1
+    lo  = q1 - 1.5 * iqr
+    hi  = q3 + 1.5 * iqr
+
+    non_outliers = arr[(arr >= lo) & (arr <= hi)]
+    outliers = [
+        {'y': int(v), 'id': pid}
+        for v, pid in vals_with_ids
+        if v < lo or v > hi
+    ]
+
+    return [
+        int(np.min(non_outliers)), 
+        int(q1),
+        int(np.percentile(arr, 50)),
+        int(q3),
+        int(np.max(non_outliers)),  
+    ], outliers
+
+def get_data_boxplot(request):
+    try:
+        inst = request.GET.get('institute')
+        spec = request.GET.get('specialty')
+        year = request.GET.get('year')
+
+        base_filter = {}
+        if inst: base_filter['res_institution__inst_name'] = inst
+        if spec: base_filter['res_spec__spec_name'] = spec
+        if year:    base_filter['res_year'] = year
+        
+        data_all = list(  
+            Results.objects.filter(**base_filter)
+            .values('res_participant__part_id', *COMP.list)
+        )
+        data=[]
+        for f in COMP.list:
+            values = [row[f] for row in data_all]
+            ids    = [row['res_participant__part_id'] for row in data_all]
+            box, outliers = calc_boxplot(values, ids)
+            if box:
+                data.append({
+                    'comp': f,
+                    'box': box,  # min, q1, median, q3, max
+                    'out': outliers #выбросы
+                })
+        response_data={"status": "success", "data": data}
         return JsonResponse(response_data) 
     except Exception as e:
         import traceback

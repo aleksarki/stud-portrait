@@ -446,6 +446,15 @@ export function getScoresResult(institute, specialty, year) {
     return new AsyncChain(promise);
 }
 
+export function getDataBoxplot(institute, specialty, year) {
+    const params = new URLSearchParams();
+    if (institute) params.append('institute', institute);
+    if (specialty) params.append('specialty', specialty);
+    if (year)      params.append('year', year);
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/comp-boxplot/?${params}`);
+    return new AsyncChain(promise);
+}
+
 export function getDashboardStats(institute, specialty, year) {
     const params = new URLSearchParams();
     if (institute) params.append('institute', institute);

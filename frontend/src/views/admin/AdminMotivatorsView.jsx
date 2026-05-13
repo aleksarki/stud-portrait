@@ -135,7 +135,7 @@ function MotTable({ data }) {
                             </td>
                         );
                         })}
-                        <td className="ct-zero">{all_m}</td>
+                        <td className="mot">{all_m}</td>
                     </tr>
 
                     <tr>
@@ -149,7 +149,7 @@ function MotTable({ data }) {
                             </td>
                         );
                         })}
-                        <td className="ct-zero">{all_d}</td>
+                        <td className="demot">{all_d}</td>
                     </tr>
                     </React.Fragment>
                 ))}
@@ -207,7 +207,7 @@ function MotivatorStackedChart({ chart_data }) {
             //сортировка
             const posValues = selectedCourses
             .map(c => ({ course: c, val: item[`course_${c}_high`] || 0 }))
-            .sort((a, b) => a.val - b.val); // от меньшего к большему
+            .sort((a, b) => a.val - b.val); 
 
             posValues.forEach((obj, index) => {
             newItem[`pos_seg_${index}`] = obj.val;
