@@ -27,6 +27,22 @@
 
 ## `datasesh` - модуль выборки и выгрузки данных
 
+- **POST** `datasesh/new/` - Инициировать новую сессию просмотра и выборки данных.
+
+- **POST** `datasesh/extract-data/` - Получить данные из сессии.
+
+- **POST** `datasesh/update-filters/` - Обновить применяемые в сессии фильтры.
+
+- **POST** `datasesh/update-columns/` - Обновить видимые в сессии колонки.
+
+- **POST** `datasesh/update-window/` - Обновить границы окна просмотра результатов.
+
+- **POST** `datasesh/export-selected/` - Выгрузить выбранные данные в формате Excel.
+
+- **POST** `datasesh/group-selected/` - Сгруппировать данные по определённому столбцу.
+
+- **POST** `datasesh/count-stats/` - Выполнить подсчёт статистики данных.
+
 ## *`datanal` - модуль анализа данных
 
 ## *`statsresult` - модуль подсчёта статистики

@@ -2,16 +2,17 @@
 from functools import wraps
 import hashlib
 import json
+import pandas as pd
 from typing import Any
 
 from django.core.cache import cache
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.cache import cache_page
 from django.views.decorators.csrf import csrf_exempt
 
 from ..constants import (
     RsvCompetencies as COMP, RsvMotivators as MOT, RsvValues as VAL, RsvCourses as CUR,
-    TableResults as RES, TableParticipants as PART, CENTERS_REGIONS
+    TableResults as TRES, TableParticipants as PART, CENTERS_REGIONS
 )
 from ..models import *
 
@@ -21,6 +22,7 @@ GET = "GET"
 PATCH = "PATCH"
 POST = "POST"
 
+
 DEBUG = True
 
 def debugPrint(*messages):
@@ -28,7 +30,21 @@ def debugPrint(*messages):
         print(*messages)
 
 
-# ============================== GETTERS ============================== #
+# ! ===================================================== ORM ====================================================== ! #
+
+IN = 'in'
+GTE = 'gte'  # greater than or equal
+LTE = 'lte'  # less than or equal
+ISNULL = 'isnull'
+
+
+def join(*options):
+    """ Provided joined options for Django ORM.
+    """
+    return '__'.join(options)
+
+
+# ! =================================================== GETTERS ==================================================== ! #
 
 def zeroIfNull(value: Any | None) -> float:
     """ Get float if value is not None; else zero.
@@ -46,7 +62,7 @@ def attrElseNone(obj: Any, attr: str) -> Any | None:
     return getattr(obj, attr) if hasattr(obj, attr) else None
 
 
-# ============================== EXCEPTION ============================== #
+# ! ================================================== EXCEPTIONS ================================================== ! #
 
 class ResponseError(Exception):
     """ Raised inside @jsonResponse decorator to break the execution to report client error.
@@ -59,13 +75,27 @@ class ResponseError(Exception):
         super().__init__(message)
 
 
-# ============================== RESPONSES ============================== #
+# ! ================================================== RESPONSES =================================================== ! #
 
 def successResponse(data: dict = dict(), status: int = 200) -> JsonResponse:
     """ Take in dict data, unpack it into returned JSON response with success status.
     """
-    debugPrint(f"success {status}:", json.dumps(data, indent=4))
-    return JsonResponse({**{"status": "success"}, **data}, status=status)
+    try:
+        debugPrint(f"success {status}:", json.dumps(data, indent=4))  # there may be error like decimal
+    except:                                                           # not being json-serialisable
+        pass
+    return JsonResponse({"status": "success", **data}, status=status)
+
+def excelResponse(data: list, sheetname: str, filename: str = "file.xlsx", status: int = 200) -> HttpResponse:
+    """ Return HTTP response carrying an Excel file.
+    """
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', status=status)
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    df = pd.DataFrame(data)
+    with pd.ExcelWriter(response, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name=sheetname)
+    debugPrint(f"success {status}:", filename)
+    return response
 
 def errorResponse(message: str = "", status: int = 400) -> JsonResponse:
     """ Return client error JSON response with provided message and status (400 by default).
@@ -92,7 +122,7 @@ def exceptionResponse(message: str = "", status: int = 500) -> JsonResponse:
     return JsonResponse({"status": "exception", "message": message}, status=status)
 
 
-# ============================== DECORATORS ============================== #
+# ! ================================================== DECORATORS ================================================== ! #
 
 def method(method):
     """ Automatically reject requests of wrong methods.
@@ -125,8 +155,32 @@ def jsonResponse(func):
             return errorResponse(e.message, e.status)
         except Exception as e:
             # print(str(e))
+            # raise
             return exceptionResponse(str(e))
     return wrapper
+
+
+def httpResponse(func):
+    """
+    Take in function returning HTTP response object (HttpResponse).
+    On success return said HttpResponse (status 200).
+    On ResponseError return JsonResponse (status 4**).
+    On other exceptions return JsonResponse (status 5**).
+    """
+    @wraps(func)
+    @csrf_exempt
+    def wrapper(request):
+        try:
+            return func(request)
+        except ResponseError as e:
+            # print(e.message)
+            return errorResponse(e.message, e.status)
+        except Exception as e:
+            # print(str(e))
+            # raise
+            return exceptionResponse(str(e))
+    return wrapper
+
 
 def cached(timeout=3600, prefix='api'):
     """ Automatically cache GET and POST methods given their parameters.

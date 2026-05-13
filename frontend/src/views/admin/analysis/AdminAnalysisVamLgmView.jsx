@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 
 import {
     postGetVamTrendData,
-    postPortraitCreateDataSession,
+    postPortraitDataseshNew,
     getPortraitGetFilterOptionsWithCounts,
     getPortraitGetInstitutionDirections
 } from "../../../api";
@@ -60,12 +60,12 @@ function AdminAnalysisVamLgmView() {
     useEffect(() => {
         const init = async () => {
             setLoading(true);
-            postPortraitCreateDataSession()
+            postPortraitDataseshNew()
                 .onSuccess(async response => {
                     const data = await response.json();
                     if (data.status === 'success') {
-                        setSessionId(data.session_id);
-                        await loadFilterOptions(data.session_id);
+                        setSessionId(data.session.id);
+                        await loadFilterOptions(data.session.id);
                     }
                 })
                 .onError(error => console.error(error))

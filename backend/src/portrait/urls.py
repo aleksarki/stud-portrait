@@ -26,14 +26,14 @@ urlpatterns = [
     path('dataload/template-delete/<int:template_id>/', dataload.delete_template,     name='dataload_template_delete'),
 
     # DATASESH module
-    path("create-data-session/",     datasesh.create_data_session,     name="create_data_session"),
-    path("get-session-data/",        datasesh.get_session_data,        name="get_session_data"),
-    path("update-session-filters/",  datasesh.update_session_filters,  name="update_session_filters"),
-    path("update-session-columns/",  datasesh.update_session_columns,  name="update_session_columns"),
-    path("load-more-data/",          datasesh.load_more_data,          name="load_more_data"),
-    path("export-selected-results/", datasesh.export_selected_results, name="export_session_data"),
-    path("group-data/",              datasesh.group_data,              name="group_data"),
-    path("stats/",                   datasesh.stats_with_filters,      name="stats"),
+    path("datasesh/new/",             datasesh.create_data_session,     name="datasesh_new"),
+    path("datasesh/extract-data/",    datasesh.extract_session_data,    name="datasesh_extract_data"),
+    path("datasesh/update-filters/",  datasesh.update_session_filters,  name="datasesh_update_filters"),
+    path("datasesh/update-columns/",  datasesh.update_session_columns,  name="datasesh_update_columns"),
+    path("datasesh/update-window/",   datasesh.update_session_window,   name="datasesh_update_window"),
+    path("datasesh/export-selected/", datasesh.export_selected_results, name="datasesh_export_selected"),
+    path("datasesh/group-selected/",  datasesh.group_data,              name="datasesh_group_selected"),
+    path("datasesh/count-stats/",     datasesh.stats_with_filters,      name="datasesh_count_stats"),
 
     # DATANAL module
     path('analyze-student-vam/', analysis_end.analyze_student_vam, name='analyze_student_vam'),

@@ -23,9 +23,9 @@ import { ADMIN_PALETTE } from '../../components/ui/palette.js';
 import {
     getDashboardStats,
     getFilterDash,
-    postPortraitCreateDataSession,
-    postPortraitStats,
-    postPortraitUpdateSessionFilters
+    postPortraitDataseshNew,
+    postPortraitDataseshCountStats,
+    postPortraitDataseshUpdateFilters
 } from '../../api.js';
 import { COMPETENCIES_NAMES, FIELD_NAMES, LINK_TREE, MOTIVATORS_NAMES } from "../../utilities.js";
 
@@ -592,12 +592,12 @@ function AdminStatsView() {
     // Инициализация сессии
     const initializeSession = async () => {
         setLoading(true);
-        postPortraitCreateDataSession()
+        postPortraitDataseshNew()
             .onSuccess(async response => {
                 const data = await response.json();
                 if (data.status === 'success') {
-                    setSessionId(data.session_id);
-                    await fetchStats(data.session_id);
+                    setSessionId(data.session.id);
+                    await fetchStats(data.session.id);
                 } else {
                     console.error("Failed to create session:", data.message);
                     await fetchStats();
@@ -611,7 +611,7 @@ function AdminStatsView() {
 
     const fetchStats = async (sessionIdToUse = null) => {
         setLoading(true);
-        postPortraitStats(sessionIdToUse)
+        postPortraitDataseshCountStats(sessionIdToUse)
             .onSuccess(async response => {
                 const data = await response.json();
                 if (data.status === 'success') {
@@ -627,7 +627,7 @@ function AdminStatsView() {
     const updateSessionFilters = async (newFilters) => {
         if (!sessionId) return;
 
-        postPortraitUpdateSessionFilters(sessionId, newFilters)
+        postPortraitDataseshUpdateFilters(sessionId, newFilters)
             .onSuccess(async response => {
                 const data = await response.json();
                 if (data.status === 'success') {

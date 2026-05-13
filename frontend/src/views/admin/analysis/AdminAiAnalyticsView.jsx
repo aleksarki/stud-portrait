@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-import { postPortraitCreateDataSession, getPortraitGetFilterOptionsWithCounts, postAiAnalyticsSummary } from "../../../api";
+import { postPortraitDataseshNew, getPortraitGetFilterOptionsWithCounts, postAiAnalyticsSummary } from "../../../api";
 import { LINK_TREE, COMPETENCIES_NAMES } from "../../../utilities";
 
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
@@ -37,12 +37,12 @@ function AdminAiAnalyticsView() {
     useEffect(() => {
         const init = async () => {
             setLoading(true);
-            postPortraitCreateDataSession()
+            postPortraitDataseshNew()
                 .onSuccess(async response => {
                     const data = await response.json();
                     if (data.status === 'success') {
-                        setSessionId(data.session_id);
-                        await loadFilterOptions(data.session_id);
+                        setSessionId(data.session.id);
+                        await loadFilterOptions(data.session.id);
                     }
                 })
                 .onError(error => console.error(error))
