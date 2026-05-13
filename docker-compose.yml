@@ -1,39 +1,61 @@
-version: '3.8'
-
 services:
+  database:
+    build: ./database
+    container_name: studportrait_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: studportrait
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - studportrait_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   backend:
     build: ./backend
-    volumes:
-      - ./backend:/app
-      - /app/__pycache__
-      - /app/.venv
+    container_name: studportrait_backend
+    restart: unless-stopped
     ports:
       - "8000:8000"
     environment:
-      - DJANGO_SETTINGS_MODULE=studportrait.settings
-      - PYTHONUNBUFFERED=1
-      - DB_HOST=host.docker.internal  # special name for access to host
+      - DB_HOST=database
       - DB_PORT=5432
       - DB_NAME=studportrait
       - DB_USER=postgres
-      - DB_PASSWORD=password
-    extra_hosts:
-      - "host.docker.internal:host-gateway"  # for access to localhost of host
-    restart: unless-stopped
-  
+      - DB_PASSWORD=postgres
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - studportrait_network
+
   frontend:
     build: ./frontend
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules  # isolate node_modules from host
+    container_name: studportrait_frontend
+    restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
-      - CHOKIDAR_USEPOLLING=true  # for hot reload
       - WATCHPACK_POLLING=true
       - REACT_APP_API_URL=http://localhost:8000/api
-    stdin_open: true  # for React dev server
-    tty: true
     depends_on:
       - backend
-    restart: unless-stopped
+    networks:
+      - studportrait_network
+    stdin_open: true
+    tty: true
+
+volumes:
+  postgres_data:
+
+networks:
+  studportrait_network:
+    driver: bridge

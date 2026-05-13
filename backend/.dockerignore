@@ -1,0 +1,47 @@
+# Виртуальное окружение
+.venv/
+venv/
+env/
+ENV/
+
+# Python кэш
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# IDE и редакторы
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Тесты и покрытие
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Логи и временные файлы
+*.log
+*.tmp
+*.temp
+
+# Документация
+*.md
+docs/
+
+# Данные (если не нужны в образе)
+*.xlsx
+*.csv
+data/
+uploads/
+
+# Результаты (если не нужны)
+results*.xlsx
+cluster_centers*.xlsx
+plots_*/
