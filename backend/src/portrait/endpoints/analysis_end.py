@@ -265,6 +265,7 @@ def analyze_cohort_lgm(request):
             'message': str(e)
         }, status=500)
 
+
 # ============================================================
 # Комплексный анализ всех дисциплин
 # ============================================================
@@ -374,6 +375,7 @@ def _get_discipline_impact_for_competency(competency):
         
     except:
         return None
+
 
 # ============================================================
 # ENHANCED DISCIPLINE IMPACT ANALYSIS WITH FILTERS
@@ -550,6 +552,7 @@ def _convert_numpy_types(obj):
             return obj.item() if hasattr(obj, 'item') else obj
         except:
             return str(obj)
+
 
 # ============================================================
 # HEATMAP DATA - Матрица влияния дисциплин x компетенций
@@ -762,6 +765,7 @@ def get_discipline_heatmap_data(request):
             'message': str(e)
         }, status=500)
 
+
 # ============================================================
 # GET DISCIPLINES - список всех дисциплин
 # ============================================================
@@ -805,6 +809,7 @@ def get_disciplines(request):
             'status': 'error',
             'message': str(e)
         }, status=500)
+
 
 @cached()
 @csrf_exempt
@@ -878,6 +883,7 @@ def analyze_student_discipline_impact(request):
         import traceback
         traceback.print_exc()
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
 
 @cached()
 @csrf_exempt
@@ -1139,7 +1145,8 @@ def get_vam_trend_data(request):
         import traceback
         traceback.print_exc()
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
-    
+
+
 @cached()
 @csrf_exempt
 @require_http_methods(["GET"])
@@ -1154,6 +1161,7 @@ def get_institutions(request):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
+
 @cached()
 @csrf_exempt
 @require_http_methods(["GET"])
@@ -1167,6 +1175,7 @@ def get_directions(request):
         })
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
 
 @cached()
 @csrf_exempt
@@ -1539,6 +1548,7 @@ def get_student_comparison_stats(request):
             'message': str(e)
         }, status=500)
 
+
 @cached()
 def get_education_profiles_comparison(request):
     """
@@ -1666,6 +1676,7 @@ def get_education_profiles_comparison(request):
             'status': 'error',
             'message': str(e)
         }, status=500)
+
 
 def StdDevCalculation(values):
     """Рассчет стандартного отклонения"""
