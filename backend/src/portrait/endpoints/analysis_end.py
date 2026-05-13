@@ -1687,3 +1687,111 @@ def StdDevCalculation(values):
     mean = sum(values) / n
     variance = sum((x - mean) ** 2 for x in values) / (n - 1)
     return math.sqrt(variance)
+
+
+# portrait/analysis_end.py
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def get_boxplot_data(request):
+    """
+    Возвращает данные для boxplot и список аномальных студентов.
+    POST body:
+    {
+        "competency": "res_comp_leadership",
+        "institution_ids": [1,2],
+        "direction_ids": [10,20]
+    }
+    """
+    import numpy as np
+    from scipy import stats
+
+    try:
+        body = json.loads(request.body)
+        competency = body.get('competency')
+        institution_ids = body.get('institution_ids', [])
+        direction_ids = body.get('direction_ids', [])
+
+        if not competency:
+            return JsonResponse({'status': 'error', 'message': 'competency required'}, status=400)
+
+        # Базовый queryset результатов
+        qs = Results.objects.select_related('res_participant', 'res_institution', 'res_spec')
+
+        if institution_ids:
+            qs = qs.filter(res_institution_id__in=institution_ids)
+        if direction_ids:
+            qs = qs.filter(res_spec_id__in=direction_ids)
+
+        # Собираем баллы и данные студентов
+        scores = []
+        students_data = []  # список словарей {student_id, name, score, institution, direction}
+
+        for r in qs:
+            score = getattr(r, competency, None)
+            if score is None:
+                continue
+            scores.append(score)
+
+            participant = r.res_participant
+            # Получаем ФИО из studentmapping (если есть)
+            try:
+                mapping = Studentmapping.objects.get(rsv_id=participant.part_rsv_id)
+                student_name = mapping.student_name
+            except Studentmapping.DoesNotExist:
+                student_name = participant.part_rsv_id
+
+            students_data.append({
+                'student_id': participant.part_id,
+                'name': student_name,
+                'score': score,
+                'institution': r.res_institution.inst_name if r.res_institution else 'Не указан',
+                'direction': r.res_spec.spec_name if r.res_spec else 'Не указано',
+            })
+
+        if not scores:
+            return JsonResponse({'status': 'error', 'message': 'Нет данных для выбранных фильтров'}, status=404)
+
+        # Вычисляем статистику boxplot
+        scores_array = np.array(scores)
+        q1, median, q3 = np.percentile(scores_array, [25, 50, 75])
+        iqr = q3 - q1
+        lower_fence = q1 - 1.5 * iqr
+        upper_fence = q3 + 1.5 * iqr
+
+        # Минимум и максимум без выбросов (усы)
+        whisker_low = max(min(scores_array), lower_fence)
+        whisker_high = min(max(scores_array), upper_fence)
+
+        # Выбросы
+        outliers = [s for s in students_data if s['score'] < lower_fence or s['score'] > upper_fence]
+
+        # Дополнительная статистика
+        stats_data = {
+            'min': float(min(scores_array)),
+            'q1': float(q1),
+            'median': float(median),
+            'q3': float(q3),
+            'max': float(max(scores_array)),
+            'iqr': float(iqr),
+            'lower_fence': float(lower_fence),
+            'upper_fence': float(upper_fence),
+            'whisker_low': float(whisker_low),
+            'whisker_high': float(whisker_high),
+            'count': len(scores),
+            'mean': float(np.mean(scores_array)),
+            'std': float(np.std(scores_array)),
+        }
+
+        return JsonResponse({
+            'status': 'success',
+            'competency': competency,
+            'statistics': stats_data,
+            'outliers': outliers,               # список аномальных студентов
+            'all_students': students_data,      # можно использовать для отрисовки всех точек
+        }, json_dumps_params={'ensure_ascii': False})
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
