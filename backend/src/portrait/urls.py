@@ -50,9 +50,10 @@ urlpatterns = [
 
     path('get-competency-level-flow/',  analysis_end.get_competency_level_flow,       name='get_competency_level_flow'),
     path('ai-analytics-summary/',       analysis_end.ai_analytics_summary,            name='ai_analytics_summary'),
-    path('get-disciplines/',            analysis_end.get_disciplines,                 name='get-disciplines'),
-
-    path('get-boxplot-data/', analysis_end.get_boxplot_data, name='get_boxplot_data'),
+    path('get-disciplines/',            analysis_end.get_disciplines,                 name='get-disciplines'),   
+    
+    path('education-profiles-comparison/', analysis_end.get_education_profiles_comparison, name='education_profiles_comparison'),
+    path('get-boxplot-data/',              analysis_end.get_boxplot_data,                  name='get_boxplot_data'),
 
     path('analyze-transfers/',          transfer_analysis.analyze_transfers,          name='analyze_transfers'),
     path('analyze-transfer-students/',  transfer_analysis.analyze_transfer_students,  name='analyze_transfer_students'),
