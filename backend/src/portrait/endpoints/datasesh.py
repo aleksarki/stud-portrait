@@ -1,213 +1,437 @@
-# Модуль просмотра и выгрузки данных тестирования.
+# Модуль просмотра, выборки и выгрузки данных тестирования.
 
-from django.http import HttpResponse
-from django.views.decorators.csrf import csrf_exempt
+from datetime import datetime
+import json
+import uuid
+
+from django.core.cache import cache
 from django.db.models import Count, Avg, Min
 from django.utils import timezone
-
-import json
-import pandas as pd
-import uuid
 
 from .common import *
 
 
-# ====== SESSION STORAGE ====== #
+# ! ================================================== DATA VIEW =================================================== ! #
 
-class DataViewSession:
-    def __init__(self):
-        self.session_id = str(uuid.uuid4())
-        self.created_at = timezone.now()
-        self.last_activity = timezone.now()
-        self.filters = []
-        self.visible_columns = None  # None = all columns
-        self.limit = 1000  # todo \ investigate
-        self.offset = 0    # todo / its usage
+class DataViewFilter:
+    CATEGORIAL = 'categorial'
+    NUMERIC = 'numeric'
+    
+    def __init__(
+        self, id: str, type: str, field: str, categories: list[str] | None = None,
+        min: int | None = None, max: int | None = None
+    ):
+        self.id = id
+        self.type = type
+        self.field = field
+        self.categories = categories
+        self.min = min
+        self.max = max
 
-    def to_dict(self):
+    @classmethod
+    def fromDict(cls, dict: dict) -> 'DataViewFilter':
+        """ Deserialize data filter object from a dictionary.
+        """
+        categories = dict.get('categories')
+        min = dict.get('min')
+        max = dict.get('max')
+        match dict['type']:
+            case cls.CATEGORIAL:
+                if categories is None:
+                    raise ValueError("Categories not provided")
+            case cls.NUMERIC:
+                if min is None or max is None:
+                    raise ValueError("Value limit not provided")
+            case _:
+                raise ValueError(f"Invalid filter type: {dict['type']}")
+        return cls(
+            id =         dict['id'],
+            type =       dict['type'],
+            field =      dict['field'],
+            categories = categories,
+            min =        min,
+            max =        max
+        )
+
+    def toDict(self) -> dict:
+        """ Serialize data filter object into a dictionary.
+        """
         return {
-            'session_id':      self.session_id,
-            'filters':         self.filters,
-            'visible_columns': self.visible_columns,
-            'limit':           self.limit,
-            'offset':          self.offset
+            'id':         self.id,
+            'type':       self.type,
+            'field':      self.field,
+            'categories': self.categories,
+            'min':        self.min,
+            'max':        self.max
         }
 
-    def update_activity(self):
+
+class DataViewSession:
+    TIMEOUT = 3600
+
+    def __init__(
+        self, id: str, created_at: datetime, last_activity: datetime, filters: list[DataViewFilter],
+        columns: list[str] | None, start: int, end: int, total_count: int
+    ):
+        self.id = id
+        self.created_at = created_at
+        self.last_activity = last_activity
+        self.filters = filters
+        self.columns = columns  # None = all columns
+        self.start = start
+        self.end = end
+        self.total_count = total_count  # total table row count
+
+    @classmethod
+    def new(cls) -> 'DataViewSession':
+        """ Create brand new data session.
+        """
+        return cls(
+            id=str(uuid.uuid4()),
+            created_at=(created := timezone.now()),
+            last_activity=created,
+            filters=[],
+            columns=None,
+            start=0,
+            end=1000,
+            total_count=Results.objects.count()
+        )
+
+    @classmethod
+    def find(cls, id: str) -> 'DataViewSession | None':
+        """ Get session stored in the vault.
+        """
+        serialized = cache.get(f"session:{id}")
+        if serialized is None:
+            return None
+        return cls.fromDict(serialized)
+
+    @classmethod
+    def fromDict(cls, dict: dict) -> 'DataViewSession':
+        """ Deserialize data session object from a dictionary.
+        """
+        return cls(
+            id =            dict['id'],
+            created_at =    dict['created_at'],
+            last_activity = dict['last_activity'],
+            filters =       [DataViewFilter.fromDict(f) for f in dict['filters']],
+            columns =       dict['columns'],
+            start =         dict['start'],
+            end =           dict['end'],
+            total_count =   dict['total_count']
+        )
+
+    def toDict(self) -> dict:
+        """ Serialize data session object into a dictionary.
+        """
+        return {
+            'id':            self.id,
+            'created_at':    self.created_at,
+            'last_activity': self.last_activity,
+            'filters':       [f.toDict() for f in self.filters],
+            'columns':       self.columns,
+            'start':         self.start,
+            'end':           self.end,
+            'total_count':   self.total_count
+        }
+
+    def save(self):
+        """ Store session in the vault.
+        """
+        cache.set(f"session:{self.id}", self.toDict(), timeout=self.TIMEOUT)
+
+    def refresh(self):
+        """ Refresh data session so that it does not expire.
+        """
         self.last_activity = timezone.now()
+        cache.set(f"session:{self.id}", self.toDict(), timeout=self.TIMEOUT)
+
+    def setFilters(self, filters: list[dict]):
+        """ Update filters applied.
+        """
+        self.filters = [DataViewFilter.fromDict(f) for f in filters]
+
+    def setColumns(self, columns: list[str] | None):
+        """ Update columns visible.
+        """
+        if (
+            columns is not None and
+            (type(columns) != list or any(type(c) != str for c in columns))
+        ):
+            raise ValueError(f"Invalid columns")
+        self.columns = columns
+
+    def setWindow(self, start: int, end: int):
+        """ Update view window.
+        """
+        if (
+            type(start) != int or type(end) != int or
+            start < 0 or end < 0 or
+            start > end
+        ):
+            raise ValueError("Invalid window limits")
+        self.start = start
+        self.end = end
 
 
-DATA_SESSIONS_VAULT: dict[str, DataViewSession] = {}  # fixme ffs make it redis
+# ! ================================================== ENDPOINTS =================================================== ! #
 
-
-# ====== ENDPOINTS ====== #
-
-@method('POST')
+@method(POST)
 @jsonResponse
 @csrf_exempt
 def create_data_session(request):
     """ Start new data session.
     """
-    # cleanup_old_sessions()
-
-    session = DataViewSession()
-    DATA_SESSIONS_VAULT[session.session_id] = session
-
-    return session.to_dict()
+    session = DataViewSession.new()
+    session.save()
+    return {"session": session.toDict()}
 
 
-@method('POST')
+@method(POST)
 @jsonResponse
 @csrf_exempt
-def get_session_data(request):
-    """ Get data meeting session conditions.
+def extract_session_data(request):
+    """ Get data meeting the session conditions.
     """
-    session, _ = retrieve_session(request)
+    data = json.loads(request.body)
+    session_id = data.get('session_id')
+
+    session = acquire_session(session_id)
 
     results_query = Results.objects \
         .all()                      \
         .select_related(
-            RES.PARTICIPANT, RES.CENTER, RES.INSTITUTION,
-            RES.EDU_LEVEL, RES.EDU_FORM, RES.EDU_SPEC
+            TRES.PARTICIPANT, TRES.CENTER, TRES.INSTITUTION,
+            TRES.EDU_LEVEL, TRES.EDU_FORM, TRES.EDU_SPEC
         )
 
-    for filter_ in session.filters:
-        if filter_['type'] == 'basic' and filter_['selectedValues']:
-            if (field := filter_['field']) in RESULTS_FIELD_MAP:
-                results_query = results_query.filter(**{f'{RESULTS_FIELD_MAP[field]}__in': filter_['selectedValues']})
+    for filter in session.filters:
+        match filter.type:
+            case DataViewFilter.CATEGORIAL:
+                if filter.field in RESULTS_FIELD_MAP:
+                    results_query = results_query.filter(**{
+                        join(RESULTS_FIELD_MAP[filter.field], IN): filter.categories
+                    })
+            case DataViewFilter.NUMERIC:
+                if filter.field.startswith(('res_comp_', 'res_mot_', 'res_val_')):
+                    results_query = results_query.filter(**{
+                        join(filter.field, GTE): filter.min,
+                        join(filter.field, LTE): filter.max
+                    })
 
-        elif filter_['type'] == 'numeric':
-            field, min_val, max_val = filter_['field'], filter_['min'], filter_['max']
-
-            if field.startswith(('res_comp_', 'res_mot_', 'res_val_')):
-                results_query = results_query.filter(**{f'{field}__gte': min_val, f'{field}__lte': max_val})
-
-    total_count = results_query.count()
-    
-    results_list = results_query[session.offset:session.offset + session.limit]
-
-    results_data = [format_result_data(result, session.visible_columns) for result in results_list]
+    filtered_count = results_query.count()
+    results_slice = results_query[session.start:session.end]
+    shown_count = results_slice.count()
+    results_list = [result_to_json(result, session.columns) for result in results_slice]
 
     return {
-        "results":     results_data,
-        "total_count": total_count,
-        "session":     session.to_dict()
+        "session":        session.toDict(),
+        "results":        results_list,
+        "filtered_count": filtered_count,  # count of rows before slicing
+        "shown_count":    shown_count
     }
 
 
-@method('POST')
+@method(POST)
 @jsonResponse
 @csrf_exempt
 def update_session_filters(request):
     """ Update filters applied to a data session.
     """
-    session, data = retrieve_session(request)
+    data = json.loads(request.body)
+    session_id = data.get('session_id')
     filters = data.get('filters', [])
 
-    session.filters = filters
-    session.offset =  0  # reset offset on filters change (why tho)
+    session = acquire_session(session_id)
 
-    return {
-        "session_id": session.session_id,
-        "filters":    session.filters,
-        "message":    "Filters updated successfully"
-    }
+    try:
+        session.setFilters(filters)
+    except Exception as e:
+        raise ResponseError(f"Invalid filters provided: {str(e)}")
+
+    session.save()
+
+    return {"session": session.toDict()}
 
 
-@method('POST')
+@method(POST)
 @jsonResponse
 @csrf_exempt
 def update_session_columns(request):
     """ Update columns visible inside a data session.
     """
-    session, data = retrieve_session(request)
-    visible_columns = data.get('visible_columns')
+    data = json.loads(request.body)
+    session_id = data.get('session_id')
+    columns = data.get('columns', None)
 
-    session.visible_columns = visible_columns
+    session = acquire_session(session_id)
+
+    try:
+        session.setColumns(columns)
+    except Exception as e:
+        raise ResponseError(f"Invalid columns provided: {str(e)}")
+
+    session.save()
+
+    return {"session": session.toDict()}
+
+
+@method(POST)
+@jsonResponse
+@csrf_exempt
+def update_session_window(request):
+    """ Define borders of view window within a session.
+    """
+    data = json.loads(request.body)
+    session_id = data.get('session_id')
+    start = data.get('start')
+    end = data.get('end')
+
+    session = acquire_session(session_id)
+
+    try:
+        session.setWindow(start, end)
+    except Exception as e:
+        raise ResponseError(f"Invalid window provided: {str(e)}")
+
+    session.save()
+
+    return {"session": session.toDict()}
+
+
+@method(POST)
+@httpResponse
+@csrf_exempt
+def export_selected_results(request):
+    data = json.loads(request.body)
+    session_id = data.get('session_id')
+    selected_ids = data.get('selected_ids')
+
+    session = acquire_session(session_id)
+
+    if not selected_ids:
+        raise ResponseError("No records provided for export")
+
+    results_query = Results.objects                  \
+        .filter(**{join(TRES.ID, IN): selected_ids}) \
+        .select_related(
+            TRES.PARTICIPANT, TRES.CENTER, TRES.INSTITUTION,
+            TRES.EDU_LEVEL, TRES.EDU_FORM, TRES.EDU_SPEC
+        )
+
+    return excelResponse(
+        [format_result_for_export(result, session.columns) for result in results_query],
+        "Выгрузка результатов", "results_export.xlsx"
+    )
+
+
+@method(POST)
+@jsonResponse
+@csrf_exempt
+def group_data(request):  # REVIEW
+    """ Group competencies, motivators and values within session.
+    """
+    data = json.loads(request.body)
+    session_id = data.get('session_id')
+    selected_ids = data.get('selected_ids')
+    groupping_column = data.get('groupping_column')
+
+    session = acquire_session(session_id)
+
+    if not selected_ids:
+        raise ResponseError("No records provided for groupping")
+    if not groupping_column:
+        raise ResponseError("Grouping column not specified")
+
+    results_query = Results.objects                  \
+        .filter(**{join(TRES.ID, IN): selected_ids}) \
+        .select_related(
+            TRES.PARTICIPANT, TRES.CENTER, TRES.INSTITUTION,
+            TRES.EDU_LEVEL, TRES.EDU_FORM, TRES.EDU_SPEC
+        )
+    
+    for filter in session.filters:
+        match filter.type:
+            case DataViewFilter.CATEGORIAL:
+                if filter.field in RESULTS_FIELD_MAP:
+                    results_query = results_query.filter(**{
+                        join(RESULTS_FIELD_MAP[filter.field], IN): filter.categories
+                    })
+            case DataViewFilter.NUMERIC:
+                if filter.field.startswith(('res_comp_', 'res_mot_', 'res_val_')):
+                    results_query = results_query.filter(**{
+                        join(filter.field, GTE): filter.min,
+                        join(filter.field, LTE): filter.max
+                    })
+
+    grouped_data = {
+        "competences": {},
+        "motivators":  {},
+        "values":      {}
+    }
+
+    # get unique groups
+    groups = sorted(list({*[
+        group_value for result in results_query
+        if (group_value := get_group_value(result, groupping_column))
+    ]}))
+
+    for field in COMP.list:
+        values_by_group = []
+        for group in groups:
+            group_results = [r for r in results_query if get_group_value(r, groupping_column) == group]
+            field_values =  [getattr(r, field) for r in group_results if getattr(r, field) is not None]
+            avg_value =     sum(field_values) / len(field_values) if field_values else 0
+            values_by_group.append(round(avg_value, 1))
+
+        grouped_data["competences"][field] = {
+            "groups": groups,
+            "values": values_by_group
+        }
+
+    for field in MOT.list:
+        values_by_group = []
+        for group in groups:
+            group_results = [r for r in results_query if get_group_value(r, groupping_column) == group]
+            field_values =  [getattr(r, field) for r in group_results if getattr(r, field) is not None]
+            avg_value =     sum(field_values) / len(field_values) if field_values else 0
+            values_by_group.append(round(avg_value, 1))
+
+        grouped_data["motivators"][field] = {
+            "groups": groups,
+            "values": values_by_group
+        }
+
+    for field in VAL.list:
+        values_by_group = []
+        for group in groups:
+            group_results = [r for r in results_query if get_group_value(r, groupping_column) == group]
+            field_values =  [getattr(r, field) for r in group_results if getattr(r, field) is not None]
+            avg_value =     sum(field_values) / len(field_values) if field_values else 0
+            values_by_group.append(round(avg_value, 1))
+
+        grouped_data["values"][field] = {
+            "groups": groups,
+            "values": values_by_group
+        }
 
     return {
-        "session_id":      session.session_id,
-        "visible_columns": session.visible_columns,
-        "message":         "Visible columns updated successfully"
+        "session":       session.toDict(),
+        "groups":        groups,
+        "grouped_data":  grouped_data
     }
 
 
-@method('POST')
-@jsonResponse
-@csrf_exempt
-def load_more_data(request):
-    """ Load more data rows within a session.
-    """
-    session, _ = retrieve_session(request)
-
-    session.offset += session.limit  # fixme possible error?
-
-    response = get_session_data(request)  # reuse get_session_data logic
-
-    if response.status_code // 100 == 2:
-        data = json.loads(response.content)
-        if 'session' in data:
-            data['session']['offset'] = session.offset
-        return data
-    
-    elif response.status_code // 100 == 4:
-        data = json.loads(response.content)
-        raise ResponseError(data.get("message", ""), response.status_code)
-    
-    elif response.status_code // 100 == 5:
-        data = json.loads(response.content)
-        raise RuntimeError(data.get("message", ""), response.status_code)
-
-    return {}
-
-
-@method('POST')
-@csrf_exempt
-def export_selected_results(request):
-    try:
-        data = json.loads(request.body)
-
-        if not (session_id := data.get('session_id')) or session_id not in DATA_SESSIONS_VAULT:
-            return errorResponse("Invalid session ID")
-
-        if not (selected_ids := data.get('selected_ids', [])):
-            return errorResponse("No records selected for export")
-
-        session = DATA_SESSIONS_VAULT[session_id]
-        session.update_activity()
-
-        results_query = Results.objects      \
-            .filter(res_id__in=selected_ids) \
-            .select_related(
-                RES.PARTICIPANT, RES.CENTER, RES.INSTITUTION,
-                RES.EDU_LEVEL, RES.EDU_FORM, RES.EDU_SPEC
-            )
-
-        df = pd.DataFrame([format_result_for_export(result, session.visible_columns) for result in results_query])
-
-        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        response['Content-Disposition'] = 'attachment; filename="selected_results_export.xlsx"'
-
-        with pd.ExcelWriter(response, engine="openpyxl") as writer:
-            df.to_excel(writer, index=False, sheet_name="Выбранные результаты")
-
-        return response
-
-    except Exception as e:
-        return exceptionResponse(str(e))
-
-
-@method('POST')
+@method(POST)
 @jsonResponse
 @csrf_exempt
 def stats_with_filters(request):
     """ Calculate statistics of testing.
     """
-    try:
-        session, _ = retrieve_session(request)
-        filters = session.filters
-    except ResponseError:
-        filters = []
+    data = json.loads(request.body)
+    session_id = data.get('session_id')
+
+    session = acquire_session(session_id)
 
     total_participants =  Participants.objects.count()
     total_tests =         Results.objects.count()
@@ -215,11 +439,11 @@ def stats_with_filters(request):
     unique_centers =      Competencecenters.objects.count()
 
     # Участники по году получения первой оценки
-    first_year_stats = Results.objects          \
-        .values(RES.PARTICIPANT)                \
-        .annotate(first_year=Min(RES.YEAR))     \
-        .values('first_year')                   \
-        .annotate(count=Count(RES.PARTICIPANT)) \
+    first_year_stats = Results.objects           \
+        .values(TRES.PARTICIPANT)                \
+        .annotate(first_year=Min(TRES.YEAR))     \
+        .values('first_year')                    \
+        .annotate(count=Count(TRES.PARTICIPANT)) \
         .order_by('first_year')
 
     participants_by_first_year = {
@@ -228,22 +452,23 @@ def stats_with_filters(request):
     }
 
     # Участники по центрам компетенций (топ-15)
-    centers_stats = Results.objects                            \
-        .filter(res_center__isnull=False)                      \
-        .values('res_center__center_name')                     \
-        .annotate(count=Count(RES.PARTICIPANT, distinct=True)) \
+    centers_stats = Results.objects                             \
+        .filter(**{join(TRES.CENTER, ISNULL): False})           \
+        .values(join(TRES.CENTER, 'center_name'))               \
+        .annotate(count=Count(TRES.PARTICIPANT, distinct=True)) \
         .order_by('-count')[:15]
 
     participants_by_center = {
+        "centers": [stat['res_center__center_name'] for stat in centers_stats if stat['res_center__center_name']],
         "centers": [stat['res_center__center_name'] for stat in centers_stats if stat['res_center__center_name']],
         "counts":  [stat['count']                   for stat in centers_stats if stat['res_center__center_name']]
     }
 
     # Участники по учебным заведениям (топ-15)
-    institutions_stats = Results.objects                       \
-        .filter(res_institution__isnull=False)                 \
-        .values('res_institution__inst_name')                  \
-        .annotate(count=Count(RES.PARTICIPANT, distinct=True)) \
+    institutions_stats = Results.objects                        \
+        .filter(**{join(TRES.INSTITUTION, ISNULL): False})      \
+        .values(join(TRES.INSTITUTION, 'inst_name'))            \
+        .annotate(count=Count(TRES.PARTICIPANT, distinct=True)) \
         .order_by('-count')[:15]
 
     participants_by_institution = {
@@ -252,10 +477,10 @@ def stats_with_filters(request):
     }
 
     # Специальности участников
-    specialties_stats = Results.objects                        \
-        .filter(res_spec__isnull=False)                        \
-        .values('res_spec__spec_name')                         \
-        .annotate(count=Count(RES.PARTICIPANT, distinct=True)) \
+    specialties_stats = Results.objects                         \
+        .filter(**{join(TRES.EDU_SPEC, ISNULL): False})         \
+        .values(join(TRES.EDU_SPEC, 'spec_name'))               \
+        .annotate(count=Count(TRES.PARTICIPANT, distinct=True)) \
         .order_by('-count')
 
     specialties_distribution = {
@@ -264,11 +489,11 @@ def stats_with_filters(request):
     }
 
     # Динамика тестирований по годам
-    tests_by_year = Results.objects      \
-        .filter(res_year__isnull=False)  \
-        .values(RES.YEAR)                \
-        .annotate(count=Count('res_id')) \
-        .order_by(RES.YEAR)
+    tests_by_year = Results.objects                 \
+        .filter(**{join(TRES.YEAR, ISNULL): False}) \
+        .values(TRES.YEAR)                          \
+        .annotate(count=Count(TRES.ID))             \
+        .order_by(TRES.YEAR)
 
     tests_by_year_data = {
         "years":  [str(stat['res_year']) for stat in tests_by_year if stat['res_year']],
@@ -285,9 +510,9 @@ def stats_with_filters(request):
         if (
             yearly_stats1 := Results.objects                                   \
                 .filter(**{f'{field}__isnull': False}, res_year__isnull=False) \
-                .values(RES.YEAR)                                              \
+                .values(TRES.YEAR)                                              \
                 .annotate(avg_value=Avg(field))                                \
-                .order_by(RES.YEAR)
+                .order_by(TRES.YEAR)
         )
     ]
 
@@ -301,9 +526,9 @@ def stats_with_filters(request):
         if (
             yearly_stats2 := Results.objects                                   \
                 .filter(**{f'{field}__isnull': False}, res_year__isnull=False) \
-                .values(RES.YEAR)                                              \
+                .values(TRES.YEAR)                                              \
                 .annotate(avg_value=Avg(field))                                \
-                .order_by(RES.YEAR)
+                .order_by(TRES.YEAR)
         )
     ]
 
@@ -317,9 +542,9 @@ def stats_with_filters(request):
         if (
             yearly_stats3 := Results.objects                                   \
                 .filter(**{f'{field}__isnull': False}, res_year__isnull=False) \
-                .values(RES.YEAR)                                              \
+                .values(TRES.YEAR)                                              \
                 .annotate(avg_value=Avg(field))                                \
-                .order_by(RES.YEAR)
+                .order_by(TRES.YEAR)
         )
     ]
 
@@ -339,92 +564,12 @@ def stats_with_filters(request):
             "competencesByYear": competences_by_year,
             "motivatorsByYear":  motivators_by_year,
             "valuesByYear":      values_by_year,
-            "available_values":  extract_available_values_for_filters(filters)  # add available_values for filtering
+            "available_values":  extract_available_values_for_filters(session.filters)  # add available_values for filtering
         }
     }
 
 
-@method('POST')
-@jsonResponse
-@csrf_exempt
-def group_data(request):
-    """ Group data within session.
-    """
-    data = json.loads(request.body)
-
-    if not (selected_ids := data.get('selected_ids', [])):
-        raise ResponseError("No records selected for grouping")
-
-    if not (grouping_column := data.get('grouping_column')):
-        raise ResponseError("Grouping column not specified")
-
-    results_query = Results.objects      \
-        .filter(res_id__in=selected_ids) \
-        .select_related(
-            RES.PARTICIPANT, RES.CENTER, RES.INSTITUTION,
-            RES.EDU_LEVEL, RES.EDU_FORM, RES.EDU_SPEC
-        )
-
-    grouped_data = {
-        "competences": {},
-        "motivators":  {},
-        "values":      {}
-    }
-
-    # get unique groups
-    groups = {*[
-        group_value for result in results_query
-        if (group_value := get_group_value(result, grouping_column))
-    ]}
-    groups = sorted(list(groups))
-
-    for field in COMP.list:
-        values_by_group = []
-        for group in groups:
-            group_results = [r for r in results_query if get_group_value(r, grouping_column) == group]
-            field_values =  [getattr(r, field) for r in group_results if getattr(r, field) is not None]
-            avg_value =     sum(field_values) / len(field_values) if field_values else 0
-            values_by_group.append(round(avg_value, 1))
-
-        grouped_data["competences"][field] = {
-            "groups": groups,
-            "values": values_by_group
-        }
-
-    for field in MOT.list:
-        values_by_group = []
-        for group in groups:
-            group_results = [r for r in results_query if get_group_value(r, grouping_column) == group]
-            field_values =  [getattr(r, field) for r in group_results if getattr(r, field) is not None]
-            avg_value =     sum(field_values) / len(field_values) if field_values else 0
-            values_by_group.append(round(avg_value, 1))
-
-        grouped_data["motivators"][field] = {
-            "groups": groups,
-            "values": values_by_group
-        }
-
-    for field in VAL.list:
-        values_by_group = []
-        for group in groups:
-            group_results = [r for r in results_query if get_group_value(r, grouping_column) == group]
-            field_values = [getattr(r, field) for r in group_results if getattr(r, field) is not None]
-            avg_value = sum(field_values) / len(field_values) if field_values else 0
-            values_by_group.append(round(avg_value, 1))
-
-        grouped_data["values"][field] = {
-            "groups": groups,
-            "values": values_by_group
-        }
-
-    return {
-        "grouped_data":  grouped_data,
-        "groups":        groups,
-        "total_records": len(selected_ids)
-    }
-
-
-# ====== CONSTANTS ====== #
+# ! ================================================== CONSTANTS =================================================== ! #
 
 RESULTS_FIELD_MAP = {
     'part_gender':    'res_participant__part_gender',
@@ -438,42 +583,28 @@ RESULTS_FIELD_MAP = {
 }
 
 
-# ====== UTILITIES ====== #
+# ! ================================================== UTILITIES =================================================== ! #
 
-def retrieve_session(request) -> tuple[DataViewSession, dict]:
-    """ Exctract session data from request and fail if there is no such session.
+def acquire_session(id: str) -> DataViewSession:
+    """ Get data view session by ID, or fail doing so.
     """
-    data: dict = json.loads(request.body)
-    session_id = data.get('session_id')
-
-    if session_id is None:
-        raise ResponseError("Invalid session ID")
-
-    if (session_id := str(session_id)) not in DATA_SESSIONS_VAULT:
-        raise ResponseError("Invalid session ID", status=404)
-
-    session = DATA_SESSIONS_VAULT[session_id]
-    session.update_activity()
-
-    return session, data
+    if id is None:
+        raise ResponseError("Missing session ID")
+    session = DataViewSession.find(id)
+    if session is None:
+        raise ResponseError("No such session exists", status=404)
+    session.refresh()
+    return session
 
 
-def cleanup_old_sessions():
-    """ Erase expired data sessions (older than 1 hour).
-    """
-    for session_id, session in DATA_SESSIONS_VAULT.items():
-        if (timezone.now() - session.last_activity).total_seconds() > 3600:
-            del DATA_SESSIONS_VAULT[session_id]
-
-
-def format_result_data(result, visible_columns=None):
+def result_to_json(result, visible_columns=None):  # REVIEW
     """ Format results data before dispatching it.
     """
     base_data = {
         "res_id": result.res_id,
         "participant": {
             "part_id":        result.res_participant.part_id,
-            "part_rsv_id":      result.res_participant.part_rsv_id,
+            "part_rsv_id":    result.res_participant.part_rsv_id,
             "part_gender":    result.res_participant.part_gender,
         },
         "center":             result.res_center.center_name       if result.res_center      else None,
@@ -518,7 +649,7 @@ def format_result_data(result, visible_columns=None):
     return base_data
 
 
-def format_result_for_export(result, visible_columns=None):  # analogous to format_result_data()
+def format_result_for_export(result, visible_columns=None):  # REVIEW
     """ Format results data before putting it into Excel.
     """
     row = {
@@ -544,12 +675,12 @@ def format_result_for_export(result, visible_columns=None):  # analogous to form
     for field in all_fields.keys():
         if visible_columns is None or field in visible_columns:
             value = getattr(result, field)
-            row[all_fields[field]] = value if value is not None else ''
+            row[all_fields[field]] = value if value is not None else ""
 
     return row
 
 
-def get_group_value(result, grouping_column):
+def get_group_value(result, grouping_column):  # REVIEW
     """ Get value for groupping from result.
     """ # what?
     match grouping_column:
@@ -564,7 +695,7 @@ def get_group_value(result, grouping_column):
         case _:                return None
 
 
-def extract_available_values_for_filters(current_filters):
+def extract_available_values_for_filters(filters: list[DataViewFilter]):
     """ Extract values available for filtering.
     """
     values = {}
@@ -579,10 +710,10 @@ def extract_available_values_for_filters(current_filters):
 
     # apply current filters except the one we're extracting the values against (?)
 
-    for filter_ in current_filters:
-        if filter_['type'] == 'basic' and filter_['selectedValues']:
-            if (field := filter_['field']) in RESULTS_FIELD_MAP:
-                results_query = results_query.filter(**{f'{RESULTS_FIELD_MAP[field]}__in': filter_['selectedValues']})
+    for filter in filters:
+        if filter.type == DataViewFilter.CATEGORIAL and filter.categories:
+            if filter.field in RESULTS_FIELD_MAP:
+                results_query = results_query.filter(**{f'{RESULTS_FIELD_MAP[filter.field]}__in': filter.categories})
 
     # extract unique values for each field
     for field in basic_fields:
