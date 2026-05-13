@@ -607,3 +607,203 @@ def get_motivator_statistics(request):
             'status': 'error',
             'message': str(e)
         }, status=500)
+
+
+@csrf_exempt
+@method("GET")
+def get_students_list(request):
+    """
+    Получение списка студентов для поиска.
+    GET параметры:
+        - search: поисковый запрос (опционально)
+        - limit: лимит результатов (по умолчанию 50)
+    """
+    try:
+        search = request.GET.get('search', '')
+        limit = int(request.GET.get('limit', 50))
+        
+        queryset = Participants.objects.select_related(
+            'part_institution', 'part_spec', 'part_edu_level', 'part_form'
+        )
+        
+        if search:
+            queryset = queryset.filter(
+                Q(part_rsv_id__icontains=search) |
+                Q(part_institution__inst_name__icontains=search) |
+                Q(part_spec__spec_name__icontains=search)
+            )
+        
+        students = []
+        for student in queryset[:limit]:
+            students.append({
+                'id': student.part_id,
+                'rsv_id': student.part_rsv_id,
+                'institution': student.part_institution.inst_name if student.part_institution else 'Не указан',
+                'specialty': student.part_spec.spec_name if student.part_spec else 'Не указана',
+                'course': student.part_course_num,
+                'gender': student.part_gender
+            })
+        
+        return JsonResponse({
+            'status': 'success',
+            'data': students,
+            'total': queryset.count()
+        })
+        
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@method("GET")
+@csrf_exempt
+def get_student_portrait(request):
+    """
+    Получение полного цифрового портрета студента.
+    GET параметры:
+        - student_id: ID студента
+    """
+    try:
+        student_id = request.GET.get('student_id')
+        if not student_id:
+            return JsonResponse({'status': 'error', 'message': 'student_id required'}, status=400)
+        
+        # Получаем основную информацию о студенте
+        try:
+            student = Participants.objects.select_related(
+                'part_institution', 'part_spec', 'part_edu_level', 'part_form'
+            ).get(part_id=student_id)
+        except Participants.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Student not found'}, status=404)
+        
+        # Основная информация
+        student_info = {
+            'id': student.part_id,
+            'rsv_id': student.part_rsv_id,
+            'gender': student.part_gender or 'Не указан',
+            'institution': student.part_institution.inst_name if student.part_institution else 'Не указано',
+            'institution_id': student.part_institution.inst_id if student.part_institution else None,
+            'specialty': student.part_spec.spec_name if student.part_spec else 'Не указана',
+            'specialty_id': student.part_spec.spec_id if student.part_spec else None,
+            'edu_level': student.part_edu_level.edu_level_name if student.part_edu_level else 'Не указан',
+            'study_form': student.part_form.form_name if student.part_form else 'Не указана',
+            'current_course': student.part_course_num
+        }
+        
+        # Получаем результаты тестирования по годам
+        results = Results.objects.filter(res_participant=student).order_by('-res_year')
+        
+        test_results = []
+        for result in results:
+            # Компетенции
+            competencies = {
+                'res_comp_info_analysis': result.res_comp_info_analysis,
+                'res_comp_planning': result.res_comp_planning,
+                'res_comp_result_orientation': result.res_comp_result_orientation,
+                'res_comp_stress_resistance': result.res_comp_stress_resistance,
+                'res_comp_partnership': result.res_comp_partnership,
+                'res_comp_rules_compliance': result.res_comp_rules_compliance,
+                'res_comp_self_development': result.res_comp_self_development,
+                'res_comp_leadership': result.res_comp_leadership,
+                'res_comp_emotional_intel': result.res_comp_emotional_intel,
+                'res_comp_client_focus': result.res_comp_client_focus,
+                'res_comp_communication': result.res_comp_communication,
+                'res_comp_passive_vocab': result.res_comp_passive_vocab,
+            }
+            
+            # Мотиваторы
+            motivators = {
+                'res_mot_autonomy': float(result.res_mot_autonomy) if result.res_mot_autonomy else None,
+                'res_mot_altruism': float(result.res_mot_altruism) if result.res_mot_altruism else None,
+                'res_mot_challenge': float(result.res_mot_challenge) if result.res_mot_challenge else None,
+                'res_mot_salary': float(result.res_mot_salary) if result.res_mot_salary else None,
+                'res_mot_career': float(result.res_mot_career) if result.res_mot_career else None,
+                'res_mot_creativity': float(result.res_mot_creativity) if result.res_mot_creativity else None,
+                'res_mot_relationships': float(result.res_mot_relationships) if result.res_mot_relationships else None,
+                'res_mot_recognition': float(result.res_mot_recognition) if result.res_mot_recognition else None,
+                'res_mot_affiliation': float(result.res_mot_affiliation) if result.res_mot_affiliation else None,
+                'res_mot_self_development': float(result.res_mot_self_development) if result.res_mot_self_development else None,
+                'res_mot_purpose': float(result.res_mot_purpose) if result.res_mot_purpose else None,
+                'res_mot_cooperation': float(result.res_mot_cooperation) if result.res_mot_cooperation else None,
+                'res_mot_stability': float(result.res_mot_stability) if result.res_mot_stability else None,
+                'res_mot_tradition': float(result.res_mot_tradition) if result.res_mot_tradition else None,
+                'res_mot_management': float(result.res_mot_management) if result.res_mot_management else None,
+                'res_mot_work_conditions': float(result.res_mot_work_conditions) if result.res_mot_work_conditions else None,
+            }
+            
+            # Ценности
+            values = {
+                'res_val_honesty_justice': result.res_val_honesty_justice,
+                'res_val_humanism': result.res_val_humanism,
+                'res_val_patriotism': result.res_val_patriotism,
+                'res_val_family': result.res_val_family,
+                'res_val_health': result.res_val_health,
+                'res_val_environment': result.res_val_environment,
+            }
+            
+            test_results.append({
+                'year': result.res_year,
+                'course_num': result.res_course_num,
+                'center': result.res_center.center_name if result.res_center else None,
+                'high_potential': result.res_high_potential,
+                'competencies': competencies,
+                'motivators': motivators,
+                'values': values
+            })
+        
+        # Получаем оценки по дисциплинам
+        academic_performance = Academicperformance.objects.filter(
+            perf_part=student
+        ).order_by('perf_year', 'perf_discipline')
+        
+        grades = []
+        for grade in academic_performance:
+            grades.append({
+                'year': grade.perf_year,
+                'discipline': grade.perf_discipline,
+                'main_attestation': grade.perf_main_attestation,
+            })
+        
+        # Получаем пройденные курсы
+        courses = Course.objects.filter(course_participant=student)
+        
+        courses_data = []
+        for course in courses:
+            course_info = {
+                'id': course.course_id,
+                'an_dec': float(course.course_an_dec) if course.course_an_dec else None,
+                'client_focus': float(course.course_client_focus) if course.course_client_focus else None,
+                'communication': float(course.course_communication) if course.course_communication else None,
+                'leadership': float(course.course_leadership) if course.course_leadership else None,
+                'result_orientation': float(course.course_result_orientation) if course.course_result_orientation else None,
+                'planning_org': float(course.course_planning_org) if course.course_planning_org else None,
+                'rules_culture': float(course.course_rules_culture) if course.course_rules_culture else None,
+                'self_dev': float(course.course_self_dev) if course.course_self_dev else None,
+                'collaboration': float(course.course_collaboration) if course.course_collaboration else None,
+                'stress_resistance': float(course.course_stress_resistance) if course.course_stress_resistance else None,
+                'emotions_communication': float(course.course_emotions_communication) if course.course_emotions_communication else None,
+                'negotiations': float(course.course_negotiations) if course.course_negotiations else None,
+                'digital_comm': float(course.course_digital_comm) if course.course_digital_comm else None,
+                'effective_learning': float(course.course_effective_learning) if course.course_effective_learning else None,
+                'entrepreneurship': float(course.course_entrepreneurship) if course.course_entrepreneurship else None,
+                'creativity_tech': float(course.course_creativity_tech) if course.course_creativity_tech else None,
+                'trendwatching': float(course.course_trendwatching) if course.course_trendwatching else None,
+                'conflict_management': float(course.course_conflict_management) if course.course_conflict_management else None,
+                'career_management': float(course.course_career_management) if course.course_career_management else None,
+                'burnout': float(course.course_burnout) if course.course_burnout else None,
+                'cross_cultural_comm': float(course.course_cross_cultural_comm) if course.course_cross_cultural_comm else None,
+                'mentoring': float(course.course_mentoring) if course.course_mentoring else None,
+            }
+            courses_data.append(course_info)
+        
+        return JsonResponse({
+            'status': 'success',
+            'data': {
+                'student_info': student_info,
+                'test_results': test_results,
+                'academic_performance': grades,
+                'courses': courses_data
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

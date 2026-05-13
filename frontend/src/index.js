@@ -21,6 +21,7 @@ import AdminMotivatorsView from "./views/admin/AdminMotivatorsView";
 import AdminResultsView from "./views/admin/AdminResultsView";
 import AdminStatsView from "./views/admin/AdminStatsView";
 import AdminAPView from "./views/admin/AdminAPView";
+import AdminStudentView from "./views/admin/AdminStudentView";
 
 import StudentMainView from "./views/student/StudentMainView";
 import StudentReportView from "./views/student/StudentReportView";
@@ -111,6 +112,10 @@ const router = createBrowserRouter([
   {
     path: "/admin/AP",
     element: <AdminAPView />
+  },
+  {
+    path: "/admin/student/",
+    element: <AdminStudentView />
   },
 
   /* SUPERADMIN VIEWS */

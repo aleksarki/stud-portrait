@@ -64,6 +64,8 @@ urlpatterns = [
     path("get-filter-options-with-counts/", statsresult.get_filter_options_with_counts, name="get_filter_options_with_counts"),
     path("student-results/",                statsresult.student_results,                name="student_results"),
     path("centers-by-region/",              statsresult.centers_by_region,              name='centers_by_region'),
+    path('students/list/',                  statsresult.get_students_list,              name='students_list'),
+    path('students/portrait/',              statsresult.get_student_portrait,           name='student_portrait'),
 
     path('dashboard-stats/',   stat.get_dashboard_stats,   name='dashboard_stats'),
     path('motivation-counts/', stat.get_motivation_counts, name='motivation_counts'),
@@ -75,7 +77,8 @@ urlpatterns = [
     # *empty*
 
     # GENDOX module
-    path('gendox/generate-resume-docx/', gendox.generate_docx_resume,    name='gendox_generate_resume_docx'),
-    path('gendox/student-resume-data/',  gendox.get_student_resume_data, name='gendox_student_resume_data'),
+    path('gendox/generate-resume-docx/', gendox.generate_docx_resume,      name='gendox_generate_resume_docx'),
+    path('gendox/student-resume-data/',  gendox.get_student_resume_data,   name='gendox_student_resume_data'),
+    path('gendox/geography-report/',     gendox.generate_geography_report, name='gendox_geography_report'),
 
 ]

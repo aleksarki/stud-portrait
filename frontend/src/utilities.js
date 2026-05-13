@@ -17,7 +17,8 @@ export const LINK_TREE = [
         links: [
             {title: "Тестирование профилей", to: '/admin/results'},
             {title: "Образовательные курсы", to: '/admin/courses'},
-            {title: "Мотиваторы", to: '/admin/motivators'}
+            {title: "Мотиваторы", to: '/admin/motivators'},
+            {title: "Портрет студента", to: '/admin/student'}
         ]
     },
     {
