@@ -51,11 +51,23 @@ const CHART_RIGHT_PAD = 100;
 const TOP_PAD     = 36;
 const BOTTOM_PAD  = 32;
 
-const VamDotPlot = ({ data }) => {
+const VamDotPlot = ({ data, aggregate = true, shortLabels = false }) => {
     const [hovered, setHovered] = useState(null);
     const [tooltip, setTooltip] = useState({ visible: false, x: 0, y: 0, item: null });
 
-    const groups = useMemo(() => aggregateGroups(data), [data]);
+    const groups = useMemo(() => {
+        if (!aggregate) {
+            return data.map((item, idx) => ({
+                name: shortLabels ? `${item.course} курс` : `${item.group} (курс ${item.course})`,
+                value_added: item.value_added ?? 0,
+                ci_lower: item.ci_lower ?? item.value_added,
+                ci_upper: item.ci_upper ?? item.value_added,
+                n: item.n ?? 1,
+                course: item.course,
+            }));
+        }
+        return aggregateGroups(data);
+    }, [data, aggregate]);
 
     const { minVal, maxVal, zeroX, svgWidth, svgHeight, scaleX } = useMemo(() => {
         if (groups.length === 0) return { minVal: -10, maxVal: 10, zeroX: 0, svgWidth: 600, svgHeight: 200, scaleX: () => 0 };

@@ -484,17 +484,17 @@ function AdminAnalysisAdvancedView() {
                 </div>
 
                 {vamChartMode === 'combined' ? (
-                    <div className="vam-chart">
-                        <VamDotPlot data={vamData} />
+                    <div className="vam-chart-combined">
+                        <VamDotPlot data={vamData} aggregate={false} />
                     </div>
                 ) : (
-                    <div className="vam-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(450px, 1fr))', gap: 20 }}>
+                    <div className="vam-grid">
                         {groups.map(group => (
-                            <div key={group.name} className="vam-group-card" style={{ border: '1px solid #e0e0e0', borderRadius: 8, padding: 12, background: '#fafafa' }}>
-                                <h5 style={{ marginBottom: 12, fontSize: 14, fontWeight: 600 }}>{group.name}</h5>
-                                <VamDotPlot data={vamData} />
-                                <div style={{ fontSize: 12, marginTop: 8, color: '#666' }}>
-                                    Количество точек: {group.data.length}
+                            <div key={group.name} className="vam-group-card">
+                                <h5>{group.name}</h5>
+                                <VamDotPlot data={group.data} aggregate={false} shortLabels={true} />
+                                <div className="vam-group-meta">
+                                    Курсов: {group.data.length} · Студентов: {group.data.reduce((s, p) => s + (p.n || 0), 0)}
                                 </div>
                             </div>
                         ))}
