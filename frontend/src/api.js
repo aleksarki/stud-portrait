@@ -480,3 +480,16 @@ export function windowGenerateDocxResume(studentId) {
     params.append('student_id', studentId);
     return new WindowChain(`${PROTOCOL}://${HOST}/portrait/gendox/generate-resume-docx/?${params}`);
 }
+
+export function postGetBoxplotData(competency, institutionIds = [], directionIds = []) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-boxplot-data/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            competency,
+            institution_ids: institutionIds,
+            direction_ids: directionIds,
+        })
+    });
+    return new AsyncChain(promise);
+}

@@ -27,7 +27,8 @@ export const LINK_TREE = [
             {title: "Визуализации", to: '/admin/analysis/advanced'},
             {title: "ИИ-аналитика", to: '/admin/analysis/ai-analytics'},
             {title: "Области образования", to: '/admin/analysis/edu-profiles'},
-            {title: "Переведённые студенты", to: '/admin/analysis/transfered-students'}
+            {title: "Переведённые студенты", to: '/admin/analysis/transfered-students'},
+            {title: "Аномальные студенты", to: '/admin/analysis/anomalous-students'}
         ]
     }
 ];

@@ -10,6 +10,7 @@ import AdminAnalysisDisciplinesView from "./views/admin/analysis/AdminAnalysisDi
 import AdminAiAnalyticsView from "./views/admin/analysis/AdminAiAnalyticsView";
 import AdminAnalysisEduProfilesView from "./views/admin/analysis/AdminAnalysisEduProfilesView";
 import AdminTransferAnalysisView from "./views/admin/analysis/AdminTransferAnalysisView";
+import AdminAnomalousStudentView from "./views/admin/analysis/AdminAnomalousStudentView";
 
 import AdminCoursesView from "./views/admin/AdminCoursesView";
 import AdminGeographyView from "./views/admin/AdminGeographyView";
@@ -90,6 +91,10 @@ const router = createBrowserRouter([
   {
     path: "/admin/analysis/transfered-students",
     element: <AdminTransferAnalysisView />
+  },
+  {
+    path: "/admin/analysis/anomalous-students",
+    element: <AdminAnomalousStudentView />
   },
   {
     path: "/admin/courses",
