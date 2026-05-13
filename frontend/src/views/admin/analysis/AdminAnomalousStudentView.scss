@@ -86,4 +86,74 @@
             font-weight: bold;
         }
     }
+
+    .boxplot-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+        margin-top: 20px;
+
+        @media (max-width: 1200px) {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        @media (max-width: 768px) {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .boxplot-group-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border: 1px solid #e9ecef;
+
+        h4 {
+            margin-top: 0;
+            margin-bottom: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+        }
+
+        .boxplot-container-small {
+            display: flex;
+            justify-content: center;
+            margin: 10px 0;
+        }
+
+        .boxplot-stats-summary {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #6c757d;
+            margin: 8px 0;
+        }
+
+        .outliers-details {
+            margin-top: 12px;
+            summary {
+                cursor: pointer;
+                font-size: 13px;
+                color: #e67e22;
+                font-weight: 500;
+            }
+            .anomalies-table-small {
+                width: 100%;
+                font-size: 12px;
+                margin-top: 8px;
+                border-collapse: collapse;
+                th, td {
+                    padding: 6px 8px;
+                    text-align: left;
+                    border-bottom: 1px solid #f0f0f0;
+                }
+                td.high { color: #e74c3c; font-weight: bold; }
+                td.low { color: #e67e22; font-weight: bold; }
+            }
+        }
+    }
 }

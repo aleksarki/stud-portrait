@@ -483,7 +483,7 @@ export function windowGenerateDocxResume(studentId) {
     return new WindowChain(`${PROTOCOL}://${HOST}/portrait/gendox/generate-resume-docx/?${params}`);
 }
 
-export function postGetBoxplotData(competency, institutionIds = [], directionIds = []) {
+export function postGetBoxplotData(competency, institutionIds = [], directionIds = [], groupBy = 'auto') {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-boxplot-data/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -491,6 +491,7 @@ export function postGetBoxplotData(competency, institutionIds = [], directionIds
             competency,
             institution_ids: institutionIds,
             direction_ids: directionIds,
+            group_by: groupBy,
         })
     });
     return new AsyncChain(promise);
