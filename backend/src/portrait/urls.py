@@ -26,14 +26,14 @@ urlpatterns = [
     path('dataload/template-delete/<int:template_id>/', dataload.delete_template,     name='dataload_template_delete'),
 
     # DATASESH module
-    path("create-data-session/",     datasesh.create_data_session,     name="create_data_session"),
-    path("get-session-data/",        datasesh.get_session_data,        name="get_session_data"),
-    path("update-session-filters/",  datasesh.update_session_filters,  name="update_session_filters"),
-    path("update-session-columns/",  datasesh.update_session_columns,  name="update_session_columns"),
-    path("load-more-data/",          datasesh.load_more_data,          name="load_more_data"),
-    path("export-selected-results/", datasesh.export_selected_results, name="export_session_data"),
-    path("group-data/",              datasesh.group_data,              name="group_data"),
-    path("stats/",                   datasesh.stats_with_filters,      name="stats"),
+    path("datasesh/new/",             datasesh.create_data_session,     name="datasesh_new"),
+    path("datasesh/extract-data/",    datasesh.extract_session_data,    name="datasesh_extract_data"),
+    path("datasesh/update-filters/",  datasesh.update_session_filters,  name="datasesh_update_filters"),
+    path("datasesh/update-columns/",  datasesh.update_session_columns,  name="datasesh_update_columns"),
+    path("datasesh/update-window/",   datasesh.update_session_window,   name="datasesh_update_window"),
+    path("datasesh/export-selected/", datasesh.export_selected_results, name="datasesh_export_selected"),
+    path("datasesh/group-selected/",  datasesh.group_data,              name="datasesh_group_selected"),
+    path("datasesh/count-stats/",     datasesh.stats_with_filters,      name="datasesh_count_stats"),
 
     # DATANAL module
     path('analyze-student-vam/', analysis_end.analyze_student_vam, name='analyze_student_vam'),
@@ -50,7 +50,10 @@ urlpatterns = [
 
     path('get-competency-level-flow/',  analysis_end.get_competency_level_flow,       name='get_competency_level_flow'),
     path('ai-analytics-summary/',       analysis_end.ai_analytics_summary,            name='ai_analytics_summary'),
-    path('get-disciplines/',            analysis_end.get_disciplines,                 name='get-disciplines'),
+    path('get-disciplines/',            analysis_end.get_disciplines,                 name='get-disciplines'),   
+    
+    path('education-profiles-comparison/', analysis_end.get_education_profiles_comparison, name='education_profiles_comparison'),
+    path('get-boxplot-data/',              analysis_end.get_boxplot_data,                  name='get_boxplot_data'),
 
     path('analyze-transfers/',          transfer_analysis.analyze_transfers,          name='analyze_transfers'),
     path('analyze-transfer-students/',  transfer_analysis.analyze_transfer_students,  name='analyze_transfer_students'),
@@ -61,6 +64,8 @@ urlpatterns = [
     path("get-filter-options-with-counts/", statsresult.get_filter_options_with_counts, name="get_filter_options_with_counts"),
     path("student-results/",                statsresult.student_results,                name="student_results"),
     path("centers-by-region/",              statsresult.centers_by_region,              name='centers_by_region'),
+    path('students/list/',                  statsresult.get_students_list,              name='students_list'),
+    path('students/portrait/',              statsresult.get_student_portrait,           name='student_portrait'),
 
     path('dashboard-stats/',   stat.get_dashboard_stats,   name='dashboard_stats'),
     path('motivation-counts/', stat.get_motivation_counts, name='motivation_counts'),
@@ -70,12 +75,11 @@ urlpatterns = [
     path('comp-boxplot/',      stat.get_data_boxplot, name='comp_boxplot'),
 
     # AINTERP module
-    path('ai/interpret/',     ainterp.ai_interpret_competency,       name='ai_interpret'),
-    path('ai/interpret-all/', ainterp.ai_interpret_all_competencies, name='ai_interpret_all'),
-    path('ai/generate/',      ainterp.ai_generate_interpretation,    name='ai_generate'),
+    # *empty*
 
     # GENDOX module
-    path('gendox/generate-resume-docx/', gendox.generate_docx_resume,    name='gendox_generate_resume_docx'),
-    path('gendox/student-resume-data/',  gendox.get_student_resume_data, name='gendox_student_resume_data'),
+    path('gendox/generate-resume-docx/', gendox.generate_docx_resume,      name='gendox_generate_resume_docx'),
+    path('gendox/student-resume-data/',  gendox.get_student_resume_data,   name='gendox_student_resume_data'),
+    path('gendox/geography-report/',     gendox.generate_geography_report, name='gendox_geography_report'),
 
 ]

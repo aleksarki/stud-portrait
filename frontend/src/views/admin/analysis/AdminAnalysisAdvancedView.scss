@@ -22,4 +22,46 @@
             gap: 20px;
         }
     }
+
+    // Сводный режим — ограничиваем максимальную высоту SVG через viewBox,
+    // но даём достаточно ширины чтобы подписи не обрезались
+    .vam-chart-combined {
+        width: 100%;
+        min-width: 0;
+        // SVG внутри VamDotPlot имеет width="100%", растянется сам
+    }
+
+    // Сетка отдельных графиков
+    .vam-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .vam-group-card {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 14px 16px;
+        background: #fff;
+        min-width: 0; // критично для grid — без этого SVG выпирает за 1fr
+
+        h5 {
+            margin: 0 0 8px 0;
+            font-size: 13px;
+            font-weight: 600;
+            color: #2c3e50;
+            // обрезаем длинные названия вузов
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    }
+
+    .vam-group-meta {
+        font-size: 11px;
+        color: #999;
+        margin-top: 6px;
+    }
 }

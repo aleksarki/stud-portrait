@@ -7,10 +7,10 @@ import ErrorView from "./views/ErrorView";
 
 import AdminAnalysisAdvancedView from "./views/admin/analysis/AdminAnalysisAdvancedView";
 import AdminAnalysisDisciplinesView from "./views/admin/analysis/AdminAnalysisDisciplinesView";
-import AdminAnalysisVamLgmView from "./views/admin/analysis/AdminAnalysisVamLgmView";
 import AdminAiAnalyticsView from "./views/admin/analysis/AdminAiAnalyticsView";
 import AdminAnalysisEduProfilesView from "./views/admin/analysis/AdminAnalysisEduProfilesView";
 import AdminTransferAnalysisView from "./views/admin/analysis/AdminTransferAnalysisView";
+import AdminAnomalousStudentView from "./views/admin/analysis/AdminAnomalousStudentView";
 
 import AdminCoursesView from "./views/admin/AdminCoursesView";
 import AdminGeographyView from "./views/admin/AdminGeographyView";
@@ -22,6 +22,7 @@ import AdminResultsView from "./views/admin/AdminResultsView";
 import AdminStatsView from "./views/admin/AdminStatsView";
 import AdminAPView from "./views/admin/AdminAPView";
 import AdminCompetencesView from "./views/admin/AdminCompetencesView";
+import AdminStudentView from "./views/admin/AdminStudentView";
 
 import StudentMainView from "./views/student/StudentMainView";
 import StudentReportView from "./views/student/StudentReportView";
@@ -74,10 +75,6 @@ const router = createBrowserRouter([
     element: <AdminResultsView />
   },
   {
-    path: "/admin/analysis/vam-lgm",
-    element: <AdminAnalysisVamLgmView />
-  },
-  {
     path: "/admin/analysis/disciplines",
     element: <AdminAnalysisDisciplinesView />
   },
@@ -98,6 +95,10 @@ const router = createBrowserRouter([
     element: <AdminTransferAnalysisView />
   },
   {
+    path: "/admin/analysis/anomalous-students",
+    element: <AdminAnomalousStudentView />
+  },
+  {
     path: "/admin/courses",
     element: <AdminCoursesView />
   },
@@ -116,6 +117,10 @@ const router = createBrowserRouter([
   {
     path: "/admin/AP",
     element: <AdminAPView />
+  },
+  {
+    path: "/admin/student/",
+    element: <AdminStudentView />
   },
 
   /* SUPERADMIN VIEWS */

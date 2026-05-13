@@ -18,18 +18,19 @@ export const LINK_TREE = [
             {title: "Тестирование профилей", to: '/admin/results'},
             {title: "Образовательные курсы", to: '/admin/courses'},
             {title: "Мотиваторы", to: '/admin/motivators'},
-            {title: "Компетенции", to: '/admin/competences'}
+            {title: "Компетенции", to: '/admin/competences'},
+            {title: "Портрет студента", to: '/admin/student'}
         ]
     },
     {
         category: "Анализ данных",
         links: [
-            {title: "VAM / LGM", to: '/admin/analysis/vam-lgm'},
             {title: "Анализ дисциплин", to: '/admin/analysis/disciplines'},
             {title: "Визуализации", to: '/admin/analysis/advanced'},
             {title: "ИИ-аналитика", to: '/admin/analysis/ai-analytics'},
             {title: "Области образования", to: '/admin/analysis/edu-profiles'},
-            {title: "Переведённые студенты", to: '/admin/analysis/transfered-students'}
+            {title: "Переведённые студенты", to: '/admin/analysis/transfered-students'},
+            {title: "Аномальные студенты", to: '/admin/analysis/anomalous-students'}
         ]
     }
 ];

@@ -179,13 +179,13 @@ def import_excel(request):
                         res_year=year,
                         res_course_num=course_num,
                         defaults={
-                            RES.CENTER:      center,
-                            RES.INSTITUTION: institution,
-                            RES.EDU_LEVEL:   edu_level,
-                            RES.EDU_FORM:    form,       # ForeignKey — объект OK
-                            RES.EDU_SPEC:    spec,       # ForeignKey — объект OK
-                            RES.POTENTIAL:   clean_value(row_data.get("res_high_potential")),
-                            RES.REPORT:      clean_value(row_data.get("res_summary_report")),
+                            TRES.CENTER:      center,
+                            TRES.INSTITUTION: institution,
+                            TRES.EDU_LEVEL:   edu_level,
+                            TRES.EDU_FORM:    form,       # ForeignKey — объект OK
+                            TRES.EDU_SPEC:    spec,       # ForeignKey — объект OK
+                            TRES.POTENTIAL:   clean_value(row_data.get("res_high_potential")),
+                            TRES.REPORT:      clean_value(row_data.get("res_summary_report")),
                         }
                     )
 

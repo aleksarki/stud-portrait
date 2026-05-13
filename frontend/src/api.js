@@ -128,6 +128,95 @@ export function deleteDataloadTemplateDelete(templateId) {
     return new AsyncChain(promise);
 }
 
+// *** DATASESH *** */
+export function postPortraitDataseshNew() {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/datasesh/new/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    });
+    return new AsyncChain(promise);
+}
+
+export function postPortraitDataseshExtractData(sessionId) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/datasesh/extract-data/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({session_id: sessionId})
+    });
+    return new AsyncChain(promise);
+}
+
+export function postPortraitDataseshUpdateFilters(sessionId, filters) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/datasesh/update-filters/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            session_id: sessionId,
+            filters: filters
+        })
+    });
+    return new AsyncChain(promise);
+}
+
+export function postPortraitDataseshUpdateColumns(sessionId, columns) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/datasesh/update-columns/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            session_id: sessionId,
+            columns: columns
+        })
+    });
+    return new AsyncChain(promise);
+}
+
+export function postPortraitDataseshUpdateWindow(sessionId, start, end) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/datasesh/update-window/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            session_id: sessionId,
+            start: start,
+            end: end
+        })
+    });
+    return new AsyncChain(promise);
+}
+
+export function postPortraitDataseshExportSelected(sessionId, selectedIds) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/datasesh/export-selected/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            session_id: sessionId,
+            selected_ids: selectedIds
+        })
+    });
+    return new AsyncChain(promise);
+}
+
+export function postPortraitDataseshGroupSelected(sessionId, selectedIds, grouppingColumn) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/group-data/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            session_id: sessionId,
+            selected_ids: selectedIds,
+            groupping_column: grouppingColumn
+        })
+    });
+    return new AsyncChain(promise);
+}
+
+export function postPortraitDataseshCountStats(sessionId) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/datasesh/count-stats/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({session_id: sessionId})
+    });
+    return new AsyncChain(promise);
+}
+
 /* *** statsresult *** */
 
 export function getPortraitCourses() {
@@ -159,93 +248,6 @@ export function getPortraitGetFilterOptionsWithCounts(
     selectedTestAttempts?.forEach(attempts => params.append('test_attempts[]', attempts));
     selectedCompetencies?.forEach(comp => params.append('competencies[]', comp));
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-filter-options-with-counts/?${params}`);
-    return new AsyncChain(promise);
-}
-
-/* *** datasesh *** */
-
-export function postPortraitCreateDataSession() {
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/create-data-session/`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'}
-    });
-    return new AsyncChain(promise);
-}
-
-export function postPortraitGetSessionData(sessionId) {
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-session-data/`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({session_id: sessionId})
-    });
-    return new AsyncChain(promise);
-}
-
-export function postPortraitLoadMoreData(sessionId) {
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/load-more-data/`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({session_id: sessionId})
-    });
-    return new AsyncChain(promise);
-}
-
-export function postPortraitUpdateSessionFilters(sessionId, newFilters) {
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/update-session-filters/`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-            session_id: sessionId,
-            filters: newFilters
-        })
-    });
-    return new AsyncChain(promise);
-}
-
-export function postPortraitUpdateSessionColumns(sessionId, visibleColumns) {
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/update-session-columns/`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-            session_id: sessionId,
-            visible_columns: visibleColumns
-        })
-    });
-    return new AsyncChain(promise);
-}
-
-export function postPortraitExportSelectedResults(sessionId, selectedRowsArray) {
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/export-selected-results/`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-            session_id: sessionId,
-            selected_ids: selectedRowsArray
-        })
-    });
-    return new AsyncChain(promise);
-}
-
-export function postPortraitStats(sessionId) {
-    const body = sessionId ? { session_id: sessionId } : {};
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/stats/`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined
-    });
-    return new AsyncChain(promise);
-}
-
-export function postPortraitGroupData(sessionId, selectedIds, groupingColumn) {
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/group-data/`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-            session_id: sessionId,
-            selected_ids: selectedIds,
-            grouping_column: groupingColumn
-        })
-    });
     return new AsyncChain(promise);
 }
 
@@ -473,6 +475,36 @@ export function getMotivationCounts(institute, specialty, year) {
     return new AsyncChain(promise);
 }
 
+export function postGetBoxplotData(competency, institutionIds = [], directionIds = [], groupBy = 'auto') {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-boxplot-data/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            competency,
+            institution_ids: institutionIds,
+            direction_ids: directionIds,
+            group_by: groupBy,
+        })
+    });
+    return new AsyncChain(promise);
+}
+
+// Цифровой портрет студента
+export function getStudentsList(search = '', limit = 50) {
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    params.append('limit', limit);
+    const url = `${PROTOCOL}://${HOST}/portrait/students/list/?${params.toString()}`;
+    const promise = fetch(url);
+    return new AsyncChain(promise);
+}
+
+export function getStudentPortrait(studentId) {
+    const url = `${PROTOCOL}://${HOST}/portrait/students/portrait/?student_id=${studentId}`;
+    const promise = fetch(url);
+    return new AsyncChain(promise);
+}
+
 /* *** GENDOX *** */
 
 export function getStudentResumeData(studentId, year) {
@@ -488,4 +520,11 @@ export function windowGenerateDocxResume(studentId) {
     const params = new URLSearchParams();
     params.append('student_id', studentId);
     return new WindowChain(`${PROTOCOL}://${HOST}/portrait/gendox/generate-resume-docx/?${params}`);
+}
+
+// Генерация отчёта по географии
+export function getGeographyReport(year) {
+    const url = `${PROTOCOL}://${HOST}/portrait/gendox/geography-report/?year=${encodeURIComponent(year)}`;
+    const promise = fetch(url);
+    return new AsyncChain(promise);
 }

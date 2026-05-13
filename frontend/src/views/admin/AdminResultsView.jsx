@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import {
-    postPortraitCreateDataSession,
-    postPortraitExportSelectedResults,
-    postPortraitGetSessionData,
-    postPortraitLoadMoreData,
-    postPortraitUpdateSessionColumns,
-    postPortraitUpdateSessionFilters
+    postPortraitDataseshNew,
+    postPortraitDataseshExportSelected,
+    postPortraitDataseshExtractData,
+    postPortraitDataseshUpdateWindow,
+    postPortraitDataseshUpdateColumns,
+    postPortraitDataseshUpdateFilters
 } from '../../api.js';
 import {
     COMPETENCIES_NAMES, FIELD_NAMES, LINK_TREE,
@@ -137,12 +137,12 @@ function AdminResultsView() {
     // Инициализация сессии
     const initializeSession = async () => {
         setLoading(true);
-        postPortraitCreateDataSession()
+        postPortraitDataseshNew()
             .onSuccess(async response => {
                 const data = await response.json();
                 if (data.status === 'success') {
-                    setSessionId(data.session_id);
-                    await loadSessionData(data.session_id);  // Загружаем начальные данные
+                    setSessionId(data.session.id);
+                    await loadSessionData(data.session.id);  // Загружаем начальные данные
                 } else {
                     console.error("Failed to create session:", data.message);
                 }
@@ -157,14 +157,14 @@ function AdminResultsView() {
         
         setLoading(true);
 
-        postPortraitGetSessionData(sessionIdToLoad)
+        postPortraitDataseshExtractData(sessionIdToLoad)
             .onSuccess(async response => {
                 const data = await response.json();
                 if (data.status === 'success') {
                     setResults(data.results || []);
-                    setTotalCount(data.total_count || 0);
-                    setHasMore(data.results?.length > 0 && data.total_count > data.results.length);  // Проверяем, есть ли ещё данные для загрузки (лимит 1000 записей)
-                    if (data.results && data.results.length > 0) {                                   // Извлекаем доступные значения для фильтрации
+                    setTotalCount(data.filtered_count || 0);
+                    setHasMore(data.shown_count > 0 && data.filtered_count > data.shown_count);  // Проверяем, есть ли ещё данные для загрузки (лимит 1000 записей)
+                    if (data.results && data.shown_count > 0) {                                  // Извлекаем доступные значения для фильтрации
                         extractAvailableValues(data.results);
                     }
                 }
@@ -179,13 +179,13 @@ function AdminResultsView() {
         
         setLoading(true);
 
-        postPortraitLoadMoreData(sessionId)
+        postPortraitDataseshUpdateWindow(sessionId, 0, 1000)  // FIXME
             .onSuccess(async response => {
                 const data = await response.json();
                 if (data.status === 'success') {
-                    setResults(prev => [...prev, ...(data.results || [])]);
-                    setHasMore(data.results?.length > 0 && data.total_count > results.length + data.results.length);
-                }
+                    await loadSessionData();
+                    setSelectedRows(new Set());
+                } 
             })
             .onError(error => console.error("Error loading more data:", error))
             .finally(() => setLoading(false));
@@ -195,7 +195,7 @@ function AdminResultsView() {
     const updateSessionFilters = async (newFilters) => {
         if (!sessionId) return;
 
-        postPortraitUpdateSessionFilters(sessionId, newFilters)
+        postPortraitDataseshUpdateFilters(sessionId, newFilters)
             .onSuccess(async response => {
                 const data = await response.json();
                 if (data.status === 'success') {
@@ -212,7 +212,7 @@ function AdminResultsView() {
         
         const visibleColumns = columnOrder.filter(col => !newHiddenColumns.has(col));
 
-        postPortraitUpdateSessionColumns(sessionId, visibleColumns)
+        postPortraitDataseshUpdateColumns(sessionId, visibleColumns)
             .onSuccess(async response => {
                 const data = await response.json();
                 if (data.status === 'success') {
@@ -331,7 +331,7 @@ function AdminResultsView() {
 
         setExportLoading(true);
 
-        postPortraitExportSelectedResults(sessionId, Array.from(selectedRows))
+        postPortraitDataseshExportSelected(sessionId, Array.from(selectedRows))
             .onSuccess(async response => {
                 if (response.ok) {
                     const blob = await response.blob();

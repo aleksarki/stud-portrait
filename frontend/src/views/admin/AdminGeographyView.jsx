@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { getPortraitCentersByRegion } from "../../api";
+import { getPortraitCentersByRegion, getGeographyReport } from "../../api";
 import { LINK_TREE } from "../../utilities";
 
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
@@ -13,6 +13,9 @@ import RussianFederationMap from "../../components/charts/maps/RussianFederation
 
 import Slider from "../../components/ui/Slider";
 
+import Button from "../../components/ui/Button";
+import { ADMIN_PALETTE } from "../../components/ui/palette";
+
 import "./AdminGeographyView.scss";
 
 function AdminGeographyView() {
@@ -21,6 +24,7 @@ function AdminGeographyView() {
     const [selectedYear, setSelectedYear] = useState('2024/2025');
     const [regionData, setRegionData] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [reportLoading, setReportLoading] = useState(false);
     const [maxValue, setMaxValue] = useState(0);
     const [totalCenters, setTotalCenters] = useState(0);
     const [selectedRegion, setSelectedRegion] = useState(null);
@@ -63,6 +67,30 @@ function AdminGeographyView() {
         // Здесь можно добавить дополнительную логику
     };
 
+    // Генерация отчёта
+    const generateReport = async () => {
+        setReportLoading(true);
+        getGeographyReport(selectedYear)
+            .onSuccess(async response => {
+                // Получаем blob из ответа
+                const blob = await response.blob();
+                // Создаём ссылку для скачивания
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `geography_report_${selectedYear}.docx`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+            })
+            .onError(error => {
+                console.error("Ошибка генерации отчёта:", error);
+                alert('Ошибка при генерации отчёта');
+            })
+            .finally(() => setReportLoading(false));
+    };
+
     // Загрузка начальных данных
     useEffect(() => {
         loadCentersData(selectedYear);
@@ -71,10 +99,18 @@ function AdminGeographyView() {
     return (
         <div className="AdminGeographyView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                <Header title="Админ: Главная" name="Администратор1" />
+                <Header title="Админ: География тестирования" name="Администратор1" />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
-                    <h2>География тестирования</h2>
+                    <div className="page-header">
+                        <h2>География тестирования</h2>
+                        <Button
+                            text={reportLoading ? "Формирование отчёта..." : "📊 Выгрузить отчёт DOCX"}
+                            onClick={generateReport}
+                            disabled={reportLoading || loading}
+                            palette={ADMIN_PALETTE.GREEN}
+                        />
+                    </div>
 
                     <Slider
                         values={YEARS}

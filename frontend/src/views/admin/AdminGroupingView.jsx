@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import Chart from 'react-apexcharts';
 
 import { FIELD_NAMES, LINK_TREE } from "../../utilities.js";
-import { postPortraitGroupData } from '../../api.js';
+import { postPortraitDataseshGroupSelected } from '../../api.js';
 
 import FlexRow, { WRAP } from "../../components/FlexRow";
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
@@ -38,7 +38,7 @@ function AdminGroupingView() {
 
     const fetchGroupedData = async (data) => {
         setLoading(true);
-        postPortraitGroupData(data.sessionId, data.selectedIds, data.groupingColumn)
+        postPortraitDataseshGroupSelected(data.sessionId, data.selectedIds, data.groupingColumn)  // REVIEW error?
             .onSuccess(async response => {
                 const result = await response.json();
                 if (result.status === 'success') {
