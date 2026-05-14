@@ -377,9 +377,10 @@ function MotivatorStackedChart({ chart_data, currentFilters }) {
 }
 
 //верх фильтры
-const FilterHeader = ({ onFilterChange }) => {
+const FilterHeader = ({ filters, onFilterChange }) => {
     const [options, setOptions] = useState({ institutes: [], specialties: [], years: [] });
     const [loading, setLoading] = useState(true);
+    const reqRef = useRef(0);
 
     //загрузка вариантов
     useEffect(() => {
@@ -387,23 +388,52 @@ const FilterHeader = ({ onFilterChange }) => {
             .onSuccess(async response => {
                 const data = await response.json();
                 setOptions(data.data); 
-                console.log(data.data);
                 setLoading(false);
             })
             .onError(err => console.error("Ошибка загрузки опций", err));
     }, []);
-    const handleChange = (selectedOption, action) => {
-        const value = selectedOption ? selectedOption.value : '';
-        onFilterChange(action.name, value);
+    
+
+    useEffect(() => {
+        const institute = filters?.institute;
+        if (!institute) {
+            getFilterDash()
+            .onSuccess(async response => {
+                const data = await response.json();
+                setOptions(data.data); 
+            })
+            .onError(err => console.error("Ошибка загрузки опций", err));
+            return;
+        }
+        const id = ++reqRef.current;
+        getFilterDash(institute)
+            .onSuccess(async res => {
+                if (id !== reqRef.current) return;
+                const data = await res.json();
+                const newSpecs = data.data.specialties || [];
+                setOptions(prev => ({ ...prev, specialties: newSpecs }));
+        
+                // если выбранная спец не в новом списке - сброс
+                if (filters?.specialty && !newSpecs.some(s => s.value === filters.specialty)) {
+                onFilterChange('specialty', '');
+                }
+            })
+            .onError(() => { if (id === reqRef.current) setLoading(false); });
+      }, [filters?.institute]);
+    
+    const handleChange = (opt, name) => {
+        onFilterChange(name, opt ? opt.value : '');
     };
-  
     const customStyles = {
         container: (base) => ({ ...base, flex: 1, minWidth: '200px' }),
         control: (base) => ({ ...base, borderRadius: '8px', borderColor: '#ddd' })
     };
-  
+    const findOption = (opts, value) => {
+        if (!value) return null; 
+        return opts?.find(o => o.value === value) || null;
+    };
     if (loading) return <div>Загрузка фильтров...</div>;
-  
+    
     return (
         <div className="filter-row">
             <Select
@@ -412,7 +442,7 @@ const FilterHeader = ({ onFilterChange }) => {
             isClearable
             isSearchable
             options={options?.institutes || []}
-            onChange={handleChange}
+            onChange={opt => handleChange(opt, 'institute')}
             styles={customStyles}
             />
             
@@ -422,7 +452,8 @@ const FilterHeader = ({ onFilterChange }) => {
             isClearable
             isSearchable
             options={options?.specialties || []}
-            onChange={handleChange}
+            value={findOption(options?.specialties, filters?.specialty)}
+            onChange={opt => handleChange(opt, 'specialty')}
             styles={customStyles}
             />
     
@@ -432,7 +463,7 @@ const FilterHeader = ({ onFilterChange }) => {
             isClearable
             isSearchable
             options={options?.years || []}
-            onChange={handleChange}
+            onChange={opt => handleChange(opt, 'year')}
             styles={customStyles}
             />
         </div>
@@ -466,7 +497,11 @@ function AdminMotivatorsView(){
     }, [filters]);
     
     const updateFilter = (name, value) => {
-        setFilters(prev => ({ ...prev, [name]: value }));
+        setFilters(prev => {
+          const updated = { ...prev, [name]: value };
+          if (name == 'institute') updated.specialty = '';
+          return updated;
+        });
     };
 
     return (
@@ -476,7 +511,7 @@ function AdminMotivatorsView(){
                     <Sidebar linkTree={LINK_TREE} />
                     <Content>
                         <FilterHeader onFilterChange={updateFilter} 
-                        currentFilters={filters}/>
+                        filters={filters}/>
                         {isError ? (<div className="p-10 text-center"> Ошибка при загрузке данных </div>) :
                         (<>{loadingMotDash ? (
                             <div className="p-10 text-center">Загрузка данных...</div>

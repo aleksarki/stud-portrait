@@ -434,8 +434,10 @@ export function getStudentComparisonStats(studentId, year) {
     return new AsyncChain(promise);
 }
 
-export function getFilterDash() {
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/filter-dash/`);
+export function getFilterDash(institute) {
+    const params = new URLSearchParams();
+    if (institute) params.append('institute', institute);
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/filter-dash/?${params}`);
     return new AsyncChain(promise);
 }
 

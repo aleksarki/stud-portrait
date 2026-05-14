@@ -52,12 +52,18 @@ def get_year_metrics(year, filter):
         "participated" : {"amount_in": total_students, "students_all": students_uni}
     }
 
-def filter_dash(request):
-    
+def filter_dash(request): 
     try:
+        inst = request.GET.get('institute')   
+        if inst:
+            base=Results.objects.filter(res_institution__inst_name=inst)
+            specialties=list(base.values_list('res_spec__spec_name', flat=True).distinct())
+            years = base.values_list('res_year', flat=True).distinct()
+        else:
+            specialties = list(Results.objects.values_list('res_spec__spec_name', flat=True).distinct())
+            years = Results.objects.values_list('res_year', flat=True).distinct()
+        
         institutes = list(Results.objects.values_list('res_institution__inst_name', flat=True).distinct())
-        specialties = list(Results.objects.values_list('res_spec__spec_name', flat=True).distinct())
-        years = Results.objects.values_list('res_year', flat=True).distinct()
         
         data = {
             "institutes": [{"value": i, "label": str(i)} for i in institutes if i],

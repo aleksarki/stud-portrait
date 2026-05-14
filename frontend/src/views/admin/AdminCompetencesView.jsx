@@ -1,4 +1,4 @@
-import { useState, useEffect, React } from 'react';
+import { useState, useEffect, React, useRef } from 'react';
 import Select from 'react-select';
 import {
     PieChart, Pie, ReferenceLine, LabelList, BarChart, Bar, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -36,9 +36,10 @@ const competencyLabels = {
 const getLabel = (key) => competencyLabels[key] || competencyLabels[key.replace('res_comp_', '').replace('_', ' ')] || key.replace('res_comp_', '').replace('_', ' ');
 // для сравнения
 
-const FilterHeader = ({ onFilterChange }) => {
+const FilterHeader = ({ filters, onFilterChange }) => {
     const [options, setOptions] = useState({ institutes: [], specialties: [], years: [] });
     const [loading, setLoading] = useState(true);
+    const reqRef = useRef(0);
 
     //загрузка вариантов
     useEffect(() => {
@@ -46,23 +47,52 @@ const FilterHeader = ({ onFilterChange }) => {
             .onSuccess(async response => {
                 const data = await response.json();
                 setOptions(data.data); 
-                console.log(data.data);
                 setLoading(false);
             })
             .onError(err => console.error("Ошибка загрузки опций", err));
     }, []);
-    const handleChange = (selectedOption, action) => {
-        const value = selectedOption ? selectedOption.value : '';
-        onFilterChange(action.name, value);
+    
+
+    useEffect(() => {
+        const institute = filters?.institute;
+        if (!institute) {
+            getFilterDash()
+            .onSuccess(async response => {
+                const data = await response.json();
+                setOptions(data.data); 
+            })
+            .onError(err => console.error("Ошибка загрузки опций", err));
+            return;
+        }
+        const id = ++reqRef.current;
+        getFilterDash(institute)
+            .onSuccess(async res => {
+                if (id !== reqRef.current) return;
+                const data = await res.json();
+                const newSpecs = data.data.specialties || [];
+                setOptions(prev => ({ ...prev, specialties: newSpecs }));
+        
+                // если выбранная спец не в новом списке - сброс
+                if (filters?.specialty && !newSpecs.some(s => s.value === filters.specialty)) {
+                onFilterChange('specialty', '');
+                }
+            })
+            .onError(() => { if (id === reqRef.current) setLoading(false); });
+      }, [filters?.institute]);
+    
+    const handleChange = (opt, name) => {
+        onFilterChange(name, opt ? opt.value : '');
     };
-  
     const customStyles = {
         container: (base) => ({ ...base, flex: 1, minWidth: '200px' }),
         control: (base) => ({ ...base, borderRadius: '8px', borderColor: '#ddd' })
     };
-  
+    const findOption = (opts, value) => {
+        if (!value) return null; 
+        return opts?.find(o => o.value === value) || null;
+    };
     if (loading) return <div>Загрузка фильтров...</div>;
-  
+    
     return (
         <div className="filter-row">
             <Select
@@ -71,7 +101,7 @@ const FilterHeader = ({ onFilterChange }) => {
             isClearable
             isSearchable
             options={options?.institutes || []}
-            onChange={handleChange}
+            onChange={opt => handleChange(opt, 'institute')}
             styles={customStyles}
             />
             
@@ -81,7 +111,8 @@ const FilterHeader = ({ onFilterChange }) => {
             isClearable
             isSearchable
             options={options?.specialties || []}
-            onChange={handleChange}
+            value={findOption(options?.specialties, filters?.specialty)}
+            onChange={opt => handleChange(opt, 'specialty')}
             styles={customStyles}
             />
     
@@ -91,12 +122,13 @@ const FilterHeader = ({ onFilterChange }) => {
             isClearable
             isSearchable
             options={options?.years || []}
-            onChange={handleChange}
+            onChange={opt => handleChange(opt, 'year')}
             styles={customStyles}
             />
         </div>
     );
 };
+  
 
 const Stat = ({ label, value, prev=0, suffix = "", isGrowth = false, isText=false}) => {
     if (prev==0){
@@ -293,13 +325,11 @@ function CompetencyTable_course({ data, filters }) {
     
                 // Вычисляем динамику по ползунку
                 let deltaValue = '—';
-                if (typeof calculateDelta === 'function') {
-                    const delta = calculateDelta(row);
+                const delta = calculateDelta(row);
                     
-                    if (delta !== null && delta !== undefined && !isNaN(delta)) {
-                        deltaValue = delta > 0 ? `+${delta}` : delta;
-                    }
-                }
+                if (delta) {
+                    deltaValue = delta > 0 ? `+${delta}` : delta;
+                }      
     
                 const rowObject = {
                     'Компетенция': label
@@ -799,8 +829,13 @@ function AdminCompetencesView() {
             loadDashboardStats(filters_);
     }, [filters_]); 
     const updateFilter = (name, value) => {
-        setFilters_(prev => ({ ...prev, [name]: value }));
+        setFilters_(prev => {
+          const updated = { ...prev, [name]: value };
+          if (name == 'institute') updated.specialty = '';
+          return updated;
+        });
     };
+
     const loadBoxPlot = async (currentFilters) => {
             setLoading(true);
             getDataBoxplot(currentFilters.institute, currentFilters.specialty, currentFilters.year)
@@ -824,6 +859,7 @@ function AdminCompetencesView() {
                     <Header title="Админ: Компетенции" name="Администратор1" />
                     <Sidebar linkTree={LINK_TREE} />
                     <Content>
+                        <FilterHeader onFilterChange={updateFilter} filters={filters_}/>
                         <div className="loading-content">
                             <LoadingSpinner text="Загрузка статистики..." />
                         </div>
@@ -839,7 +875,7 @@ function AdminCompetencesView() {
                 <Header title="Админ: Статистика тестирования" name="Администратор1" />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
-                    <FilterHeader onFilterChange={updateFilter} currentFilters={filters_}/>
+                    <FilterHeader onFilterChange={updateFilter} filters={filters_}/>
                     <span><>
                         <Dashboard data={dashboardData} filters={filters_} />
                     </></span>
