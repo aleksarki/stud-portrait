@@ -73,6 +73,7 @@ urlpatterns = [
     path('overall-stats/',     stat.overall_stats,         name='overall_stats'),
     path('scores-result/',     stat.get_scores_result,     name='scores_result'),
     path('comp-boxplot/',      stat.get_data_boxplot, name='comp_boxplot'),
+    path('grades-competency-correlation/', stat.get_grades_competency_correlation, name='grades_competency_correlation'),
 
     # AINTERP module
     # *empty*

@@ -1,6 +1,6 @@
 from django.db.models import Avg, Count, Q, F
 from django.http import JsonResponse
-from portrait.models import Results, Participants, Course, Institutions
+from portrait.models import Results, Participants, Course, Institutions, Academicperformance
 import traceback
 from .common import *
 import numpy as np
@@ -432,3 +432,155 @@ def get_data_boxplot(request):
         import traceback
         traceback.print_exc()
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
+    
+    
+@cached()
+def get_grades_competency_correlation(request):
+    try:
+        # 1. Чтение фильтров из запроса
+        inst = request.GET.get('institute')
+        spec = request.GET.get('specialty')
+        year = request.GET.get('year')
+
+        base_filter = {}
+        if inst: base_filter['res_institution__inst_name'] = inst
+        if spec: base_filter['res_spec__spec_name'] = spec
+        if year: base_filter['res_year'] = year
+
+        # 2. Формирование объединённой выборки
+        # Получаем для каждого студента: его компетенции (12 шт.) + курс
+        res_qs = Results.objects.filter(**base_filter)
+        if not res_qs.exists():
+            return JsonResponse({
+                "status": "success",
+                "correlations": [],
+                "scatter": [],
+                "trends": [],
+                "disciplines": [],
+                "competencies": list(COMP.list),
+            })
+
+        participant_ids = list(
+            res_qs.values_list('res_participant__part_id', flat=True).distinct()
+        )
+
+        # Средний балл компетенций по каждому студенту (если у студента несколько
+        # записей за разные курсы — берём среднее значение, как уже сделано
+        # в get_scores_result для агрегации)
+        comp_qs = (
+            res_qs
+            .values('res_participant__part_id', 'res_course_num')
+            .annotate(**{f'avg_{f}': Avg(f) for f in COMP.list})
+        )
+        # Словарь pid -> {competency_field: avg_score, "course": N}
+        comp_by_part = {}
+        for r in comp_qs:
+            pid = r['res_participant__part_id']
+            comp_by_part[pid] = {
+                f: (float(r[f'avg_{f}']) if r.get(f'avg_{f}') is not None else None)
+                for f in COMP.list
+            }
+            comp_by_part[pid]['__course'] = r.get('res_course_num')
+
+        # Академические оценки по дисциплинам, отфильтрованные по тем же студентам
+        ap_qs = (
+            Academicperformance.objects
+            .filter(perf_part__in=participant_ids)
+            .values('perf_part_id', 'perf_discipline', 'perf_main_attestation')
+        )
+
+        # 3. Собираем таблицу наблюдений и сырые точки scatter
+        # paired[(discipline, competency_field)] = [(grade, comp_score, course, pid), ...]
+        paired = defaultdict(list)
+        scatter = []
+        disciplines_set = set()
+
+        for row in ap_qs:
+            pid = row['perf_part_id']
+            disc = row['perf_discipline']
+            grade = scores.get(row['perf_main_attestation'])  # словарь scores уже есть в файле
+            if grade is None:
+                continue  # пропускаем «зачёт», NULL и т.п.
+
+            comps = comp_by_part.get(pid)
+            if not comps:
+                continue
+
+            course = comps.get('__course')
+            disciplines_set.add(disc)
+
+            for f in COMP.list:
+                cs = comps.get(f)
+                if cs is None or cs == 0:
+                    continue
+                paired[(disc, f)].append((grade, cs, course, pid))
+                scatter.append({
+                    "discipline": disc,
+                    "competency": f,
+                    "grade": grade,
+                    "competency_score": round(cs, 2),
+                    "course": course,
+                    "participant_id": pid,
+                })
+
+        # 4. Вычисление матрицы корреляций Пирсона
+        correlations = []
+        trends = []
+        for (disc, f), pairs in paired.items():
+            if len(pairs) < 3:
+                # При очень малой выборке корреляция нестабильна — отмечаем как NaN
+                correlations.append({
+                    "discipline": disc,
+                    "competency": f,
+                    "r": None,
+                    "n": len(pairs),
+                })
+                continue
+
+            grades_arr = np.array([p[0] for p in pairs], dtype=float)
+            scores_arr = np.array([p[1] for p in pairs], dtype=float)
+
+            # np.corrcoef вернёт матрицу 2x2; r — это элемент [0, 1]
+            # Если у одного из массивов нулевая дисперсия (все оценки одинаковые) — будет деление на ноль, ловим это через np.errstate
+            with np.errstate(divide='ignore', invalid='ignore'):
+                r_matrix = np.corrcoef(grades_arr, scores_arr)
+                r = r_matrix[0, 1]
+            if np.isnan(r):
+                r_val = None
+            else:
+                r_val = round(float(r), 3)
+
+            correlations.append({
+                "discipline": disc,
+                "competency": f,
+                "r": r_val,
+                "n": len(pairs),
+            })
+
+            # Линия тренда (простая линейная регрессия y = a*x + b)
+            # Считаем только при достаточном количестве точек и ненулевой дисперсии X
+            if r_val is not None and grades_arr.std() > 0:
+                slope, intercept = np.polyfit(grades_arr, scores_arr, 1)
+                trends.append({
+                    "discipline": disc,
+                    "competency": f,
+                    "slope": round(float(slope), 3),
+                    "intercept": round(float(intercept), 3),
+                    "x_min": int(grades_arr.min()),
+                    "x_max": int(grades_arr.max()),
+                })
+
+        # 5. Возврат JSON-ответа
+        return JsonResponse({
+            "status": "success",
+            "correlations": correlations,
+            "scatter": scatter,
+            "trends": trends,
+            "disciplines": sorted(disciplines_set),
+            "competencies": list(COMP.list),
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)    
