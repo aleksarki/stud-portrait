@@ -1,6 +1,7 @@
 services:
   database:
-    build: ./database
+    image: postgres:16-alpine
+    #build: ./database
     container_name: studportrait_db
     restart: unless-stopped
     environment:
@@ -10,7 +11,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "5433:5432"
     networks:
       - studportrait_network
     healthcheck:
@@ -18,6 +19,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 20s
 
   backend:
     build: ./backend
