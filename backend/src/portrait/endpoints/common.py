@@ -14,7 +14,10 @@ from django.views.decorators.csrf import csrf_exempt
 
 from ..constants import (
     RsvCompetencies as COMP, RsvMotivators as MOT, RsvValues as VAL, RsvCourses as CUR,
-    TableResults as TRES, TableParticipants as PART, CENTERS_REGIONS
+    TableCompetenceCenters as TCENTER, TableEducationLevels as TLEVEL,
+    TableInstitutions as TINST, TableParticipants as TPART, TableResults as TRES,
+    TableSpecialties as TSPEC, TableStudyForms as TFORM,
+    CENTERS_REGIONS
 )
 from ..models import *
 
@@ -44,6 +47,27 @@ def join(*options):
     """ Provided joined options for Django ORM.
     """
     return '__'.join(options)
+J = join
+
+
+def isIn(field, option):
+    return {f'{field}__{IN}': option}
+
+
+def isNull(field, option):
+    return {f'{field}__{ISNULL}': option}
+
+
+def greaterEqual(field, option):
+    return {f'{field}__{GTE}': option}
+
+
+def lessEqual(field, option):
+    return {f'{field}__{LTE}': option}
+
+
+def desc(field):
+    return f'-{field}'
 
 
 # ! =================================================== GETTERS ==================================================== ! #

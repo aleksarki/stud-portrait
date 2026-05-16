@@ -1,5 +1,7 @@
 # Constant values for reusing.
 
+# ! ===================================================== RSV ====================================================== ! #
+
 class RsvCompetencies:
     """ Tested RSV competencies mapped to their names.
     """
@@ -152,6 +154,42 @@ class RsvCourses:
     list = [*names.keys()]
 
 
+# ! ==================================================== TABLES ==================================================== ! #
+
+class TableCompetenceCenters:
+    """ Columns of CompetenceCenteres database table.
+    """
+    ID =   'center_id'
+    NAME = 'center_name'
+
+
+class TableEducationLevels:
+    """ Columns of EducationLevels database table.
+    """
+    ID =   'edu_level_id'
+    NAME = 'edu_level_name'
+
+
+class TableInstitutions:
+    """ Columns of Institutions database table.
+    """
+    ID =   'inst_id'
+    NAME = 'inst_name'
+
+
+class TableParticipants:
+    """ Columns of Participants database table.
+    """
+    ID =          'part_id'
+    RSV_ID =      'part_rsv_id'
+    GENDER =      'part_gender'
+    INSTITUTION = 'part_institution'
+    EDU_SPEC =    'part_spec'
+    EDU_LEVEL =   'part_edu_level'
+    EDU_FORM =    'part_form'
+    COURSE_NUM =  'part_course_num'
+
+
 class TableResults:
     """ Columns of Results database table.
     """
@@ -168,19 +206,23 @@ class TableResults:
     REPORT =      'res_summary_report'
 
 
-class TableParticipants:
-    """ Columns of Participants database table.
+class TableSpecialties:
+    """ Columns of Specialties database table.
     """
-    ID =          'part_id'
-    RSV_ID =      'part_rsv_id'
-    GENDER =      'part_gender'
-    INSTITUTION = 'part_institution'
-    EDU_SPEC =    'part_spec'
-    EDU_LEVEL =   'part_edu_level'
-    EDU_FORM =    'part_form'
-    COURSE_NUM =  'part_course_num'
+    ID =   'spec_id'
+    NAME = 'spec_name'
 
 
+class TableStudyForms:
+    """ Columns of StudyForms database table.
+    """
+    ID =   'form_id'
+    NAME = 'form_name'
+
+
+# ! ================================================== GEOGRAPHY =================================================== ! #
+
+#  todo factual check
 CENTERS_REGIONS = {
     "Без привязки к ЦК":                                                                                  None,
     "ЦК Алтайского государственного педагогического университета":                                        "Алтайский край",

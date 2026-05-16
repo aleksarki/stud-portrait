@@ -26,16 +26,16 @@ def generate_docx_resume(request):
 
     # данные студента
     try:
-        participant = Participants.objects                                                  \
-            .select_related('part_institution', 'part_spec', 'part_form', 'part_edu_level') \
-            .get(part_id=student_id)
+        participant = Participants.objects                                                      \
+            .select_related(TPART.INSTITUTION, TPART.EDU_SPEC, TPART.EDU_FORM, TPART.EDU_LEVEL) \
+            .get(**{TPART.ID: student_id})
     except Participants.DoesNotExist:
         raise ResponseError(f"Participant {student_id} not found", status=404)
 
     # последние результаты для компетенций
-    latest_result = Results.objects               \
-        .filter(res_participant=participant)      \
-        .order_by('-res_year', '-res_course_num') \
+    latest_result = Results.objects                       \
+        .filter(**{TRES.PARTICIPANT: participant})        \
+        .order_by(desc(TRES.YEAR), desc(TRES.COURSE_NUM)) \
         .first()
 
     # данные для ИИ
@@ -259,14 +259,14 @@ def get_student_resume_data(request):
     if not student_id:
         raise ResponseError("student_id required")
 
-    participant = Participants.objects                                                  \
-        .select_related('part_institution', 'part_spec', 'part_form', 'part_edu_level') \
-        .get(part_id=student_id)
+    participant = Participants.objects                                                      \
+        .select_related(TPART.INSTITUTION, TPART.EDU_SPEC, TPART.EDU_FORM, TPART.EDU_LEVEL) \
+        .get(**{TPART.ID: student_id})
 
-    results = Results.objects.filter(res_participant=participant)
+    results = Results.objects.filter(**{TRES.PARTICIPANT: participant})
     if year:
-        results = results.filter(res_year=year)
-    results = results.order_by('-res_year', '-res_course_num')
+        results = results.filter(**{TRES.YEAR: year})
+    results = results.order_by(desc(TRES.YEAR), desc(TRES.COURSE_NUM))
 
     if not results.exists():
         raise ResponseError("No results")
@@ -291,6 +291,7 @@ def get_student_resume_data(request):
         'year':         year or latest_result.res_year
     }
 
+    # fixme why the order??????????
     competencies_order = [
         'res_comp_leadership', 'res_comp_communication', 'res_comp_self_development',
         'res_comp_result_orientation', 'res_comp_stress_resistance', 'res_comp_client_focus',
@@ -375,7 +376,9 @@ def generate_geography_report(request):
     doc.add_heading('1. География центров компетенций', level=1)
 
     # Получаем данные по центрам
-    results = Results.objects.filter(res_year=year).select_related('res_center')
+    results = Results.objects        \
+        .filter(**{TRES.YEAR: year}) \
+        .select_related(TRES.CENTER)
 
     center_counts = defaultdict(int)
     for result in results:
@@ -432,7 +435,7 @@ def generate_geography_report(request):
 
     yearly_stats = []
     for yr in available_years:
-        yr_results = Results.objects.filter(res_year=yr)
+        yr_results = Results.objects.filter(**{TRES.YEAR: yr})
         yr_centers = set()
         for res in yr_results:
             if res.res_center:
