@@ -1,6 +1,8 @@
 
+from docx.document import Document as DocumentObject
 from functools import wraps
 import hashlib
+from io import BytesIO
 import json
 import pandas as pd
 from typing import Any
@@ -65,10 +67,10 @@ def attrElseNone(obj: Any, attr: str) -> Any | None:
 # ! ================================================== EXCEPTIONS ================================================== ! #
 
 class ResponseError(Exception):
-    """ Raised inside @jsonResponse decorator to break the execution to report client error.
+    """ Raised inside @jsonResponse or @httpResponse decorators to break the execution to report client error.
     """
     def __init__(self, message: str = "", status: int = 400):
-        """ Raised inside @jsonResponse decorator to break the execution to report client error.
+        """ Raised inside @jsonResponse or @httpResponse decorators to break the execution to report client error.
         """
         self.message = message
         self.status = status
@@ -86,7 +88,7 @@ def successResponse(data: dict = dict(), status: int = 200) -> JsonResponse:
         pass
     return JsonResponse({"status": "success", **data}, status=status)
 
-def excelResponse(data: list, sheetname: str, filename: str = "file.xlsx", status: int = 200) -> HttpResponse:
+def xlsxResponse(data: list, sheetname: str, filename: str = "file.xlsx", status: int = 200) -> HttpResponse:
     """ Return HTTP response carrying an Excel file.
     """
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', status=status)
@@ -95,6 +97,19 @@ def excelResponse(data: list, sheetname: str, filename: str = "file.xlsx", statu
     with pd.ExcelWriter(response, engine="openpyxl") as writer:
         df.to_excel(writer, index=False, sheet_name=sheetname)
     debugPrint(f"success {status}:", filename)
+    return response
+
+def docxResponse(doc: DocumentObject, filename: str = "file.xlsx", status: int = 200):
+    """ Return HTTP response carrying a Word file.
+    """
+    buffer = BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
+    response = HttpResponse(
+        buffer.getvalue(), status=status,
+        content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
 
 def errorResponse(message: str = "", status: int = 400) -> JsonResponse:
@@ -177,7 +192,7 @@ def httpResponse(func):
             return errorResponse(e.message, e.status)
         except Exception as e:
             # print(str(e))
-            # raise
+            raise
             return exceptionResponse(str(e))
     return wrapper
 

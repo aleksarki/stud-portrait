@@ -319,7 +319,7 @@ def export_selected_results(request):
             TRES.EDU_LEVEL, TRES.EDU_FORM, TRES.EDU_SPEC
         )
 
-    return excelResponse(
+    return xlsxResponse(
         [format_result_for_export(result, session.columns) for result in results_query],
         "Выгрузка результатов", "results_export.xlsx"
     )
