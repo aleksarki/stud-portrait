@@ -21,6 +21,7 @@ import AdminMotivatorsView from "./views/admin/AdminMotivatorsView";
 import AdminResultsView from "./views/admin/AdminResultsView";
 import AdminStatsView from "./views/admin/AdminStatsView";
 import AdminAPView from "./views/admin/AdminAPView";
+import AdminCompetencesView from "./views/admin/AdminCompetencesView";
 import AdminStudentView from "./views/admin/AdminStudentView";
 
 import StudentMainView from "./views/student/StudentMainView";
@@ -104,6 +105,10 @@ const router = createBrowserRouter([
   {
     path: "/admin/grouping",
     element: <AdminGroupingView />
+  },
+  {
+    path: "/admin/competences",
+    element: <AdminCompetencesView/>
   },
   {
     path: "/admin/motivators",

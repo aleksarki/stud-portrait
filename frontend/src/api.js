@@ -434,8 +434,10 @@ export function getStudentComparisonStats(studentId, year) {
     return new AsyncChain(promise);
 }
 
-export function getFilterDash() {
-    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/filter-dash/`);
+export function getFilterDash(institute) {
+    const params = new URLSearchParams();
+    if (institute) params.append('institute', institute);
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/filter-dash/?${params}`);
     return new AsyncChain(promise);
 }
 
@@ -445,6 +447,15 @@ export function getScoresResult(institute, specialty, year) {
     if (specialty) params.append('specialty', specialty);
     if (year)      params.append('year', year);
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/scores-result/?${params}`);
+    return new AsyncChain(promise);
+}
+
+export function getDataBoxplot(institute, specialty, year) {
+    const params = new URLSearchParams();
+    if (institute) params.append('institute', institute);
+    if (specialty) params.append('specialty', specialty);
+    if (year)      params.append('year', year);
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/comp-boxplot/?${params}`);
     return new AsyncChain(promise);
 }
 
@@ -466,7 +477,7 @@ export function getMotivationCounts(institute, specialty, year) {
     return new AsyncChain(promise);
 }
 
-export function postGetBoxplotData(competency, institutionIds = [], directionIds = []) {
+export function postGetBoxplotData(competency, institutionIds = [], directionIds = [], groupBy = 'auto') {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-boxplot-data/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -474,6 +485,7 @@ export function postGetBoxplotData(competency, institutionIds = [], directionIds
             competency,
             institution_ids: institutionIds,
             direction_ids: directionIds,
+            group_by: groupBy,
         })
     });
     return new AsyncChain(promise);

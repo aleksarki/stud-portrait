@@ -1691,6 +1691,8 @@ def StdDevCalculation(values):
 
 # portrait/analysis_end.py
 
+# portrait/analysis_end.py
+
 @csrf_exempt
 @require_http_methods(["POST"])
 def get_boxplot_data(request):
@@ -1700,8 +1702,13 @@ def get_boxplot_data(request):
     {
         "competency": "res_comp_leadership",
         "institution_ids": [1,2],
-        "direction_ids": [10,20]
+        "direction_ids": [10,20],
+        "group_by": "auto" | "institution" | "direction" | None
     }
+    group_by = "auto" – автоматический выбор:
+        - если выбрано несколько вузов -> группировка по вузам
+        - если выбран один вуз и несколько направлений -> по направлениям
+        - иначе общий boxplot
     """
     import numpy as np
     from scipy import stats
@@ -1711,37 +1718,121 @@ def get_boxplot_data(request):
         competency = body.get('competency')
         institution_ids = body.get('institution_ids', [])
         direction_ids = body.get('direction_ids', [])
+        group_by = body.get('group_by', 'auto')  # 'auto', 'institution', 'direction', None
 
         if not competency:
             return JsonResponse({'status': 'error', 'message': 'competency required'}, status=400)
 
         # Базовый queryset результатов
         qs = Results.objects.select_related('res_participant', 'res_institution', 'res_spec')
-
         if institution_ids:
             qs = qs.filter(res_institution_id__in=institution_ids)
         if direction_ids:
             qs = qs.filter(res_spec_id__in=direction_ids)
 
-        # Собираем баллы и данные студентов
-        scores = []
-        students_data = []  # список словарей {student_id, name, score, institution, direction}
+        # Определяем группировку
+        effective_group_by = None
+        if group_by == 'institution':
+            effective_group_by = 'institution'
+        elif group_by == 'direction':
+            effective_group_by = 'direction'
+        elif group_by == 'auto':
+            if len(institution_ids) > 1:
+                effective_group_by = 'institution'
+            elif len(institution_ids) == 1 and len(direction_ids) > 1:
+                effective_group_by = 'direction'
+            # иначе оставляем None – общий боксплот
 
+        # Если групповая разбивка не нужна – возвращаем один общий ящик
+        if effective_group_by is None:
+            scores = []
+            students_data = []
+            for r in qs:
+                score = getattr(r, competency, None)
+                if score is None:
+                    continue
+                scores.append(score)
+                participant = r.res_participant
+                try:
+                    mapping = Studentmapping.objects.get(rsv_id=participant.part_rsv_id)
+                    student_name = mapping.student_name
+                except Studentmapping.DoesNotExist:
+                    student_name = participant.part_rsv_id
+                students_data.append({
+                    'student_id': participant.part_id,
+                    'name': student_name,
+                    'score': score,
+                    'institution': r.res_institution.inst_name if r.res_institution else 'Не указан',
+                    'direction': r.res_spec.spec_name if r.res_spec else 'Не указано',
+                })
+
+            if len(scores) < 5:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Недостаточно данных для построения ящика с усами (нужно минимум 5 студентов)'
+                }, status=400)
+
+            scores_array = np.array(scores)
+            q1, median, q3 = np.percentile(scores_array, [25, 50, 75])
+            iqr = q3 - q1
+            lower_fence = q1 - 1.5 * iqr
+            upper_fence = q3 + 1.5 * iqr
+            whisker_low = float(max(scores_array.min(), lower_fence))
+            whisker_high = float(min(scores_array.max(), upper_fence))
+            outliers = [s for s in students_data if s['score'] < lower_fence or s['score'] > upper_fence]
+
+            return JsonResponse({
+                'status': 'success',
+                'competency': competency,
+                'grouped': False,
+                'statistics': {
+                    'min': float(scores_array.min()),
+                    'q1': float(q1),
+                    'median': float(median),
+                    'q3': float(q3),
+                    'max': float(scores_array.max()),
+                    'iqr': float(iqr),
+                    'lower_fence': float(lower_fence),
+                    'upper_fence': float(upper_fence),
+                    'whisker_low': whisker_low,
+                    'whisker_high': whisker_high,
+                    'count': len(scores),
+                    'mean': float(np.mean(scores_array)),
+                    'std': float(np.std(scores_array)),
+                },
+                'outliers': outliers,
+                'all_students': students_data,
+            }, json_dumps_params={'ensure_ascii': False})
+
+        # Групповая разбивка
+        groups_data = {}
         for r in qs:
             score = getattr(r, competency, None)
             if score is None:
                 continue
-            scores.append(score)
+            if effective_group_by == 'institution':
+                group_id = r.res_institution_id
+                group_name = r.res_institution.inst_name if r.res_institution else 'Не указан'
+            else:  # direction
+                group_id = r.res_spec_id
+                group_name = r.res_spec.spec_name if r.res_spec else 'Не указано'
 
+            if group_id not in groups_data:
+                groups_data[group_id] = {
+                    'group_id': group_id,
+                    'group_name': group_name,
+                    'scores': [],
+                    'students': []
+                }
+            groups_data[group_id]['scores'].append(score)
+            # собираем информацию о студенте
             participant = r.res_participant
-            # Получаем ФИО из studentmapping (если есть)
             try:
                 mapping = Studentmapping.objects.get(rsv_id=participant.part_rsv_id)
                 student_name = mapping.student_name
             except Studentmapping.DoesNotExist:
                 student_name = participant.part_rsv_id
-
-            students_data.append({
+            groups_data[group_id]['students'].append({
                 'student_id': participant.part_id,
                 'name': student_name,
                 'score': score,
@@ -1749,46 +1840,48 @@ def get_boxplot_data(request):
                 'direction': r.res_spec.spec_name if r.res_spec else 'Не указано',
             })
 
-        if not scores:
-            return JsonResponse({'status': 'error', 'message': 'Нет данных для выбранных фильтров'}, status=404)
+        # Вычисляем статистику для каждой группы
+        result_groups = []
+        for gid, gdata in groups_data.items():
+            scores_array = np.array(gdata['scores'])
+            if len(scores_array) < 5:  # недостаточно данных для ящика
+                continue
+            q1, median, q3 = np.percentile(scores_array, [25, 50, 75])
+            iqr = q3 - q1
+            lower_fence = q1 - 1.5 * iqr
+            upper_fence = q3 + 1.5 * iqr
+            whisker_low = max(min(scores_array), lower_fence)
+            whisker_high = min(max(scores_array), upper_fence)
+            outliers = [s for s in gdata['students'] if s['score'] < lower_fence or s['score'] > upper_fence]
 
-        # Вычисляем статистику boxplot
-        scores_array = np.array(scores)
-        q1, median, q3 = np.percentile(scores_array, [25, 50, 75])
-        iqr = q3 - q1
-        lower_fence = q1 - 1.5 * iqr
-        upper_fence = q3 + 1.5 * iqr
-
-        # Минимум и максимум без выбросов (усы)
-        whisker_low = max(min(scores_array), lower_fence)
-        whisker_high = min(max(scores_array), upper_fence)
-
-        # Выбросы
-        outliers = [s for s in students_data if s['score'] < lower_fence or s['score'] > upper_fence]
-
-        # Дополнительная статистика
-        stats_data = {
-            'min': float(min(scores_array)),
-            'q1': float(q1),
-            'median': float(median),
-            'q3': float(q3),
-            'max': float(max(scores_array)),
-            'iqr': float(iqr),
-            'lower_fence': float(lower_fence),
-            'upper_fence': float(upper_fence),
-            'whisker_low': float(whisker_low),
-            'whisker_high': float(whisker_high),
-            'count': len(scores),
-            'mean': float(np.mean(scores_array)),
-            'std': float(np.std(scores_array)),
-        }
+            result_groups.append({
+                'group_id': gid,
+                'group_name': gdata['group_name'],
+                'statistics': {
+                    'min': float(min(scores_array)),
+                    'q1': float(q1),
+                    'median': float(median),
+                    'q3': float(q3),
+                    'max': float(max(scores_array)),
+                    'iqr': float(iqr),
+                    'lower_fence': float(lower_fence),
+                    'upper_fence': float(upper_fence),
+                    'whisker_low': float(whisker_low),
+                    'whisker_high': float(whisker_high),
+                    'count': len(scores_array),
+                    'mean': float(np.mean(scores_array)),
+                    'std': float(np.std(scores_array)),
+                },
+                'outliers': outliers,
+                'all_students': gdata['students']
+            })
 
         return JsonResponse({
             'status': 'success',
             'competency': competency,
-            'statistics': stats_data,
-            'outliers': outliers,               # список аномальных студентов
-            'all_students': students_data,      # можно использовать для отрисовки всех точек
+            'grouped': True,
+            'group_by': effective_group_by,
+            'groups': result_groups,
         }, json_dumps_params={'ensure_ascii': False})
 
     except Exception as e:

@@ -11,7 +11,6 @@ import FlexRow, { WRAP } from "../../../components/FlexRow";
 import LabelledBox from "../../../components/LabelledBox";
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
 
-import TitledCard from "../../../components/cards/TitledCard";
 import ValueCard from "../../../components/cards/ValueCard";
 
 import Button from "../../../components/ui/Button";
@@ -64,7 +63,6 @@ function AdminTransferAnalysisView() {
     // ── Данные ────────────────────────────────────────────
     const [summary, setSummary]                   = useState(null);
     const [sankeyData, setSankeyData]             = useState(null);
-    const [dynamics, setDynamics]                 = useState([]);
     const [byType, setByType]                     = useState({});
     const [students, setStudents]                 = useState([]);
 
@@ -90,7 +88,6 @@ function AdminTransferAnalysisView() {
         setLoading(true);
         setSummary(null);
         setSankeyData(null);
-        setDynamics([]);
         setStudents([]);
         setStudentsLoaded(false);
 
@@ -106,7 +103,6 @@ function AdminTransferAnalysisView() {
                 if (data.status === 'success') {
                     setSummary(data.summary);
                     setSankeyData(data.sankey?.nodes?.length ? data.sankey : null);
-                    setDynamics(data.dynamics || []);
                     setByType(data.by_type || {});
                     setActiveTab('sankey');
                 }
@@ -150,36 +146,6 @@ function AdminTransferAnalysisView() {
                     <p>Каждый узел — пара «вуз / направление». Толщина потока = число переведённых студентов.</p>
                 </div>
             </>
-        );
-    };
-
-    // ── Рендер динамики ───────────────────────────────────
-    const renderDynamics = () => {
-        if (!dynamics.length) return <NoData text="Нет данных о динамике компетенций." />;
-        return (
-            <TitledCard title={`Динамика: ${COMPETENCIES_NAMES[selectedComp] || selectedComp}`}>
-                <ResponsiveContainer width="100%" height={320}>
-                    <LineChart data={dynamics} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="course" label={{ value: 'Курс', position: 'insideBottom', offset: -2 }} />
-                        <YAxis domain={['auto', 'auto']} label={{ value: 'Балл', angle: -90, position: 'insideLeft' }} />
-                        <Tooltip formatter={(v, n, p) => [`${v.toFixed(1)} (n=${p.payload.n_students})`, 'Средний балл']} />
-                        <Line
-                            type="monotone"
-                            dataKey="avg_score"
-                            name="Средний балл"
-                            stroke="#1565c0"
-                            strokeWidth={2.5}
-                            dot={{ r: 5 }}
-                            activeDot={{ r: 7 }}
-                        />
-                    </LineChart>
-                </ResponsiveContainer>
-                <p className="chart-hint">
-                    Показаны средние баллы только по студентам с переводом.
-                    Ожидаемый паттерн: замедление роста → скачок после адаптации.
-                </p>
-            </TitledCard>
         );
     };
 
@@ -461,11 +427,6 @@ function AdminTransferAnalysisView() {
                                     palette={activeTab === 'sankey' ? ADMIN_PALETTE.CYAN : ADMIN_PALETTE.GRAY}
                                 />
                                 <Button
-                                    text="Динамика по курсам"
-                                    onClick={() => setActiveTab('dynamics')}
-                                    palette={activeTab === 'dynamics' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
-                                />
-                                <Button
                                     text={`Студенты${studentsLoaded ? ` (${students.length})` : ''}`}
                                     onClick={() => { setActiveTab('students'); if (!studentsLoaded) loadStudents(); }}
                                     disabled={loadingStudents}
@@ -478,7 +439,6 @@ function AdminTransferAnalysisView() {
                             {!loading && !loadingStudents && (
                                 <div className="tab-content">
                                     {activeTab === 'sankey'   && renderSankey()}
-                                    {activeTab === 'dynamics' && renderDynamics()}
                                     {activeTab === 'students' && renderStudents()}
                                 </div>
                             )}

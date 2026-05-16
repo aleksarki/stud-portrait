@@ -10,6 +10,7 @@ import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../com
 
 import { getFilterDash, getMotivationCounts } from "../../api.js";
 import { COMPETENCIES_NAMES, COURSES_NAMES, LINK_TREE, MOTIVATORS_NAMES } from "../../utilities.js";
+import * as XLSX from 'xlsx';
 
 import "./AdminMotivatorsView.scss";
 
@@ -85,12 +86,59 @@ const Tooltippy = ({ active, payload = [], coordinate = {}, chartHeight = 0, lab
     );
 };
   
-function MotTable({ data }) {
+
+
+function MotTable({ data, currentFilters }) {
 
     const [tableOpen, setTableOpen] = useState(false);
     if (!data) return null;
     let all_m = 0;
     let all_d = 0;
+
+    const exportToExcel = () => {
+        const excelData = [];
+        if (!data){
+            alert('Отсутствуют данные для скачивания');
+            return;
+        }
+        data.forEach((row) => {
+            if (!row) return;
+
+            const label = getLabel(row.name);
+        
+            // Строка для М
+            excelData.push({
+                'Показатель': label,
+                'Тип': 'М',
+                '1 курс': row.course_1_high || 0,
+                '2 курс': row.course_2_high || 0,
+                '3 курс': row.course_3_high || 0,
+                '4 курс': row.course_4_high || 0,
+                'Всего' : (row.course_1_high || 0) + (row.course_2_high || 0) + (row.course_3_high || 0) + (row.course_4_high || 0),
+            });
+        
+            // Строка для Д
+            excelData.push({
+                'Показатель': label,
+                'Тип': 'Д',
+                '1 курс': row.course_1_low || 0,
+                '2 курс': row.course_2_low || 0,
+                '3 курс': row.course_3_low || 0,
+                '4 курс': row.course_4_low || 0,
+                'Всего' : (row.course_1_low || 0) + (row.course_2_low || 0) + (row.course_3_low || 0) + (row.course_4_low || 0),
+            });
+        });
+        
+        const header = `${currentFilters.institute ? `${currentFilters.institute}, ` : ''} ${currentFilters.speciality ? `${currentFilters.speciality}, ` : ''} ${currentFilters.year ? `${currentFilters.year} учебный год ` : ''}`; 
+        const worksheet = XLSX.utils.aoa_to_sheet([[header]]);
+        XLSX.utils.sheet_add_json(worksheet, excelData,{ origin: "A2", skipHeader: false });
+        
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Статистика Мотиваторов");
+    
+        XLSX.writeFile(workbook, `Статистика_Мотиваторов_${currentFilters.year || ''}.xlsx`);
+    };
+
     return(
         <div className='table'>
             <button className="ct-toggle" onClick={() => setTableOpen(v => !v)}>
@@ -98,9 +146,19 @@ function MotTable({ data }) {
             {tableOpen ? 'Скрыть таблицу' : 'Таблица'}
             </button>
             <div className={`ct-table-wrap ${tableOpen ? 'open' : ''}`}>
+
             <div className="table-container">
+            <div className="ct-top">
                 <div className="ct-note"><span className="ct-pos">М</span> - мотиватор, <span>   </span> 
-                <span className="ct-neg"> Д</span> - демотиватор</div>            
+                <span className="ct-neg"> Д</span> - демотиватор</div>
+                <button className="btnExcel"
+                    onClick={() => exportToExcel()}
+                    onMouseOver={(e) => e.target.style.backgroundColor = '#15803d'}
+                    onMouseOut={(e) => e.target.style.backgroundColor = '#16a34a'}
+                >
+            Скачать
+          </button></div>
+
             <table className="ct-table">
                 <thead>
                 <tr>
@@ -135,7 +193,7 @@ function MotTable({ data }) {
                             </td>
                         );
                         })}
-                        <td className="ct-zero">{all_m}</td>
+                        <td className="mot">{all_m}</td>
                     </tr>
 
                     <tr>
@@ -149,7 +207,7 @@ function MotTable({ data }) {
                             </td>
                         );
                         })}
-                        <td className="ct-zero">{all_d}</td>
+                        <td className="demot">{all_d}</td>
                     </tr>
                     </React.Fragment>
                 ))}
@@ -163,7 +221,7 @@ function MotTable({ data }) {
 
 //до 400 - демотиватор, 600+ мотиватор
 
-function MotivatorStackedChart({ chart_data }) {
+function MotivatorStackedChart({ chart_data, currentFilters }) {
     const allCourses = [1, 2, 3, 4];
     const [selectedCourses, setSelectedCourses] = useState(allCourses);
   
@@ -207,7 +265,7 @@ function MotivatorStackedChart({ chart_data }) {
             //сортировка
             const posValues = selectedCourses
             .map(c => ({ course: c, val: item[`course_${c}_high`] || 0 }))
-            .sort((a, b) => a.val - b.val); // от меньшего к большему
+            .sort((a, b) => a.val - b.val); 
 
             posValues.forEach((obj, index) => {
             newItem[`pos_seg_${index}`] = obj.val;
@@ -313,15 +371,16 @@ function MotivatorStackedChart({ chart_data }) {
             
         </div>
         <div style={{margin:20, marginTop:5}}>
-        <MotTable data={chart_data}/></div>
+        <MotTable data={chart_data} currentFilters={currentFilters}/></div>
       </div>
     );
 }
 
 //верх фильтры
-const FilterHeader = ({ onFilterChange }) => {
+const FilterHeader = ({ filters, onFilterChange }) => {
     const [options, setOptions] = useState({ institutes: [], specialties: [], years: [] });
     const [loading, setLoading] = useState(true);
+    const reqRef = useRef(0);
 
     //загрузка вариантов
     useEffect(() => {
@@ -329,23 +388,52 @@ const FilterHeader = ({ onFilterChange }) => {
             .onSuccess(async response => {
                 const data = await response.json();
                 setOptions(data.data); 
-                console.log(data.data);
                 setLoading(false);
             })
             .onError(err => console.error("Ошибка загрузки опций", err));
     }, []);
-    const handleChange = (selectedOption, action) => {
-        const value = selectedOption ? selectedOption.value : '';
-        onFilterChange(action.name, value);
+    
+
+    useEffect(() => {
+        const institute = filters?.institute;
+        if (!institute) {
+            getFilterDash()
+            .onSuccess(async response => {
+                const data = await response.json();
+                setOptions(data.data); 
+            })
+            .onError(err => console.error("Ошибка загрузки опций", err));
+            return;
+        }
+        const id = ++reqRef.current;
+        getFilterDash(institute)
+            .onSuccess(async res => {
+                if (id !== reqRef.current) return;
+                const data = await res.json();
+                const newSpecs = data.data.specialties || [];
+                setOptions(prev => ({ ...prev, specialties: newSpecs }));
+        
+                // если выбранная спец не в новом списке - сброс
+                if (filters?.specialty && !newSpecs.some(s => s.value === filters.specialty)) {
+                onFilterChange('specialty', '');
+                }
+            })
+            .onError(() => { if (id === reqRef.current) setLoading(false); });
+      }, [filters?.institute]);
+    
+    const handleChange = (opt, name) => {
+        onFilterChange(name, opt ? opt.value : '');
     };
-  
     const customStyles = {
         container: (base) => ({ ...base, flex: 1, minWidth: '200px' }),
         control: (base) => ({ ...base, borderRadius: '8px', borderColor: '#ddd' })
     };
-  
+    const findOption = (opts, value) => {
+        if (!value) return null; 
+        return opts?.find(o => o.value === value) || null;
+    };
     if (loading) return <div>Загрузка фильтров...</div>;
-  
+    
     return (
         <div className="filter-row">
             <Select
@@ -354,7 +442,7 @@ const FilterHeader = ({ onFilterChange }) => {
             isClearable
             isSearchable
             options={options?.institutes || []}
-            onChange={handleChange}
+            onChange={opt => handleChange(opt, 'institute')}
             styles={customStyles}
             />
             
@@ -364,7 +452,8 @@ const FilterHeader = ({ onFilterChange }) => {
             isClearable
             isSearchable
             options={options?.specialties || []}
-            onChange={handleChange}
+            value={findOption(options?.specialties, filters?.specialty)}
+            onChange={opt => handleChange(opt, 'specialty')}
             styles={customStyles}
             />
     
@@ -374,7 +463,7 @@ const FilterHeader = ({ onFilterChange }) => {
             isClearable
             isSearchable
             options={options?.years || []}
-            onChange={handleChange}
+            onChange={opt => handleChange(opt, 'year')}
             styles={customStyles}
             />
         </div>
@@ -408,7 +497,11 @@ function AdminMotivatorsView(){
     }, [filters]);
     
     const updateFilter = (name, value) => {
-        setFilters(prev => ({ ...prev, [name]: value }));
+        setFilters(prev => {
+          const updated = { ...prev, [name]: value };
+          if (name == 'institute') updated.specialty = '';
+          return updated;
+        });
     };
 
     return (
@@ -418,12 +511,12 @@ function AdminMotivatorsView(){
                     <Sidebar linkTree={LINK_TREE} />
                     <Content>
                         <FilterHeader onFilterChange={updateFilter} 
-                        currentFilters={filters}/>
+                        filters={filters}/>
                         {isError ? (<div className="p-10 text-center"> Ошибка при загрузке данных </div>) :
                         (<>{loadingMotDash ? (
                             <div className="p-10 text-center">Загрузка данных...</div>
                                 
-                            ) : <><MotivatorStackedChart chart_data={MotivationData?.data}/>
+                            ) : <><MotivatorStackedChart chart_data={MotivationData?.data} currentFilters={filters}/>
                             <MotivatorStatistics filters={filters} />
                         </>}</>)}
                         

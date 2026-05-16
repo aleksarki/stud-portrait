@@ -72,6 +72,7 @@ urlpatterns = [
     path('filter-dash/',       stat.filter_dash,           name='filter_dash'),
     path('overall-stats/',     stat.overall_stats,         name='overall_stats'),
     path('scores-result/',     stat.get_scores_result,     name='scores_result'),
+    path('comp-boxplot/',      stat.get_data_boxplot, name='comp_boxplot'),
 
     # AINTERP module
     # *empty*
