@@ -91,6 +91,12 @@ const FilterHeader = ({ filters, onFilterChange }) => {
         if (!value) return null; 
         return opts?.find(o => o.value === value) || null;
     };
+
+    const sorted = (opts) =>
+        (opts || []).slice().sort((a, b) =>
+          a.label.localeCompare(b.label, 'ru', {numeric: true, sensitivity: 'base' })
+        );
+
     if (loading) return <div>Загрузка фильтров...</div>;
     
     return (
@@ -100,7 +106,7 @@ const FilterHeader = ({ filters, onFilterChange }) => {
             placeholder="Институт..."
             isClearable
             isSearchable
-            options={options?.institutes || []}
+            options={sorted(options?.institutes) || []}
             onChange={opt => handleChange(opt, 'institute')}
             styles={customStyles}
             />
@@ -110,7 +116,7 @@ const FilterHeader = ({ filters, onFilterChange }) => {
             placeholder="Направление..."
             isClearable
             isSearchable
-            options={options?.specialties || []}
+            options={sorted(options?.specialties) || []}
             value={findOption(options?.specialties, filters?.specialty)}
             onChange={opt => handleChange(opt, 'specialty')}
             styles={customStyles}
@@ -121,7 +127,7 @@ const FilterHeader = ({ filters, onFilterChange }) => {
             placeholder="Год..."
             isClearable
             isSearchable
-            options={options?.years || []}
+            options={sorted(options?.years) || []}
             onChange={opt => handleChange(opt, 'year')}
             styles={customStyles}
             />
@@ -370,7 +376,7 @@ function CompetencyTable_course({ data, filters }) {
         <div className='table'>
             <button className="ct-toggle" onClick={() => setTableOpen(v => !v)}>
             <span className={`ct-arrow ${tableOpen ? 'open' : ''}`}>▼</span>
-            {tableOpen ? 'Скрыть таблицу' : 'Подробная таблица'}
+            {tableOpen ? 'Скрыть таблицу' : 'Показать таблицу'}
             </button>
             <div className={`ct-table-wrap ${tableOpen ? 'open' : ''}`}>
             <div className="table-container">
@@ -875,7 +881,7 @@ function AdminCompetencesView() {
     return (
         <div className="AdminCompetencesView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                <Header title="Админ: Статистика тестирования" name="Администратор1" />
+                <Header title="Админ: Компетенции" name="Администратор1" />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <FilterHeader onFilterChange={updateFilter} filters={filters_}/>
