@@ -379,7 +379,7 @@ def get_scores_result(request):
 def calc_boxplot(values, ids):
     vals_with_ids = [
         (v, i) for v, i in zip(values, ids)
-        if v is not None and v > 0 and (v < 350 or v > 650)
+        if v is not None and v > 0 and (v < 300 or v > 700)
     ]
     if not vals_with_ids:
         return None, []

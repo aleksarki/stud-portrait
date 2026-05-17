@@ -105,12 +105,19 @@
             .prev-year {
                 color: #94a3b8;
                 font-size: 0.75rem;
+                margin-top: 1px;
             }
         
             .label {
-                color: #64748b;
-                font-size: 0.875rem;
-                margin-top: 0.5rem;
+                color: #55657c;
+                font-size: 0.94rem;
+                margin-top: 0.45rem;
+            }
+            .note{
+                color: #a0acbd;
+                font-size: 0.70rem;
+                margin-top: 1px;
+                font-style: italic;
             }
         }
     }
