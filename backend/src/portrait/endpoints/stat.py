@@ -438,3 +438,184 @@ def get_data_boxplot(request):
         import traceback
         traceback.print_exc()
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
+    
+
+COMP_KEYS = [
+    'res_comp_info_analysis',
+    'res_comp_planning',
+    'res_comp_result_orientation',
+    'res_comp_stress_resistance',
+    'res_comp_partnership',
+    'res_comp_rules_compliance',
+    'res_comp_self_development',
+    'res_comp_leadership',
+    'res_comp_emotional_intel',
+    'res_comp_client_focus',
+    'res_comp_communication',
+    'res_comp_passive_vocab',
+]
+
+
+ATTESTATION_MAP = {
+    '5': 5, '4': 4, '3': 3, '2': 2,
+    'отлично': 5, 'хорошо': 4, 'удовлетворительно': 3, 'неудовлетворительно': 2,
+    'зачёт': 5, 'зачет': 5,
+    'незачёт': 2, 'незачет': 2,
+}
+
+
+def _grade_to_number(grade_str):
+    # Преобразует строку оценки в число. Возвращает None, если не распознано
+    if grade_str is None:
+        return None
+    g = str(grade_str).strip().lower()
+    return ATTESTATION_MAP.get(g)
+
+
+def get_grades_competency_correlation(request):
+    try:
+        from portrait.models import Academicperformance, Results
+        # Шаг 1: соберём все оценки из Academicperformance + соответствующий результат компетенции
+        perf_qs = Academicperformance.objects.select_related('perf_part').all()
+        pairs_data = defaultdict(list)
+        scatter_data = []
+        results_map = {}
+        results_qs = Results.objects.values(
+            'res_participant_id', *COMP_KEYS
+        )
+        for r in results_qs:
+            results_map.setdefault(r['res_participant_id'], r)
+        
+        disciplines_set = set()
+        for perf in perf_qs.values('perf_part_id', 'perf_discipline', 'perf_main_attestation'):
+            grade_num = _grade_to_number(perf['perf_main_attestation'])
+            if grade_num is None:
+                continue
+            
+            res = results_map.get(perf['perf_part_id'])
+            if res is None:
+                continue
+            
+            disc = perf['perf_discipline']
+            disciplines_set.add(disc)
+            
+            for comp_key in COMP_KEYS:
+                comp_val = res.get(comp_key)
+                if comp_val is None:
+                    continue
+                pairs_data[(disc, comp_key)].append((grade_num, comp_val))
+        
+        # Шаг 2: считаем корреляцию Пирсона по каждой паре (дисциплина, компетенция)
+        correlations = []
+        for (disc, comp_key), pairs in pairs_data.items():
+            if len(pairs) < 3:
+                continue
+            grades = np.array([p[0] for p in pairs], dtype=float)
+            comps = np.array([p[1] for p in pairs], dtype=float)
+            
+            if grades.std() == 0 or comps.std() == 0:
+                corr_value = 0.0
+            else:
+                corr_value = float(np.corrcoef(grades, comps)[0, 1])
+                if np.isnan(corr_value):
+                    corr_value = 0.0
+            
+            correlations.append({
+                'discipline': disc,
+                'competency': comp_key,
+                'value': round(corr_value, 3),
+                'n': len(pairs),
+            })
+        
+        # Шаг 3: scatter — берём пары для самой первой комбинации (пример для диаграммы)
+        if correlations:
+            # Берём пару с наибольшим количеством наблюдений — она нагляднее
+            top = max(correlations, key=lambda c: c['n'])
+            top_pairs = pairs_data[(top['discipline'], top['competency'])]
+            scatter_data = [
+                {
+                    'discipline': top['discipline'],
+                    'competency': top['competency'],
+                    'grade': p[0],
+                    'comp_value': p[1],
+                }
+                for p in top_pairs
+            ]
+        
+        return JsonResponse({
+            'status': 'success',
+            'correlations': correlations,
+            'scatter': scatter_data,
+            'disciplines': sorted(list(disciplines_set)),
+            'competencies': COMP_KEYS,
+        })
+    
+    except Exception as e:
+        traceback.print_exc()
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e),
+            'correlations': [],
+            'scatter': [],
+            'disciplines': [],
+            'competencies': COMP_KEYS,
+        }, status=500)
+
+
+def get_competency_trend_by_year(request):
+    try:
+        filters = {}
+        inst = request.GET.get('institute')
+        spec = request.GET.get('specialty')
+        if inst:
+            filters['res_institution__inst_name'] = inst
+        if spec:
+            filters['res_spec__spec_name'] = spec
+        
+        results_qs = Results.objects.filter(**filters).exclude(res_course_num__isnull=True)
+        
+        courses = sorted(
+            results_qs.values_list('res_course_num', flat=True).distinct()
+        )
+        
+        trends = []
+        for comp_key in COMP_KEYS:
+            points = []
+            for course_num in courses:
+                course_qs = results_qs.filter(
+                    res_course_num=course_num
+                ).exclude(**{f'{comp_key}__isnull': True})
+                
+                agg = course_qs.aggregate(avg=Avg(comp_key), n=Count('res_id'))
+                avg_val = agg['avg']
+                n_val = agg['n'] or 0
+                
+                if avg_val is None or n_val == 0:
+                    continue
+                
+                points.append({
+                    'course': int(course_num),
+                    'avg': round(float(avg_val), 2),
+                    'n': n_val,
+                })
+            
+            if points: 
+                trends.append({
+                    'competency': comp_key,
+                    'points': points,
+                })
+        
+        return JsonResponse({
+            'status': 'success',
+            'trends': trends,
+            'competencies': COMP_KEYS,
+        })
+    
+    except Exception as e:
+        traceback.print_exc()
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e),
+            'trends': [],
+            'competencies': COMP_KEYS,
+        }, status=500)
