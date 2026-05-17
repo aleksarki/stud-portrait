@@ -343,7 +343,7 @@ function AdminAnalysisAdvancedView() {
                         <LineChart data={combinedData}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="course" />
-                            <YAxis />
+                            <YAxis domain={[200, 800]} />
                             <Tooltip />
                             <Legend />
                             {groups.map((group, idx) => (
@@ -392,7 +392,7 @@ function AdminAnalysisAdvancedView() {
                                         <LineChart data={chartData} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
                                             <CartesianGrid strokeDasharray="3 3" stroke="#ececec" />
                                             <XAxis dataKey="course" tick={{ fontSize: 11 }} />
-                                            <YAxis tick={{ fontSize: 11 }} width={40} />
+                                            <YAxis tick={{ fontSize: 11 }} width={40} domain={[200, 800]} />
                                             <Tooltip
                                                 formatter={(val) => [val.toFixed(2), 'Траектория']}
                                                 contentStyle={{ fontSize: 12 }}
@@ -666,24 +666,6 @@ function AdminAnalysisAdvancedView() {
                             {activeVisualization === 'vam' && renderVAM()}
                         </div>
                     )}
-
-                    <AiInsightPanel
-                        contextType={activeVisualization === 'vam' ? 'vam_trend' : 'general'}
-                        filters={{
-                            institutions: selectedInstitutions,
-                            directions:   selectedDirections,
-                            courses:      selectedCourses,
-                            competency:   activeVisualization === 'vam'  ? vamCompetency
-                                        : activeVisualization === 'lgm'  ? lgmCompetency
-                                        : flowCompetency,
-                        }}
-                        label={
-                            activeVisualization === 'vam'  ? 'Динамика по курсам' :
-                            activeVisualization === 'lgm'  ? 'LGM Когорта' :
-                            'Поток уровней'
-                        }
-                        disabled={loading}
-                    />
                 </Content>
             </SidebarLayout>
         </div>

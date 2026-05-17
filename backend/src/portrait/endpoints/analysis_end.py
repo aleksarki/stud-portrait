@@ -1743,9 +1743,8 @@ def get_boxplot_data(request):
                 effective_group_by = 'direction'
             # иначе оставляем None – общий боксплот
 
-        # Если групповая разбивка не нужна – возвращаем как раньше (один ящик)
+        # Если групповая разбивка не нужна – возвращаем один общий ящик
         if effective_group_by is None:
-            # ... старый код (собираем все баллы и студентов) ...
             scores = []
             students_data = []
             for r in qs:
@@ -1753,10 +1752,57 @@ def get_boxplot_data(request):
                 if score is None:
                     continue
                 scores.append(score)
-                # ... собираем students_data ...
-                # (код из предыдущей версии)
-            # вычисляем статистику и возвращаем
-            # ...
+                participant = r.res_participant
+                try:
+                    mapping = Studentmapping.objects.get(rsv_id=participant.part_rsv_id)
+                    student_name = mapping.student_name
+                except Studentmapping.DoesNotExist:
+                    student_name = participant.part_rsv_id
+                students_data.append({
+                    'student_id': participant.part_id,
+                    'name': student_name,
+                    'score': score,
+                    'institution': r.res_institution.inst_name if r.res_institution else 'Не указан',
+                    'direction': r.res_spec.spec_name if r.res_spec else 'Не указано',
+                })
+
+            if len(scores) < 5:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Недостаточно данных для построения ящика с усами (нужно минимум 5 студентов)'
+                }, status=400)
+
+            scores_array = np.array(scores)
+            q1, median, q3 = np.percentile(scores_array, [25, 50, 75])
+            iqr = q3 - q1
+            lower_fence = q1 - 1.5 * iqr
+            upper_fence = q3 + 1.5 * iqr
+            whisker_low = float(max(scores_array.min(), lower_fence))
+            whisker_high = float(min(scores_array.max(), upper_fence))
+            outliers = [s for s in students_data if s['score'] < lower_fence or s['score'] > upper_fence]
+
+            return JsonResponse({
+                'status': 'success',
+                'competency': competency,
+                'grouped': False,
+                'statistics': {
+                    'min': float(scores_array.min()),
+                    'q1': float(q1),
+                    'median': float(median),
+                    'q3': float(q3),
+                    'max': float(scores_array.max()),
+                    'iqr': float(iqr),
+                    'lower_fence': float(lower_fence),
+                    'upper_fence': float(upper_fence),
+                    'whisker_low': whisker_low,
+                    'whisker_high': whisker_high,
+                    'count': len(scores),
+                    'mean': float(np.mean(scores_array)),
+                    'std': float(np.std(scores_array)),
+                },
+                'outliers': outliers,
+                'all_students': students_data,
+            }, json_dumps_params={'ensure_ascii': False})
 
         # Групповая разбивка
         groups_data = {}

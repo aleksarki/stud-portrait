@@ -150,9 +150,11 @@ function AdminAnomalousStudentView() {
         setSelectedInstitutions([]);
         setSelectedDirections([]);
         setSelectedCompetency('res_comp_leadership');
+        setGroupByMode('auto');
         setBoxplotData(null);
         setOutliers([]);
         setStats(null);
+        setGroupedData(null);
     };
 
     return (
@@ -223,13 +225,20 @@ function AdminAnomalousStudentView() {
                                 <ValueCard value={groupedData.reduce((sum, g) => sum + g.outliers.length, 0)} text="Аномальных студентов" />
                             </FlexRow>
 
-                            <TitledCard title={`Распределение по ${groupByMode === 'institution' ? 'вузам' : 'направлениям'}`}>
+                            {boxplotData?.skipped_groups?.length > 0 && (
+                                <div className="skipped-groups-warning">
+                                    Пропущено из-за малого числа студентов (&lt;10):{" "}
+                                    {boxplotData.skipped_groups.map(g => g.group_name).join(", ")}
+                                </div>
+                            )}
+
+                            <TitledCard title={`Распределение по ${boxplotData?.group_by === 'institution' ? 'вузам' : 'направлениям'}`}>
                                 <div className="boxplot-grid">
                                     {groupedData.map(group => (
                                         <div key={group.group_id} className="boxplot-group-card">
                                             <h4>{group.group_name}</h4>
                                             <div className="boxplot-container-small">
-                                                <BoxplotChart stats={group.statistics} width={300} height={250} />
+                                                <BoxplotChart stats={group.statistics} outliers={group.outliers} width={300} height={250} />
                                             </div>
                                             <div className="boxplot-stats-summary">
                                                 <span>n={group.statistics.count}</span>
@@ -252,12 +261,73 @@ function AdminAnomalousStudentView() {
                                             </details>
                                         </div>
                                     ))}
+                                    {groupedData && groupedData.some(g => g.outliers.length > 0) && (
+                                        <TitledCard title="Все аномальные студенты (сводка)">
+                                            <table className="anomalies-table">
+                                                <thead>
+                                                    <tr><th>Группа</th><th>Студент</th><th>Балл</th><th>Вуз / Направление</th></tr>
+                                                </thead>
+                                                <tbody>
+                                                    {groupedData.flatMap(group => 
+                                                        group.outliers.map(s => (
+                                                            <tr key={`${group.group_id}-${s.student_id}`}>
+                                                                <td>{group.group_name}</td>
+                                                                <td>{s.name}</td>
+                                                                <td className={s.score > group.statistics.upper_fence ? "high" : "low"}>{s.score}</td>
+                                                                <td>{boxplotData?.group_by === 'institution' ? s.institution : s.direction}</td>
+                                                            </tr>
+                                                        ))
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </TitledCard>
+                                    )}
                                 </div>
                             </TitledCard>
                         </>
                     )}
 
-                    {!loading && !stats && (
+                    {!loading && stats && !groupedData && (
+                        <>
+                            <FlexRow justify={JUSTIFY.CENTER} gap="10" wrap={WRAP.DO}>
+                                <ValueCard value={stats.count} text="Студентов" />
+                                <ValueCard value={stats.median.toFixed(1)} text="Медиана" />
+                                <ValueCard value={outliers.length} text="Аномальных студентов" />
+                            </FlexRow>
+                            <TitledCard title="Общее распределение">
+                                <div className="boxplot-container">
+                                    <BoxplotChart stats={stats} outliers={outliers} width={400} height={320} />
+                                </div>
+                                <div className="boxplot-legend">
+                                    <div><span className="box" />Q1–Q3</div>
+                                    <div><span className="median" />Медиана</div>
+                                    <div><span className="whisker" />Усы</div>
+                                    <div><span className="outlier" />Выброс</div>
+                                </div>
+                            </TitledCard>
+                            {outliers.length > 0 && (
+                                <TitledCard title={`Аномальные студенты (${outliers.length})`}>
+                                    <table className="anomalies-table">
+                                        <thead>
+                                            <tr><th>Студент</th><th>Балл</th><th>Вуз</th><th>Направление</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            {outliers.map(s => (
+                                                <tr key={s.student_id}>
+                                                    <td>{s.name}</td>
+                                                    <td className={s.score > stats.upper_fence ? "high" : "low"}>{s.score}</td>
+                                                    <td>{s.institution}</td>
+                                                    <td>{s.direction}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </TitledCard>
+                            )}
+                        </>
+                    )}
+
+                    {!loading && !groupedData && !stats && (
                         <NoData text="Выберите фильтры и нажмите 'Найти аномалии'" />
                     )}
                 </Content>

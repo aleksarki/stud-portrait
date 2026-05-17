@@ -2,14 +2,19 @@
 
 import React from "react";
 
-const BoxplotChart = ({ stats, width = 400, height = 300 }) => {
+const BoxplotChart = ({ stats, outliers = [], width = 400, height = 300 }) => {
     const { q1, median, q3, whisker_low, whisker_high, min, max, lower_fence, upper_fence } = stats;
 
-    // Масштабирование: от min до max с небольшими полями
-    const minVal = Math.min(min, lower_fence);
-    const maxVal = Math.max(max, upper_fence);
+    // Масштабирование: от minVal до maxVal (с учётом границ выбросов)
+    const minVal = min;
+    const maxVal = max;
     const range = maxVal - minVal;
-    const yScale = (value) => height - ((value - minVal) / range) * height;
+
+    // Защита от division by zero
+    const yScale = (value) => {
+        if (range === 0) return height / 2;
+        return height - ((value - minVal) / range) * height;
+    };
 
     const boxY1 = yScale(q3);
     const boxY2 = yScale(q1);
@@ -34,7 +39,26 @@ const BoxplotChart = ({ stats, width = 400, height = 300 }) => {
             {/* Медиана */}
             <line x1={centerX - boxWidth / 2} y1={medianY} x2={centerX + boxWidth / 2} y2={medianY} stroke="#e67e22" strokeWidth="3" />
 
-            {/* Точки выбросов (рисуем по всем аномальным точкам, но у нас их список отдельно) – для демонстрации можно пропустить */}
+            {/* Точки выбросов */}
+            {outliers.map((outlier, idx) => {
+                const y = yScale(outlier.score);
+                // Небольшой случайный разброс по X, чтобы точки не сливались при одинаковых значениях
+                const xOffset = (idx % 3 - 1) * 6;
+                return (
+                    <circle
+                        key={idx}
+                        cx={centerX + xOffset}
+                        cy={y}
+                        r={5}
+                        fill="#e74c3c"
+                        stroke="white"
+                        strokeWidth="1.5"
+                        style={{ cursor: "pointer" }}
+                        title={`${outlier.name}: ${outlier.score} баллов`}
+                    />
+                );
+            })}
+
             {/* Ось Y (числовые метки) */}
             {[minVal, (minVal + maxVal) / 2, maxVal].map(v => (
                 <text key={v} x={centerX + boxWidth / 2 + 10} y={yScale(v)} fontSize="12" fill="#333">
