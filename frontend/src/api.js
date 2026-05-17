@@ -492,11 +492,13 @@ export function postGetBoxplotData(competency, institutionIds = [], directionIds
 }
 
 // Цифровой портрет студента
-export function getGradesCompetencyCorrelation(institute, specialty, year) {
+export function getGradesCompetencyCorrelation(institute, specialty, year, discipline, competency) {
     const params = new URLSearchParams();
     if (institute) params.append('institute', institute);
     if (specialty) params.append('specialty', specialty);
     if (year) params.append('year', year);
+    if (discipline) params.append('discipline', discipline);
+    if (competency) params.append('competency', competency);
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/grades-competency-correlation/?${params}`);
     return new AsyncChain(promise);
 }

@@ -529,9 +529,27 @@ def get_grades_competency_correlation(request):
                 'n': len(pairs),
             })
         
-        # Шаг 3: scatter — берём пары для самой первой комбинации (пример для диаграммы)
-        if correlations:
-            # Берём пару с наибольшим количеством наблюдений — она нагляднее
+       # Шаг 3: scatter — данные для выбранной (или автовыбранной) пары
+        requested_disc = request.GET.get('discipline')
+        requested_comp = request.GET.get('competency')
+        
+        scatter_data = []
+        
+        # Если пользователь указал конкретную пару — берём её
+        if requested_disc and requested_comp:
+            key = (requested_disc, requested_comp)
+            if key in pairs_data:
+                scatter_data = [
+                    {
+                        'discipline': requested_disc,
+                        'competency': requested_comp,
+                        'grade': p[0],
+                        'comp_value': p[1],
+                    }
+                    for p in pairs_data[key]
+                ]
+        # Иначе — пара с максимальным n
+        elif correlations:
             top = max(correlations, key=lambda c: c['n'])
             top_pairs = pairs_data[(top['discipline'], top['competency'])]
             scatter_data = [
