@@ -53,6 +53,8 @@
 
 ## `gendox` - модуль генерации документов
 
-- **GET** `gendox/generate-resume-docx/` - Генерирует профессиональное резюме в формате DOCX.
+- **GET** `gendox/generate-resume-docx/` - Генерация профессионального резюме в формате DOCX.
 
 - **GET** `gendox/student-resume-data/` - Получить данные для резюме студента?
+
+- **GET** `gendox/geography-report/` - Генерация DOCX отчёта о географии тестирования.

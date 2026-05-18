@@ -209,15 +209,15 @@ def extract_session_data(request):
         match filter.type:
             case DataViewFilter.CATEGORIAL:
                 if filter.field in RESULTS_FIELD_MAP:
-                    results_query = results_query.filter(**{
-                        join(RESULTS_FIELD_MAP[filter.field], IN): filter.categories
-                    })
+                    results_query = results_query.filter(
+                        **isIn(RESULTS_FIELD_MAP[filter.field], filter.categories)
+                    )
             case DataViewFilter.NUMERIC:
                 if filter.field.startswith(('res_comp_', 'res_mot_', 'res_val_')):
-                    results_query = results_query.filter(**{
-                        join(filter.field, GTE): filter.min,
-                        join(filter.field, LTE): filter.max
-                    })
+                    results_query = results_query.filter(
+                        **greaterEqual(filter.field, filter.min),
+                        **lessEqual(filter.field, filter.max)
+                    )
 
     filtered_count = results_query.count()
     results_slice = results_query[session.start:session.end]
@@ -312,14 +312,14 @@ def export_selected_results(request):
     if not selected_ids:
         raise ResponseError("No records provided for export")
 
-    results_query = Results.objects                  \
-        .filter(**{join(TRES.ID, IN): selected_ids}) \
+    results_query = Results.objects            \
+        .filter(**isIn(TRES.ID, selected_ids)) \
         .select_related(
             TRES.PARTICIPANT, TRES.CENTER, TRES.INSTITUTION,
             TRES.EDU_LEVEL, TRES.EDU_FORM, TRES.EDU_SPEC
         )
 
-    return excelResponse(
+    return xlsxResponse(
         [format_result_for_export(result, session.columns) for result in results_query],
         "Выгрузка результатов", "results_export.xlsx"
     )
@@ -343,8 +343,8 @@ def group_data(request):  # REVIEW
     if not groupping_column:
         raise ResponseError("Grouping column not specified")
 
-    results_query = Results.objects                  \
-        .filter(**{join(TRES.ID, IN): selected_ids}) \
+    results_query = Results.objects          \
+        .filter(isIn(TRES.ID, selected_ids)) \
         .select_related(
             TRES.PARTICIPANT, TRES.CENTER, TRES.INSTITUTION,
             TRES.EDU_LEVEL, TRES.EDU_FORM, TRES.EDU_SPEC
@@ -354,15 +354,15 @@ def group_data(request):  # REVIEW
         match filter.type:
             case DataViewFilter.CATEGORIAL:
                 if filter.field in RESULTS_FIELD_MAP:
-                    results_query = results_query.filter(**{
-                        join(RESULTS_FIELD_MAP[filter.field], IN): filter.categories
-                    })
+                    results_query = results_query.filter(
+                        **isIn(RESULTS_FIELD_MAP[filter.field], filter.categories)
+                    )
             case DataViewFilter.NUMERIC:
                 if filter.field.startswith(('res_comp_', 'res_mot_', 'res_val_')):
-                    results_query = results_query.filter(**{
-                        join(filter.field, GTE): filter.min,
-                        join(filter.field, LTE): filter.max
-                    })
+                    results_query = results_query.filter(
+                        **greaterEqual(filter.field, filter.min),
+                        **lessEqual(filter.field, filter.max)
+                    )
 
     grouped_data = {
         "competences": {},
@@ -453,65 +453,64 @@ def stats_with_filters(request):
 
     # Участники по центрам компетенций (топ-15)
     centers_stats = Results.objects                             \
-        .filter(**{join(TRES.CENTER, ISNULL): False})           \
-        .values(join(TRES.CENTER, 'center_name'))               \
+        .filter(**isNull(TRES.CENTER, False))                   \
+        .values(join(TRES.CENTER, TCENTER.NAME))                \
         .annotate(count=Count(TRES.PARTICIPANT, distinct=True)) \
         .order_by('-count')[:15]
-
+    
     participants_by_center = {
-        "centers": [stat['res_center__center_name'] for stat in centers_stats if stat['res_center__center_name']],
-        "centers": [stat['res_center__center_name'] for stat in centers_stats if stat['res_center__center_name']],
-        "counts":  [stat['count']                   for stat in centers_stats if stat['res_center__center_name']]
+        "centers": [stat[J(TRES.CENTER, TCENTER.NAME)] for stat in centers_stats if stat[J(TRES.CENTER, TCENTER.NAME)]],
+        "counts":  [stat['count']                      for stat in centers_stats if stat[J(TRES.CENTER, TCENTER.NAME)]]
     }
 
     # Участники по учебным заведениям (топ-15)
     institutions_stats = Results.objects                        \
-        .filter(**{join(TRES.INSTITUTION, ISNULL): False})      \
-        .values(join(TRES.INSTITUTION, 'inst_name'))            \
+        .filter(**isNull(TRES.INSTITUTION, False))              \
+        .values(join(TRES.INSTITUTION, TINST.NAME))             \
         .annotate(count=Count(TRES.PARTICIPANT, distinct=True)) \
         .order_by('-count')[:15]
 
     participants_by_institution = {
-        "institutions": [stat['res_institution__inst_name'] for stat in institutions_stats if stat['res_institution__inst_name']],
-        "counts":       [stat['count']                      for stat in institutions_stats if stat['res_institution__inst_name']]
+        "institutions": [stat[J(TRES.INSTITUTION, TINST.NAME)] for stat in institutions_stats if stat[J(TRES.INSTITUTION, TINST.NAME)]],
+        "counts":       [stat['count']                         for stat in institutions_stats if stat[J(TRES.INSTITUTION, TINST.NAME)]]
     }
 
     # Специальности участников
     specialties_stats = Results.objects                         \
-        .filter(**{join(TRES.EDU_SPEC, ISNULL): False})         \
-        .values(join(TRES.EDU_SPEC, 'spec_name'))               \
+        .filter(**isNull(TRES.EDU_SPEC, False))                 \
+        .values(join(TRES.EDU_SPEC, TSPEC.NAME))                \
         .annotate(count=Count(TRES.PARTICIPANT, distinct=True)) \
         .order_by('-count')
 
     specialties_distribution = {
-        "specialties": [stat['res_spec__spec_name'] for stat in specialties_stats if stat['res_spec__spec_name']],
-        "counts":      [stat['count']               for stat in specialties_stats if stat['res_spec__spec_name']]
+        "specialties": [stat[J(TRES.EDU_SPEC, TSPEC.NAME)] for stat in specialties_stats if stat[J(TRES.EDU_SPEC, TSPEC.NAME)]],
+        "counts":      [stat['count']                      for stat in specialties_stats if stat[J(TRES.EDU_SPEC, TSPEC.NAME)]]
     }
 
     # Динамика тестирований по годам
-    tests_by_year = Results.objects                 \
-        .filter(**{join(TRES.YEAR, ISNULL): False}) \
-        .values(TRES.YEAR)                          \
-        .annotate(count=Count(TRES.ID))             \
+    tests_by_year = Results.objects         \
+        .filter(**isNull(TRES.YEAR, False)) \
+        .values(TRES.YEAR)                  \
+        .annotate(count=Count(TRES.ID))     \
         .order_by(TRES.YEAR)
 
     tests_by_year_data = {
-        "years":  [str(stat['res_year']) for stat in tests_by_year if stat['res_year']],
-        "counts": [stat['count']         for stat in tests_by_year if stat['res_year']]
+        "years":  [str(stat[TRES.YEAR]) for stat in tests_by_year if stat[TRES.YEAR]],
+        "counts": [stat['count']        for stat in tests_by_year if stat[TRES.YEAR]]
     }
 
     competences_by_year = [
         {
             "name":   COMP.names[field],
-            "years":  [str(stat['res_year'])              for stat in yearly_stats1 if stat['res_year']],
-            "values": [round(float(stat['avg_value']), 1) for stat in yearly_stats1 if stat['res_year']]
+            "years":  [str(stat[TRES.YEAR])               for stat in yearly_stats1 if stat[TRES.YEAR]],
+            "values": [round(float(stat['avg_value']), 1) for stat in yearly_stats1 if stat[TRES.YEAR]]
         }
         for field in COMP.list
         if (
-            yearly_stats1 := Results.objects                                   \
-                .filter(**{f'{field}__isnull': False}, res_year__isnull=False) \
-                .values(TRES.YEAR)                                              \
-                .annotate(avg_value=Avg(field))                                \
+            yearly_stats1 := Results.objects                                \
+                .filter(**isNull(field, False), **isNull(TRES.YEAR, False)) \
+                .values(TRES.YEAR)                                          \
+                .annotate(avg_value=Avg(field))                             \
                 .order_by(TRES.YEAR)
         )
     ]
@@ -519,15 +518,15 @@ def stats_with_filters(request):
     motivators_by_year = [
         {
             "name":   MOT.names[field],
-            "years":  [str(stat['res_year'])              for stat in yearly_stats2 if stat['res_year']],
-            "values": [round(float(stat['avg_value']), 1) for stat in yearly_stats2 if stat['res_year']]
+            "years":  [str(stat[TRES.YEAR])               for stat in yearly_stats2 if stat[TRES.YEAR]],
+            "values": [round(float(stat['avg_value']), 1) for stat in yearly_stats2 if stat[TRES.YEAR]]
         }
         for field in MOT.list
         if (
-            yearly_stats2 := Results.objects                                   \
-                .filter(**{f'{field}__isnull': False}, res_year__isnull=False) \
-                .values(TRES.YEAR)                                              \
-                .annotate(avg_value=Avg(field))                                \
+            yearly_stats2 := Results.objects                                \
+                .filter(**isNull(field, False), **isNull(TRES.YEAR, False)) \
+                .values(TRES.YEAR)                                          \
+                .annotate(avg_value=Avg(field))                             \
                 .order_by(TRES.YEAR)
         )
     ]
@@ -535,15 +534,15 @@ def stats_with_filters(request):
     values_by_year = [
         {
             "name":   VAL.names[field],
-            "years":  [str(stat['res_year'])              for stat in yearly_stats3 if stat['res_year']],
-            "values": [round(float(stat['avg_value']), 1) for stat in yearly_stats3 if stat['res_year']]
+            "years":  [str(stat[TRES.YEAR])               for stat in yearly_stats3 if stat[TRES.YEAR]],
+            "values": [round(float(stat['avg_value']), 1) for stat in yearly_stats3 if stat[TRES.YEAR]]
         }
         for field in VAL.list
         if (
-            yearly_stats3 := Results.objects                                   \
-                .filter(**{f'{field}__isnull': False}, res_year__isnull=False) \
-                .values(TRES.YEAR)                                              \
-                .annotate(avg_value=Avg(field))                                \
+            yearly_stats3 := Results.objects                                \
+                .filter(**isNull(field, False), **isNull(TRES.YEAR, False)) \
+                .values(TRES.YEAR)                                          \
+                .annotate(avg_value=Avg(field))                             \
                 .order_by(TRES.YEAR)
         )
     ]
@@ -572,14 +571,14 @@ def stats_with_filters(request):
 # ! ================================================== CONSTANTS =================================================== ! #
 
 RESULTS_FIELD_MAP = {
-    'part_gender':    'res_participant__part_gender',
-    'center':         'res_center__center_name',
-    'institution':    'res_institution__inst_name',
-    'edu_level':      'res_edu_level__edu_level_name',
-    'study_form':     'res_form__form_name',
-    'specialty':      'res_spec__spec_name',
-    'res_year':       'res_year',
-    'res_course_num': 'res_course_num'
+    'part_gender':    J(TRES.PARTICIPANT, TPART.GENDER),
+    'center':         J(TRES.CENTER,      TCENTER.NAME),
+    'institution':    J(TRES.INSTITUTION, TINST.NAME),
+    'edu_level':      J(TRES.EDU_LEVEL,   TLEVEL.NAME),
+    'study_form':     J(TRES.EDU_FORM,    TFORM.NAME),
+    'specialty':      J(TRES.EDU_SPEC,    TSPEC.NAME),
+    'res_year':       TRES.YEAR,
+    'res_course_num': TRES.COURSE_NUM
 }
 
 
@@ -684,12 +683,12 @@ def get_group_value(result, grouping_column):  # REVIEW
     """ Get value for groupping from result.
     """ # what?
     match grouping_column:
-        case 'part_gender':    return result.res_participant.part_gender  if result.res_participant else None
-        case 'center':         return result.res_center.center_name       if result.res_center      else None
-        case 'institution':    return result.res_institution.inst_name    if result.res_institution else None
-        case 'edu_level':      return result.res_edu_level.edu_level_name if result.res_edu_level   else None
-        case 'study_form':     return result.res_form.form_name           if result.res_form        else None
-        case 'specialty':      return result.res_spec.spec_name           if result.res_spec        else None
+        case 'part_gender':    return attrIfObj(result.res_participant, 'part_gender')
+        case 'center':         return attrIfObj(result.res_center,      'center_name')
+        case 'institution':    return attrIfObj(result.res_institution, 'inst_name')
+        case 'edu_level':      return attrIfObj(result.res_edu_level,   'edu_level_name')
+        case 'study_form':     return attrIfObj(result.res_form,        'form_name')
+        case 'specialty':      return attrIfObj(result.res_spec,        'spec_name')
         case 'res_year':       return result.res_year
         case 'res_course_num': return result.res_course_num
         case _:                return None
@@ -713,15 +712,15 @@ def extract_available_values_for_filters(filters: list[DataViewFilter]):
     for filter in filters:
         if filter.type == DataViewFilter.CATEGORIAL and filter.categories:
             if filter.field in RESULTS_FIELD_MAP:
-                results_query = results_query.filter(**{f'{RESULTS_FIELD_MAP[filter.field]}__in': filter.categories})
+                results_query = results_query.filter(**isIn(RESULTS_FIELD_MAP[filter.field], filter.categories))
 
     # extract unique values for each field
     for field in basic_fields:
         if field in RESULTS_FIELD_MAP:
-            unique_values = results_query                                 \
-                .filter(**{f'{RESULTS_FIELD_MAP[field]}__isnull': False}) \
-                .values_list(RESULTS_FIELD_MAP[field], flat=True)         \
-                .distinct()                                               \
+            unique_values = results_query                          \
+                .filter(**isNull(RESULTS_FIELD_MAP[field], False)) \
+                .values_list(RESULTS_FIELD_MAP[field], flat=True)  \
+                .distinct()                                        \
                 .order_by(RESULTS_FIELD_MAP[field])
 
         # turn into list of string and filter empty values
