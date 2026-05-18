@@ -5,6 +5,7 @@ import {
 
 import {
     postAnalyzeCohortLgm,
+    postGetLgmGrowers,
     getPortraitGetDisciplines,
     getPortraitGetFilterOptionsWithCounts,
     getPortraitGetInstitutionDirections,
@@ -68,6 +69,9 @@ function AdminAnalysisAdvancedView() {
     const [lgmCompetency, setLgmCompetency] = useState('res_comp_leadership');
     const [lgmChartMode, setLgmChartMode] = useState('combined');
     const [lgmGroupBy, setLgmGroupBy] = useState('institution');
+
+    // LGM growers: { [group_id]: { fast_growers, slow_growers, mean_slope, loading } }
+    const [lgmGrowersMap, setLgmGrowersMap] = useState({});
 
     // VAM
     const [vamData, setVamData] = useState(null);
@@ -188,6 +192,7 @@ function AdminAnalysisAdvancedView() {
 
         setLoading(true);
         setActiveVisualization('lgm');
+        setLgmGrowersMap({});
         postAnalyzeCohortLgm(lgmCompetency, instIds, dirIds, lgmGroupBy)
             .onSuccess(async response => {
                 const data = await response.json();
@@ -204,6 +209,48 @@ function AdminAnalysisAdvancedView() {
                 setLgmCohortData(null);
             })
             .finally(() => setLoading(false));
+    };
+
+    // -------------------- LGM Growers --------------------
+    const loadLgmGrowers = (groupId) => {
+        if (lgmGrowersMap[groupId]?.loaded) return; // уже загружено
+
+        setLgmGrowersMap(prev => ({
+            ...prev,
+            [groupId]: { loading: true, loaded: false, fast_growers: [], slow_growers: [], mean_slope: 0 }
+        }));
+
+        const instIds = selectedInstitutions.map(id => Number(id)).filter(v => !isNaN(v));
+        const dirIds = selectedDirections.map(id => Number(id)).filter(v => !isNaN(v));
+
+        postGetLgmGrowers(lgmCompetency, lgmGroupBy, groupId, instIds, dirIds)
+            .onSuccess(async response => {
+                const data = await response.json();
+                if (data.status === 'success') {
+                    setLgmGrowersMap(prev => ({
+                        ...prev,
+                        [groupId]: {
+                            loading: false,
+                            loaded: true,
+                            fast_growers: data.fast_growers || [],
+                            slow_growers: data.slow_growers || [],
+                            mean_slope: data.mean_slope || 0,
+                        }
+                    }));
+                } else {
+                    setLgmGrowersMap(prev => ({
+                        ...prev,
+                        [groupId]: { loading: false, loaded: true, error: data.message, fast_growers: [], slow_growers: [] }
+                    }));
+                }
+            })
+            .onError(err => {
+                console.error(err);
+                setLgmGrowersMap(prev => ({
+                    ...prev,
+                    [groupId]: { loading: false, loaded: true, error: 'Ошибка загрузки', fast_growers: [], slow_growers: [] }
+                }));
+            });
     };
 
     // -------------------- Поток уровней --------------------
@@ -418,6 +465,102 @@ function AdminAnalysisAdvancedView() {
                                             </div>
                                         </details>
                                     )}
+                                    {/* Блок детального просмотра студентов */}
+                                    {group.interpretation && (() => {
+                                        const growers = lgmGrowersMap[group.group_id];
+                                        return (
+                                            <details
+                                                style={{ marginTop: 6 }}
+                                                onToggle={(e) => {
+                                                    if (e.target.open) loadLgmGrowers(group.group_id);
+                                                }}
+                                            >
+                                                <summary style={{ fontSize: 12, cursor: 'pointer', color: '#1976d2', fontWeight: 500 }}>
+                                                    👥 Посмотреть студентов ({group.interpretation.fast_growers_count} быстрых / {group.interpretation.slow_growers_count} медленных)
+                                                </summary>
+                                                <div style={{ marginTop: 8 }}>
+                                                    {growers?.loading && (
+                                                        <div style={{ fontSize: 12, color: '#888', padding: '8px 0' }}>Загрузка...</div>
+                                                    )}
+                                                    {growers?.error && (
+                                                        <div style={{ fontSize: 12, color: '#e74c3c' }}>{growers.error}</div>
+                                                    )}
+                                                    {growers?.loaded && !growers.error && (
+                                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                                                            {/* Быстрорастущие */}
+                                                            <div>
+                                                                <div style={{ fontSize: 12, fontWeight: 600, color: '#2ecc71', marginBottom: 4 }}>
+                                                                    📈 Быстрорастущие ({growers.fast_growers.length})
+                                                                </div>
+                                                                <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                                                                    <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
+                                                                        <thead>
+                                                                            <tr style={{ background: '#f0faf4' }}>
+                                                                                <th style={{ padding: '4px 6px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Студент</th>
+                                                                                <th style={{ padding: '4px 6px', textAlign: 'right', borderBottom: '1px solid #ddd' }}>Рост/курс</th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody>
+                                                                            {growers.fast_growers.map(s => (
+                                                                                <tr key={s.student_id} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                                                                                    <td style={{ padding: '3px 6px' }}>
+                                                                                        <div>{s.name}</div>
+                                                                                        {(s.institution || s.direction) && (
+                                                                                            <div style={{ color: '#999', fontSize: 10 }}>{s.institution || s.direction}</div>
+                                                                                        )}
+                                                                                    </td>
+                                                                                    <td style={{ padding: '3px 6px', textAlign: 'right', color: '#2ecc71', fontWeight: 600 }}>
+                                                                                        +{s.slope > 0 ? s.slope.toFixed(3) : s.slope.toFixed(3)}
+                                                                                    </td>
+                                                                                </tr>
+                                                                            ))}
+                                                                            {growers.fast_growers.length === 0 && (
+                                                                                <tr><td colSpan={2} style={{ padding: '6px', color: '#aaa', textAlign: 'center' }}>Нет данных</td></tr>
+                                                                            )}
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+                                                            </div>
+                                                            {/* Медленнорастущие */}
+                                                            <div>
+                                                                <div style={{ fontSize: 12, fontWeight: 600, color: '#e74c3c', marginBottom: 4 }}>
+                                                                    📉 Медленнорастущие ({growers.slow_growers.length})
+                                                                </div>
+                                                                <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                                                                    <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
+                                                                        <thead>
+                                                                            <tr style={{ background: '#fff5f5' }}>
+                                                                                <th style={{ padding: '4px 6px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Студент</th>
+                                                                                <th style={{ padding: '4px 6px', textAlign: 'right', borderBottom: '1px solid #ddd' }}>Рост/курс</th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody>
+                                                                            {growers.slow_growers.map(s => (
+                                                                                <tr key={s.student_id} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                                                                                    <td style={{ padding: '3px 6px' }}>
+                                                                                        <div>{s.name}</div>
+                                                                                        {(s.institution || s.direction) && (
+                                                                                            <div style={{ color: '#999', fontSize: 10 }}>{s.institution || s.direction}</div>
+                                                                                        )}
+                                                                                    </td>
+                                                                                    <td style={{ padding: '3px 6px', textAlign: 'right', color: '#e74c3c', fontWeight: 600 }}>
+                                                                                        {s.slope.toFixed(3)}
+                                                                                    </td>
+                                                                                </tr>
+                                                                            ))}
+                                                                            {growers.slow_growers.length === 0 && (
+                                                                                <tr><td colSpan={2} style={{ padding: '6px', color: '#aaa', textAlign: 'center' }}>Нет данных</td></tr>
+                                                                            )}
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </details>
+                                        );
+                                    })()}
                                 </div>
                             );
                         })}

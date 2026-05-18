@@ -296,6 +296,22 @@ export function postAnalyzeCohortLgm(competency, institutionIds = [], directionI
     return new AsyncChain(promise);
 }
 
+/** POST /portrait/get-lgm-growers/ - Списки быстро- и медленнорастущих студентов для группы */
+export function postGetLgmGrowers(competency, groupBy, groupId, institutionIds = [], directionIds = []) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-lgm-growers/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            competency,
+            group_by: groupBy,
+            group_id: groupId,
+            institution_ids: institutionIds,
+            direction_ids: directionIds,
+        })
+    });
+    return new AsyncChain(promise);
+}
+
 /** GET /portrait/analyze-all-disciplines-impact/ - Комплексный анализ всех дисциплин */
 export function getAnalyzeAllDisciplinesImpact() {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/analyze-all-disciplines-impact/`);

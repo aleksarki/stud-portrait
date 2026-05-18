@@ -267,6 +267,137 @@ def analyze_cohort_lgm(request):
 
 
 # ============================================================
+# LGM: списки быстро- и медленнорастущих студентов для группы
+# ============================================================
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def get_lgm_growers(request):
+    """
+    Возвращает списки студентов (с именами), чей индивидуальный slope
+    выше/ниже среднего по группе — т.е. быстро- и медленнорастущие.
+
+    POST body:
+    {
+        "competency": "res_comp_leadership",
+        "group_by": "institution" | "direction",
+        "group_id": 42,
+        "institution_ids": [],
+        "direction_ids": []
+    }
+    """
+    try:
+        body = json.loads(request.body)
+        competency = body.get('competency', 'res_comp_leadership')
+        group_by = body.get('group_by', 'institution')
+        group_id = body.get('group_id')
+        institution_ids = body.get('institution_ids', [])
+        direction_ids = body.get('direction_ids', [])
+
+        if group_id is None:
+            return JsonResponse({'status': 'error', 'message': 'group_id required'}, status=400)
+
+        group_id = int(group_id)
+
+        # Формируем запрос — те же условия, что в analyze_cohort_lgm
+        query = Q()
+        if group_by == 'institution':
+            query &= Q(res_institution_id=group_id)
+        else:
+            query &= Q(res_spec_id=group_id)
+            clean_inst_ids = [int(i) for i in institution_ids if str(i).isdigit()]
+            if clean_inst_ids:
+                query &= Q(res_institution_id__in=clean_inst_ids)
+
+        results_qs = Results.objects.filter(query).order_by(
+            'res_participant_id', 'res_year', 'res_course_num'
+        )
+
+        data = []
+        for r in results_qs:
+            score = getattr(r, competency, None)
+            if score is not None:
+                data.append({
+                    'student_id': r.res_participant_id,
+                    'time_point': r.res_course_num,
+                    'competency_score': score
+                })
+
+        if not data:
+            return JsonResponse({'status': 'error', 'message': 'Нет данных'}, status=404)
+
+        df = pd.DataFrame(data)
+        lgm = LatentGrowthModel()
+        analysis = lgm.fit(df)
+
+        if analysis['status'] != 'success':
+            return JsonResponse({'status': 'error', 'message': analysis.get('message', 'Ошибка LGM')}, status=500)
+
+        trajectories = analysis.get('trajectories', [])
+        mean_slope = analysis.get('mean_slope', 0)
+
+        # Разбиваем на fast/slow
+        fast = [t for t in trajectories if t['slope'] > mean_slope]
+        slow = [t for t in trajectories if t['slope'] <= mean_slope]
+
+        # Подтягиваем имена студентов
+        def enrich_with_names(student_list):
+            enriched = []
+            for t in student_list:
+                sid = t['student_id']
+                name = str(sid)
+                institution_name = ''
+                direction_name = ''
+                try:
+                    participant = Participants.objects.get(part_id=sid)
+                    try:
+                        mapping = Studentmapping.objects.get(rsv_id=participant.part_rsv_id)
+                        name = mapping.student_name
+                    except Studentmapping.DoesNotExist:
+                        name = participant.part_rsv_id or str(sid)
+                    # Берём последний результат для определения вуза/направления
+                    last_result = Results.objects.filter(
+                        res_participant_id=sid
+                    ).select_related('res_institution', 'res_spec').order_by('-res_year', '-res_course_num').first()
+                    if last_result:
+                        institution_name = last_result.res_institution.inst_name if last_result.res_institution else ''
+                        direction_name = last_result.res_spec.spec_name if last_result.res_spec else ''
+                except Participants.DoesNotExist:
+                    pass
+                enriched.append({
+                    'student_id': sid,
+                    'name': name,
+                    'slope': round(t['slope'], 4),
+                    'intercept': round(t.get('intercept', 0), 2),
+                    'institution': institution_name,
+                    'direction': direction_name,
+                })
+            return enriched
+
+        fast_enriched = enrich_with_names(fast)
+        slow_enriched = enrich_with_names(slow)
+
+        # Сортируем: быстрые — по убыванию slope, медленные — по возрастанию
+        fast_enriched.sort(key=lambda x: x['slope'], reverse=True)
+        slow_enriched.sort(key=lambda x: x['slope'])
+
+        return JsonResponse({
+            'status': 'success',
+            'group_id': group_id,
+            'mean_slope': round(mean_slope, 4),
+            'fast_growers': fast_enriched,
+            'slow_growers': slow_enriched,
+            'fast_count': len(fast_enriched),
+            'slow_count': len(slow_enriched),
+        }, json_dumps_params={'ensure_ascii': False})
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+# ============================================================
 # Комплексный анализ всех дисциплин
 # ============================================================
 

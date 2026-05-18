@@ -39,6 +39,7 @@ urlpatterns = [
     path('analyze-student-vam/', analysis_end.analyze_student_vam, name='analyze_student_vam'),
     path('analyze-cohort-lgm/',  analysis_end.analyze_cohort_lgm,  name='analyze_cohort_lgm'),
     path('get-vam-trend-data/',  analysis_end.get_vam_trend_data,  name='get_vam_trend_data'),
+    path('get-lgm-growers/',  analysis_end.get_lgm_growers,  name='get_lgm_growers'),
     
     path('get-institutions/', analysis_end.get_institutions, name='get_institutions'),
     path('get-directions/',   analysis_end.get_directions,   name='get_directions'),
