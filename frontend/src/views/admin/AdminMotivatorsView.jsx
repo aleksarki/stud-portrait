@@ -96,6 +96,7 @@ function MotTable({ data, currentFilters }) {
     let all_d = 0;
 
     const exportToExcel = () => {
+        console.log(currentFilters);
         const excelData = [];
         if (!data){
             alert('Отсутствуют данные для скачивания');
@@ -129,7 +130,7 @@ function MotTable({ data, currentFilters }) {
             });
         });
         
-        const header = `${currentFilters.institute ? `${currentFilters.institute}, ` : ''} ${currentFilters.speciality ? `${currentFilters.speciality}, ` : ''} ${currentFilters.year ? `${currentFilters.year} учебный год ` : ''}`; 
+        const header = `${currentFilters.institute ? `${currentFilters.institute}, ` : ''} ${currentFilters.specialty ? `${currentFilters.specialty}, ` : ''} ${currentFilters.year ? `${currentFilters.year} учебный год ` : ''}`; 
         const worksheet = XLSX.utils.aoa_to_sheet([[header]]);
         XLSX.utils.sheet_add_json(worksheet, excelData,{ origin: "A2", skipHeader: false });
         

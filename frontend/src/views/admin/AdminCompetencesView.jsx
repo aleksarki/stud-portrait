@@ -93,6 +93,12 @@ const FilterHeader = ({ filters, onFilterChange }) => {
         if (!value) return null;
         return opts?.find(o => o.value === value) || null;
     };
+
+    const sorted = (opts) =>
+        (opts || []).slice().sort((a, b) =>
+            a.label.localeCompare(b.label, 'ru', { numeric: true, sensitivity: 'base' })
+        );
+
     if (loading) return <div>Загрузка фильтров...</div>;
 
     return (
@@ -102,7 +108,7 @@ const FilterHeader = ({ filters, onFilterChange }) => {
                 placeholder="Институт..."
                 isClearable
                 isSearchable
-                options={options?.institutes || []}
+                options={sorted(options?.institutes) || []}
                 onChange={opt => handleChange(opt, 'institute')}
                 styles={customStyles}
             />
@@ -112,7 +118,7 @@ const FilterHeader = ({ filters, onFilterChange }) => {
                 placeholder="Направление..."
                 isClearable
                 isSearchable
-                options={options?.specialties || []}
+                options={sorted(options?.specialties) || []}
                 value={findOption(options?.specialties, filters?.specialty)}
                 onChange={opt => handleChange(opt, 'specialty')}
                 styles={customStyles}
@@ -123,7 +129,7 @@ const FilterHeader = ({ filters, onFilterChange }) => {
                 placeholder="Год..."
                 isClearable
                 isSearchable
-                options={options?.years || []}
+                options={sorted(options?.years) || []}
                 onChange={opt => handleChange(opt, 'year')}
                 styles={customStyles}
             />
@@ -131,8 +137,7 @@ const FilterHeader = ({ filters, onFilterChange }) => {
     );
 };
 
-
-const Stat = ({ label, value, prev = 0, suffix = "", isGrowth = false, isText = false }) => {
+const Stat = ({ label, value, prev = 0, suffix = "", isGrowth = false, isText = false, note = undefined }) => {
     if (prev == 0) {
         return (<div className="stat-block">
             <div className="value">{value}{suffix}</div>
@@ -146,6 +151,7 @@ const Stat = ({ label, value, prev = 0, suffix = "", isGrowth = false, isText = 
                 <div className="value">{value}{suffix}</div>
                 <div className="prev-year">прошлый год: {prev}{suffix}</div>
                 <div className="label">{label}</div>
+                {note != undefined ? <div className="note">{note}</div> : ''}
             </div>
         );
     }
@@ -204,7 +210,7 @@ function CompetencyTable({ data, filters, year }) {
                 });
             });
 
-            const header = `${filters.institute ? `${filters.institute}, ` : ''} ${filters.speciality ? `${filters.speciality}, ` : ''} ${filters.year ? `${filters.year} учебный год ` : ''}`;
+            const header = `${filters.institute ? `${filters.institute}, ` : ''} ${filters.specialty ? `${filters.specialty}, ` : ''} ${filters.year ? `${filters.year} учебный год ` : ''}`;
             const worksheet = XLSX.utils.aoa_to_sheet([[header]]);
             XLSX.utils.sheet_add_json(worksheet, excelData, { origin: "A2", skipHeader: false });
 
@@ -352,7 +358,7 @@ function CompetencyTable_course({ data, filters }) {
 
                 excelData.push(rowObject);
             });
-            const header = `${filters.institute ? `${filters.institute}, ` : ''} ${filters.speciality ? `${filters.speciality}, ` : ''} ${filters.year ? `${filters.year} учебный год ` : ''}`;
+            const header = `${filters.institute ? `${filters.institute}, ` : ''} ${filters.specialty ? `${filters.specialty}, ` : ''} ${filters.year ? `${filters.year} учебный год ` : ''}`;
             const worksheet = XLSX.utils.aoa_to_sheet([[header]]);
             XLSX.utils.sheet_add_json(worksheet, excelData, { origin: "A2", skipHeader: false });
 
@@ -370,7 +376,7 @@ function CompetencyTable_course({ data, filters }) {
         <div className='table'>
             <button className="ct-toggle" onClick={() => setTableOpen(v => !v)}>
                 <span className={`ct-arrow ${tableOpen ? 'open' : ''}`}>▼</span>
-                {tableOpen ? 'Скрыть таблицу' : 'Подробная таблица'}
+                {tableOpen ? 'Скрыть таблицу' : 'Показать таблицу'}
             </button>
             <div className={`ct-table-wrap ${tableOpen ? 'open' : ''}`}>
                 <div className="table-container">
@@ -582,8 +588,8 @@ function Dashboard({ data, filters }) {
                     <div className="col-left">
                         <Stat label="студентов прошли доп. курсы" value={data.col1.courses.val} prev={data.col1.courses.prev} suffix="%" />
                         <Stat label="средний уровень компетенций" value={data.col1.avg_lvl.val} prev={data.col1.avg_lvl.prev} />
-                        <Stat label={data.col1.motiv.count.curr != 0 ? `Наибольший мотиватор (${data.col1.motiv.count.curr})` : "Нет данных за этот год"} value={getLabel(data.col1.motiv.name.curr)} prev={data.col1.motiv.count.prev != 0 ? getLabel(data.col1.motiv.name.prev) + `(${data.col1.motiv.count.prev})` : 0} isText={true} />
-                        <Stat label={data.col1.demotiv.count.curr != 0 ? `Наибольший демотиватор (${data.col1.demotiv.count.curr})` : "Нет данных за этот год"} value={getLabel(data.col1.demotiv.name.curr)} prev={data.col1.demotiv.count.prev != 0 ? getLabel(data.col1.demotiv.name.prev) + `(${data.col1.demotiv.count.prev})` : 0} isText={true} />
+                        <Stat label={data.col1.motiv.count.curr != 0 ? `Наибольший мотиватор (${data.col1.motiv.count.curr})*` : "Нет данных за этот год"} value={getLabel(data.col1.motiv.name.curr)} prev={data.col1.motiv.count.prev != 0 ? getLabel(data.col1.motiv.name.prev) + `(${data.col1.motiv.count.prev})` : 0} isText={true} note={"*Количество студентов"} />
+                        <Stat label={data.col1.demotiv.count.curr != 0 ? `Наибольший демотиватор (${data.col1.demotiv.count.curr})*` : "Нет данных за этот год"} value={getLabel(data.col1.demotiv.name.curr)} prev={data.col1.demotiv.count.prev != 0 ? getLabel(data.col1.demotiv.name.prev) + `(${data.col1.demotiv.count.prev})` : 0} isText={true} note={"*Количество студентов"} />
                     </div>
 
                     {/* Центральная колонка */}
@@ -1476,7 +1482,7 @@ function AdminCompetencesView() {
     return (
         <div className="AdminCompetencesView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                <Header title="Админ: Статистика тестирования" name="Администратор1" />
+                <Header title="Админ: Компетенции" name="Администратор1" />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <FilterHeader onFilterChange={updateFilter} filters={filters_} />
