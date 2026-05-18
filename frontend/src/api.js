@@ -1,6 +1,6 @@
 /* This module provides convinient way to perform various backend requests. */
 
-/** Chain of functions for performing an API function call. */ 
+/** Chain of functions for performing an API function call. */
 class AsyncChain {
     constructor(promise) {
         this.promise = promise;
@@ -132,7 +132,7 @@ export function deleteDataloadTemplateDelete(templateId) {
 export function postPortraitDataseshNew() {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/datasesh/new/`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'}
+        headers: { 'Content-Type': 'application/json' }
     });
     return new AsyncChain(promise);
 }
@@ -140,8 +140,8 @@ export function postPortraitDataseshNew() {
 export function postPortraitDataseshExtractData(sessionId) {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/datasesh/extract-data/`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({session_id: sessionId})
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId })
     });
     return new AsyncChain(promise);
 }
@@ -149,7 +149,7 @@ export function postPortraitDataseshExtractData(sessionId) {
 export function postPortraitDataseshUpdateFilters(sessionId, filters) {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/datasesh/update-filters/`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             session_id: sessionId,
             filters: filters
@@ -161,7 +161,7 @@ export function postPortraitDataseshUpdateFilters(sessionId, filters) {
 export function postPortraitDataseshUpdateColumns(sessionId, columns) {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/datasesh/update-columns/`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             session_id: sessionId,
             columns: columns
@@ -173,7 +173,7 @@ export function postPortraitDataseshUpdateColumns(sessionId, columns) {
 export function postPortraitDataseshUpdateWindow(sessionId, start, end) {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/datasesh/update-window/`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             session_id: sessionId,
             start: start,
@@ -186,7 +186,7 @@ export function postPortraitDataseshUpdateWindow(sessionId, start, end) {
 export function postPortraitDataseshExportSelected(sessionId, selectedIds) {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/datasesh/export-selected/`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             session_id: sessionId,
             selected_ids: selectedIds
@@ -198,7 +198,7 @@ export function postPortraitDataseshExportSelected(sessionId, selectedIds) {
 export function postPortraitDataseshGroupSelected(sessionId, selectedIds, grouppingColumn) {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/group-data/`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             session_id: sessionId,
             selected_ids: selectedIds,
@@ -211,8 +211,8 @@ export function postPortraitDataseshGroupSelected(sessionId, selectedIds, groupp
 export function postPortraitDataseshCountStats(sessionId) {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/datasesh/count-stats/`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({session_id: sessionId})
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId })
     });
     return new AsyncChain(promise);
 }
@@ -225,7 +225,7 @@ export function getPortraitCourses() {
 }
 
 export function getPortraitStudentResults(studentId) {
-    const params = new URLSearchParams({stud_id: studentId});
+    const params = new URLSearchParams({ stud_id: studentId });
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/student-results/?${params}`);
     return new AsyncChain(promise);
 }
@@ -241,7 +241,7 @@ export function getPortraitGetFilterOptionsWithCounts(
     sessionId, selectedInstitutions, selectedDirections, selectedCourses,
     selectedTestAttempts, selectedCompetencies
 ) {
-    const params = new URLSearchParams({session_id: sessionId});
+    const params = new URLSearchParams({ session_id: sessionId });
     selectedInstitutions?.forEach(id => params.append('institution_ids[]', id));
     selectedDirections?.forEach(dir => params.append('directions[]', dir));
     selectedCourses?.forEach(course => params.append('courses[]', course));
@@ -262,10 +262,10 @@ export function getMotivatorStatistics(filters) {
     if (filters.specialty) params.append('specialty', filters.specialty);
     if (filters.year) params.append('year', filters.year);
     if (filters.group_by) params.append('group_by', filters.group_by);
-    
+
     const queryString = params.toString();
     const url = `${PROTOCOL}://${HOST}/portrait/motivator-statistics/${queryString ? `?${queryString}` : ''}`;
-    
+
     const promise = fetch(url);
     return new AsyncChain(promise);
 }
@@ -276,7 +276,7 @@ export function getMotivatorStatistics(filters) {
 
 /** GET /portrait/analyze-student-vam/ - VAM для конкретного студента */
 export function getAnalyzeStudentVam(studentId, competency = 'res_comp_leadership') {
-    const params = new URLSearchParams({student_id: studentId, competency});
+    const params = new URLSearchParams({ student_id: studentId, competency });
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/analyze-student-vam/?${params}`);
     return new AsyncChain(promise);
 }
@@ -285,7 +285,7 @@ export function getAnalyzeStudentVam(studentId, competency = 'res_comp_leadershi
 export function postAnalyzeCohortLgm(competency, institutionIds = [], directionIds = [], groupBy = 'institution') {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/analyze-cohort-lgm/`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             competency,
             institution_ids: institutionIds,
@@ -312,7 +312,7 @@ export function postAnalyzeDisciplineImpactAdvanced(
 ) {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/analyze-discipline-impact-advanced/`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             competencies,
             disciplines,
@@ -328,7 +328,7 @@ export function postAnalyzeDisciplineImpactAdvanced(
 export function postGetDisciplineHeatmapData(institutionIds = [], directionIds = []) {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-discipline-heatmap-data/`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             institution_ids: institutionIds,
             direction_ids: directionIds
@@ -345,7 +345,7 @@ export function getPortraitGetDisciplines() {
 
 /** GET /portrait/analyze-student-discipline-impact/ - влияние дисциплин на студента */
 export function getStudentDisciplineImpact(studentId) {
-    const params = new URLSearchParams({student_id: studentId});
+    const params = new URLSearchParams({ student_id: studentId });
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/analyze-student-discipline-impact/?${params}`);
     return new AsyncChain(promise);
 }
@@ -353,7 +353,7 @@ export function getStudentDisciplineImpact(studentId) {
 export function postGetCompetencyLevelFlow(competency, institutionIds, directionIds) {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-competency-level-flow/`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             competency,
             institution_ids: institutionIds,
@@ -366,7 +366,7 @@ export function postGetCompetencyLevelFlow(competency, institutionIds, direction
 export function postGetVamTrendData(body) {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-vam-trend-data/`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
     });
     return new AsyncChain(promise);
@@ -375,7 +375,7 @@ export function postGetVamTrendData(body) {
 export function postAiAnalyticsSummary(contextType, filters) {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/ai-analytics-summary/`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             context_type: contextType,
             filters: filters
@@ -396,7 +396,7 @@ export function getEducationProfilesComparison(filters) {
     if (filters.include_values !== undefined) {
         params.append('include_values', filters.include_values);
     }
-    
+
     const url = `${PROTOCOL}://${HOST}/portrait/education-profiles-comparison/${params.toString() ? `?${params.toString()}` : ''}`;
     const promise = fetch(url);
     return new AsyncChain(promise);
@@ -412,7 +412,7 @@ export function getAnalyzeTransfers(queryString = '') {
 export function postAnalyzeTransferStudents(body) {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/analyze-transfer-students/`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
     });
     return new AsyncChain(promise);
@@ -428,7 +428,7 @@ export function getStudentComparisonStats(studentId, year) {
     const params = new URLSearchParams();
     params.append('student_id', studentId);
     if (year) params.append('year', year);
-    
+
     const url = `${PROTOCOL}://${HOST}/portrait/student-comparison-stats/?${params.toString()}`;
     const promise = fetch(url);
     return new AsyncChain(promise);
@@ -445,7 +445,7 @@ export function getScoresResult(institute, specialty, year) {
     const params = new URLSearchParams();
     if (institute) params.append('institute', institute);
     if (specialty) params.append('specialty', specialty);
-    if (year)      params.append('year', year);
+    if (year) params.append('year', year);
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/scores-result/?${params}`);
     return new AsyncChain(promise);
 }
@@ -454,7 +454,7 @@ export function getDataBoxplot(institute, specialty, year) {
     const params = new URLSearchParams();
     if (institute) params.append('institute', institute);
     if (specialty) params.append('specialty', specialty);
-    if (year)      params.append('year', year);
+    if (year) params.append('year', year);
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/comp-boxplot/?${params}`);
     return new AsyncChain(promise);
 }
@@ -463,7 +463,7 @@ export function getDashboardStats(institute, specialty, year) {
     const params = new URLSearchParams();
     if (institute) params.append('institute', institute);
     if (specialty) params.append('specialty', specialty);
-    if (year)      params.append('year', year);
+    if (year) params.append('year', year);
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/dashboard-stats/?${params}`);
     return new AsyncChain(promise);
 }
@@ -472,7 +472,7 @@ export function getMotivationCounts(institute, specialty, year) {
     const params = new URLSearchParams();
     if (institute) params.append('institute', institute);
     if (specialty) params.append('specialty', specialty);
-    if (year)      params.append('year', year);
+    if (year) params.append('year', year);
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/motivation-counts/?${params}`);
     return new AsyncChain(promise);
 }
@@ -492,6 +492,25 @@ export function postGetBoxplotData(competency, institutionIds = [], directionIds
 }
 
 // Цифровой портрет студента
+export function getGradesCompetencyCorrelation(institute, specialty, year, discipline, competency) {
+    const params = new URLSearchParams();
+    if (institute) params.append('institute', institute);
+    if (specialty) params.append('specialty', specialty);
+    if (year) params.append('year', year);
+    if (discipline) params.append('discipline', discipline);
+    if (competency) params.append('competency', competency);
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/grades-competency-correlation/?${params}`);
+    return new AsyncChain(promise);
+}
+
+export function getCompetencyTrendByYear(institute, specialty) {
+    const params = new URLSearchParams();
+    if (institute) params.append('institute', institute);
+    if (specialty) params.append('specialty', specialty);
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/competency-trend-by-year/?${params}`);
+    return new AsyncChain(promise);
+}
+
 export function getStudentsList(search = '', limit = 50) {
     const params = new URLSearchParams();
     if (search) params.append('search', search);
