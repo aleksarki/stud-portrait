@@ -50,7 +50,7 @@ class WindowChain {
 }
 
 const PROTOCOL = "http";
-const HOST = "localhost";
+const HOST = "localhost:8000";
 
 /* *** AUDIT *** */
 
