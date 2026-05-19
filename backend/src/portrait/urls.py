@@ -61,6 +61,9 @@ urlpatterns = [
     path('analyze-transfers/',          transfer_analysis.analyze_transfers,          name='analyze_transfers'),
     path('analyze-transfer-students/',  transfer_analysis.analyze_transfer_students,  name='analyze_transfer_students'),
 
+    path('duplicate-accounts/', analysis_end.get_duplicate_accounts, name='duplicate_accounts'),
+    path('possible-duplicate-accounts/', analysis_end.get_possible_duplicate_accounts, name='possible-duplicate-accounts/'),
+
     # STATSRESULT module
     path("courses/",                        statsresult.courses,                        name="courses"),
     path("get-institution-directions/",     statsresult.get_institution_directions,     name="get_institution_directions"),
