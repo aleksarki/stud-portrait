@@ -25,11 +25,10 @@ const scores={
 
 function DisciplineScatter({ discipline, participants }) {
     const [selectedComp, setSelectedComp] = useState('avg');
-    console.log(participants[0]);
-    const chartData = participants
-        .map(p => {
+    
+    const chartData = participants.map(p => {
         const x = selectedComp === 'avg' ? p.avg : p[selectedComp];
-        return x != null && p.grade != null
+        return x != null && x != 0 && p.grade != null
             ? { x, y: p.grade, id: p.participant_id }
             : null;
         })
@@ -59,7 +58,7 @@ function DisciplineScatter({ discipline, participants }) {
             <XAxis
                 type="number"
                 dataKey="x"
-                domain={[150, 800]}
+                domain={[170, 800]}
                 name="Балл"
                 label={{ value: 'Средний балл', position: 'insideBottom', offset: -16, fontSize: 11, fill: '#94a3b8' }}
                 tick={{ fontSize: 11, fill: '#94a3b8' }}
@@ -78,7 +77,7 @@ function DisciplineScatter({ discipline, participants }) {
             />
             <Tooltip
                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: 12 }}
-                formatter={(value, key) =>  [value, (key == 'x' ? 'Балл' : 'Оценка')]}
+                formatter={(value, name, props) =>  [Math.round(value*100)/100, (props.dataKey === 'y' ? 'Оценка' : 'Балл')]}
                 cursor={{ strokeDasharray: '3 3' }}
             />
 
@@ -97,17 +96,17 @@ function DisciplineScatter({ discipline, participants }) {
     );}
           
 function DisciplineScatterGrid({ data, discipline }) {
-    if (data == 0)
+    if (data == [] || !discipline)
         return <div> Нет данных для отображения по текущим параметрам </div>;
-
+    console.log(data, discipline);
     if (!(data.find(d => d.discipline === discipline))) return <div>Ошибка при загрузке дисциплин</div>;
-    const filtered = data.find(d => d.discipline === discipline).filter(Boolean);    
+    const filtered = data.find(d => d.discipline === discipline);   
     return (
         <div className="ds-grid">
         <DisciplineScatter
             key={discipline}
             discipline={discipline}
-            participants={filtered}
+            participants={filtered.participants}
             />
         </div>
     );
@@ -644,6 +643,11 @@ function AdminAPView() {
             .onSuccess(async response => {
                 const data = await response.json();
                 setScatterData(data); 
+                console.log(data);
+                if (data.data==[] || data.names.length<4){
+                    console.error("Ошибка при загрузке данных: данные пусты");
+                    setErrorStatus(true);
+                }
             })
             .onError(err => {
                 console.error("Ошибка при загрузке данных:", err);
@@ -662,7 +666,6 @@ function AdminAPView() {
           return updated;
         });
     };
-    const disciplines = ScatterData.names || [];
     
     const loadCorrelation = async (currentFilters) => {
         setLoadingCorr(true);
@@ -712,10 +715,10 @@ function AdminAPView() {
                             palette={activeTab === 'pract4' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
                         />
                     </FlexRow>
-                    {activeTab === 'pir' && (<DisciplineScatterGrid data={ScatterData?.data} discipline={ScatterData.names[0] || ''}/>)}
-                    {activeTab === 'yp' && (<DisciplineScatterGrid data={ScatterData?.data} discipline={ScatterData.names[1] || ''}/>)}
-                    {activeTab === 'pract3' && (<DisciplineScatterGrid data={ScatterData?.data} discipline={ScatterData.names[2] || ''}/>)}
-                    {activeTab === 'pract4' && (<DisciplineScatterGrid data={ScatterData?.data} discipline={ScatterData.names[3] || ''}/>)}
+                    {activeTab === 'pir' && (<DisciplineScatterGrid data={ScatterData?.data} discipline={ScatterData?.names[0] || ''}/>)}
+                    {activeTab === 'yp' && (<DisciplineScatterGrid data={ScatterData?.data} discipline={ScatterData?.names[1] || ''}/>)}
+                    {activeTab === 'pract3' && (<DisciplineScatterGrid data={ScatterData?.data} discipline={ScatterData?.names[2] || ''}/>)}
+                    {activeTab === 'pract4' && (<DisciplineScatterGrid data={ScatterData?.data} discipline={ScatterData?.names[3] || ''}/>)}
                 
                         <CorrelationHeatmap data={correlationData} loading={loadingCorr} />
                         <CorrelationScatter correlationData={correlationData} loading={loadingCorr} filters={filters} />

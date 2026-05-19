@@ -305,6 +305,7 @@ def get_motivation_counts(request):
                 row[f"course_{course}_high"] = cnt_low/cnt_all.count() if (cnt_all !=0) else 0
                 row[f"course_{course}_low"] = cnt_high/cnt_all.count() if (cnt_all !=0) !=0 else 0
                 row[f"course_{course}_mid"] = cnt_mid/cnt_all.count() if cnt_all !=0 else 0
+            
             row["all_high"] = cnt_high_all/cnt_all_all if cnt_all_all!=0 else 0
             row["all_low"] = cnt_low_all/cnt_all_all if cnt_all_all!=0 else 0
             row["all_mid"] = cnt_mid_all/cnt_all_all if cnt_all_all!=0 else 0
@@ -325,7 +326,9 @@ scores={
 @cached()
 def get_scores_result(request):
     try:
-        print(Academicperformance.objects.count())
+        if (Academicperformance.objects.count()==0):
+            return JsonResponse({"status": "error", "message": 'no performance data'}, status=500)
+    
         inst = request.GET.get('institute')
         spec = request.GET.get('specialty')
         year = request.GET.get('year')
@@ -337,22 +340,29 @@ def get_scores_result(request):
 
         main = Results.objects.filter(**base_filter)
         if not main:
-            response_data={"status": "success", "data": 0, "names": 0}
-            return JsonResponse(response_data) 
+            response_data={"status": "error", "message": "empty results queryset", "data": [], "names": []}
+            return JsonResponse(response_data, status=500) 
         participant_ids = list(main.values_list('res_participant__part_id', flat=True).distinct())
         result=[]
         avgs = {}
-        avgs_qs = (
-            main
-            .values('res_participant__part_id')
-            .annotate(**{f'avg_{f}': Avg(f) for f in COMP.list})
-        )
-        avgs = {
-            r['res_participant__part_id']: round(
-                sum(r[f'avg_{f}'] or 0 for f in COMP.list) / len(COMP.list)
-            )
-            for r in avgs_qs
-        }
+        comp_by_part={}
+
+        for pid in participant_ids:
+            part_comps = main.filter(res_participant__part_id=pid)
+            if part_comps.count()>1:
+                part_comps = part_comps.aggregate(**{field: Avg(field) for field in COMP.list})
+            else:
+                part_comps = list(part_comps.values(*COMP.list))[0]
+                #print(part_comps)
+            count = 0
+            sum = 0 
+            comp_by_part[pid] = {}
+            for comp in COMP.list:
+                comp_by_part[pid][comp]=part_comps.get(comp) if part_comps.get(comp) is not None else 0
+                if part_comps.get(comp) is not None and part_comps.get(comp)!=0:
+                    count+=1
+                    sum+=part_comps.get(comp)
+            comp_by_part[pid]['avg']=sum/count if count!=0 else 0
         ap = Academicperformance.objects.filter(
             perf_part__in=participant_ids
         ).values('perf_part_id', 'perf_discipline', 'perf_main_attestation')
@@ -360,22 +370,15 @@ def get_scores_result(request):
         #disciplines = list({r['perf_discipline'] for r in ap})
         disciplines = ['ПИР','УП','Эксплуатационная практика','Преддипломная практика']
         by_discipline = defaultdict(list)
-        comp_by_part=defaultdict(list)
         
         for record in ap:
             pid = record['perf_part_id']
-            avg=avgs.get(pid)
             grade=scores.get(record['perf_main_attestation'])
-            if avg is None or grade is None or avg <200:
+            if grade is None or comp_by_part[pid]['avg'] is None:
                 continue
-            comp_by_part[pid] = {
-                field: int(record.get(field)) if record.get(field) is not None else None
-                for field in COMP.list
-            }
             by_discipline[record['perf_discipline']].append({
                 'participant_id': pid,
                 'grade': grade,
-                'avg': avg,
                 **comp_by_part.get(pid, {}),
             })
 
