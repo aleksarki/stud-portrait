@@ -4,7 +4,7 @@ import {
     PieChart, Pie, ReferenceLine, LabelList, BarChart, Bar, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from "recharts";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
-import { ArrowUpRight, ArrowDownRight, Award, TrendingUp, ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowUp, ArrowDown } from "lucide-react";
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import * as XLSX from 'xlsx';
@@ -627,13 +627,13 @@ function Dashboard({ data, filters }) {
             <div className="col-right">
             <h4 className="text-xs uppercase text-gray-400 font-bold mb-6">Компетенции</h4>
             <Stat 
-                label={`Наиболее развитая. Балл: ${data.col3.best.val}`} 
+                label={`Наиболее развитая. Средний балл: ${data.col3.best.val}`} 
                 value={getLabel(data.col3.best.name)} isText={true}
                 prev={data.col3.best_prev.val !=0 ? `${getLabel(data.col3.best_prev.name)} (${data.col3.best_prev.val})` : 0} 
             /> 
             <div style={{height:20}}></div>
             <Stat 
-                label={`Наименее развитая. Балл: ${data.col3.worst.val}`} 
+                label={`Наименее развитая. Средний балл: ${data.col3.worst.val}`} 
                 value={getLabel(data.col3.worst.name)} isText={true}
                 prev={data.col3.worst_prev.val !=0 ? `${getLabel(data.col3.worst_prev.name)} (${data.col3.worst_prev.val})` : 0} 
             />

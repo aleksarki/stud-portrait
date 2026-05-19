@@ -170,6 +170,11 @@ const FilterHeader = ({ filters, onFilterChange }) => {
         if (!value) return null; 
         return opts?.find(o => o.value === value) || null;
     };
+    const sorted = (opts) =>
+        (opts || []).slice().sort((a, b) =>
+          a.label.localeCompare(b.label, 'ru', {numeric: true, sensitivity: 'base' })
+        );
+
     if (loading) return <div>Загрузка фильтров...</div>;
     
     return (
@@ -179,7 +184,7 @@ const FilterHeader = ({ filters, onFilterChange }) => {
             placeholder="Институт..."
             isClearable
             isSearchable
-            options={options?.institutes || []}
+            options={sorted(options?.institutes) || []}
             onChange={opt => handleChange(opt, 'institute')}
             styles={customStyles}
             />
@@ -189,7 +194,7 @@ const FilterHeader = ({ filters, onFilterChange }) => {
             placeholder="Направление..."
             isClearable
             isSearchable
-            options={options?.specialties || []}
+            options={sorted(options?.specialties) || []}
             value={findOption(options?.specialties, filters?.specialty)}
             onChange={opt => handleChange(opt, 'specialty')}
             styles={customStyles}
@@ -200,7 +205,7 @@ const FilterHeader = ({ filters, onFilterChange }) => {
             placeholder="Год..."
             isClearable
             isSearchable
-            options={options?.years || []}
+            options={sorted(options?.years) || []}
             onChange={opt => handleChange(opt, 'year')}
             styles={customStyles}
             />
