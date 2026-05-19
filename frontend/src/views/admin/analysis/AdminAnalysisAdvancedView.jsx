@@ -257,7 +257,6 @@ function AdminAnalysisAdvancedView() {
     // -------------------- Поток уровней --------------------
     const loadLevelFlow = type => {
         setLoading(true);
-        setActiveVisualization('flow');
         // Для потока уровней направление может быть передано как ID или имя – используем ID
         const directionIds = selectedDirections.map(id => Number(id)).filter(v => !isNaN(v));
         (
@@ -837,6 +836,7 @@ function AdminAnalysisAdvancedView() {
                         <div className="visualization-container">
                             {activeVisualization === 'lgm' && renderLGMCohort()}
                             {activeVisualization === 'flow' && renderFlowAnalysis()}
+                            {activeVisualization === 'flow-year' && renderFlowAnalysis()}
                             {activeVisualization === 'vam' && renderVAM()}
                         </div>
                     )}
