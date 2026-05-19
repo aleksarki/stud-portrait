@@ -14,7 +14,7 @@ import {
     postGetVamTrendData,
     postGetCompetencyLevelFlowYearly
 } from "../../../api";
-import { COMPETENCIES_NAMES, LINK_TREE } from "../../../utilities";
+import { COMPETENCIES, COMPETENCIES_NAMES, LINK_TREE } from "../../../utilities";
 
 import AiInsightPanel from "../../../components/AiInsightPanel";
 import FlexRow, { JUSTIFY, WRAP } from "../../../components/FlexRow";
@@ -63,11 +63,11 @@ function AdminAnalysisAdvancedView() {
 
     // Поток уровней
     const [flowData, setFlowData] = useState(null);
-    const [flowCompetency, setFlowCompetency] = useState('res_comp_leadership');
+    const [flowCompetency, setFlowCompetency] = useState(COMPETENCIES.INFO_ANALYSIS);
 
     // LGM
     const [lgmCohortData, setLgmCohortData] = useState(null);
-    const [lgmCompetency, setLgmCompetency] = useState('res_comp_leadership');
+    const [lgmCompetency, setLgmCompetency] = useState(COMPETENCIES.INFO_ANALYSIS);
     const [lgmChartMode, setLgmChartMode] = useState('combined');
     const [lgmGroupBy, setLgmGroupBy] = useState('institution');
 
@@ -77,7 +77,7 @@ function AdminAnalysisAdvancedView() {
     // VAM
     const [vamData, setVamData] = useState(null);
     const [vamStats, setVamStats] = useState(null);
-    const [vamCompetency, setVamCompetency] = useState('res_comp_leadership');
+    const [vamCompetency, setVamCompetency] = useState(COMPETENCIES.INFO_ANALYSIS);
     const [vamGroupBy, setVamGroupBy] = useState('institution');
     const [vamChartMode, setVamChartMode] = useState('combined');
 
