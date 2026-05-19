@@ -106,6 +106,7 @@ def import_excel(request):
                     rsv_id = clean_value(row_data.get("rsv_id"))
                     student_name = clean_value(row_data.get("student_name"))
                     student_gender = clean_value(row_data.get("student_gender"))
+                    email = clean_value(row_data.get("email"))
 
                     if not rsv_id or not student_name:
                         continue
@@ -115,7 +116,8 @@ def import_excel(request):
                         rsv_id=str(rsv_id),
                         defaults={
                             'student_name': student_name,
-                            'student_gender': student_gender
+                            'student_gender': student_gender,
+                            'email': email
                         }
                     )
 

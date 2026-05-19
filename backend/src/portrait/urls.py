@@ -39,6 +39,7 @@ urlpatterns = [
     path('analyze-student-vam/', analysis_end.analyze_student_vam, name='analyze_student_vam'),
     path('analyze-cohort-lgm/',  analysis_end.analyze_cohort_lgm,  name='analyze_cohort_lgm'),
     path('get-vam-trend-data/',  analysis_end.get_vam_trend_data,  name='get_vam_trend_data'),
+    path('get-lgm-growers/',  analysis_end.get_lgm_growers,  name='get_lgm_growers'),
     
     path('get-institutions/', analysis_end.get_institutions, name='get_institutions'),
     path('get-directions/',   analysis_end.get_directions,   name='get_directions'),
@@ -48,15 +49,20 @@ urlpatterns = [
     path('get-discipline-heatmap-data/',        analysis_end.get_discipline_heatmap_data,        name='get_discipline_heatmap_data'),
     path('analyze-student-discipline-impact/',  analysis_end.analyze_student_discipline_impact,  name='analyze_student_discipline_impact'),
 
-    path('get-competency-level-flow/',  analysis_end.get_competency_level_flow,       name='get_competency_level_flow'),
-    path('ai-analytics-summary/',       analysis_end.ai_analytics_summary,            name='ai_analytics_summary'),
-    path('get-disciplines/',            analysis_end.get_disciplines,                 name='get-disciplines'),   
+    path('get-competency-level-flow/',        analysis_end.get_competency_level_flow,        name='get_competency_level_flow'),
+    path('get-competency-level-flow-yearly/', analysis_end.get_competency_level_flow_yearly, name='get_competency_level_flow'),
+    path('ai-analytics-summary/',             analysis_end.ai_analytics_summary,             name='ai_analytics_summary'),
+    path('get-disciplines/',                  analysis_end.get_disciplines,                  name='get-disciplines'),   
     
     path('education-profiles-comparison/', analysis_end.get_education_profiles_comparison, name='education_profiles_comparison'),
     path('get-boxplot-data/',              analysis_end.get_boxplot_data,                  name='get_boxplot_data'),
+    path('student-comparison-stats/',      analysis_end.get_student_comparison_stats,      name='student_comparison_stats'),
 
     path('analyze-transfers/',          transfer_analysis.analyze_transfers,          name='analyze_transfers'),
     path('analyze-transfer-students/',  transfer_analysis.analyze_transfer_students,  name='analyze_transfer_students'),
+
+    path('duplicate-accounts/', analysis_end.get_duplicate_accounts, name='duplicate_accounts'),
+    path('possible-duplicate-accounts/', analysis_end.get_possible_duplicate_accounts, name='possible-duplicate-accounts/'),
 
     # STATSRESULT module
     path("courses/",                        statsresult.courses,                        name="courses"),
@@ -66,6 +72,7 @@ urlpatterns = [
     path("centers-by-region/",              statsresult.centers_by_region,              name='centers_by_region'),
     path('students/list/',                  statsresult.get_students_list,              name='students_list'),
     path('students/portrait/',              statsresult.get_student_portrait,           name='student_portrait'),
+    path('motivator-statistics/',           statsresult.get_motivator_statistics,       name='motivator_statistics'),
 
     path('dashboard-stats/',   stat.get_dashboard_stats,   name='dashboard_stats'),
     path('motivation-counts/', stat.get_motivation_counts, name='motivation_counts'),
@@ -73,6 +80,9 @@ urlpatterns = [
     path('overall-stats/',     stat.overall_stats,         name='overall_stats'),
     path('scores-result/',     stat.get_scores_result,     name='scores_result'),
     path('comp-boxplot/',      stat.get_data_boxplot, name='comp_boxplot'),
+    
+    path('grades-competency-correlation/', stat.get_grades_competency_correlation, name='grades_competency_correlation'),
+    path('competency-trend-by-year/',      stat.get_competency_trend_by_year,      name='competency_trend_by_year'),
 
     # AINTERP module
     # *empty*
