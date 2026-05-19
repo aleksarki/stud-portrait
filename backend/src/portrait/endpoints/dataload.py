@@ -116,7 +116,7 @@ def import_excel(request):
                         rsv_id=str(rsv_id),
                         defaults={
                             'student_name': student_name,
-                            'student_gender': student_gender
+                            'student_gender': student_gender,
                             'email': email
                         }
                     )
