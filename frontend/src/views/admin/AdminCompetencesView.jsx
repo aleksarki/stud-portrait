@@ -716,9 +716,12 @@ function Dashboard({ data, filters }) {
 //
 function BoxPlots({ data }) {
     const [selected, setSelected] = useState(null);
+    const chartRef = useRef(null);
+
     if (!data) {
         return <div> Boxplot: Нет данных для отображения</div>
     }
+
     const series = [
         {
             name: 'boxplot',
@@ -736,6 +739,7 @@ function BoxPlots({ data }) {
                     x: COMPETENCIES_NAMES[item.comp],
                     y: o.y,
                     id: o.id,
+                    comp: item.comp,
                 }))
             ),
         },
@@ -746,10 +750,18 @@ function BoxPlots({ data }) {
             type: 'boxPlot',
             toolbar: { show: false },
             events: {
-                dataPointSelection: (e, chart, config) => {
+                dataPointSelection: (event, chartContext, config) => {
+                    // Предотвращаем всплытие события
+                    event?.stopPropagation();
+                    
+                    // Проверяем, что клик именно по выбросам
                     if (config.seriesIndex !== 1) return;
+                    
+                    // Получаем точку из данных
                     const point = series[1].data[config.dataPointIndex];
-                    setSelected(point);
+                    if (point) {
+                        setSelected(point);
+                    }
                 },
             },
         },
@@ -770,10 +782,12 @@ function BoxPlots({ data }) {
                 if (seriesIndex === 0) {
                     // тултип для ящика
                     const d = w.config.series[0].data[dataPointIndex];
+                    if (!d || !d.y) return '<div></div>';
+                    
                     const [min, q1, med, q3, max] = d.y;
                     return `
                 <div style="padding:12px 16px;font-size:12px;line-height:1.8">
-                  <b style="color:#334155">${d.x}</b><br/>
+                  <b style="color:#334155">${d.x || ''}</b><br/>
                   <span style="color:#94a3b8">Макс (ус):</span> <b>${max}</b><br/>
                   <span style="color:#94a3b8">Q3:</span> <b>${q3}</b><br/>
                   <span style="color:#94a3b8">Медиана:</span> <b>${med}</b><br/>
@@ -783,6 +797,8 @@ function BoxPlots({ data }) {
                 }
                 if (seriesIndex === 1) {
                     const d = series[1].data[dataPointIndex];
+                    if (!d) return '<div></div>';
+                    
                     return `
                 <div style="padding:12px 16px;font-size:12px;line-height:1.8">
                   <b style="color:#e24b4a">Выброс</b><br/>
@@ -790,26 +806,110 @@ function BoxPlots({ data }) {
                   <span style="color:#94a3b8">Балл:</span> <b>${d.y}</b>
                 </div>`;
                 }
+                return '<div></div>';
             },
         },
-        yaxis: { min: 150, max: 850, labels: { style: { fontSize: '11px' } } },
-        xaxis: { labels: { style: { fontSize: '11px', colors: '#64748b' }, rotate: -20 } },
+        yaxis: { 
+            min: 150, 
+            max: 850, 
+            labels: { style: { fontSize: '11px' } } 
+        },
+        xaxis: { 
+            labels: { 
+                style: { fontSize: '11px', colors: '#64748b' }, 
+                rotate: -20,
+                trim: true,
+            } 
+        },
         grid: { borderColor: '#f1f5f9', xaxis: { lines: { show: false } } },
         legend: { show: false },
     };
+
+    // Обработчик закрытия модального окна
+    const handleCloseModal = () => {
+        setSelected(null);
+    };
+
+    // Обработчик клика по оверлею
+    const handleOverlayClick = (e) => {
+        if (e.target === e.currentTarget) {
+            setSelected(null);
+        }
+    };
+
     return (
         <div className="ds-card">
             <h4 className="ds-title">Распределение по компетенциям</h4>
-            <ReactApexChart type="boxPlot" series={series} options={options} height={420} />
+            <ReactApexChart 
+                type="boxPlot" 
+                series={series} 
+                options={options} 
+                height={420}
+            />
 
             {selected && (
-                <div className="bp-modal-overlay" onClick={() => setSelected(null)}>
-                    <div className="bp-modal" onClick={e => e.stopPropagation()}>
-                        <button className="bp-modal__close" onClick={() => setSelected(null)}>✕</button>
-                        <p className="bp-modal__title">Выброс</p>
-                        <p>ID участника: <b>{selected.id}</b></p>
-                        <p>Компетенция: <b>{COMPETENCIES_NAMES[selected.comp]}</b></p>
-                        <p>Балл: <b>{selected.y}</b></p>
+                <div 
+                    className="bp-modal-overlay" 
+                    onClick={handleOverlayClick}
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1000,
+                    }}
+                >
+                    <div 
+                        className="bp-modal" 
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            backgroundColor: 'white',
+                            borderRadius: '8px',
+                            padding: '20px',
+                            minWidth: '300px',
+                            maxWidth: '400px',
+                            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                            position: 'relative',
+                        }}
+                    >
+                        <button 
+                            className="bp-modal__close" 
+                            onClick={handleCloseModal}
+                            style={{
+                                position: 'absolute',
+                                top: '10px',
+                                right: '10px',
+                                background: 'none',
+                                border: 'none',
+                                fontSize: '20px',
+                                cursor: 'pointer',
+                                color: '#666',
+                            }}
+                        >
+                            ✕
+                        </button>
+                        <p className="bp-modal__title" style={{ 
+                            fontSize: '18px', 
+                            fontWeight: 'bold', 
+                            marginBottom: '15px',
+                            color: '#e24b4a'
+                        }}>
+                            Выброс
+                        </p>
+                        <p style={{ marginBottom: '10px' }}>
+                            ID участника: <b>{selected.id}</b>
+                        </p>
+                        <p style={{ marginBottom: '10px' }}>
+                            Компетенция: <b>{COMPETENCIES_NAMES[selected.comp] || selected.comp}</b>
+                        </p>
+                        <p style={{ marginBottom: '0' }}>
+                            Балл: <b>{selected.y}</b>
+                        </p>
                     </div>
                 </div>
             )}
