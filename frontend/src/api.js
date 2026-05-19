@@ -578,3 +578,10 @@ export function getGeographyReport(year) {
     const promise = fetch(url);
     return new AsyncChain(promise);
 }
+
+/* *** DUPLICATE ACCOUNTS *** */
+
+export function getDuplicateAccounts() {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/duplicate-accounts/`);
+    return new AsyncChain(promise);
+}

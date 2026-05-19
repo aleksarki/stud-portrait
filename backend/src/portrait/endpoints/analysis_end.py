@@ -2095,3 +2095,113 @@ def get_boxplot_data(request):
         import traceback
         traceback.print_exc()
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_duplicate_accounts(request):
+    """
+    Возвращает студентов, у которых один email соответствует нескольким rsv_id.
+
+    Исправления:
+    - Убран @cached(): данные должны читаться свежими, иначе кнопка «Обновить» не работает.
+    - Устранён N+1: все Participants и Results подгружаются двумя запросами вместо O(n*m).
+    """
+    try:
+        # Находим email, которые встречаются более одного раза в StudentMapping
+        duplicate_emails = list(
+            Studentmapping.objects.values('email')
+            .annotate(count=Count('rsv_id'))
+            .filter(count__gt=1, email__isnull=False)
+            .exclude(email__exact='')
+            .values_list('email', flat=True)
+        )
+
+        if not duplicate_emails:
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Нет студентов с несколькими аккаунтами',
+                'students': []
+            })
+
+        # Загружаем все нужные маппинги одним запросом
+        all_mappings = Studentmapping.objects.filter(email__in=duplicate_emails)
+
+        # Группируем маппинги по email и собираем все rsv_id
+        from collections import defaultdict
+        email_to_mappings = defaultdict(list)
+        all_rsv_ids = []
+        for m in all_mappings:
+            email_to_mappings[m.email].append(m)
+            all_rsv_ids.append(m.rsv_id)
+
+        # Загружаем всех участников одним запросом и индексируем по rsv_id
+        participants_by_rsv = {
+            p.part_rsv_id: p
+            for p in Participants.objects.filter(part_rsv_id__in=all_rsv_ids)
+        }
+
+        # Загружаем все результаты одним запросом и группируем по participant_id
+        participant_ids = [p.part_id for p in participants_by_rsv.values()]
+        results_by_participant = defaultdict(list)
+        results_qs = (
+            Results.objects
+            .filter(res_participant_id__in=participant_ids)
+            .select_related('res_institution', 'res_spec')
+            .order_by('res_year', 'res_course_num')
+        )
+        for r in results_qs:
+            results_by_participant[r.res_participant_id].append(r)
+
+        # Формируем ответ
+        result_students = []
+        for email in duplicate_emails:
+            mappings = email_to_mappings[email]
+            rsv_ids = [m.rsv_id for m in mappings]
+
+            accounts_info = []
+            for rsv_id in rsv_ids:
+                participant = participants_by_rsv.get(rsv_id)
+                if not participant:
+                    accounts_info.append({
+                        'rsv_id': rsv_id,
+                        'exists_in_participants': False,
+                        'results': []
+                    })
+                    continue
+
+                results_data = [
+                    {
+                        'year': r.res_year,
+                        'course': r.res_course_num,
+                        'institution': r.res_institution.inst_name if r.res_institution else None,
+                        'specialty': r.res_spec.spec_name if r.res_spec else None,
+                        'competency_leadership': r.res_comp_leadership,
+                    }
+                    for r in results_by_participant.get(participant.part_id, [])
+                ]
+
+                accounts_info.append({
+                    'rsv_id': rsv_id,
+                    'exists_in_participants': True,
+                    'participant_id': participant.part_id,
+                    'gender': participant.part_gender,
+                    'results': results_data
+                })
+
+            student_name = mappings[0].student_name
+            result_students.append({
+                'email': email,
+                'student_name': student_name,
+                'accounts_count': len(rsv_ids),
+                'accounts': accounts_info
+            })
+
+        return JsonResponse({
+            'status': 'success',
+            'students': result_students
+        }, json_dumps_params={'ensure_ascii': False})
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
