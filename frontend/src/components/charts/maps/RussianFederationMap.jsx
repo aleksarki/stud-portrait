@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+// RussianFederationMap.jsx
+import { useEffect, useState, useMemo } from "react";
 import EChartsReact from "echarts-for-react";
 import * as echarts from "echarts";
 
@@ -6,22 +7,22 @@ import LoadingSpinner from "../../ui/LoadingSpinner";
 
 import "./RussianFederationMap.scss";
 
-function RussianFederationMap({ title, regionData = [], onRegionClick, showVisualMap = true, min = 0, max = 100 }) {
+function RussianFederationMap({ 
+    title, 
+    regionData = [], 
+    onRegionClick, 
+    showVisualMap = true, 
+    min = 0, 
+    max = 100,
+    highlightedRegion = null,
+    highlightColor = '#ff4444'
+}) {
     const [ready, setReady] = useState(false);
 
     useEffect(() => {
         const loadMapData = async () => {
             const response = await fetch('/data/russia.geojson');
             const geoJson = await response.json();
-            const regions = geoJson.features.map(feature => {
-                return feature.properties.name || 
-                       feature.properties.NAME || 
-                       feature.properties.region_name ||
-                       feature.properties.NAME_1 ||
-                       'Unknown';
-            });
-            // console.log("Всего регионов:", regions.length);
-            // console.log("Список регионов:", regions);
             echarts.registerMap("Russia", geoJson);
             setReady(true);
         };
@@ -29,14 +30,73 @@ function RussianFederationMap({ title, regionData = [], onRegionClick, showVisua
         loadMapData();
     }, []);
 
-    const mapData = regionData.map(item => ({
-        name: item.name,
-        value: item.value
-    }));
+    // Вычисляем данные для визуализации с исключением выделенного региона из шкалы
+    const { visualMapData, seriesData, actualMin, actualMax } = useMemo(() => {
+        if (!regionData.length) {
+            return { visualMapData: [], seriesData: [], actualMin: min, actualMax: max };
+        }
+
+        // Отделяем выделенный регион от остальных
+        const highlightedItem = highlightedRegion 
+            ? regionData.find(item => item.name === highlightedRegion)
+            : null;
+        
+        const otherRegions = highlightedRegion
+            ? regionData.filter(item => item.name !== highlightedRegion)
+            : regionData;
+
+        // Находим min/max только среди остальных регионов
+        const values = otherRegions.map(item => item.value).filter(v => v !== undefined && !isNaN(v));
+        const calculatedMin = values.length > 0 ? Math.min(...values) : min;
+        const calculatedMax = values.length > 0 ? Math.max(...values) : max;
+
+        // Создаём данные для серии (карты)
+        const seriesItems = regionData.map(item => {
+            // Если это выделенный регион - добавляем специальный стиль
+            if (highlightedRegion && item.name === highlightedRegion) {
+                return {
+                    name: item.name,
+                    value: item.value,
+                    itemStyle: {
+                        areaColor: highlightColor,
+                        borderColor: '#ffffff',
+                        borderWidth: 2,
+                        emphasis: {
+                            areaColor: highlightColor,
+                            shadowBlur: 10,
+                            shadowColor: 'rgba(255,68,68,0.5)'
+                        }
+                    },
+                    label: {
+                        show: true,
+                        fontSize: 12,
+                        fontWeight: 'bold',
+                        color: '#fff',
+                        textShadowBlur: 2,
+                        textShadowColor: 'rgba(0,0,0,0.5)'
+                    }
+                };
+            }
+            // Остальные регионы - обычная обработка
+            return {
+                name: item.name,
+                value: item.value
+            };
+        });
+
+        return {
+            visualMapData: otherRegions,
+            seriesData: seriesItems,
+            actualMin: calculatedMin,
+            actualMax: calculatedMax
+        };
+    }, [regionData, highlightedRegion, highlightColor, min, max]);
 
     const chartOption = {
         title: {
-            text: title,
+            text: highlightedRegion 
+                ? `${title} (${highlightedRegion})`
+                : title,
             left: "center",
             textStyle: {
                 fontSize: 16,
@@ -46,10 +106,17 @@ function RussianFederationMap({ title, regionData = [], onRegionClick, showVisua
         tooltip: {
             trigger: "item",
             formatter: (params) => {
+                const isHighlighted = highlightedRegion && params.name === highlightedRegion;
+                let valueText = '';
+                
                 if (params.name && params.value !== undefined) {
-                    return `<strong>${params.name}</strong><br/>Прохождений тестирования: ${ `${params.value}` == 'NaN' ? 0 : params.value}`;
+                    valueText = `Прохождений тестирования: ${params.value === 'NaN' || isNaN(params.value) ? 0 : params.value}`;
                 }
-                return params.name;
+                
+                if (isHighlighted) {
+                    return `<strong style="color: #ff4444;">${params.name}</strong><br/>${valueText}`;
+                }
+                return `<strong>${params.name}</strong><br/>${valueText}`;
             },
             backgroundColor: "rgba(255,255,255,0.95)",
             borderColor: "#ccc",
@@ -58,29 +125,32 @@ function RussianFederationMap({ title, regionData = [], onRegionClick, showVisua
                 color: "#333"
             }
         },
-        visualMap: showVisualMap ? {
+        visualMap: showVisualMap && visualMapData.length > 0 ? {
             type: "continuous",
-            min: min,
-            max: max,
+            min: actualMin,
+            max: actualMax,
             left: "left",
             top: "bottom",
             calculable: true,
             inRange: {
                 color: ['#e0f3f8', '#abd9e9', '#74add1', '#4575b4', '#313695']
             },
+            outOfRange: {
+                color: ['#ccc']
+            },
             text: ["Высокий", "Низкий"],
             textStyle: {
                 color: "#333"
             },
-            show: false
+            show: true
         } : null,
         series: [
             {
                 name: "Субъекты РФ",
                 type: "map",
                 map: "Russia",
-                roam: true,              // Включить масштабирование и перемещение
-                zoom: 1.2,               // Начальный зум
+                roam: true,
+                zoom: 1.2,
                 scaleLimit: {
                     min: 0.8,
                     max: 15
@@ -104,7 +174,7 @@ function RussianFederationMap({ title, regionData = [], onRegionClick, showVisua
                 },
                 label: {
                     normal: {
-                        show: false,     // Обычно не показываем подписи
+                        show: false,
                         fontSize: 10
                     },
                     emphasis: {
@@ -114,15 +184,13 @@ function RussianFederationMap({ title, regionData = [], onRegionClick, showVisua
                         color: "#333"
                     }
                 },
-                data: mapData,
-                // Обработка кликов через события
+                data: seriesData,
                 silent: false,
                 select: {
                     disabled: false
                 }
             }
         ],
-        // Адаптивность
         backgroundColor: "transparent",
         grid: {
             containLabel: true
@@ -135,7 +203,8 @@ function RussianFederationMap({ title, regionData = [], onRegionClick, showVisua
             const regionValue = params.data.value;
             onRegionClick?.({
                 name: regionName,
-                value: regionValue
+                value: regionValue,
+                isHighlighted: highlightedRegion === regionName
             });
         }
     };
@@ -152,7 +221,7 @@ function RussianFederationMap({ title, regionData = [], onRegionClick, showVisua
         <div className="RussianFederationMap">
             <EChartsReact
                 option={chartOption}
-                style={{ height: "400px", width: "100%" }}
+                style={{ height: "500px", width: "100%" }}
                 onChartReady={onChartReady}
                 opts={{ renderer: "canvas" }}
             />
