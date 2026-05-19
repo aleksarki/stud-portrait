@@ -497,12 +497,12 @@ function MotivatorCharts({ chart_data, currentFilters }) {
         </div>
         <Legendy selectedCourses={selectedCourses} colors={colors}/>
         <div>
-        <div className="chart-container h-[00px]">
-            <ResponsiveContainer width="100%" height="100%">
+        <div className="chart-container h-[100px]">
+            <ResponsiveContainer width="100%" height="80%">
                 <BarChart
                     data={processedData_pos}
                     barGap={-30}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
                 >
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
                 <XAxis
@@ -543,12 +543,12 @@ function MotivatorCharts({ chart_data, currentFilters }) {
                 ))}
                 </BarChart>
             </ResponsiveContainer></div>
-            <div className="chart-container h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
+            <div className="chart-container h-[100px]">
+            <ResponsiveContainer width="100%" height="80%">
                 <BarChart
                     data={processedData_neg}
                     barGap={-30}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                    margin={{ top: 10, right: 30, left: 20, bottom: 40 }}
                 >
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
                 <XAxis
@@ -587,7 +587,7 @@ function MotivatorCharts({ chart_data, currentFilters }) {
                 ))}
             </BarChart></ResponsiveContainer>
         </div></div>
-        <div style={{margin:20, marginTop:5}}>
+        <div style={{margin:20, marginTop:0}}>
         <MotTable data={chart_data} currentFilters={currentFilters}/></div>
       </div>
     );

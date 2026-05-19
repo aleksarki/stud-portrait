@@ -585,10 +585,10 @@ function Dashboard({ data, filters }) {
                 <div className="dashboard-grid">
                     {/* Левая колонка */}
                     <div className="col-left">
-                        <Stat label="студентов прошли доп. курсы" value={data.col1.courses.val} prev={data.col1.courses.prev} suffix="%" />
+                        <Stat label="студентов прошли курсы" value={data.col1.courses.val} prev={data.col1.courses.prev} suffix="%" />
                         <Stat label="средний уровень компетенций" value={data.col1.avg_lvl.val} prev={data.col1.avg_lvl.prev} />
-                        <Stat label={data.col1.motiv.count.curr != 0 ? `Наибольший мотиватор (${data.col1.motiv.count.curr})*` : "Нет данных за этот год"} value={getLabel(data.col1.motiv.name.curr)} prev={data.col1.motiv.count.prev != 0 ? getLabel(data.col1.motiv.name.prev) + `(${data.col1.motiv.count.prev})` : 0} isText={true} note={"*Количество студентов"} />
-                        <Stat label={data.col1.demotiv.count.curr != 0 ? `Наибольший демотиватор (${data.col1.demotiv.count.curr})*` : "Нет данных за этот год"} value={getLabel(data.col1.demotiv.name.curr)} prev={data.col1.demotiv.count.prev != 0 ? getLabel(data.col1.demotiv.name.prev) + `(${data.col1.demotiv.count.prev})` : 0} isText={true} note={"*Количество студентов"} />
+                        <Stat label={data.col1.motiv.count.curr != 0 ? `Наибольший мотиватор (${data.col1.motiv.count.curr}%)*` : "Нет данных за этот год"} value={getLabel(data.col1.motiv.name.curr)} prev={data.col1.motiv.count.prev != 0 ? getLabel(data.col1.motiv.name.prev) + ` (${data.col1.motiv.count.prev}%)` : 0} isText={true} note={"*По доли среди студентов"} />
+                        <Stat label={data.col1.demotiv.count.curr != 0 ? `Наибольший демотиватор (${data.col1.demotiv.count.curr}%)*` : "Нет данных за этот год"} value={getLabel(data.col1.demotiv.name.curr)} prev={data.col1.demotiv.count.prev != 0 ? getLabel(data.col1.demotiv.name.prev) + ` (${data.col1.demotiv.count.prev}%)` : 0} isText={true} note={"*По доли среди студентов"} />
                     </div>
 
                     {/* Центральная колонка */}
@@ -951,7 +951,6 @@ function CompetencyTrendLine({ data, loading }) {
         <div className="competency-trend-line" style={{
             background: '#fff',
             borderRadius: 8,
-            padding: 20,
             marginTop: 20,
             boxShadow: '0 2px 4px rgba(0,0,0,0.08)',
         }}>

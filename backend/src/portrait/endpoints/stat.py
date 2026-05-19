@@ -31,12 +31,15 @@ def get_year_metrics(year, filter):
     ).count()
     
     for f in MOT.list: ## мотиваторы
-        cnt_high = res_queryset.filter(**{f"{f}__gte": 600}).count() 
+        all = res_queryset.values(f).count()
+        cnt_high = res_queryset.filter(**{f"{f}__gte": 600}).count() / all if all!=0 else 0
+        cnt_high = round(cnt_high *10000)/100
         if cnt_high>max_mot["count"]: 
-            max_mot["count"]=cnt_high
+            max_mot["count"]= cnt_high
             max_mot["name"]=f
         
-        cnt_low = res_queryset.filter(**{f"{f}__lt": 400}).count() 
+        cnt_low = res_queryset.filter(**{f"{f}__lt": 400}).count() / all if all!=0 else 0
+        cnt_low = round(cnt_low *10000)/100
         if cnt_low>max_demot["count"]: 
             max_demot["count"]=cnt_low
             max_demot["name"]=f
