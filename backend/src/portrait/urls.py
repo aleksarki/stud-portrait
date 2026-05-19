@@ -69,7 +69,8 @@ urlpatterns = [
     path("centers-by-region/",              statsresult.centers_by_region,              name='centers_by_region'),
     path('students/list/',                  statsresult.get_students_list,              name='students_list'),
     path('students/portrait/',              statsresult.get_student_portrait,           name='student_portrait'),
-path('student-comparison-stats/', analysis_end.get_student_comparison_stats, name='student_comparison_stats'),
+    path('motivator-statistics/',           statsresult.get_motivator_statistics,       name='motivator_statistics'),
+
     path('dashboard-stats/',   stat.get_dashboard_stats,   name='dashboard_stats'),
     path('motivation-counts/', stat.get_motivation_counts, name='motivation_counts'),
     path('filter-dash/',       stat.filter_dash,           name='filter_dash'),

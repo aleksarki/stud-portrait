@@ -513,14 +513,14 @@ function AdminMotivatorsView(){
                     <Content>
                         <FilterHeader onFilterChange={updateFilter} 
                         filters={filters}/>
-                        {isError ? (<div className="p-10 text-center"> Ошибка при загрузке данных </div>) :
-                        (<>{loadingMotDash ? (
-                            <div className="p-10 text-center">Загрузка данных...</div>
-                                
-                            ) : <><MotivatorStackedChart chart_data={MotivationData?.data} currentFilters={filters}/>
-                            <MotivatorStatistics filters={filters} />
-                        </>}</>)}
-                        
+                        {
+                            isError ? <div className="p-10 text-center"> Ошибка при загрузке данных </div> :
+                            loadingMotDash ? <div className="p-10 text-center">Загрузка данных...</div> :
+                            <>
+                                <MotivatorStatistics filters={filters} />
+                                <MotivatorStackedChart chart_data={MotivationData?.data} currentFilters={filters}/>
+                            </>
+                        }
                     </Content>
                 </SidebarLayout>
             </div>
