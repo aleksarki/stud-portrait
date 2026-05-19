@@ -142,7 +142,7 @@ const StudentComparisonStats = ({ studentId, year }) => {
     return (
         <div className="student-comparison-stats">
             <div className="comparison-header">
-                <h3>📊 Сравнительный анализ</h3>
+                <h3>Сравнение с другими студентами</h3>
                 <div className="context-info">
                     <div className="context-badge">
                         <span className="label">Вуз:</span>

@@ -56,6 +56,7 @@ urlpatterns = [
     
     path('education-profiles-comparison/', analysis_end.get_education_profiles_comparison, name='education_profiles_comparison'),
     path('get-boxplot-data/',              analysis_end.get_boxplot_data,                  name='get_boxplot_data'),
+    path('student-comparison-stats/',      analysis_end.get_student_comparison_stats,      name='student_comparison_stats'),
 
     path('analyze-transfers/',          transfer_analysis.analyze_transfers,          name='analyze_transfers'),
     path('analyze-transfer-students/',  transfer_analysis.analyze_transfer_students,  name='analyze_transfer_students'),
@@ -68,7 +69,7 @@ urlpatterns = [
     path("centers-by-region/",              statsresult.centers_by_region,              name='centers_by_region'),
     path('students/list/',                  statsresult.get_students_list,              name='students_list'),
     path('students/portrait/',              statsresult.get_student_portrait,           name='student_portrait'),
-
+path('student-comparison-stats/', analysis_end.get_student_comparison_stats, name='student_comparison_stats'),
     path('dashboard-stats/',   stat.get_dashboard_stats,   name='dashboard_stats'),
     path('motivation-counts/', stat.get_motivation_counts, name='motivation_counts'),
     path('filter-dash/',       stat.filter_dash,           name='filter_dash'),
