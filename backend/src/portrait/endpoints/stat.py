@@ -275,26 +275,38 @@ def get_motivation_counts(request):
         if year:    base_filter['res_year'] = year
         courses = [1, 2, 3, 4]
         results = {}
-        
-        for course in courses:
-            results[course] = {'low': {f: 0 for f in MOT.list},
-                                'high': {f: 0 for f in MOT.list}}
-            for field in MOT.list:
-                cnt_low = Results.objects.filter(res_course_num=course, **base_filter).filter(**{f"{field}__lt": 400})
-                cnt_high = Results.objects.filter(res_course_num=course, **base_filter).filter(**{f"{field}__gte": 600})
-        
-                if cnt_low.exists():
-                    results[course]['low'][field] = cnt_low.count()
-                if cnt_high.exists():
-                    results[course]['high'][field] = cnt_high.count()
         bar_data = []
+        
         for field in MOT.list:
             row = {"name": field}
+            cnt_all_all = 0
+            cnt_low_all = 0
+            cnt_high_all = 0
+            cnt_mid_all = 0
+
             for course in courses:
-                row[f"course_{course}_high"] = results[course]['high'].get(field, 0)
-                row[f"course_{course}_low"] = results[course]['low'].get(field, 0)
+                results[course] = {'low': {f: 0 for f in MOT.list},
+                                'high': {f: 0 for f in MOT.list},
+                                'mid': {f: 0 for f in MOT.list}}
+                                
+                cnt_all = Results.objects.filter(res_course_num=course, **base_filter)
+                cnt_low = cnt_all.filter(**{f"{field}__lt": 400}).count() 
+                cnt_high = cnt_all.filter(**{f"{field}__gte": 600}).count() 
+                cnt_mid = cnt_all.count() - cnt_low - cnt_high
+
+                cnt_all_all += cnt_all.count() 
+                cnt_low_all += cnt_low
+                cnt_high_all += cnt_high
+                cnt_mid_all += cnt_mid
+
+                row[f"course_{course}_high"] = cnt_low/cnt_all.count() if (cnt_all !=0) else 0
+                row[f"course_{course}_low"] = cnt_high/cnt_all.count() if (cnt_all !=0) !=0 else 0
+                row[f"course_{course}_mid"] = cnt_mid/cnt_all.count() if cnt_all !=0 else 0
+            row["all_high"] = cnt_high_all/cnt_all_all if cnt_all_all!=0 else 0
+            row["all_low"] = cnt_low_all/cnt_all_all if cnt_all_all!=0 else 0
+            row["all_mid"] = cnt_mid_all/cnt_all_all if cnt_all_all!=0 else 0
             bar_data.append(row)
-        #print("DATA:", results)
+
         response_data={"status": "success", "data": bar_data}
         return JsonResponse(response_data)
     except Exception as e:
@@ -310,6 +322,7 @@ scores={
 @cached()
 def get_scores_result(request):
     try:
+        print(Academicperformance.objects.count())
         inst = request.GET.get('institute')
         spec = request.GET.get('specialty')
         year = request.GET.get('year')

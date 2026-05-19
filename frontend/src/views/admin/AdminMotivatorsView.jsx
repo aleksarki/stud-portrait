@@ -22,6 +22,7 @@ const competencyLabels = {
 const getLabel = key => competencyLabels[key] || competencyLabels[key.replace('res_comp_', '').replace('_', ' ')] || key.replace('res_comp_', '').replace('_', ' ');
 
 const formatValue = value => Math.abs(value);
+const roundFormat = (value, num) => Number((value).toFixed(num));
 
 const Legendy = ({ selectedCourses, colors }) => (
     <div style={{ marginBottom: '24px', marginLeft: '40px' }}>
@@ -68,7 +69,7 @@ const Tooltippy = ({ active, payload = [], mot=true, label }) => {
         {mot ? <p style={{color: "rgb(2, 81, 62)"}}>Мотиватор </p> : <p style={{color: "rgb(107, 0, 0)"}}>Демотиватор </p>}
         <p style={{fontWeight: 500}}>{getLabel(label)}
         </p>
-        <p className="tp-note">Количество студентов: </p>
+        <p className="tp-note">Доля студентов: </p>
         {filtered.map((entry, i) => {
             const courseNum = entry.payload[`${entry.dataKey}_course`];
             const color = entry.payload[`${entry.dataKey}_color`];
@@ -77,7 +78,7 @@ const Tooltippy = ({ active, payload = [], mot=true, label }) => {
                 <div className="flex items-center gap-4">
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
                     <span>{courseNum} курс:   </span>
-                <span className="font-bold" style={{ color }}>{Math.abs(entry.value)}</span></div>
+                <span className="font-bold" style={{ color }}>{Math.round(entry.value*10000)/100}%</span></div>
                 </div>
                 
             );
@@ -90,13 +91,11 @@ const Tooltippy = ({ active, payload = [], mot=true, label }) => {
 
 function MotTable({ data, currentFilters }) {
     const [tableOpen, setTableOpen] = useState(false);
-    const [selected, setSelected] = useState(['М', 'Д']);
+    const [selected, setSelected] = useState(['М', 'Д', 'Н']);
 
     if (!data) return null;
-    let all_m = 0;
-    let all_d = 0;
 
-    const mot_demot = ['М', 'Д'];
+    const mot_demot = ['М', 'Д', 'Н'];
     const toggleChoice = (mot_demot) => {
         setSelected(prev =>{
             const next = prev.includes(mot_demot) ? prev.filter(c => c !== mot_demot) : [...prev, mot_demot]
@@ -106,7 +105,7 @@ function MotTable({ data, currentFilters }) {
     const exportToExcel = () => {
         console.log(currentFilters);
         const excelData = [];
-        if (!data || (!selected.includes('М') && !selected.includes('Д'))){
+        if (!data || (!selected.includes('М') && !selected.includes('Д') && !selected.includes('Н'))){
             alert('Отсутствуют данные для скачивания.');
             return;
         }
@@ -124,7 +123,7 @@ function MotTable({ data, currentFilters }) {
                 '2 курс': row.course_2_high || 0,
                 '3 курс': row.course_3_high || 0,
                 '4 курс': row.course_4_high || 0,
-                'Всего' : (row.course_1_high || 0) + (row.course_2_high || 0) + (row.course_3_high || 0) + (row.course_4_high || 0),
+                'Все' : (row.all_high || 0),
             });}
         
             // Строка для Д
@@ -136,7 +135,18 @@ function MotTable({ data, currentFilters }) {
                 '2 курс': row.course_2_low || 0,
                 '3 курс': row.course_3_low || 0,
                 '4 курс': row.course_4_low || 0,
-                'Всего' : (row.course_1_low || 0) + (row.course_2_low || 0) + (row.course_3_low || 0) + (row.course_4_low || 0),
+                'Все' : (row.all_low || 0),
+            });}
+
+            if (selected.includes('Н')){
+                excelData.push({
+                'Показатель': label,
+                'Тип': 'Н',
+                '1 курс': row.course_1_mid || 0,
+                '2 курс': row.course_2_mid || 0,
+                '3 курс': row.course_3_mid || 0,
+                '4 курс': row.course_4_mid || 0,
+                'Все' : (row.all_mid || 0),
             });}
         });
         
@@ -162,10 +172,10 @@ function MotTable({ data, currentFilters }) {
             <div className="table-container">
             <div className="ct-top">
                 <div className="ct-note"><span className="ct-pos">М</span> - мотиватор, <span>   </span> 
-                <span className="ct-neg"> Д</span> - демотиватор</div>
+                <span className="ct-neg"> Д</span> - демотиватор, <span>   </span> <span className="ct-mid"> Н</span> - непроявленный</div>
                 <div className="choice-row">
                     {mot_demot.map((i) => 
-                    <label key={i} className={i=='М' ? "box-mot" : "box-demot"}>
+                    <label key={i} className={i=='М' ? "box-mot" : (i=='Д' ? "box-demot" : "box-neutral")}>
                     <input
                     type="checkbox"
                     checked={selected.includes(i)}
@@ -184,7 +194,7 @@ function MotTable({ data, currentFilters }) {
                 <tr>
                     <th rowSpan={2} colSpan={1}>Мотиватор</th>
                     <th></th> 
-                    <th rowSpan={1} colSpan={5}>Количество студентов</th>
+                    <th rowSpan={1} colSpan={5}>Доля студентов</th>
                 </tr>
                 <tr>
                     <th style={{ textAlign: 'right' }}>Курс: </th> 
@@ -192,7 +202,7 @@ function MotTable({ data, currentFilters }) {
                     <th style={{ textAlign: 'center' }}>{2}</th>
                     <th style={{ textAlign: 'center' }}>3</th>
                     <th style={{ textAlign: 'center' }}>4</th>
-                    <th style={{ textAlign: 'center' }}>Всего</th>
+                    <th style={{ textAlign: 'center' }}>Все курсы</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -206,33 +216,43 @@ function MotTable({ data, currentFilters }) {
                     <tr>
                         <td className="ct-pos">М</td>
                         {Array.from({ length: 4 }, (_, i) => {
-                        const val = row[`course_${i + 1}_high`];
-                        all_m = all_m + val;
+                        const val = Number((row[`course_${i + 1}_high`]).toFixed(3));
                         return (
                             <td key={`m-${i}`} className="mot">
                             {val || val === 0 ? val : '—'}
                             </td>
                         );
                         })}
-                        <td className="mot">{all_m}</td></tr>)}
+                        <td className="mot">{Number((row['all_high']).toFixed(3))}</td></tr>)}
                     {selected.includes('Д') &&( 
                     <tr>
                         <td className="ct-neg">Д</td>
                         {Array.from({ length: 4 }, (_, i) => {
-                        const val = row[`course_${i + 1}_low`];
-                        all_d = all_d + val;
+                        const val = Number((row[`course_${i + 1}_low`]).toFixed(3));
                         return (
                             <td key={`d-${i}`} className="demot">
                             {val || val === 0 ? val : '—'}
                             </td>
                         );})}
-                        <td className="demot">{all_d}</td>
+                        <td className="demot">{Number((row['all_low']).toFixed(3))}</td>
+                    </tr>)}
+                    {selected.includes('Н') &&( 
+                    <tr>
+                        <td className="ct-mid">Н</td>
+                        {Array.from({ length: 4 }, (_, i) => {
+                        const val = Number((row[`course_${i + 1}_mid`]).toFixed(3));
+                        return (
+                            <td key={`d-${i}`} className="neutral">
+                            {val || val === 0 ? val : '—'}
+                            </td>
+                        );})}
+                        <td className="neutral">{Number((row['all_mid']).toFixed(3))}</td>
                     </tr>)}
                 </React.Fragment>))}</tbody>
             </table>
             </div>
         </div>
-        </div>);
+       </div> );
 }
 
 //до 400 - демотиватор, 600+ мотиватор
@@ -409,7 +429,7 @@ function MotivatorCharts({ chart_data, currentFilters }) {
         3: { high: " #619257", low: " #da744a" },
         4: { high: " #42763f", low: " #C44545" },
     };
-  
+    console.log(chart_data);
     const processedData_pos = useMemo(() => {
         if (!chart_data) return [];
         return chart_data.map(item => {
@@ -499,7 +519,7 @@ function MotivatorCharts({ chart_data, currentFilters }) {
                 <YAxis 
                     tickFormatter={formatValue} 
                     stroke="#666"
-                    label={{ value: 'Количество студентов', angle: -90, position: 'insideLeft', fontWeight: 500, fontSize: 11, fill: '#94a3b8' }}
+                    label={{ value: 'Доля студентов', angle: -90, position: 'insideLeft', fontWeight: 500, fontSize: 11, fill: '#94a3b8' }}
                 
                 />
                 <Tooltip content={(props) => <Tooltippy {...props} mot={true}
@@ -543,7 +563,6 @@ function MotivatorCharts({ chart_data, currentFilters }) {
                     stroke="#666"
                 />
                 <YAxis 
-                    tickFormatter={formatValue} 
                     stroke="#666"
                     label={{ value: 'Количество студентов', angle: -90, position: 'insideLeft', fontWeight: 500, fontSize: 11, fill: '#94a3b8' }}
                 

@@ -1,5 +1,5 @@
 .tooltip{
-    background: #ffffff7c;
+    background: #e4e4e7ba;
     border: 1px solid #e5e7eb;
     box-shadow: 0 6px 18px rgba(0,0,0,0.08);
     border-radius: 10px;
@@ -194,14 +194,17 @@
             .mot {background-color: #c5f6d2;}
             .mot:hover {background: #e0f9ec;}
 
-            .demot {background-color: #f5eccb;}
-            .demot:hover {background-color: #f9f1e9;}
+            .demot {background-color: #f5dde3;}
+            .demot:hover {background-color: #f8ebee;}
+
+            .neutral {background-color: #f5eccb;}
+            .neutral:hover {background-color: #f9f1e9;}
 
             .ct-name { text-align: left !important; color: #64748b; font-weight: 500; }
             .ct-pos  { text-align: left !important; color: #119574 !important; font-weight: 500;}
             .ct-neg  { text-align: left !important; color: #E24B4A !important; font-weight: 500;}
             .ct-zero { color: #728196; }
-
+            .ct-mid { text-align: left !important; color:#ebd439 !important; font-weight: 500;}
             .choice-row {
                 font-size: 13px;
                 padding: 5px !important;
@@ -219,6 +222,11 @@
                     width: 12px;
                     height: 12px;
                     accent-color: #E24B4A;
+                }
+                .box-neutral input {
+                    width: 12px;
+                    height: 12px;
+                    accent-color: #e1e33f;
                 }
             }
         }
