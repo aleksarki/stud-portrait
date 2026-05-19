@@ -49,9 +49,10 @@ urlpatterns = [
     path('get-discipline-heatmap-data/',        analysis_end.get_discipline_heatmap_data,        name='get_discipline_heatmap_data'),
     path('analyze-student-discipline-impact/',  analysis_end.analyze_student_discipline_impact,  name='analyze_student_discipline_impact'),
 
-    path('get-competency-level-flow/',  analysis_end.get_competency_level_flow,       name='get_competency_level_flow'),
-    path('ai-analytics-summary/',       analysis_end.ai_analytics_summary,            name='ai_analytics_summary'),
-    path('get-disciplines/',            analysis_end.get_disciplines,                 name='get-disciplines'),   
+    path('get-competency-level-flow/',        analysis_end.get_competency_level_flow,        name='get_competency_level_flow'),
+    path('get-competency-level-flow-yearly/', analysis_end.get_competency_level_flow_yearly, name='get_competency_level_flow'),
+    path('ai-analytics-summary/',             analysis_end.ai_analytics_summary,             name='ai_analytics_summary'),
+    path('get-disciplines/',                  analysis_end.get_disciplines,                  name='get-disciplines'),   
     
     path('education-profiles-comparison/', analysis_end.get_education_profiles_comparison, name='education_profiles_comparison'),
     path('get-boxplot-data/',              analysis_end.get_boxplot_data,                  name='get_boxplot_data'),

@@ -11,7 +11,8 @@ import {
     getPortraitGetInstitutionDirections,
     postPortraitDataseshNew,
     postGetCompetencyLevelFlow,
-    postGetVamTrendData
+    postGetVamTrendData,
+    postGetCompetencyLevelFlowYearly
 } from "../../../api";
 import { COMPETENCIES_NAMES, LINK_TREE } from "../../../utilities";
 
@@ -254,17 +255,22 @@ function AdminAnalysisAdvancedView() {
     };
 
     // -------------------- Поток уровней --------------------
-    const loadLevelFlow = () => {
+    const loadLevelFlow = type => {
         setLoading(true);
         setActiveVisualization('flow');
         // Для потока уровней направление может быть передано как ID или имя – используем ID
         const directionIds = selectedDirections.map(id => Number(id)).filter(v => !isNaN(v));
-
-        postGetCompetencyLevelFlow(flowCompetency, selectedInstitutions, directionIds)
+        (
+            type === 'year' ?
+            postGetCompetencyLevelFlowYearly :
+            postGetCompetencyLevelFlow
+        )
+        (flowCompetency, selectedInstitutions, directionIds)
             .onSuccess(async response => {
                 const data = await response.json();
                 if (data.status === 'success') {
                     setFlowData({ nodes: data.nodes, links: data.links });
+                    console.log(data)
                 } else {
                     alert('Ошибка: ' + (data.message || 'Неизвестная ошибка'));
                 }
@@ -693,6 +699,7 @@ function AdminAnalysisAdvancedView() {
                                 onClick={() => {
                                     if (activeVisualization === 'lgm') loadLGMCohortData();
                                     else if (activeVisualization === 'flow') loadLevelFlow();
+                                    else if (activeVisualization === 'flow-year') loadLevelFlow("year");
                                     else if (activeVisualization === 'vam') loadVAMData();
                                 }}
                                 palette={ADMIN_PALETTE.CYAN}
@@ -715,10 +722,16 @@ function AdminAnalysisAdvancedView() {
 
                     <FlexRow wrap={WRAP.DO} gap="10">
                         <Button
-                            text="Поток уровней"
+                            text="Поток уровней (курсы)"
                             onClick={() => { setActiveVisualization('flow'); loadLevelFlow(); }}
                             disabled={loading}
                             palette={activeVisualization === 'flow' ? ADMIN_PALETTE.CYAN : ADMIN_PALETTE.GRAY}
+                        />
+                        <Button
+                            text="Поток уровней (года)"
+                            onClick={() => { setActiveVisualization('flow-year'); loadLevelFlow("year"); }}
+                            disabled={loading}
+                            palette={activeVisualization === 'flow-year' ? ADMIN_PALETTE.CYAN : ADMIN_PALETTE.GRAY}
                         />
                         <Button
                             text="LGM Когорта"
@@ -745,6 +758,24 @@ function AdminAnalysisAdvancedView() {
                                 <Button
                                     text="Загрузить"
                                     onClick={loadLevelFlow}
+                                    disabled={loading}
+                                    palette={ADMIN_PALETTE.CYAN}
+                                />
+                            </>
+                        )}
+
+                        {activeVisualization === 'flow-year' && (
+                            <>
+                                <LabelledBox label="Компетенция:" inrow nopad>
+                                    <Select initValue={flowCompetency} onChange={setFlowCompetency}>
+                                        {Object.entries(COMPETENCIES_NAMES).map(([key, name]) => (
+                                            <Option key={key} value={key} label={name} />
+                                        ))}
+                                    </Select>
+                                </LabelledBox>
+                                <Button
+                                    text="Загрузить"
+                                    onClick={() => loadLevelFlow("year")}
                                     disabled={loading}
                                     palette={ADMIN_PALETTE.CYAN}
                                 />

@@ -50,7 +50,7 @@ class WindowChain {
 }
 
 const PROTOCOL = "http";
-const HOST = "localhost:8000";
+const HOST = "26.239.72.204:8000";
 
 /* *** AUDIT *** */
 
@@ -368,6 +368,19 @@ export function getStudentDisciplineImpact(studentId) {
 
 export function postGetCompetencyLevelFlow(competency, institutionIds, directionIds) {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-competency-level-flow/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            competency,
+            institution_ids: institutionIds,
+            direction_ids: directionIds
+        })
+    });
+    return new AsyncChain(promise);
+}
+
+export function postGetCompetencyLevelFlowYearly(competency, institutionIds, directionIds) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-competency-level-flow-yearly/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
