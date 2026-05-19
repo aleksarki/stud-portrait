@@ -585,3 +585,8 @@ export function getDuplicateAccounts() {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/duplicate-accounts/`);
     return new AsyncChain(promise);
 }
+
+export function getPossibleDuplicateAccounts() {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/possible-duplicate-accounts/`);
+    return new AsyncChain(promise);
+}
