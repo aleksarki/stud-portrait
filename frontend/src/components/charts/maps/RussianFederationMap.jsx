@@ -150,7 +150,8 @@ function RussianFederationMap({
                 type: "map",
                 map: "Russia",
                 roam: true,
-                zoom: 1.2,
+                zoom: 2,
+                center: [100, 60],
                 scaleLimit: {
                     min: 0.8,
                     max: 15
