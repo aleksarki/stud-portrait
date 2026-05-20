@@ -415,7 +415,7 @@ function StudentMainView() {
                             </div>
                         )}
                         {/* Диаграмма компетенций */}
-                        {competencyData.length > 0 && (
+                        {/* competencyData.length > 0 && (
                             <div className="planetary-chart-card">
                                 <PlanetaryChart
                                     title="Карта компетенций"
@@ -424,10 +424,10 @@ function StudentMainView() {
                                     height={500}
                                 />
                             </div>
-                        )}
+                        )* /}
 
                         {/* Диаграмма мотиваторов */}
-                        {motivatorData.length > 0 && (
+                        {/* motivatorData.length > 0 && (
                             <div className="planetary-chart-card">
                                 <PlanetaryChart
                                     title="Карта мотиваторов"
@@ -436,7 +436,7 @@ function StudentMainView() {
                                     height={500}
                                 />
                             </div>
-                        )}
+                        ) */}
                     </div>
 
                     {/* СРАВНИТЕЛЬНАЯ СТАТИСТИКА */}
