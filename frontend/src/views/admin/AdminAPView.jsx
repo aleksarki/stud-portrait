@@ -33,7 +33,7 @@ function DisciplineScatter({ discipline, participants }) {
             : null;
         })
         .filter(Boolean);
-    
+    let label_text = selectedComp ==='avg' ? 'Средний балл компетенций' : `${COMPETENCIES_NAMES[selectedComp]} - балл`
     return (
         <div className="ds-card">
         <div className="ds-header">
@@ -60,8 +60,8 @@ function DisciplineScatter({ discipline, participants }) {
                 dataKey="x"
                 domain={[170, 800]}
                 name="Балл"
-                label={{ value: 'Средний балл', position: 'insideBottom', offset: -16, fontSize: 11, fill: '#94a3b8' }}
-                tick={{ fontSize: 11, fill: '#94a3b8' }}
+                label={{ value: label_text, position: 'insideBottom', offset: -16, fontSize: 11, fill: '#94a3b8' }}
+                tick={{ fontSize: 11, fill: ' #94a3b8' }}
                 tickLine={false}
             />
             <YAxis
@@ -71,7 +71,7 @@ function DisciplineScatter({ discipline, participants }) {
                 ticks={[2, 3, 4, 5]}
                 name="Оценка"
                 label={{ value: 'Оценка', angle: -90, position: 'insideLeft', fontSize: 11, fill: '#94a3b8' }}
-                tick={{ fontSize: 11, fill: '#94a3b8' }}
+                tick={{ fontSize: 11, fill: ' #94a3b8' }}
                 tickLine={false}
                 axisLine={false}
             />
@@ -86,7 +86,7 @@ function DisciplineScatter({ discipline, participants }) {
                 fill="rgb(101, 142, 208)"
                 fillOpacity={0.25}
                 stroke="rgb(101, 142, 208)"
-                strokeOpacity={0.6}
+                strokeOpacity={0.5}
                 r={4}
             />
             </ScatterChart>
@@ -719,11 +719,11 @@ function AdminAPView() {
                     {activeTab === 'yp' && (<DisciplineScatterGrid data={ScatterData?.data} discipline={ScatterData?.names[1] || ''}/>)}
                     {activeTab === 'pract3' && (<DisciplineScatterGrid data={ScatterData?.data} discipline={ScatterData?.names[2] || ''}/>)}
                     {activeTab === 'pract4' && (<DisciplineScatterGrid data={ScatterData?.data} discipline={ScatterData?.names[3] || ''}/>)}
-                
-                        <CorrelationHeatmap data={correlationData} loading={loadingCorr} />
-                        <CorrelationScatter correlationData={correlationData} loading={loadingCorr} filters={filters} />
-                        
+        
                     </>}</>)}
+                    <CorrelationHeatmap data={correlationData} loading={loadingCorr} />
+                    <CorrelationScatter correlationData={correlationData} loading={loadingCorr} filters={filters} />
+                        
                 </Content>
             </SidebarLayout>
         </div>
