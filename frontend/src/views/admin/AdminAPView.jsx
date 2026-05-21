@@ -9,8 +9,7 @@ import { getFilterDash, getScoresResult,
 
 import { COMPETENCIES_NAMES, COURSES_NAMES, LINK_TREE } from "../../utilities.js";
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
-import Button from '../../components/ui/Button.jsx';
-import { ADMIN_PALETTE } from '../../components/ui/palette.js';
+
 import FlexRow, { WRAP } from '../../components/FlexRow.jsx';
 
 import "./AdminAPView.scss";
@@ -694,26 +693,22 @@ function AdminAPView() {
                     <div className="p-10 text-center">Загрузка данных...</div>)
                     : <>
                 <FlexRow margin="0 0 30 0" wrap={WRAP.DO}>
-                        <Button
-                            text="ПИР"
+                        <button
                             onClick={() => setActiveTab('pir')}
-                            palette={activeTab === 'pir' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
-                        />
-                        <Button
-                            text="УП"
+                            className={activeTab === 'pir' ? "active" : "not-active"}
+                        >ПИР</button>
+                        <button
                             onClick={() => setActiveTab('yp')}
-                            palette={activeTab === 'yp' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
-                        />
-                        <Button
-                            text="Экспл. практика"
+                            className={activeTab === 'yp' ? "active" : "not-active"}
+                        >УП</button>
+                        <button
                             onClick={() => setActiveTab('pract3')}
-                            palette={activeTab === 'pract3' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
-                        />
-                        <Button
-                            text="Преддипл. практика"
+                            className={activeTab === 'pract3' ? "active" : "not-active"}
+                        >Экспл. практика</button>
+                        <button
                             onClick={() => setActiveTab('pract4')}
-                            palette={activeTab === 'pract4' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
-                        />
+                            className={activeTab === 'pract4' ? "active" : "not-active"}
+                        >Преддипл. практика</button>
                     </FlexRow>
                     {activeTab === 'pir' && (<DisciplineScatterGrid data={ScatterData?.data} discipline={ScatterData?.names[0] || ''}/>)}
                     {activeTab === 'yp' && (<DisciplineScatterGrid data={ScatterData?.data} discipline={ScatterData?.names[1] || ''}/>)}
