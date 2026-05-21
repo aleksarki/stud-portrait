@@ -6,6 +6,8 @@ from .common import *
 import numpy as np
 from collections import defaultdict
 
+
+@cached()
 def get_year_metrics(year, filter):
     res_queryset = Results.objects.filter(res_year=year, **filter)
     max_mot={"name": "-", "count": 0}
@@ -55,6 +57,8 @@ def get_year_metrics(year, filter):
         "participated" : {"amount_in": total_students, "students_all": students_uni}
     }
 
+
+@cached()
 def filter_dash(request): 
     try:
         inst = request.GET.get('institute')   
@@ -77,6 +81,8 @@ def filter_dash(request):
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
+
+@cached()
 def overall_stats(request):
     response_data={}
     try:
@@ -101,6 +107,7 @@ def overall_stats(request):
     except Exception as e:
         print(traceback.format_exc())
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
 
 @cached()
 def get_dashboard_stats(request):
@@ -242,6 +249,7 @@ def get_dashboard_stats(request):
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
 
+@cached()
 def get_competency_stats_courses(filter):
     courses = [1, 2, 3, 4]
     results = {}
@@ -322,6 +330,7 @@ scores={
     'хор.':4,
     'отл.':5
 }
+
 
 @cached()
 def get_scores_result(request):
@@ -425,6 +434,8 @@ def calc_boxplot(values, ids):
         int(np.max(non_outliers)),  
     ], outliers
 
+
+@cached()
 def get_data_boxplot(request):
     try:
         inst = request.GET.get('institute')
@@ -493,6 +504,7 @@ def _grade_to_number(grade_str):
     return ATTESTATION_MAP.get(g)
 
 
+@cached()
 def get_grades_competency_correlation(request):
     try:
         from portrait.models import Academicperformance, Results
@@ -601,6 +613,7 @@ def get_grades_competency_correlation(request):
         }, status=500)
 
 
+@cached()
 def get_competency_trend_by_year(request):
     try:
         filters = {}

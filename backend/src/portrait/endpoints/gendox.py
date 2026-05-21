@@ -248,6 +248,7 @@ def generate_docx_resume(request):
     return docxResponse(doc, f"Резюме.docx")
 
 
+@cached()
 @method(GET)
 @jsonResponse
 @csrf_exempt
@@ -607,12 +608,20 @@ def generate_general_interpretation_with_ai(student_info, competencies_dict):
     strong = [name for name, _ in sorted_comps[:2]]
     weak = [name for name, _ in sorted_comps[-2:]]
 
-    # Если модель недоступна — возвращаем шаблонную заглушку
+    # Если модель недоступна
     if not MlModel.AVAILABLE:
+        print("[model] (!): model not available")
         return (
             f"Студент демонстрирует сильные стороны в области {', '.join(strong)}. "
             f"Рекомендуется обратить внимание на развитие {', '.join(weak)}."
         )
+
+    def level(value):
+        if value < 399:
+            return "начальный уровень"
+        if value < 599:
+            return "средний уровень"
+        return "высокий уровень"
 
     # Формируем промпт с использованием strong/weak
     prompt = (
@@ -620,20 +629,27 @@ def generate_general_interpretation_with_ai(student_info, competencies_dict):
         f"Не добавляй никакой информации о внешности, возрасте или личных качествах, не указанных в данных.\n\n"
         f"Курс: {student_info.get('course', 'X')}\n"
         f"Направление: {student_info.get('direction', 'не указано')}\n"
-        f"Сильные стороны (наиболее высокие баллы): {', '.join(strong)}\n"
+        f"Баллы развития компетенций (200-800):\n"
+    ) + (
+        "\n".join([f"{comp}: {val} ({level(val)})" for comp, val in competencies_dict.items()])
+    ) + (
+        f"\nСильные стороны (наиболее высокие баллы): {', '.join(strong)}\n"
         f"Зоны роста (наиболее низкие баллы): {', '.join(weak)}\n\n"
         f"Характеристика (2-3 предложения):"
     )
 
     text = MlModel.generate(prompt, max_length=150, temperature=0.6, top_p=0.85)
 
-    # Если ответ пустой или содержит признаки галлюцинаций — возвращаем заглушку
+    # Если ответ пустой или содержит признаки галлюцинаций
     if not text or any(phrase in text.lower() for phrase in ['внешность', 'возраст', 'рост', 'характер', 'build']):
-        return (f"Студент демонстрирует сильные стороны в области {', '.join(strong[:2])}. "
-                f"Рекомендуется обратить внимание на развитие {', '.join(weak[:2])}.")
+        print("[model] (!): model got high and generated garbage")
+        return (
+            f"Студент демонстрирует сильные стороны в области {', '.join(strong[:2])}. "
+            f"Рекомендуется обратить внимание на развитие {', '.join(weak[:2])}."
+        )
 
     # Очистка от лишних символов
-    text = text.split('\n')[0].strip()
+    '''text = text.split('\n')[0].strip()
     if text.endswith(','):
-        text = text[:-1]
+        text = text[:-1]'''
     return text
