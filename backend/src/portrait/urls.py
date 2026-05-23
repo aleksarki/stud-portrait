@@ -83,6 +83,7 @@ urlpatterns = [
     
     path('grades-competency-correlation/', stat.get_grades_competency_correlation, name='grades_competency_correlation'),
     path('competency-trend-by-year/',      stat.get_competency_trend_by_year,      name='competency_trend_by_year'),
+    path('top-correlations/', stat.get_top_correlations, name='top_correlations'),
 
     # AINTERP module
     # *empty*

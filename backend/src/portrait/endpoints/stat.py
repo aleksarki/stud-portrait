@@ -658,3 +658,151 @@ def get_competency_trend_by_year(request):
             'trends': [],
             'competencies': COMP_KEYS,
         }, status=500)
+
+
+def get_top_correlations(request):
+    try:
+        from portrait.models import Academicperformance, Results
+
+        # Параметры запроса
+        try:
+            top_n = int(request.GET.get('top_n', 20))
+        except (TypeError, ValueError):
+            top_n = 20
+        top_n = max(1, min(top_n, 500))  # ограничение [1..500]
+
+        sort_by = request.GET.get('sort_by', 'abs').lower()
+        if sort_by not in ('abs', 'positive', 'negative'):
+            sort_by = 'abs'
+
+        try:
+            min_n = int(request.GET.get('min_n', 30))
+        except (TypeError, ValueError):
+            min_n = 30
+        min_n = max(3, min_n)  # хотя бы 3, иначе корреляция не считается
+
+        institute = request.GET.get('institute')
+        specialty = request.GET.get('specialty')
+        year = request.GET.get('year')
+
+        # Фильтры для Results (нужны, чтобы взять только тех студентов, которые
+        # подходят под выбранные институт/специальность/год)
+        results_filter = {}
+        if institute:
+            results_filter['res_institution__inst_name'] = institute
+        if specialty:
+            results_filter['res_spec__spec_name'] = specialty
+        if year:
+            try:
+                results_filter['res_year'] = int(year)
+            except (TypeError, ValueError):
+                pass
+
+        # Шаг 1. Соберём результаты тестирования (баллы 12 компетенций) в словарь: participant_id -> {comp_key: value, ...}
+        results_qs = Results.objects.filter(**results_filter).values(
+            'res_participant_id', *COMP.list
+        )
+        results_map = {}
+        for r in results_qs:
+            # один студент мог сдавать несколько раз — берём первый
+            results_map.setdefault(r['res_participant_id'], r)
+
+        if not results_map:
+            return JsonResponse({
+                'status': 'success',
+                'top': [],
+                'params': {
+                    'top_n': top_n, 'sort_by': sort_by, 'min_n': min_n,
+                    'institute': institute, 'specialty': specialty, 'year': year,
+                },
+                'total_pairs': 0,
+                'message': 'Нет студентов под выбранные фильтры',
+            })
+
+        # Шаг 2. Идём по Academicperformance, агрегируем пары (оценка, балл) по ключу (дисциплина, компетенция).
+        perf_qs = Academicperformance.objects.values(
+            'perf_part_id', 'perf_discipline', 'perf_main_attestation'
+        )
+        pairs_data = defaultdict(list)  # (disc, comp_key) -> [(grade, comp_val), ...]
+        disciplines_set = set()
+
+        for perf in perf_qs:
+            grade_num = _grade_to_number(perf['perf_main_attestation'])
+            if grade_num is None:
+                continue
+            res = results_map.get(perf['perf_part_id'])
+            if res is None:
+                continue
+            disc = perf['perf_discipline']
+            if not disc:
+                continue
+            disciplines_set.add(disc)
+            for comp_key in COMP.list:
+                comp_val = res.get(comp_key)
+                if comp_val is None:
+                    continue
+                pairs_data[(disc, comp_key)].append((grade_num, comp_val))
+
+        # Шаг 3. Считаем корреляцию Пирсона по каждой паре
+        all_correlations = []
+        for (disc, comp_key), pairs in pairs_data.items():
+            n = len(pairs)
+            if n < min_n:
+                continue
+            grades = np.array([p[0] for p in pairs], dtype=float)
+            comps = np.array([p[1] for p in pairs], dtype=float)
+            if grades.std() == 0 or comps.std() == 0:
+                continue  # вырожденный случай — корреляция не определена
+            corr = float(np.corrcoef(grades, comps)[0, 1])
+            if np.isnan(corr):
+                continue
+            all_correlations.append({
+                'discipline': disc,
+                'competency_key': comp_key,
+                'competency_name': COMP.names.get(comp_key, comp_key),
+                'value': round(corr, 3),
+                'abs_value': round(abs(corr), 3),
+                'n': n,
+                'direction': 'positive' if corr > 0 else ('negative' if corr < 0 else 'neutral'),
+            })
+
+        total_pairs = len(all_correlations)
+
+        # Шаг 4. Сортировка и обрезка топ-N
+        if sort_by == 'positive':
+            filtered = [c for c in all_correlations if c['value'] > 0]
+            filtered.sort(key=lambda c: c['value'], reverse=True)
+        elif sort_by == 'negative':
+            filtered = [c for c in all_correlations if c['value'] < 0]
+            filtered.sort(key=lambda c: c['value'])  # самые отрицательные первыми
+        else:  # abs
+            filtered = list(all_correlations)
+            filtered.sort(key=lambda c: c['abs_value'], reverse=True)
+
+        top = filtered[:top_n]
+        for i, item in enumerate(top, start=1):
+            item['rank'] = i
+
+        return JsonResponse({
+            'status': 'success',
+            'top': top,
+            'params': {
+                'top_n': top_n,
+                'sort_by': sort_by,
+                'min_n': min_n,
+                'institute': institute,
+                'specialty': specialty,
+                'year': year,
+            },
+            'total_pairs': total_pairs,
+            'total_disciplines': len(disciplines_set),
+        })
+
+    except Exception as e:
+        traceback.print_exc()
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e),
+            'top': [],
+            'total_pairs': 0,
+        }, status=500)
