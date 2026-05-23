@@ -658,3 +658,357 @@ def get_competency_trend_by_year(request):
             'trends': [],
             'competencies': COMP_KEYS,
         }, status=500)
+
+
+def get_top_correlations(request):
+    try:
+        from portrait.models import Academicperformance, Results
+
+        # Параметры запроса
+        try:
+            top_n = int(request.GET.get('top_n', 20))
+        except (TypeError, ValueError):
+            top_n = 20
+        top_n = max(1, min(top_n, 500))  # ограничение [1..500]
+
+        sort_by = request.GET.get('sort_by', 'abs').lower()
+        if sort_by not in ('abs', 'positive', 'negative'):
+            sort_by = 'abs'
+
+        try:
+            min_n = int(request.GET.get('min_n', 30))
+        except (TypeError, ValueError):
+            min_n = 30
+        min_n = max(3, min_n)  # хотя бы 3, иначе корреляция не считается
+
+        institute = request.GET.get('institute')
+        specialty = request.GET.get('specialty')
+        year = request.GET.get('year')
+
+        # Фильтры для Results (нужны, чтобы взять только тех студентов, которые
+        # подходят под выбранные институт/специальность/год)
+        results_filter = {}
+        if institute:
+            results_filter['res_institution__inst_name'] = institute
+        if specialty:
+            results_filter['res_spec__spec_name'] = specialty
+        if year:
+            try:
+                results_filter['res_year'] = int(year)
+            except (TypeError, ValueError):
+                pass
+
+        # Шаг 1. Соберём результаты тестирования (баллы 12 компетенций) в словарь: participant_id -> {comp_key: value, ...}
+        results_qs = Results.objects.filter(**results_filter).values(
+            'res_participant_id', *COMP.list
+        )
+        results_map = {}
+        for r in results_qs:
+            # один студент мог сдавать несколько раз — берём первый
+            results_map.setdefault(r['res_participant_id'], r)
+
+        if not results_map:
+            return JsonResponse({
+                'status': 'success',
+                'top': [],
+                'params': {
+                    'top_n': top_n, 'sort_by': sort_by, 'min_n': min_n,
+                    'institute': institute, 'specialty': specialty, 'year': year,
+                },
+                'total_pairs': 0,
+                'message': 'Нет студентов под выбранные фильтры',
+            })
+
+        # Шаг 2. Идём по Academicperformance, агрегируем пары (оценка, балл) по ключу (дисциплина, компетенция).
+        perf_qs = Academicperformance.objects.values(
+            'perf_part_id', 'perf_discipline', 'perf_main_attestation'
+        )
+        pairs_data = defaultdict(list)  # (disc, comp_key) -> [(grade, comp_val), ...]
+        disciplines_set = set()
+
+        for perf in perf_qs:
+            grade_num = _grade_to_number(perf['perf_main_attestation'])
+            if grade_num is None:
+                continue
+            res = results_map.get(perf['perf_part_id'])
+            if res is None:
+                continue
+            disc = perf['perf_discipline']
+            if not disc:
+                continue
+            disciplines_set.add(disc)
+            for comp_key in COMP.list:
+                comp_val = res.get(comp_key)
+                if comp_val is None:
+                    continue
+                pairs_data[(disc, comp_key)].append((grade_num, comp_val))
+
+        # Шаг 3. Считаем корреляцию Пирсона по каждой паре
+        all_correlations = []
+        for (disc, comp_key), pairs in pairs_data.items():
+            n = len(pairs)
+            if n < min_n:
+                continue
+            grades = np.array([p[0] for p in pairs], dtype=float)
+            comps = np.array([p[1] for p in pairs], dtype=float)
+            if grades.std() == 0 or comps.std() == 0:
+                continue  # вырожденный случай — корреляция не определена
+            corr = float(np.corrcoef(grades, comps)[0, 1])
+            if np.isnan(corr):
+                continue
+            all_correlations.append({
+                'discipline': disc,
+                'competency_key': comp_key,
+                'competency_name': COMP.names.get(comp_key, comp_key),
+                'value': round(corr, 3),
+                'abs_value': round(abs(corr), 3),
+                'n': n,
+                'direction': 'positive' if corr > 0 else ('negative' if corr < 0 else 'neutral'),
+            })
+
+        total_pairs = len(all_correlations)
+
+        # Шаг 4. Сортировка и обрезка топ-N
+        if sort_by == 'positive':
+            filtered = [c for c in all_correlations if c['value'] > 0]
+            filtered.sort(key=lambda c: c['value'], reverse=True)
+        elif sort_by == 'negative':
+            filtered = [c for c in all_correlations if c['value'] < 0]
+            filtered.sort(key=lambda c: c['value'])  # самые отрицательные первыми
+        else:  # abs
+            filtered = list(all_correlations)
+            filtered.sort(key=lambda c: c['abs_value'], reverse=True)
+
+        top = filtered[:top_n]
+        for i, item in enumerate(top, start=1):
+            item['rank'] = i
+
+        return JsonResponse({
+            'status': 'success',
+            'top': top,
+            'params': {
+                'top_n': top_n,
+                'sort_by': sort_by,
+                'min_n': min_n,
+                'institute': institute,
+                'specialty': specialty,
+                'year': year,
+            },
+            'total_pairs': total_pairs,
+            'total_disciplines': len(disciplines_set),
+        })
+
+    except Exception as e:
+        traceback.print_exc()
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e),
+            'top': [],
+            'total_pairs': 0,
+        }, status=500)
+
+
+def get_competency_segmentation(request):
+    try:
+        from portrait.models import Academicperformance, Results
+
+        # Параметры
+        competency = request.GET.get('competency')
+        if not competency or competency not in COMP.list:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Параметр competency обязателен и должен быть одним из: {COMP.list}',
+            }, status=400)
+
+        institute = request.GET.get('institute')
+        specialty = request.GET.get('specialty')
+        year = request.GET.get('year')
+
+        try:
+            motivator_threshold = int(request.GET.get('motivator_threshold', 600))
+        except (TypeError, ValueError):
+            motivator_threshold = 600
+
+        # Фильтры
+        results_filter = {}
+        if institute:
+            results_filter['res_institution__inst_name'] = institute
+        if specialty:
+            results_filter['res_spec__spec_name'] = specialty
+        if year:
+            results_filter['res_year'] = year
+
+        # Шаг 1. Берём студентов с непустой компетенцией
+        # Получаем сразу все нужные поля (балл компетенции + все мотиваторы)
+        select_fields = ['res_participant_id', competency] + list(MOT.list)
+        results_qs = Results.objects.filter(**results_filter).exclude(
+            **{f'{competency}__isnull': True}
+        ).exclude(
+            **{competency: 0}  # 0 в этой схеме означает «нет данных»
+        ).values(*select_fields)
+
+        # Один студент мог сдавать несколько раз — берём первый
+        results_map = {}
+        for r in results_qs:
+            results_map.setdefault(r['res_participant_id'], r)
+
+        if not results_map:
+            return JsonResponse({
+                'status': 'success',
+                'competency': competency,
+                'competency_name': COMP.names.get(competency, competency),
+                'total_n': 0,
+                'q1': None,
+                'q3': None,
+                'groups': [],
+                'message': 'Нет студентов под выбранные фильтры',
+            })
+
+        # Шаг 2. Считаем квартили распределения
+        comp_values = np.array([r[competency] for r in results_map.values()], dtype=float)
+        q1 = float(np.percentile(comp_values, 25))
+        q3 = float(np.percentile(comp_values, 75))
+        total_n = len(comp_values)
+
+        # Шаг 3. Разбиваем студентов на 3 групп
+        groups_def = [
+            {'name': 'low',    'label': f'Низкий уровень (< {round(q1)})',         'lo': None, 'hi': q1},
+            {'name': 'middle', 'label': f'Средний уровень ({round(q1)}–{round(q3)})', 'lo': q1,   'hi': q3},
+            {'name': 'high',   'label': f'Высокий уровень (> {round(q3)})',        'lo': q3,   'hi': None},
+        ]
+
+        # Для каждой группы — множество participant_id
+        group_participants = {g['name']: set() for g in groups_def}
+        group_records = {g['name']: [] for g in groups_def}  # для мотиваторов
+
+        for pid, r in results_map.items():
+            v = r[competency]
+            if v < q1:
+                grp = 'low'
+            elif v > q3:
+                grp = 'high'
+            else:
+                grp = 'middle'
+            group_participants[grp].add(pid)
+            group_records[grp].append(r)
+
+        # Шаг 4. Подгружаем академические оценки один раз
+        all_participant_ids = set(results_map.keys())
+        perf_qs = Academicperformance.objects.filter(
+            perf_part_id__in=all_participant_ids
+        ).values('perf_part_id', 'perf_discipline', 'perf_main_attestation')
+
+        # raw_grades[group_name][discipline] = [grade_num, ...]
+        raw_grades = {g['name']: defaultdict(list) for g in groups_def}
+        for perf in perf_qs:
+            pid = perf['perf_part_id']
+            grade_num = _grade_to_number(perf['perf_main_attestation'])
+            if grade_num is None:
+                continue
+            disc = perf['perf_discipline']
+            if not disc:
+                continue
+            for g in groups_def:
+                if pid in group_participants[g['name']]:
+                    raw_grades[g['name']][disc].append(grade_num)
+                    break
+
+        # Шаг 5. Собираем итоговый JSON по группам
+        groups_out = []
+        for g in groups_def:
+            records = group_records[g['name']]
+            n = len(records)
+
+            # Средний балл самой компетенции в группе
+            if records:
+                avg_competency = round(
+                    float(np.mean([r[competency] for r in records])), 2
+                )
+            else:
+                avg_competency = 0
+
+            # Средние оценки по дисциплинам
+            disc_avgs = []
+            for disc, grades in raw_grades[g['name']].items():
+                if len(grades) < 3:  # отсекаем мусор
+                    continue
+                disc_avgs.append({
+                    'discipline': disc,
+                    'avg': round(float(np.mean(grades)), 2),
+                    'n': len(grades),
+                })
+
+            # Сортируем по убыванию средней оценки
+            disc_avgs.sort(key=lambda x: x['avg'], reverse=True)
+
+            # Топ-5 лучших + 2 худших (если дисциплин > 7)
+            if len(disc_avgs) > 7:
+                top_disc = disc_avgs[:5]
+                bottom_disc = disc_avgs[-2:]
+                # Помечаем для удобства фронта
+                for d in top_disc:
+                    d['kind'] = 'top'
+                for d in bottom_disc:
+                    d['kind'] = 'bottom'
+                avg_grades = top_disc + bottom_disc
+            else:
+                for d in disc_avgs:
+                    d['kind'] = 'top'
+                avg_grades = disc_avgs
+
+            # Топ-3 мотиваторов
+            motiv_stats = []
+            if n > 0:
+                for mot_key in MOT.list:
+                    # Считаем студентов в группе с баллом мотиватора >= threshold
+                    high_count = sum(
+                        1 for r in records
+                        if r.get(mot_key) is not None and r.get(mot_key) >= motivator_threshold
+                    )
+                    percent = round(high_count / n * 100, 1)
+                    if percent > 0:
+                        motiv_stats.append({
+                            'key': mot_key,
+                            'name': MOT.names.get(mot_key, mot_key),
+                            'percent': percent,
+                            'count': high_count,
+                        })
+                motiv_stats.sort(key=lambda x: x['percent'], reverse=True)
+            top_motivators = motiv_stats[:3]
+
+            groups_out.append({
+                'name': g['name'],
+                'label': g['label'],
+                'range': [
+                    None if g['lo'] is None else round(g['lo'], 1),
+                    None if g['hi'] is None else round(g['hi'], 1),
+                ],
+                'n': n,
+                'avg_competency': avg_competency,
+                'avg_grades': avg_grades,
+                'top_motivators': top_motivators,
+            })
+
+        return JsonResponse({
+            'status': 'success',
+            'competency': competency,
+            'competency_name': COMP.names.get(competency, competency),
+            'q1': round(q1, 1),
+            'q3': round(q3, 1),
+            'total_n': total_n,
+            'motivator_threshold': motivator_threshold,
+            'params': {
+                'institute': institute,
+                'specialty': specialty,
+                'year': year,
+            },
+            'groups': groups_out,
+        })
+
+    except Exception as e:
+        traceback.print_exc()
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e),
+            'groups': [],
+        }, status=500)
