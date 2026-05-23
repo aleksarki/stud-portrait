@@ -10,6 +10,7 @@ import 'rc-slider/assets/index.css';
 import * as XLSX from 'xlsx';
 
 import TopCorrelationsTable from './TopCorrelationsTable';
+import CompetencySegmentation from './CompetencySegmentation';
 
 import FlexRow, { ALIGN, JUSTIFY, WRAP } from '../../components/FlexRow.jsx';
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
@@ -1164,6 +1165,7 @@ function AdminCompetencesView() {
                         <><BoxPlots data={BoxplotData?.data} />
                             <CompetencyTrendLine data={trendData} loading={loadingTrend} />
                             <TopCorrelationsTable filters={filters_} />
+                            <CompetencySegmentation filters={filters_} />
                         </>}
                 </Content>
             </SidebarLayout>
