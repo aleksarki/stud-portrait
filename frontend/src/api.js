@@ -300,7 +300,7 @@ export function postAnalyzeCohortLgm(competency, institutionIds = [], directionI
 export function postGetLgmGrowers(competency, groupBy, groupId, institutionIds = [], directionIds = []) {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/get-lgm-growers/`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             competency,
             group_by: groupBy,
@@ -537,6 +537,45 @@ export function getCompetencyTrendByYear(institute, specialty) {
     if (institute) params.append('institute', institute);
     if (specialty) params.append('specialty', specialty);
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/competency-trend-by-year/?${params}`);
+    return new AsyncChain(promise);
+}
+
+
+export function getTopCorrelations({
+    topN = 20,
+    sortBy = 'abs',
+    minN = 30,
+    institute = null,
+    specialty = null,
+    year = null
+} = {}) {
+    const params = new URLSearchParams();
+    params.append('top_n', topN);
+    params.append('sort_by', sortBy);
+    params.append('min_n', minN);
+    if (institute) params.append('institute', institute);
+    if (specialty) params.append('specialty', specialty);
+    if (year) params.append('year', year);
+
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/top-correlations/?${params}`);
+    return new AsyncChain(promise);
+}
+
+export function getCompetencySegmentation({
+    competency,
+    institute = null,
+    specialty = null,
+    year = null,
+    motivatorThreshold = 600
+} = {}) {
+    const params = new URLSearchParams();
+    params.append('competency', competency);
+    params.append('motivator_threshold', motivatorThreshold);
+    if (institute) params.append('institute', institute);
+    if (specialty) params.append('specialty', specialty);
+    if (year) params.append('year', year);
+
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/competency-segmentation/?${params}`);
     return new AsyncChain(promise);
 }
 
