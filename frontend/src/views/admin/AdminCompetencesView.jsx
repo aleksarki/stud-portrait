@@ -9,6 +9,8 @@ import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import * as XLSX from 'xlsx';
 
+import CorrelationHeatmap from './CorrelationHeatmap';
+import CorrelationScatter from './CorrelationScatter';
 import TopCorrelationsTable from './TopCorrelationsTable';
 import CompetencySegmentation from './CompetencySegmentation';
 
@@ -25,7 +27,8 @@ import {
     getDashboardStats,
     getFilterDash,
     getDataBoxplot,
-    getCompetencyTrendByYear
+    getCompetencyTrendByYear,
+    getGradesCompetencyCorrelation,
 } from '../../api.js';
 import { COMPETENCIES_NAMES, FIELD_NAMES, LINK_TREE, MOTIVATORS_NAMES } from "../../utilities.js";
 
@@ -1083,6 +1086,9 @@ function AdminCompetencesView() {
     const [trendData, setTrendData] = useState(null);
     const [loadingTrend, setLoadingTrend] = useState(false);
 
+    const [correlationData, setCorrelationData] = useState(null);
+    const [loadingCorr, setLoadingCorr] = useState(false);
+
     const loadDashboardStats = async currentFilters => {
         setLoadingDash(true)
         getDashboardStats(currentFilters.institute, currentFilters.specialty, currentFilters.year)
@@ -1134,6 +1140,20 @@ function AdminCompetencesView() {
         loadCompetencyTrend(filters_);
     }, [filters_]);
 
+    const loadCorrelation = async (currentFilters) => {
+        setLoadingCorr(true);
+        getGradesCompetencyCorrelation(currentFilters.institute, currentFilters.specialty, currentFilters.year)
+            .onSuccess(async response => {
+                const data = await response.json();
+                setCorrelationData(data);
+            })
+            .onError(err => console.error("Ошибка при загрузке корреляции:", err))
+            .finally(() => setLoadingCorr(false));
+    };
+    useEffect(() => {
+        loadCorrelation(filters_);
+    }, [filters_]);
+
     if (loadingDash) {
         return (
             <div className="AdminCompetencesView">
@@ -1163,6 +1183,8 @@ function AdminCompetencesView() {
                     </></span>
                     {loading ? <div>Загрузка диаграммы..</div> :
                         <><BoxPlots data={BoxplotData?.data} />
+                            <CorrelationHeatmap data={correlationData} loading={loadingCorr} />
+                            <CorrelationScatter correlationData={correlationData} loading={loadingCorr} filters={filters_} />
                             <CompetencyTrendLine data={trendData} loading={loadingTrend} />
                             <TopCorrelationsTable filters={filters_} />
                             <CompetencySegmentation filters={filters_} />
