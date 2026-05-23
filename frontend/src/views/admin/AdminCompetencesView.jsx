@@ -9,6 +9,8 @@ import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import * as XLSX from 'xlsx';
 
+import TopCorrelationsTable from './TopCorrelationsTable';
+
 import FlexRow, { ALIGN, JUSTIFY, WRAP } from '../../components/FlexRow.jsx';
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 
@@ -623,92 +625,93 @@ function Dashboard({ data, filters }) {
                         </div>
                     </div>
 
-            {/* Правая колонка */}
-            <div className="col-right">
-            <h4 className="text-xs uppercase text-gray-400 font-bold mb-6">Компетенции</h4>
-            <Stat 
-                label={`Наиболее развитая. Средний балл: ${data.col3.best.val}`} 
-                value={getLabel(data.col3.best.name)} isText={true}
-                prev={data.col3.best_prev.val !=0 ? `${getLabel(data.col3.best_prev.name)} (${data.col3.best_prev.val})` : 0} 
-            /> 
-            <div style={{height:20}}></div>
-            <Stat 
-                label={`Наименее развитая. Средний балл: ${data.col3.worst.val}`} 
-                value={getLabel(data.col3.worst.name)} isText={true}
-                prev={data.col3.worst_prev.val !=0 ? `${getLabel(data.col3.worst_prev.name)} (${data.col3.worst_prev.val})` : 0} 
-            />
+                    {/* Правая колонка */}
+                    <div className="col-right">
+                        <h4 className="text-xs uppercase text-gray-400 font-bold mb-6">Компетенции</h4>
+                        <Stat
+                            label={`Наиболее развитая. Средний балл: ${data.col3.best.val}`}
+                            value={getLabel(data.col3.best.name)} isText={true}
+                            prev={data.col3.best_prev.val != 0 ? `${getLabel(data.col3.best_prev.name)} (${data.col3.best_prev.val})` : 0}
+                        />
+                        <div style={{ height: 20 }}></div>
+                        <Stat
+                            label={`Наименее развитая. Средний балл: ${data.col3.worst.val}`}
+                            value={getLabel(data.col3.worst.name)} isText={true}
+                            prev={data.col3.worst_prev.val != 0 ? `${getLabel(data.col3.worst_prev.name)} (${data.col3.worst_prev.val})` : 0}
+                        />
+                    </div>
+                </div>
+            </div>
+            <div className="dashboard-chart-row">
+                <div className="chart-container">
+                    <h4 className="section-label">Распределение по компетенциям (средний балл)</h4>
+                    <div style={{ width: '100%', height: 400 }}>
+                        <ResponsiveContainer>
+                            <BarChart data={chartData} barGap={5} barCategoryGap="25%"
+                                margin={{ top: 20, right: 30, left: 10, bottom: 70 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+
+                                <ReferenceLine y={0} stroke="#333" strokeWidth={1.5} />
+                                <XAxis
+                                    dataKey="displayName"
+                                    interval={0}
+                                    angle={-20}
+                                    tick={{
+                                        fontSize: 11,
+                                        fill: ' #64748b',
+                                        dy: 11
+                                    }}
+                                    tickMargin={12}
+                                    tickLine={false}
+                                    dx={-50}
+                                    height={45}
+                                    textAnchor="end"
+                                />
+                                <YAxis
+                                    domain={[0, 850]}
+                                    fontSize={12}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tick={{ fill: ' #94a3b8' }}
+                                    label={{ value: 'Средний балл', angle: -90, position: 'insideLeft', fontSize: 11, fill: 'rgb(122, 136, 156)' }}
+                                />
+                                <Tooltip
+                                    cursor={{ fill: '#f8fafc' }}
+                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                                    labelFormatter={(label) => `Компетенция: ${label}`}
+                                    formatter={(value) => [value, 'баллы ']}
+
+                                />
+
+                                <Bar name={year} dataKey="score" fill="rgb(101, 142, 208)" radius={[6, 6, 0, 0]} barSize={22} >
+                                    <LabelList
+                                        formatter={(value) => Math.round(value)}
+                                        position="top"
+                                        offset={5}
+                                        fontSize={12}
+                                        fill="rgb(81, 87, 110)"
+                                    /></Bar>
+                                <Bar name={year - 1} dataKey="prev_score" fill=" #904acc" radius={[6, 6, 0, 0]} barSize={22} >
+                                    <LabelList
+                                        formatter={(value) => Math.round(value)}
+                                        position="top"
+                                        offset={5}
+                                        fontSize={11}
+                                        fill="rgb(139, 148, 174)"
+                                    /></Bar>
+                                <Legend verticalAlign="top" align="right" fontSize={8}
+                                    formatter={(label) => `${label - 1}/${label}`}>
+                                </Legend>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                    <CompetencyTable data={chartData} filters={filters} year={year} />
+                </div>
+                <CompRadar data={data.radar} />
+                <div style={{ padding: 5, margin: 20 }}>
+                    <CompetencyTable_course data={data.radar} filters={filters} /></div>
             </div>
         </div>
-    </div>
-    <div className="dashboard-chart-row">
-            <div className="chart-container">
-                <h4 className="section-label">Распределение по компетенциям (средний балл)</h4>
-                <div style={{ width: '100%', height: 400 }}>
-                    <ResponsiveContainer>
-                        <BarChart data={chartData} barGap={5} barCategoryGap="25%"
-                            margin={{ top: 20, right: 30, left: 10, bottom: 70 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        
-                        <ReferenceLine y={0} stroke="#333" strokeWidth={1.5} />
-                        <XAxis 
-                            dataKey="displayName" 
-                            interval={0}
-                            angle={-20} 
-                            tick={{
-                                fontSize: 11, 
-                                fill: ' #64748b',
-                                dy: 11}} 
-                            tickMargin={12}
-                            tickLine={false}
-                            dx={-50}
-                            height={45}
-                            textAnchor="end"
-                        />
-                        <YAxis 
-                            domain={[0, 850]} 
-                            fontSize={12} 
-                            tickLine={false} 
-                            axisLine={false} 
-                            tick={{fill: ' #94a3b8'}} 
-                            label={{ value: 'Средний балл', angle: -90, position: 'insideLeft', fontSize: 11, fill: 'rgb(122, 136, 156)' }}
-                        />
-                        <Tooltip 
-                            cursor={{fill: '#f8fafc'}}
-                            contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}}
-                            labelFormatter={(label) => `Компетенция: ${label}`}
-                            formatter={(value)=>[value, 'баллы ']}
-                            
-                        />
-                                
-                        <Bar name={year} dataKey="score" fill="rgb(101, 142, 208)" radius={[6, 6, 0, 0]} barSize={22} >
-                            <LabelList
-                                formatter={(value)=>Math.round(value)}
-                                position="top"
-                                offset={5}
-                                fontSize={12}
-                                fill="rgb(81, 87, 110)"
-                            /></Bar>
-                        <Bar name={year-1} dataKey="prev_score" fill=" #904acc" radius={[6, 6, 0, 0]} barSize={22} >
-                            <LabelList
-                                formatter={(value)=>Math.round(value)}
-                                position="top"
-                                offset={5}
-                                fontSize={11}
-                                fill="rgb(139, 148, 174)"
-                            /></Bar>
-                        <Legend verticalAlign="top" align="right" fontSize={8} 
-                            formatter={(label)=>`${label-1}/${label}`}>
-                        </Legend>
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
-                <CompetencyTable data={chartData} filters={filters} year={year}/>
-            </div>
-            <CompRadar data={data.radar}/> 
-            <div style={{padding:5, margin:20}}>
-            <CompetencyTable_course data={data.radar} filters={filters}/></div>
-       </div>
-       </div>
     );
 }
 
@@ -752,10 +755,10 @@ function BoxPlots({ data }) {
                 dataPointSelection: (event, chartContext, config) => {
                     // Предотвращаем всплытие события
                     event?.stopPropagation();
-                    
+
                     // Проверяем, что клик именно по выбросам
                     if (config.seriesIndex !== 1) return;
-                    
+
                     // Получаем точку из данных
                     const point = series[1].data[config.dataPointIndex];
                     if (point) {
@@ -782,7 +785,7 @@ function BoxPlots({ data }) {
                     // тултип для ящика
                     const d = w.config.series[0].data[dataPointIndex];
                     if (!d || !d.y) return '<div></div>';
-                    
+
                     const [min, q1, med, q3, max] = d.y;
                     return `
                 <div style="padding:12px 16px;font-size:12px;line-height:1.8">
@@ -797,7 +800,7 @@ function BoxPlots({ data }) {
                 if (seriesIndex === 1) {
                     const d = series[1].data[dataPointIndex];
                     if (!d) return '<div></div>';
-                    
+
                     return `
                 <div style="padding:12px 16px;font-size:12px;line-height:1.8">
                   <b style="color:#e24b4a">Выброс</b><br/>
@@ -808,17 +811,17 @@ function BoxPlots({ data }) {
                 return '<div></div>';
             },
         },
-        yaxis: { 
-            min: 150, 
-            max: 850, 
-            labels: { style: { fontSize: '11px' } } 
+        yaxis: {
+            min: 150,
+            max: 850,
+            labels: { style: { fontSize: '11px' } }
         },
-        xaxis: { 
-            labels: { 
-                style: { fontSize: '11px', colors: '#64748b' }, 
+        xaxis: {
+            labels: {
+                style: { fontSize: '11px', colors: '#64748b' },
                 rotate: -20,
                 trim: true,
-            } 
+            }
         },
         grid: { borderColor: '#f1f5f9', xaxis: { lines: { show: false } } },
         legend: { show: false },
@@ -839,16 +842,16 @@ function BoxPlots({ data }) {
     return (
         <div className="ds-card">
             <h4 className="ds-title">Распределение по компетенциям</h4>
-            <ReactApexChart 
-                type="boxPlot" 
-                series={series} 
-                options={options} 
+            <ReactApexChart
+                type="boxPlot"
+                series={series}
+                options={options}
                 height={420}
             />
 
             {selected && (
-                <div 
-                    className="bp-modal-overlay" 
+                <div
+                    className="bp-modal-overlay"
                     onClick={handleOverlayClick}
                     style={{
                         position: 'fixed',
@@ -863,8 +866,8 @@ function BoxPlots({ data }) {
                         zIndex: 1000,
                     }}
                 >
-                    <div 
-                        className="bp-modal" 
+                    <div
+                        className="bp-modal"
                         onClick={(e) => e.stopPropagation()}
                         style={{
                             backgroundColor: 'white',
@@ -876,8 +879,8 @@ function BoxPlots({ data }) {
                             position: 'relative',
                         }}
                     >
-                        <button 
-                            className="bp-modal__close" 
+                        <button
+                            className="bp-modal__close"
                             onClick={handleCloseModal}
                             style={{
                                 position: 'absolute',
@@ -892,9 +895,9 @@ function BoxPlots({ data }) {
                         >
                             ✕
                         </button>
-                        <p className="bp-modal__title" style={{ 
-                            fontSize: '18px', 
-                            fontWeight: 'bold', 
+                        <p className="bp-modal__title" style={{
+                            fontSize: '18px',
+                            fontWeight: 'bold',
                             marginBottom: '15px',
                             color: '#e24b4a'
                         }}>
@@ -1159,7 +1162,8 @@ function AdminCompetencesView() {
                     </></span>
                     {loading ? <div>Загрузка диаграммы..</div> :
                         <><BoxPlots data={BoxplotData?.data} />
-                        <CompetencyTrendLine data={trendData} loading={loadingTrend} />
+                            <CompetencyTrendLine data={trendData} loading={loadingTrend} />
+                            <TopCorrelationsTable filters={filters_} />
                         </>}
                 </Content>
             </SidebarLayout>

@@ -540,6 +540,27 @@ export function getCompetencyTrendByYear(institute, specialty) {
     return new AsyncChain(promise);
 }
 
+
+export function getTopCorrelations({
+    topN = 20,
+    sortBy = 'abs',
+    minN = 30,
+    institute = null,
+    specialty = null,
+    year = null
+} = {}) {
+    const params = new URLSearchParams();
+    params.append('top_n', topN);
+    params.append('sort_by', sortBy);
+    params.append('min_n', minN);
+    if (institute) params.append('institute', institute);
+    if (specialty) params.append('specialty', specialty);
+    if (year) params.append('year', year);
+
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/top-correlations/?${params}`);
+    return new AsyncChain(promise);
+}
+
 export function getStudentsList(search = '', limit = 50) {
     const params = new URLSearchParams();
     if (search) params.append('search', search);
