@@ -331,9 +331,9 @@ function StudentMainView() {
                     {showAnalytics && analyticsData && (
                         <div className="analytics-section">
                             <div className="analytics-header">
-                                <h2>📊 Аналитика профессиональных компетенций</h2>
+                                <h2>Аналитика надпрофессиональных компетенций</h2>
                                 <p className="analytics-description">
-                                    Детальный анализ результатов тестирования с рекомендациями по развитию
+                                    Анализ результатов тестирования с рекомендациями по развитию
                                 </p>
                             </div>
 

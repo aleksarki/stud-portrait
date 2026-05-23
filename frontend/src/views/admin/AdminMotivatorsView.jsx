@@ -732,15 +732,18 @@ function AdminMotivatorsView(){
                     <Header title="Админ: График мотиваторов" name="Администратор1" />
                     <Sidebar linkTree={LINK_TREE} />
                     <Content>
-                        <FilterHeader onFilterChange={updateFilter} 
-                        filters={filters}/>
-                        {isError ? (<div className="p-10 text-center"> Ошибка при загрузке данных </div>) :
-                        (<>{loadingMotDash ? (
-                            <div className="p-10 text-center">Загрузка данных...</div>
-                                
-                            ) : <><MotivatorCharts chart_data={MotivationData?.data} currentFilters={filters}/>
-                            <MotivatorStatistics filters={filters} />
-                        </>}</>)}
+                        <FilterHeader
+                            onFilterChange={updateFilter} 
+                            filters={filters}
+                        />
+                        {
+                            isError ? <div className="p-10 text-center"> Ошибка при загрузке данных </div> :
+                            loadingMotDash ? <div className="p-10 text-center">Загрузка данных...</div> :
+                            <>
+                                <MotivatorStatistics filters={filters} />
+                                <MotivatorCharts chart_data={MotivationData?.data} currentFilters={filters}/>
+                            </>
+                        }
                         
                     </Content>
                 </SidebarLayout>
