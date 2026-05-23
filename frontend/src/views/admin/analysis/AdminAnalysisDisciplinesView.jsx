@@ -652,18 +652,6 @@ function AdminAnalysisDisciplinesView() {
                             )}
                         </div>
                     </>}
-
-                    <AiInsightPanel
-                        contextType="discipline_impact"
-                        filters={{
-                            institutions: selectedInstitutions,
-                            directions:   selectedDirections,
-                            courses:      selectedCourses,
-                            competency:   selectedCompetencies[0] || 'res_comp_leadership',
-                        }}
-                        label="Влияние дисциплин"
-                        disabled={loading}
-                    />
                 </Content>
             </SidebarLayout>
         </div>

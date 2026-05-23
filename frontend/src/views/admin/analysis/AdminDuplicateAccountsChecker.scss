@@ -1,0 +1,132 @@
+.AdminDuplicateAccountsChecker {
+    .page-description {
+        color: #6c757d;
+        margin-bottom: 20px;
+    }
+
+    .duplicate-students-list {
+        margin-top: 16px;
+    }
+
+    .student-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        margin-bottom: 16px;
+        overflow: hidden;
+        transition: box-shadow 0.2s;
+
+        &:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+
+        .student-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            cursor: pointer;
+            background: #f8f9fc;
+            border-bottom: 1px solid #e9ecef;
+
+            .student-info {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+
+                .student-name {
+                    font-weight: 600;
+                    font-size: 1rem;
+                    color: #1e293b;
+                }
+
+                .student-email {
+                    font-size: 0.8rem;
+                    color: #3b82f6;
+                    font-family: monospace;
+                }
+            }
+
+            .student-badge {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+
+                .accounts-count {
+                    background: #eef2ff;
+                    color: #1e40af;
+                    padding: 4px 10px;
+                    border-radius: 20px;
+                    font-size: 0.8rem;
+                    font-weight: 500;
+                }
+
+                .expand-icon {
+                    font-size: 1.1rem;
+                    color: #6c757d;
+                }
+            }
+        }
+
+        .student-card-body {
+            padding: 20px;
+            background: #ffffff;
+
+            .account-block {
+                background: #f8f9fa;
+                border-radius: 10px;
+                padding: 16px;
+                margin-bottom: 20px;
+
+                &:last-child {
+                    margin-bottom: 0;
+                }
+
+                h4 {
+                    margin: 0 0 12px 0;
+                    font-size: 0.95rem;
+                    color: #2c3e50;
+                    word-break: break-all;
+                }
+
+                .account-meta {
+                    display: flex;
+                    gap: 20px;
+                    font-size: 0.8rem;
+                    color: #495057;
+                    margin-bottom: 16px;
+                }
+
+                .no-participant-warning {
+                    background: #fff3cd;
+                    color: #856404;
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    font-size: 0.85rem;
+                }
+
+                .no-results {
+                    color: #6c757d;
+                    font-style: italic;
+                    padding: 8px 0;
+                }
+            }
+        }
+    }
+
+    .duplicate-actions {
+        margin-top: 24px;
+        text-align: right;
+    }
+
+    .section-title-possible {
+    margin-top: 40px;
+}
+
+    .account-email {
+        font-size: 0.8rem;
+        color: #3b82f6;
+        font-family: monospace;
+        margin-bottom: 10px;
+    }
+}

@@ -7,5 +7,3 @@ __pycache__/
 *.pyo
 *.pyd
 .Python
-
-src/portrait/llm_model/

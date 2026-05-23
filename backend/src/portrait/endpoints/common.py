@@ -1,6 +1,8 @@
 
+from docx.document import Document as DocumentObject
 from functools import wraps
 import hashlib
+from io import BytesIO
 import json
 import pandas as pd
 from typing import Any
@@ -12,7 +14,10 @@ from django.views.decorators.csrf import csrf_exempt
 
 from ..constants import (
     RsvCompetencies as COMP, RsvMotivators as MOT, RsvValues as VAL, RsvCourses as CUR,
-    TableResults as TRES, TableParticipants as PART, CENTERS_REGIONS
+    TableCompetenceCenters as TCENTER, TableEducationLevels as TLEVEL,
+    TableInstitutions as TINST, TableParticipants as TPART, TableResults as TRES,
+    TableSpecialties as TSPEC, TableStudyForms as TFORM,
+    CENTERS_REGIONS
 )
 from ..models import *
 
@@ -42,6 +47,27 @@ def join(*options):
     """ Provided joined options for Django ORM.
     """
     return '__'.join(options)
+J = join
+
+
+def isIn(field, option):
+    return {f'{field}__{IN}': option}
+
+
+def isNull(field, option):
+    return {f'{field}__{ISNULL}': option}
+
+
+def greaterEqual(field, option):
+    return {f'{field}__{GTE}': option}
+
+
+def lessEqual(field, option):
+    return {f'{field}__{LTE}': option}
+
+
+def desc(field):
+    return f'-{field}'
 
 
 # ! =================================================== GETTERS ==================================================== ! #
@@ -65,10 +91,10 @@ def attrElseNone(obj: Any, attr: str) -> Any | None:
 # ! ================================================== EXCEPTIONS ================================================== ! #
 
 class ResponseError(Exception):
-    """ Raised inside @jsonResponse decorator to break the execution to report client error.
+    """ Raised inside @jsonResponse or @httpResponse decorators to break the execution to report client error.
     """
     def __init__(self, message: str = "", status: int = 400):
-        """ Raised inside @jsonResponse decorator to break the execution to report client error.
+        """ Raised inside @jsonResponse or @httpResponse decorators to break the execution to report client error.
         """
         self.message = message
         self.status = status
@@ -81,12 +107,12 @@ def successResponse(data: dict = dict(), status: int = 200) -> JsonResponse:
     """ Take in dict data, unpack it into returned JSON response with success status.
     """
     try:
-        debugPrint(f"success {status}:", json.dumps(data, indent=4))  # there may be error like decimal
-    except:                                                           # not being json-serialisable
+        debugPrint(f"success {status}:", json.dumps(data, indent=4, ensure_ascii=False))  # there may be error like decimal
+    except:                                                                               # not being json-serialisable
         pass
     return JsonResponse({"status": "success", **data}, status=status)
 
-def excelResponse(data: list, sheetname: str, filename: str = "file.xlsx", status: int = 200) -> HttpResponse:
+def xlsxResponse(data: list, sheetname: str, filename: str = "file.xlsx", status: int = 200) -> HttpResponse:
     """ Return HTTP response carrying an Excel file.
     """
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', status=status)
@@ -95,6 +121,19 @@ def excelResponse(data: list, sheetname: str, filename: str = "file.xlsx", statu
     with pd.ExcelWriter(response, engine="openpyxl") as writer:
         df.to_excel(writer, index=False, sheet_name=sheetname)
     debugPrint(f"success {status}:", filename)
+    return response
+
+def docxResponse(doc: DocumentObject, filename: str = "file.xlsx", status: int = 200):
+    """ Return HTTP response carrying a Word file.
+    """
+    buffer = BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
+    response = HttpResponse(
+        buffer.getvalue(), status=status,
+        content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
 
 def errorResponse(message: str = "", status: int = 400) -> JsonResponse:
@@ -177,7 +216,7 @@ def httpResponse(func):
             return errorResponse(e.message, e.status)
         except Exception as e:
             # print(str(e))
-            # raise
+            raise
             return exceptionResponse(str(e))
     return wrapper
 

@@ -1,13 +1,19 @@
 .tooltip{
-    background: #fff;
+    background: #e4e4e7ba;
     border: 1px solid #e5e7eb;
     box-shadow: 0 6px 18px rgba(0,0,0,0.08);
     border-radius: 10px;
     padding-left: 15px;
     padding-right: 15px;
-    padding-bottom: 5px;
+    padding-bottom: 8px;
     pointer-events: auto;
     line-Height: 14px;
+    padding-top: 10px;
+    p{
+        margin-left: 0px !important;
+        margin: 13px;
+        margin-bottom: 10px;
+    }
     .nums{
         display: flex;
         justify-content: space-between;
@@ -18,6 +24,12 @@
         font-size: 14px;
         line-height: 14px;
         margin: 5px;
+    }
+    .tp-note{
+        color:rgba(36, 35, 40, 0.741);
+        margin: -1px;
+        margin-top: 10px;
+        font-size: 12px;
     }
 }
 .AdminMotivatorView{
@@ -30,6 +42,9 @@
         padding: 20px;
         border-right: 1px solid #ddd;
         
+    }
+    .chart-container{
+        margin-bottom: -45px !important;
     }
     .motBarContainer {
         padding: 24px;
@@ -181,12 +196,42 @@
             }
             .mot {background-color: #c5f6d2;}
             .mot:hover {background: #e0f9ec;}
-            .demot {background-color: #f5eccb;}
-            .demot:hover {background-color: #f9f1e9;}
+
+            .demot {background-color: #f5dde3;}
+            .demot:hover {background-color: #f8ebee;}
+
+            .neutral {background-color: #f5eccb;}
+            .neutral:hover {background-color: #f9f1e9;}
+
             .ct-name { text-align: left !important; color: #64748b; font-weight: 500; }
             .ct-pos  { text-align: left !important; color: #119574 !important; font-weight: 500;}
             .ct-neg  { text-align: left !important; color: #E24B4A !important; font-weight: 500;}
             .ct-zero { color: #728196; }
+            .ct-mid { text-align: left !important; color:#ebd439 !important; font-weight: 500;}
+            .choice-row {
+                font-size: 13px;
+                padding: 5px !important;
+                label{
+                    margin: 8px !important;
+                    font-weight: 500 !important;
+                    color: #4f5b6c;
+                }
+                .box-mot input {
+                    width: 12px;
+                    height: 12px;
+                    accent-color: #119574;
+                }
+                .box-demot input {
+                    width: 12px;
+                    height: 12px;
+                    accent-color: #E24B4A;
+                }
+                .box-neutral input {
+                    width: 12px;
+                    height: 12px;
+                    accent-color: #e1e33f;
+                }
+            }
         }
     }
 

@@ -106,6 +106,7 @@ def import_excel(request):
                     rsv_id = clean_value(row_data.get("rsv_id"))
                     student_name = clean_value(row_data.get("student_name"))
                     student_gender = clean_value(row_data.get("student_gender"))
+                    email = clean_value(row_data.get("email"))
 
                     if not rsv_id or not student_name:
                         continue
@@ -115,7 +116,8 @@ def import_excel(request):
                         rsv_id=str(rsv_id),
                         defaults={
                             'student_name': student_name,
-                            'student_gender': student_gender
+                            'student_gender': student_gender,
+                            'email': email
                         }
                     )
 
@@ -158,17 +160,29 @@ def import_excel(request):
                     if not rsv_id:
                         continue
 
-                    # Получаем или создаём участника (модель содержит только part_rsv_id и part_gender)
+                    # Получаем или создаём участника, сразу заполняя все part_* поля
                     participant, created = Participants.objects.get_or_create(
                         part_rsv_id=str(rsv_id),
-                        defaults={'part_gender': parse_gender(row_data.get("part_gender"))}
+                        defaults={
+                            'part_gender': parse_gender(row_data.get("part_gender")),
+                            'part_institution': institution,      # уже получен из inst_name
+                            'part_spec': spec,                    # уже получен из spec_name
+                            'part_edu_level': edu_level,          # уже получен из edu_level_name
+                            'part_form': form,                    # уже получен из form_name
+                            'part_course_num': clean_value(row_data.get("part_course_num"), int),
+                        }
                     )
 
-                    # Если участник уже существует, обновляем только gender
+                    # Если участник уже существовал – обновляем все эти поля (кроме rsv_id)
                     if not created:
-                        Participants.objects           \
-                            .filter(pk=participant.pk) \
-                            .update(part_gender=parse_gender(row_data.get("part_gender")))
+                        Participants.objects.filter(pk=participant.pk).update(
+                            part_gender=parse_gender(row_data.get("part_gender")),
+                            part_institution=institution,
+                            part_spec=spec,
+                            part_edu_level=edu_level,
+                            part_form=form,
+                            part_course_num=clean_value(row_data.get("part_course_num"), int),
+                        )
 
                     # Создаём или обновляем результат
                     year = clean_value(row_data.get("res_year"))
