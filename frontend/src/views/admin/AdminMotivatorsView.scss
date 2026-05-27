@@ -101,7 +101,13 @@
             color: #444 !important;
         }
     }
+    .filters-cont{
+        position: sticky;
+        top: 0;
+        z-index: 50;
+    }
     .filter-row {
+        opacity: 60%;
         display: flex;
         flex-wrap: wrap;
         gap: 15px;
@@ -112,6 +118,9 @@
         border-radius: 12px;
         margin-bottom: 20px;
         box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    .filter-row:hover{
+        opacity: 99%;
     }
       
     .select__control {

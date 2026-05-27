@@ -557,7 +557,7 @@ function CompRadar({ data }) {
 }
 
 function Dashboard({ data, filters }) {
-    if (!data) return null;
+    if (!data || !data.chart) return null;
     const year = data.year;
     const chartData = data.chart.map(item => {
         const name = getLabel(item.name);
@@ -1161,7 +1161,8 @@ function AdminCompetencesView() {
                     <Header title="Админ: Компетенции" name="Администратор1" />
                     <Sidebar linkTree={LINK_TREE} />
                     <Content>
-                        <FilterHeader onFilterChange={updateFilter} filters={filters_} />
+                        <div className="filters-cont">
+                        <FilterHeader onFilterChange={updateFilter} filters={filters_} /></div>
                         <div className="loading-content">
                             <LoadingSpinner text="Загрузка статистики..." />
                         </div>
@@ -1177,7 +1178,8 @@ function AdminCompetencesView() {
                 <Header title="Админ: Компетенции" name="Администратор1" />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
-                    <FilterHeader onFilterChange={updateFilter} filters={filters_} />
+                    <div className="filters-cont">
+                    <FilterHeader onFilterChange={updateFilter} filters={filters_} /></div>
                     <span><>
                         <Dashboard data={dashboardData} filters={filters_} />
                     </></span>
