@@ -105,5 +105,12 @@ class MlModel:
             )
 
         generated = tokenizer.decode(outputs[0], skip_special_tokens=True)
-        response = generated.split("<|im_start|>assistant\n")[-1].strip()
+        response = generated                      \
+            .split("<|im_start|>assistant\n")[-1] \
+            .strip()                              \
+            .rpartition("assistant")[-1]
+
+        print(f"[model] (i): model got prompt: '{prompt}'")
+        print(f"[model] (i): model generated response: '{response}'")
+
         return response

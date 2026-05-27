@@ -173,6 +173,7 @@ class Studentmapping(models.Model):
     rsv_id = models.CharField(unique=True, max_length=512)
     student_name = models.CharField(max_length=512)
     student_gender = models.CharField(max_length=16, blank=True, null=True)
+    email = models.CharField(max_length=256, blank=True, null=True)  # добавлено
     created_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:

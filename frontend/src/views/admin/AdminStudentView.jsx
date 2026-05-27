@@ -28,7 +28,7 @@ const COMPETENCIES = {
     'res_comp_emotional_intel': 'Эмоциональный интеллект',
     'res_comp_client_focus': 'Клиентоориентированность',
     'res_comp_communication': 'Коммуникация',
-    'res_comp_passive_vocab': 'Пассивный словарь'
+    'res_comp_passive_vocab': 'Пассивный словарный запас'
 };
 
 // Мотиваторы

@@ -64,7 +64,6 @@ function AdminGeographyView() {
     const handleRegionClick = region => {
         setSelectedRegion(region);
         console.log("Выбран регион:", region);
-        // Здесь можно добавить дополнительную логику
     };
 
     // Генерация отчёта
@@ -132,6 +131,7 @@ function AdminGeographyView() {
                             min={0}
                             loading={loading}
                             onRegionClick={handleRegionClick}
+                            highlightedRegion="Тюменская область"
                             title={`Центры компетенций ${selectedYear}`}
                         />
                     </TitledCard>

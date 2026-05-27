@@ -30,7 +30,8 @@ export const LINK_TREE = [
             {title: "ИИ-аналитика", to: '/admin/analysis/ai-analytics'},
             {title: "Области образования", to: '/admin/analysis/edu-profiles'},
             {title: "Переведённые студенты", to: '/admin/analysis/transfered-students'},
-            {title: "Аномальные студенты", to: '/admin/analysis/anomalous-students'}
+            {title: "Аномальные студенты", to: '/admin/analysis/anomalous-students'},
+            {title: "Дублирующиеся аккаунты", to: '/admin/analysis/dublicate-accounts'}
         ]
     }
 ];
@@ -149,7 +150,7 @@ export const COMPETENCIES_NAMES = {
     res_comp_emotional_intel:    "Эмоциональный интеллект",
     res_comp_client_focus:       "Клиентоориентированность",
     res_comp_communication:      "Коммуникация",
-    res_comp_passive_vocab:      "Пассивный словарь"
+    res_comp_passive_vocab:      "Пассивный словарный запас"
 };
 
 export const COMPETENCIES_DESCRIPTIONS = {

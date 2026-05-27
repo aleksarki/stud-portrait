@@ -267,6 +267,137 @@ def analyze_cohort_lgm(request):
 
 
 # ============================================================
+# LGM: списки быстро- и медленнорастущих студентов для группы
+# ============================================================
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def get_lgm_growers(request):
+    """
+    Возвращает списки студентов (с именами), чей индивидуальный slope
+    выше/ниже среднего по группе — т.е. быстро- и медленнорастущие.
+
+    POST body:
+    {
+        "competency": "res_comp_leadership",
+        "group_by": "institution" | "direction",
+        "group_id": 42,
+        "institution_ids": [],
+        "direction_ids": []
+    }
+    """
+    try:
+        body = json.loads(request.body)
+        competency = body.get('competency', 'res_comp_leadership')
+        group_by = body.get('group_by', 'institution')
+        group_id = body.get('group_id')
+        institution_ids = body.get('institution_ids', [])
+        direction_ids = body.get('direction_ids', [])
+
+        if group_id is None:
+            return JsonResponse({'status': 'error', 'message': 'group_id required'}, status=400)
+
+        group_id = int(group_id)
+
+        # Формируем запрос — те же условия, что в analyze_cohort_lgm
+        query = Q()
+        if group_by == 'institution':
+            query &= Q(res_institution_id=group_id)
+        else:
+            query &= Q(res_spec_id=group_id)
+            clean_inst_ids = [int(i) for i in institution_ids if str(i).isdigit()]
+            if clean_inst_ids:
+                query &= Q(res_institution_id__in=clean_inst_ids)
+
+        results_qs = Results.objects.filter(query).order_by(
+            'res_participant_id', 'res_year', 'res_course_num'
+        )
+
+        data = []
+        for r in results_qs:
+            score = getattr(r, competency, None)
+            if score is not None:
+                data.append({
+                    'student_id': r.res_participant_id,
+                    'time_point': r.res_course_num,
+                    'competency_score': score
+                })
+
+        if not data:
+            return JsonResponse({'status': 'error', 'message': 'Нет данных'}, status=404)
+
+        df = pd.DataFrame(data)
+        lgm = LatentGrowthModel()
+        analysis = lgm.fit(df)
+
+        if analysis['status'] != 'success':
+            return JsonResponse({'status': 'error', 'message': analysis.get('message', 'Ошибка LGM')}, status=500)
+
+        trajectories = analysis.get('trajectories', [])
+        mean_slope = analysis.get('mean_slope', 0)
+
+        # Разбиваем на fast/slow
+        fast = [t for t in trajectories if t['slope'] > mean_slope]
+        slow = [t for t in trajectories if t['slope'] <= mean_slope]
+
+        # Подтягиваем имена студентов
+        def enrich_with_names(student_list):
+            enriched = []
+            for t in student_list:
+                sid = t['student_id']
+                name = str(sid)
+                institution_name = ''
+                direction_name = ''
+                try:
+                    participant = Participants.objects.get(part_id=sid)
+                    try:
+                        mapping = Studentmapping.objects.get(rsv_id=participant.part_rsv_id)
+                        name = mapping.student_name
+                    except Studentmapping.DoesNotExist:
+                        name = participant.part_rsv_id or str(sid)
+                    # Берём последний результат для определения вуза/направления
+                    last_result = Results.objects.filter(
+                        res_participant_id=sid
+                    ).select_related('res_institution', 'res_spec').order_by('-res_year', '-res_course_num').first()
+                    if last_result:
+                        institution_name = last_result.res_institution.inst_name if last_result.res_institution else ''
+                        direction_name = last_result.res_spec.spec_name if last_result.res_spec else ''
+                except Participants.DoesNotExist:
+                    pass
+                enriched.append({
+                    'student_id': sid,
+                    'name': name,
+                    'slope': round(t['slope'], 4),
+                    'intercept': round(t.get('intercept', 0), 2),
+                    'institution': institution_name,
+                    'direction': direction_name,
+                })
+            return enriched
+
+        fast_enriched = enrich_with_names(fast)
+        slow_enriched = enrich_with_names(slow)
+
+        # Сортируем: быстрые — по убыванию slope, медленные — по возрастанию
+        fast_enriched.sort(key=lambda x: x['slope'], reverse=True)
+        slow_enriched.sort(key=lambda x: x['slope'])
+
+        return JsonResponse({
+            'status': 'success',
+            'group_id': group_id,
+            'mean_slope': round(mean_slope, 4),
+            'fast_growers': fast_enriched,
+            'slow_growers': slow_enriched,
+            'fast_count': len(fast_enriched),
+            'slow_count': len(slow_enriched),
+        }, json_dumps_params={'ensure_ascii': False})
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+# ============================================================
 # Комплексный анализ всех дисциплин
 # ============================================================
 
@@ -886,114 +1017,190 @@ def analyze_student_discipline_impact(request):
 
 
 @cached()
+@method(POST)
+@jsonResponse
 @csrf_exempt
-@require_http_methods(["POST"])
 def get_competency_level_flow(request):
+    """ Calculate flow in competency levels between courses
     """
-    POST /portrait/get-competency-level-flow/
-    Body: {
-        "competency": "res_comp_leadership",
-        "institution_ids": [1,2],
-        "direction_ids": [10,20]
-    }
-    Returns: {
-        "nodes": [{"name": "1 курс - Начальный"}, ...],
-        "links": [{"source": 0, "target": 5, "value": 42}, ...]
-    }
+    body = json.loads(request.body)
+    competency = body.get('competency')
+    institution_ids = body.get('institution_ids', [])
+    direction_ids = body.get('direction_ids', [])
+
+    if not competency:
+        raise ResponseError("Competency required")
+
+    # Фильтруем участников
+    participants_qs = Participants.objects.all()
+    if institution_ids:
+        participants_qs = participants_qs.filter(**isIn(TPART.INSTITUTION, institution_ids))
+    if direction_ids:
+        participants_qs = participants_qs.filter(**isIn(TPART.EDU_SPEC, direction_ids))
+
+    # Получаем все результаты выбранных участников, сортируем по студенту и курсу
+    results = Results.objects                                                               \
+        .filter(**isIn(TRES.PARTICIPANT, participants_qs.values_list(TPART.ID, flat=True))) \
+        .order_by(TRES.PARTICIPANT, TRES.COURSE_NUM)
+
+    # Группируем по студентам
+    student_data = {}
+    for r in results:
+        sid = r.res_participant
+        score = getattr(r, competency, None)
+        if score is None:
+            continue
+        course = r.res_course_num
+        if course not in [1,2,3,4]:
+            continue
+        if sid not in student_data:
+            student_data[sid] = {}
+        student_data[sid][course] = score
+
+    all_scores = [score for d in student_data.values() for score in d.values()]
+    if not all_scores:
+        raise ResponseError("No scores found", status=404)
+
+    # Пороги: начальный < p33, высокий > p66
+    p33 = np.percentile(all_scores, 33)
+    p66 = np.percentile(all_scores, 66)
+
+    def get_level(score):
+        if score <= p33:
+            return 'Начальный'
+        elif score <= p66:
+            return 'Средний'
+        else:
+            return 'Высокий'
+
+    courses = 1, 2, 3, 4
+    levels = 'Начальный', 'Средний', 'Высокий'
+    nodes = []
+    node_index = {}
+    for course in courses:
+        for level in levels:
+            name = f"{course} курс - {level}"
+            node_index[(course, level)] = len(nodes)
+            nodes.append({'name': name})
+
+    # Подсчёт переходов между последовательными курсами
+    transition_counts = {}
+    for sid, scores in student_data.items():
+        sorted_courses = sorted(scores.keys())
+        if len(sorted_courses) > 1:
+            print(sid, scores)
+        for i in range(len(sorted_courses)-1):
+            c_from = sorted_courses[i]
+            c_to = sorted_courses[i+1]
+            if c_from != c_to - 1:
+                continue
+            level_from = get_level(scores[c_from])
+            level_to = get_level(scores[c_to])
+            key = (c_from, level_from, c_to, level_to)
+            transition_counts[key] = transition_counts.get(key, 0) + 1
+
+    links = []
+    for (c_from, level_from, c_to, level_to), count in transition_counts.items():
+        links.append({
+            'source': node_index[(c_from, level_from)],
+            'target': node_index[(c_to, level_to)],
+            'value': count
+        })
+
+    return {"nodes": nodes, "links": links}
+
+
+@cached()
+@method(POST)
+@jsonResponse
+@csrf_exempt
+def get_competency_level_flow_yearly(request):
+    """ Calculate flow in competency levels between years
     """
-    try:
-        body = json.loads(request.body)
-        competency = body.get('competency')
-        if not competency:
-            return JsonResponse({'status': 'error', 'message': 'competency required'}, status=400)
+    body = json.loads(request.body)
+    competency = body.get('competency')
+    institution_ids = body.get('institution_ids', [])
+    direction_ids = body.get('direction_ids', [])
 
-        institution_ids = body.get('institution_ids', [])
-        direction_ids = body.get('direction_ids', [])
+    if not competency:
+        raise ResponseError("Competency required")
 
-        # Фильтруем участников
-        participants_qs = Participants.objects.all()
-        if institution_ids:
-            participants_qs = participants_qs.filter(part_institution_id__in=institution_ids)
-        if direction_ids:
-            participants_qs = participants_qs.filter(part_spec_id__in=direction_ids)
+    # Фильтруем участников
+    participants_qs = Participants.objects.all()
+    if institution_ids:
+        participants_qs = participants_qs.filter(**isIn(TPART.INSTITUTION, institution_ids))
+    if direction_ids:
+        participants_qs = participants_qs.filter(**isIn(TPART.EDU_SPEC, direction_ids))
 
-        # Получаем все результаты выбранных участников, сортируем по студенту и курсу
-        results = Results.objects.filter(
-            res_participant_id__in=participants_qs.values_list('part_id', flat=True)
-        ).order_by('res_participant_id', 'res_course_num')
+    # Получаем все результаты выбранных участников, сортируем по студенту и курсу
+    results = Results.objects                                                               \
+        .filter(**isIn(TRES.PARTICIPANT, participants_qs.values_list(TPART.ID, flat=True))) \
+        .order_by(TRES.PARTICIPANT, TRES.COURSE_NUM)
 
-        # Группируем по студентам
-        student_data = {}
-        for r in results:
-            sid = r.res_participant_id
-            score = getattr(r, competency, None)
-            if score is None:
+    # Группируем по студентам
+    student_data = {}
+    for r in results:
+        sid = r.res_participant
+        score = getattr(r, competency, None)
+        if score is None:
+            continue
+        year = r.res_year
+        if sid not in student_data:
+            student_data[sid] = {}
+        student_data[sid][year] = score
+
+    all_scores = [score for d in student_data.values() for score in d.values()]
+    if not all_scores:
+        raise ResponseError("No scores found", status=404)
+
+    # Пороги: начальный < p33, высокий > p66
+    p33 = np.percentile(all_scores, 33)
+    p66 = np.percentile(all_scores, 66)
+
+    def get_level(score):
+        if score <= p33:
+            return 'Начальный'
+        elif score <= p66:
+            return 'Средний'
+        else:
+            return 'Высокий'
+
+    years = '2021/2022', '2022/2023', '2023/2024', '2024/2025', '2025/2026'
+    levels = 'Начальный', 'Средний', 'Высокий'
+    nodes = []
+    node_index = {}
+    for year in years:
+        for level in levels:
+            name = f"{year} год - {level}"
+            node_index[(year, level)] = len(nodes)
+            nodes.append({'name': name})
+
+    # Подсчёт переходов между последовательными годами
+    transition_counts = {}
+    for sid, scores in student_data.items():
+        sorted_courses = sorted(scores.keys())
+        if len(sorted_courses) > 1:
+            print(sid, scores)
+        for i in range(len(sorted_courses)-1):
+            c_from = sorted_courses[i]
+            c_to = sorted_courses[i+1]
+            if int(c_from.split('/')[0]) != int(c_to.split('/')[0]) - 1:
                 continue
-            course = r.res_course_num
-            if course not in [1,2,3,4]:
-                continue
-            if sid not in student_data:
-                student_data[sid] = {}
-            student_data[sid][course] = score
+            level_from = get_level(scores[c_from])
+            level_to = get_level(scores[c_to])
+            key = (c_from, level_from, c_to, level_to)
+            transition_counts[key] = transition_counts.get(key, 0) + 1
 
-        all_scores = [score for d in student_data.values() for score in d.values()]
-        if not all_scores:
-            return JsonResponse({'status': 'error', 'message': 'No scores found'}, status=404)
+    links = []
+    for (c_from, level_from, c_to, level_to), count in transition_counts.items():
+        links.append({
+            'source': node_index[(c_from, level_from)],
+            'target': node_index[(c_to, level_to)],
+            'value': count
+        })
 
-        # Пороги: начальный < p33, высокий > p66
-        p33 = np.percentile(all_scores, 33)
-        p66 = np.percentile(all_scores, 66)
+    return {"nodes": nodes, "links": links}
 
-        def get_level(score):
-            if score <= p33:
-                return 'Начальный'
-            elif score <= p66:
-                return 'Средний'
-            else:
-                return 'Высокий'
-
-        courses = [1,2,3,4]
-        levels = ['Начальный', 'Средний', 'Высокий']
-        nodes = []
-        node_index = {}
-        for course in courses:
-            for level in levels:
-                name = f"{course} курс - {level}"
-                node_index[(course, level)] = len(nodes)
-                nodes.append({'name': name})
-
-        # Подсчёт переходов между последовательными курсами
-        transition_counts = {}
-        for sid, scores in student_data.items():
-            sorted_courses = sorted(scores.keys())
-            for i in range(len(sorted_courses)-1):
-                c_from = sorted_courses[i]
-                c_to = sorted_courses[i+1]
-                if c_to != c_from + 1:
-                    continue
-                level_from = get_level(scores[c_from])
-                level_to = get_level(scores[c_to])
-                key = (c_from, level_from, c_to, level_to)
-                transition_counts[key] = transition_counts.get(key, 0) + 1
-
-        links = []
-        for (c_from, level_from, c_to, level_to), count in transition_counts.items():
-            links.append({
-                'source': node_index[(c_from, level_from)],
-                'target': node_index[(c_to, level_to)],
-                'value': count
-            })
-
-        return JsonResponse({
-            'status': 'success',
-            'nodes': nodes,
-            'links': links
-        }, json_dumps_params={'ensure_ascii': False})
-
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 # ============================================================
 # VAM TREND DATA - для линейных графиков по курсам
@@ -1743,9 +1950,8 @@ def get_boxplot_data(request):
                 effective_group_by = 'direction'
             # иначе оставляем None – общий боксплот
 
-        # Если групповая разбивка не нужна – возвращаем как раньше (один ящик)
+        # Если групповая разбивка не нужна – возвращаем один общий ящик
         if effective_group_by is None:
-            # ... старый код (собираем все баллы и студентов) ...
             scores = []
             students_data = []
             for r in qs:
@@ -1753,10 +1959,57 @@ def get_boxplot_data(request):
                 if score is None:
                     continue
                 scores.append(score)
-                # ... собираем students_data ...
-                # (код из предыдущей версии)
-            # вычисляем статистику и возвращаем
-            # ...
+                participant = r.res_participant
+                try:
+                    mapping = Studentmapping.objects.get(rsv_id=participant.part_rsv_id)
+                    student_name = mapping.student_name
+                except Studentmapping.DoesNotExist:
+                    student_name = participant.part_rsv_id
+                students_data.append({
+                    'student_id': participant.part_id,
+                    'name': student_name,
+                    'score': score,
+                    'institution': r.res_institution.inst_name if r.res_institution else 'Не указан',
+                    'direction': r.res_spec.spec_name if r.res_spec else 'Не указано',
+                })
+
+            if len(scores) < 5:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Недостаточно данных для построения ящика с усами (нужно минимум 5 студентов)'
+                }, status=400)
+
+            scores_array = np.array(scores)
+            q1, median, q3 = np.percentile(scores_array, [25, 50, 75])
+            iqr = q3 - q1
+            lower_fence = q1 - 1.5 * iqr
+            upper_fence = q3 + 1.5 * iqr
+            whisker_low = float(max(scores_array.min(), lower_fence))
+            whisker_high = float(min(scores_array.max(), upper_fence))
+            outliers = [s for s in students_data if s['score'] < lower_fence or s['score'] > upper_fence]
+
+            return JsonResponse({
+                'status': 'success',
+                'competency': competency,
+                'grouped': False,
+                'statistics': {
+                    'min': float(scores_array.min()),
+                    'q1': float(q1),
+                    'median': float(median),
+                    'q3': float(q3),
+                    'max': float(scores_array.max()),
+                    'iqr': float(iqr),
+                    'lower_fence': float(lower_fence),
+                    'upper_fence': float(upper_fence),
+                    'whisker_low': whisker_low,
+                    'whisker_high': whisker_high,
+                    'count': len(scores),
+                    'mean': float(np.mean(scores_array)),
+                    'std': float(np.std(scores_array)),
+                },
+                'outliers': outliers,
+                'all_students': students_data,
+            }, json_dumps_params={'ensure_ascii': False})
 
         # Групповая разбивка
         groups_data = {}
@@ -1836,6 +2089,217 @@ def get_boxplot_data(request):
             'grouped': True,
             'group_by': effective_group_by,
             'groups': result_groups,
+        }, json_dumps_params={'ensure_ascii': False})
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_duplicate_accounts(request):
+    """
+    Возвращает студентов, у которых один email соответствует нескольким rsv_id.
+
+    Исправления:
+    - Убран @cached(): данные должны читаться свежими, иначе кнопка «Обновить» не работает.
+    - Устранён N+1: все Participants и Results подгружаются двумя запросами вместо O(n*m).
+    """
+    try:
+        # Находим email, которые встречаются более одного раза в StudentMapping
+        duplicate_emails = list(
+            Studentmapping.objects.values('email')
+            .annotate(count=Count('rsv_id'))
+            .filter(count__gt=1, email__isnull=False)
+            .exclude(email__exact='')
+            .values_list('email', flat=True)
+        )
+
+        if not duplicate_emails:
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Нет студентов с несколькими аккаунтами',
+                'students': []
+            })
+
+        # Загружаем все нужные маппинги одним запросом
+        all_mappings = Studentmapping.objects.filter(email__in=duplicate_emails)
+
+        # Группируем маппинги по email и собираем все rsv_id
+        from collections import defaultdict
+        email_to_mappings = defaultdict(list)
+        all_rsv_ids = []
+        for m in all_mappings:
+            email_to_mappings[m.email].append(m)
+            all_rsv_ids.append(m.rsv_id)
+
+        # Загружаем всех участников одним запросом и индексируем по rsv_id
+        participants_by_rsv = {
+            p.part_rsv_id: p
+            for p in Participants.objects.filter(part_rsv_id__in=all_rsv_ids)
+        }
+
+        # Загружаем все результаты одним запросом и группируем по participant_id
+        participant_ids = [p.part_id for p in participants_by_rsv.values()]
+        results_by_participant = defaultdict(list)
+        results_qs = (
+            Results.objects
+            .filter(res_participant_id__in=participant_ids)
+            .select_related('res_institution', 'res_spec')
+            .order_by('res_year', 'res_course_num')
+        )
+        for r in results_qs:
+            results_by_participant[r.res_participant_id].append(r)
+
+        # Формируем ответ
+        result_students = []
+        for email in duplicate_emails:
+            mappings = email_to_mappings[email]
+            rsv_ids = [m.rsv_id for m in mappings]
+
+            accounts_info = []
+            for rsv_id in rsv_ids:
+                participant = participants_by_rsv.get(rsv_id)
+                if not participant:
+                    accounts_info.append({
+                        'rsv_id': rsv_id,
+                        'exists_in_participants': False,
+                        'results': []
+                    })
+                    continue
+
+                results_data = [
+                    {
+                        'year': r.res_year,
+                        'course': r.res_course_num,
+                        'institution': r.res_institution.inst_name if r.res_institution else None,
+                        'specialty': r.res_spec.spec_name if r.res_spec else None,
+                        'competency_leadership': r.res_comp_leadership,
+                    }
+                    for r in results_by_participant.get(participant.part_id, [])
+                ]
+
+                accounts_info.append({
+                    'rsv_id': rsv_id,
+                    'exists_in_participants': True,
+                    'participant_id': participant.part_id,
+                    'gender': participant.part_gender,
+                    'results': results_data
+                })
+
+            student_name = mappings[0].student_name
+            result_students.append({
+                'email': email,
+                'student_name': student_name,
+                'accounts_count': len(rsv_ids),
+                'accounts': accounts_info
+            })
+
+        return JsonResponse({
+            'status': 'success',
+            'students': result_students
+        }, json_dumps_params={'ensure_ascii': False})
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_possible_duplicate_accounts(request):
+    """
+    Возвращает студентов, у которых совпадает точное ФИО + пол,
+    но разные rsv_id и разные email (или email отсутствует).
+    Те, кто уже попал в get_duplicate_accounts (совпадение по email),
+    из этой выборки исключаются.
+    """
+    try:
+        from collections import defaultdict
+
+        # Находим email, которые уже являются точными дублями — исключим их
+        exact_duplicate_emails = set(
+            Studentmapping.objects.values('email')
+            .annotate(count=Count('rsv_id'))
+            .filter(count__gt=1, email__isnull=False)
+            .exclude(email__exact='')
+            .values_list('email', flat=True)
+        )
+
+        # Группируем всех студентов по (student_name, student_gender)
+        all_mappings = Studentmapping.objects.all()
+
+        groups = defaultdict(list)
+        for m in all_mappings:
+            # Пропускаем тех, кто уже в точных дублях по email
+            if m.email and m.email in exact_duplicate_emails:
+                continue
+            key = (m.student_name.strip(), m.student_gender or '')
+            groups[key].append(m)
+
+        # Оставляем только группы с 2+ записями — это и есть возможные дубли
+        result_students = []
+        for (student_name, gender), mappings in groups.items():
+            if len(mappings) < 2:
+                continue
+
+            rsv_ids = [m.rsv_id for m in mappings]
+
+            # Подгружаем участников и результаты (те же 3 запроса, что в get_duplicate_accounts)
+            participants_by_rsv = {
+                p.part_rsv_id: p
+                for p in Participants.objects.filter(part_rsv_id__in=rsv_ids)
+            }
+            participant_ids = [p.part_id for p in participants_by_rsv.values()]
+            results_by_participant = defaultdict(list)
+            for r in (Results.objects
+                      .filter(res_participant_id__in=participant_ids)
+                      .select_related('res_institution', 'res_spec')
+                      .order_by('res_year', 'res_course_num')):
+                results_by_participant[r.res_participant_id].append(r)
+
+            accounts_info = []
+            for m in mappings:
+                participant = participants_by_rsv.get(m.rsv_id)
+                if not participant:
+                    accounts_info.append({
+                        'rsv_id': m.rsv_id,
+                        'email': m.email or None,
+                        'exists_in_participants': False,
+                        'results': []
+                    })
+                    continue
+
+                results_data = [
+                    {
+                        'year': r.res_year,
+                        'course': r.res_course_num,
+                        'institution': r.res_institution.inst_name if r.res_institution else None,
+                        'specialty': r.res_spec.spec_name if r.res_spec else None,
+                        'competency_leadership': r.res_comp_leadership,
+                    }
+                    for r in results_by_participant.get(participant.part_id, [])
+                ]
+                accounts_info.append({
+                    'rsv_id': m.rsv_id,
+                    'email': m.email or None,
+                    'exists_in_participants': True,
+                    'participant_id': participant.part_id,
+                    'gender': participant.part_gender,
+                    'results': results_data
+                })
+
+            result_students.append({
+                'student_name': student_name,
+                'gender': gender,
+                'accounts_count': len(mappings),
+                'accounts': accounts_info
+            })
+
+        return JsonResponse({
+            'status': 'success',
+            'students': result_students
         }, json_dumps_params={'ensure_ascii': False})
 
     except Exception as e:

@@ -49,14 +49,16 @@ CREATE TABLE Specialties
 CREATE TABLE StudentMapping
 (
     mapping_id      INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    rsv_id          VARCHAR(512)  NOT NULL UNIQUE,  -- ID из тестирования РСВ
-    student_name    VARCHAR(512)  NOT NULL,         -- Полное ФИО студента
-    student_gender  VARCHAR(16),                    -- Пол студента
+    rsv_id          VARCHAR(512)  NOT NULL UNIQUE,
+    student_name    VARCHAR(512)  NOT NULL,
+    student_gender  VARCHAR(16),
+    email           VARCHAR(256),
     created_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Индекс для быстрого поиска по RSV ID
 CREATE INDEX idx_student_mapping_rsv_id ON StudentMapping(rsv_id);
+CREATE INDEX idx_student_mapping_email  ON StudentMapping(email);
 
 -- Участник
 CREATE TABLE Participants
