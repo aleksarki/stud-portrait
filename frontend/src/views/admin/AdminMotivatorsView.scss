@@ -105,19 +105,24 @@
         position: sticky;
         top: 0;
         z-index: 50;
+        margin: 10px;
     }
     .filter-row {
-        opacity: 60%;
+        opacity: 70%;
         display: flex;
         flex-wrap: wrap;
-        gap: 15px;
+        gap: 10px;
         align-items: center;
         color: #2a282c;
-        background: #fff;
+        background-color: #ffffff79;
         padding: 20px;
         border-radius: 12px;
         margin-bottom: 20px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        background: radial-gradient(ellipse 100% 50% at center,
+        rgba(251, 251, 251, 0.679) 60%,
+        rgba(255, 255, 255, 0.400) 70%,
+        rgba(255, 255, 255, 0.227) 80%,
+        rgba(255, 255, 255, 0) 98%);
     }
     .filter-row:hover{
         opacity: 99%;
