@@ -931,6 +931,11 @@ const TREND_COLORS = [
 
 function CompetencyTrendLine({ data, loading }) {
     const [hiddenLines, setHiddenLines] = useState({});
+    // По умолчанию линии НЕ соединяем — показываем только точки, как просили проверяющие.
+    // Это связано с тем, что курс — категориальная (порядковая) переменная,
+    // и соединять её плавной кривой статистически некорректно.
+    const [connectDots, setConnectDots] = useState(false);
+
     if (loading) return <div style={{ padding: 20 }}>Загрузка графика динамики...</div>;
     if (!data || !data.trends || data.trends.length === 0) {
         return (
@@ -972,7 +977,31 @@ function CompetencyTrendLine({ data, loading }) {
                 <h2 style={{ margin: 0, color: '#333' }}>
                     Динамика компетенций по курсам обучения
                 </h2>
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    {/* Переключатель соединения точек */}
+                    <label
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            padding: '6px 12px',
+                            border: '1px solid #ccc',
+                            borderRadius: 4,
+                            background: connectDots ? '#eaf3fb' : '#fff',
+                            cursor: 'pointer',
+                            fontSize: 13,
+                            userSelect: 'none',
+                        }}
+                        title="Соединить точки прямыми отрезками (без плавной кривой)"
+                    >
+                        <input
+                            type="checkbox"
+                            checked={connectDots}
+                            onChange={(e) => setConnectDots(e.target.checked)}
+                            style={{ cursor: 'pointer' }}
+                        />
+                        Соединять линиями
+                    </label>
                     <button
                         type="button"
                         onClick={() => setHiddenLines({})}
@@ -1037,7 +1066,7 @@ function CompetencyTrendLine({ data, loading }) {
                     />
                     <Legend
                         wrapperStyle={{ paddingTop: 10, cursor: 'pointer' }}
-                        iconType="line"
+                        iconType="circle"
                         onClick={(entry) => {
                             setHiddenLines(prev => ({
                                 ...prev,
@@ -1055,17 +1084,35 @@ function CompetencyTrendLine({ data, loading }) {
                     />
                     {data.trends.map((trend, idx) => {
                         const label = COMPETENCIES_NAMES[trend.competency] || trend.competency;
+                        const color = TREND_COLORS[idx % TREND_COLORS.length];
                         return (
                             <Line
                                 key={trend.competency}
-                                type="monotone"
+                                // type="linear" — прямые отрезки между точками, без плавной кривой.
+                                // Это статистически корректно для категориальных значений (курсы 1-4).
+                                type="linear"
                                 dataKey={label}
-                                stroke={TREND_COLORS[idx % TREND_COLORS.length]}
+                                // Если переключатель ВЫКЛ — линию делаем полностью прозрачной (видны только точки).
+                                // Если ВКЛ — рисуем прямые отрезки между точками.
+                                stroke={color}
                                 strokeWidth={2}
-                                dot={{ r: 3 }}
-                                activeDot={{ r: 5 }}
-                                connectNulls={true}
+                                strokeOpacity={connectDots ? 1 : 0}
+                                // Точки: крупные кружки с белой обводкой — заметные на любом фоне.
+                                dot={{
+                                    r: 6,
+                                    fill: color,
+                                    stroke: '#fff',
+                                    strokeWidth: 2,
+                                }}
+                                activeDot={{
+                                    r: 8,
+                                    fill: color,
+                                    stroke: '#fff',
+                                    strokeWidth: 2,
+                                }}
+                                connectNulls={false}
                                 hide={!!hiddenLines[label]}
+                                isAnimationActive={false}
                             />
                         );
                     })}
@@ -1162,7 +1209,7 @@ function AdminCompetencesView() {
                     <Sidebar linkTree={LINK_TREE} />
                     <Content>
                         <div className="filters-cont">
-                        <FilterHeader onFilterChange={updateFilter} filters={filters_} /></div>
+                            <FilterHeader onFilterChange={updateFilter} filters={filters_} /></div>
                         <div className="loading-content">
                             <LoadingSpinner text="Загрузка статистики..." />
                         </div>
@@ -1179,7 +1226,7 @@ function AdminCompetencesView() {
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <div className="filters-cont">
-                    <FilterHeader onFilterChange={updateFilter} filters={filters_} /></div>
+                        <FilterHeader onFilterChange={updateFilter} filters={filters_} /></div>
                     <span><>
                         <Dashboard data={dashboardData} filters={filters_} />
                     </></span>
