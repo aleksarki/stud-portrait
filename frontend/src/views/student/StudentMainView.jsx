@@ -20,9 +20,22 @@ import ChartSwitcher from "../../components/charts/ChartSwitcher";
 import StudentVamChart from "../../components/charts/StudentVamChart";
 import StudentLgmChart from '../../components/charts/StudentLgmChart';
 import StudentDisciplineImpact from '../../components/charts/StudentDisciplineImpact';
-import PlanetaryChart from "../../components/charts/PlanetaryChart";
 
 import "./StudentMainView.scss";
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Инициалы студента для аватара */
+function getInitials(name = '') {
+    return name
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map(w => w[0].toUpperCase())
+        .join('');
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 function StudentMainView() {
     const { studentId } = useParams();
@@ -38,18 +51,21 @@ function StudentMainView() {
     const [analyticsLoading, setAnalyticsLoading] = useState(false);
     const [showAnalytics, setShowAnalytics] = useState(false);
 
-    // Графики VAM и LGM для студента
+    // Активная вкладка в блоке VAM / LGM
+    const [analysisTab, setAnalysisTab] = useState('vam'); // 'vam' | 'lgm'
+
+    // Компетенции для VAM и LGM
     const [vamCompetency, setVamCompetency] = useState('res_comp_leadership');
     const [lgmCompetency, setLgmCompetency] = useState('res_comp_leadership');
-    const [lgmData, setLgmData] = useState([]); // данные для графика LGM
 
     const [comparisonStats, setComparisonStats] = useState(null);
     const [loadingComparison, setLoadingComparison] = useState(false);
+    const [resumeGenerating, setResumeGenerating] = useState(false);
+
+    // ── Effects ──────────────────────────────────────────────────────────────
 
     useEffect(() => {
-        if (showAnalytics && selectedYear) {
-            loadAnalytics(selectedYear);
-        }
+        if (showAnalytics && selectedYear) loadAnalytics(selectedYear);
         // eslint-disable-next-line
     }, [selectedYear, showAnalytics]);
 
@@ -60,53 +76,42 @@ function StudentMainView() {
                     const data = await response.json();
                     if (data.status === 'success') {
                         setStudResults({ student: data.student, results: data.results });
-                        // После загрузки результатов, подготавливаем данные для LGM
-                        prepareLgmData(data.results);
                     }
                 })
                 .onError(error => console.error(error))
                 .finally(() => setLoading(false));
         };
-        if (studentId) {
-            fetchData();
-        }
+        if (studentId) fetchData();
     }, [studentId]);
 
     useEffect(() => {
-        const defineAvailableData = () => {
-            if (!studResults?.results?.length) return;
+        if (!studResults) return;
 
-            const availableProfiles = getAvailableProfiles(studResults.results);
-            const profileLinks = availableProfiles.map(profile => ({
-                to: `/student/${studResults.student.stud_id}/report/${profile.key}`,
-                title: profile.title
-            }));
+        const availableProfiles = getAvailableProfiles(studResults.results);
+        const profileLinks = availableProfiles.map(profile => ({
+            to: `/student/${studResults.student.stud_id}/report/${profile.key}`,
+            title: profile.title
+        }));
+        setLinkList([{
+            to: `/student/${studResults.student.stud_id}`,
+            title: "Главная страница"
+        }, ...profileLinks]);
 
-            setLinkList([{
-                to: `/student/${studResults.student.stud_id}`,
-                title: "Главная страница"
-            }, ...profileLinks]);
-
-            const years = getAvailableYears(studResults.results);
-            setAvailableYears(years);
-
-            if (years.length > 0 && !selectedYear) {
-                setSelectedYear(years[0]);
-            }
-
-            updateChartsData(years.length > 0 ? selectedYear || years[0] : null);
-        };
-
-        if (studResults) {
-            defineAvailableData();
-        }
+        const years = getAvailableYears(studResults.results);
+        setAvailableYears(years);
+        if (years.length > 0 && !selectedYear) setSelectedYear(years[0]);
+        updateChartsData(years.length > 0 ? selectedYear || years[0] : null);
     }, [studResults]);
 
     useEffect(() => {
-        if (studResults?.results?.length && selectedYear) {
-            updateChartsData(selectedYear);
-        }
+        if (studResults?.results?.length && selectedYear) updateChartsData(selectedYear);
     }, [selectedYear, studResults]);
+
+    useEffect(() => {
+        if (selectedYear) loadComparisonStats();
+    }, [selectedYear]);
+
+    // ── Data loaders ─────────────────────────────────────────────────────────
 
     const loadComparisonStats = async () => {
         if (!studentId || !selectedYear) return;
@@ -114,57 +119,39 @@ function StudentMainView() {
         getStudentComparisonStats(studentId, selectedYear)
             .onSuccess(async response => {
                 const data = await response.json();
-                if (data.status === 'success') {
-                    setComparisonStats(data.data);
-                }
+                if (data.status === 'success') setComparisonStats(data.data);
             })
             .onError(error => console.error("Ошибка загрузки сравнения:", error))
             .finally(() => setLoadingComparison(false));
     };
 
-    // Добавьте useEffect для загрузки при изменении года
-    useEffect(() => {
-        if (selectedYear) {
-            loadComparisonStats();
-        }
-    }, [selectedYear]);
-
     const updateChartsData = (year) => {
         if (!studResults?.results?.length || !year) return;
-
         const availableProfiles = getAvailableProfiles(studResults.results);
         const charts = [];
-
         availableProfiles.forEach(profile => {
             const availableCategories = getAvailableCategories(studResults.results, profile.key);
-
             availableCategories.forEach(category => {
                 const yearData = getCategoryDataForYear(studResults.results, profile.key, category.key, year);
-
                 if (yearData.labels.length > 0) {
                     const competencyKeys = category.fields
                         .filter(field => yearData.labels.includes(field.label))
                         .map(field => field.key);
-
                     charts.push({
-                        profile: profile,
-                        category: category,
+                        profile, category,
                         title: `${profile.title}: ${category.title}`,
                         year: yearData.year,
                         labels: yearData.labels,
                         data: yearData.data,
-                        competencyKeys: competencyKeys
+                        competencyKeys
                     });
                 }
             });
         });
-
         setChartsData(charts);
     };
 
-    // АНАЛИТИКА КОМПЕТЕНЦИЙ
     const loadAnalytics = async year => {
-        // Если данные уже загружены для этого года, просто показываем
         if (analyticsData && analyticsData.year === year) {
             setShowAnalytics(true);
             return;
@@ -188,49 +175,10 @@ function StudentMainView() {
     };
 
     const toggleAnalytics = () => {
-        if (showAnalytics) {
-            setShowAnalytics(false);
-        } else {
-            loadAnalytics(selectedYear);
-        }
+        if (showAnalytics) setShowAnalytics(false);
+        else loadAnalytics(selectedYear);
     };
 
-    // ПОДГОТОВКА ДАННЫХ ДЛЯ LGM ГРАФИКА
-    const prepareLgmData = (results) => {
-        if (!results || results.length === 0) {
-            setLgmData([]);
-            return;
-        }
-        const byCourse = {};
-        results.forEach(res => {
-            const course = res.res_course_num;
-            if (!course) return;
-            if (!byCourse[course]) byCourse[course] = {};
-            // Извлекаем баллы компетенций из полей res_comp_*
-            Object.keys(COMPETENCIES_NAMES).forEach(comp => {
-                const score = res[comp];
-                if (score !== undefined && score !== null) {
-                    byCourse[course][comp] = score;
-                }
-            });
-        });
-        const courses = Object.keys(byCourse).sort((a,b) => Number(a) - Number(b));
-        if (courses.length < 2) {
-            console.warn('Недостаточно данных для LGM (нужно минимум 2 курса)');
-            setLgmData([]);
-            return;
-        }
-        const chartData = courses.map(course => {
-            const point = { course: `${course} курс` };
-            Object.keys(COMPETENCIES_NAMES).forEach(comp => {
-                point[comp] = byCourse[course][comp] || null;
-            });
-            return point;
-        });
-        setLgmData(chartData);
-    };
-
-    // ГЕНЕРАЦИЯ DOCX РЕЗЮМЕ
     const generateDocxResume = async () => {
         setResumeGenerating(true);
         windowGenerateDocxResume(studentId)
@@ -242,99 +190,71 @@ function StudentMainView() {
             })
             .open();
     };
-    const [resumeGenerating, setResumeGenerating] = useState(false);
 
-    const prepareCompetencyData = () => {
-        if (!studResults?.results?.length || !selectedYear) return [];
+    // ── Derived values ───────────────────────────────────────────────────────
 
-        const yearResults = studResults.results.find(r => r.res_year === selectedYear);
-        if (!yearResults) return [];
+    const studentName = studResults?.student?.stud_name ?? '';
+    const initials    = getInitials(studentName);
 
-        const competencyItems = [];
-
-        // Сбор компетенций
-        Object.keys(COMPETENCIES_NAMES).forEach(compKey => {
-            const value = yearResults[compKey];
-            if (value !== undefined && value !== null) {
-                competencyItems.push({
-                    name: COMPETENCIES_NAMES[compKey],
-                    value: value
-                });
-            }
-        });
-
-        return competencyItems;
-    };
-
-    // Подготовка данных для мотиваторов
-    const prepareMotivatorData = () => {
-        if (!studResults?.results?.length || !selectedYear) return [];
-
-        const yearResults = studResults.results.find(r => r.res_year === selectedYear);
-        if (!yearResults) return [];
-
-        const motivatorItems = [];
-
-        Object.keys(MOTIVATORS_NAMES).forEach(motKey => {
-            const value = yearResults[motKey];
-            if (value !== undefined && value !== null) {
-                motivatorItems.push({
-                    name: MOTIVATORS_NAMES[motKey],
-                    value: value
-                });
-            }
-        });
-
-        return motivatorItems;
-    };
-
-    const competencyData = prepareCompetencyData();
-    const motivatorData = prepareMotivatorData();
+    // ── Render ───────────────────────────────────────────────────────────────
 
     return (
         <div className="StudentMainView">
             <SidebarLayout style={LAYOUT_STYLE.NORMAL}>
-                <Header title="Профиль" name={`${studResults?.student?.stud_name}`} />
+                <Header title="Профиль" name={studentName} />
                 <Sidebar links={linkList} />
-                <Content>
-                    <Title title="Главная страница" />
-                    <div className="main-controls">
-                        {availableYears.length > 0 && (
-                            <div className="year-selector">
-                                <span className="year-label">Год данных:</span>
-                                <Select
-                                    initValue={selectedYear}
-                                    onChange={setSelectedYear}
-                                >
-                                    {availableYears.map(year => <Option value={year} label={year} />)}
-                                </Select>
-                            </div>
-                        )}
 
-                        <div className="action-buttons">
-                            <Button
-                                text={analyticsLoading ? "Загрузка..." : showAnalytics ? "Скрыть аналитику" : "Показать аналитику"}
-                                onClick={toggleAnalytics}
-                                disabled={analyticsLoading}
-                                palette={STUDENT_PALETTE.BLUE}
-                            />
-                            <Button
-                                text={resumeGenerating ? "Загрузка..." : "Скачать резюме DOCX"}
-                                onClick={generateDocxResume}
-                                disabled={resumeGenerating}
-                                palette={STUDENT_PALETTE.GREEN}
-                            />
+                <Content>
+
+                    {/* ── Hero ─────────────────────────────────────────── */}
+                    <div className="dashboard-hero">
+                        <div className="hero-left">
+                            <div className="hero-avatar">{initials || '?'}</div>
+                            <div className="hero-text">
+                                <div className="hero-label">Профиль студента</div>
+                                <div className="hero-name">{studentName || 'Загрузка...'}</div>
+                            </div>
+                        </div>
+
+                        <div className="hero-right">
+                            {availableYears.length > 0 && (
+                                <div className="hero-year-selector">
+                                    <span className="hero-year-label">Учебный год:</span>
+                                    <Select initValue={selectedYear} onChange={setSelectedYear}>
+                                        {availableYears.map(year =>
+                                            <Option key={year} value={year} label={year} />
+                                        )}
+                                    </Select>
+                                </div>
+                            )}
+
+                            <div className="hero-actions">
+                                <Button
+                                    text={analyticsLoading ? "Загрузка..." : showAnalytics ? "Скрыть аналитику" : "AI-аналитика"}
+                                    onClick={toggleAnalytics}
+                                    disabled={analyticsLoading}
+                                    palette={STUDENT_PALETTE.BLUE}
+                                />
+                                <Button
+                                    text={resumeGenerating ? "Загрузка..." : "Скачать резюме"}
+                                    onClick={generateDocxResume}
+                                    disabled={resumeGenerating}
+                                    palette={STUDENT_PALETTE.GREEN}
+                                />
+                            </div>
                         </div>
                     </div>
 
-                    {/* АНАЛИТИКА КОМПЕТЕНЦИЙ */}
+                    {/* ── AI-аналитика ─────────────────────────────────── */}
                     {showAnalytics && analyticsData && (
                         <div className="analytics-section">
                             <div className="analytics-header">
-                                <h2>📊 Аналитика профессиональных компетенций</h2>
-                                <p className="analytics-description">
-                                    Детальный анализ результатов тестирования с рекомендациями по развитию
-                                </p>
+                                <div>
+                                    <h2>Аналитика надпрофессиональных компетенций</h2>
+                                    <p className="analytics-description">
+                                        Анализ результатов тестирования с рекомендациями по развитию
+                                    </p>
+                                </div>
                             </div>
 
                             {analyticsData.general_interpretation && (
@@ -358,11 +278,8 @@ function StudentMainView() {
                                             <div className="progress-bar">
                                                 <div
                                                     className="progress-fill"
-                                                    style={{
-                                                        width: `${comp.percentage}%`,
-                                                        backgroundColor: comp.ai.color
-                                                    }}
-                                                ></div>
+                                                    style={{ width: `${comp.percentage}%`, backgroundColor: comp.ai.color }}
+                                                />
                                             </div>
                                             <div className="level-indicator" style={{ color: comp.ai.color }}>
                                                 <strong>{comp.ai.level.toUpperCase()}</strong> уровень
@@ -371,7 +288,7 @@ function StudentMainView() {
                                             <div className="interpretation">
                                                 <p>{comp.ai.interpretation}</p>
                                             </div>
-                                            {comp.ai.recommendations && comp.ai.recommendations.length > 0 && (
+                                            {comp.ai.recommendations?.length > 0 && (
                                                 <div className="recommendations">
                                                     <strong>📌 Рекомендации:</strong>
                                                     <ul>
@@ -388,7 +305,7 @@ function StudentMainView() {
                         </div>
                     )}
 
-                    {/* ГРАФИКИ РАДИАРНЫХ ДИАГРАММ */}
+                    {/* ── Радарные диаграммы ───────────────────────────── */}
                     <div className="charts-grid">
                         {loading ? (
                             <div className="loading">Загрузка данных...</div>
@@ -414,84 +331,69 @@ function StudentMainView() {
                                 {availableYears.length > 0 ? "Нет данных для отображения" : "Нет доступных данных"}
                             </div>
                         )}
-                        {/* Диаграмма компетенций */}
-                        {competencyData.length > 0 && (
-                            <div className="planetary-chart-card">
-                                <PlanetaryChart
-                                    title="Карта компетенций"
-                                    items={competencyData}
-                                    type="competency"
-                                    height={500}
-                                />
-                            </div>
-                        )}
-
-                        {/* Диаграмма мотиваторов */}
-                        {motivatorData.length > 0 && (
-                            <div className="planetary-chart-card">
-                                <PlanetaryChart
-                                    title="Карта мотиваторов"
-                                    items={motivatorData}
-                                    type="motivator"
-                                    height={500}
-                                />
-                            </div>
-                        )}
                     </div>
 
-                    {/* СРАВНИТЕЛЬНАЯ СТАТИСТИКА */}
-                    <StudentComparisonStats
-                        studentId={studentId} 
-                        year={selectedYear} 
-                    />
+                    {/* ── Сравнительная статистика ─────────────────────── */}
+                    <StudentComparisonStats studentId={studentId} year={selectedYear} />
 
-                    {/* VAM ГРАФИК ДЛЯ СТУДЕНТА */}
-                    <div className="student-vam-section">
-                        <h3>📈 Value-Added (индивидуальный анализ)</h3>
-                        <div className="vam-controls">
-                            <label>Компетенция:</label>
-                            <Select
-                                initValue={vamCompetency}
-                                onChange={setVamCompetency}
+                    {/* ── VAM / LGM — табированный блок ───────────────── */}
+                    <div className="analysis-tabs-section">
+                        <div className="tabs-header">
+                            <button
+                                className={`tab-btn ${analysisTab === 'vam' ? 'active' : ''}`}
+                                onClick={() => setAnalysisTab('vam')}
                             >
-                                {Object.entries(COMPETENCIES_NAMES).map(([key, name]) => (
-                                    <Option value={key} label={name} />
-                                ))}
-                            </Select>
-                        </div>
-                        <StudentVamChart studentId={studentId} competency={vamCompetency} />
-                    </div>
-
-                    {/* LGM ГРАФИК ДЛЯ СТУДЕНТА */}
-                    <div className="student-lgm-section">
-                        <h3>📈 Динамика развития компетенций (LGM)</h3>
-                        <div className="lgm-controls">
-                            <label>Компетенция:</label>
-                            <Select
-                                initValue={lgmCompetency}
-                                onChange={setLgmCompetency}
+                                <span className="tab-icon">📈</span>
+                                <span className="tab-label">Value-Added</span>
+                                <span className="tab-sub">VAM</span>
+                            </button>
+                            <button
+                                className={`tab-btn ${analysisTab === 'lgm' ? 'active' : ''}`}
+                                onClick={() => setAnalysisTab('lgm')}
                             >
-                                {Object.entries(COMPETENCIES_NAMES).map(([key, name]) => (
-                                    <Option value={key} label={name} />
-                                ))}
-                            </Select>
+                                <span className="tab-icon">📉</span>
+                                <span className="tab-label">Траектория роста</span>
+                                <span className="tab-sub">LGM</span>
+                            </button>
                         </div>
-                        {lgmData.length === 0 ? (
-                            <div className="no-data">Нет данных для отображения</div>
-                        ) : (
-                            <StudentLgmChart
-                                data={lgmData}
-                                competency={lgmCompetency}
-                                competencyLabel={COMPETENCIES_NAMES[lgmCompetency]}
-                            />
-                        )}
+
+                        <div className="tab-body">
+                            {analysisTab === 'vam' && (
+                                <>
+                                    <div className="tab-controls">
+                                        <label>Компетенция:</label>
+                                        <Select initValue={vamCompetency} onChange={setVamCompetency}>
+                                            {Object.entries(COMPETENCIES_NAMES).map(([key, name]) => (
+                                                <Option key={key} value={key} label={name} />
+                                            ))}
+                                        </Select>
+                                    </div>
+                                    <StudentVamChart studentId={studentId} competency={vamCompetency} />
+                                </>
+                            )}
+
+                            {analysisTab === 'lgm' && (
+                                <>
+                                    <div className="tab-controls">
+                                        <label>Компетенция:</label>
+                                        <Select initValue={lgmCompetency} onChange={setLgmCompetency}>
+                                            {Object.entries(COMPETENCIES_NAMES).map(([key, name]) => (
+                                                <Option key={key} value={key} label={name} />
+                                            ))}
+                                        </Select>
+                                    </div>
+                                    <StudentLgmChart studentId={studentId} competency={lgmCompetency} />
+                                </>
+                            )}
+                        </div>
                     </div>
 
-                    {/* ИНДИВИДУАЛЬНЫЙ АНАЛИЗ ВЛИЯНИЯ ДИСЦИПЛИН */}
+                    {/* ── Влияние дисциплин ────────────────────────────── */}
                     <div className="student-discipline-impact-section">
                         <h3>📚 Влияние дисциплин на ваши компетенции</h3>
                         <StudentDisciplineImpact studentId={studentId} />
                     </div>
+
                 </Content>
             </SidebarLayout>
         </div>

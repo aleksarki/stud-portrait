@@ -56,12 +56,15 @@ urlpatterns = [
     
     path('education-profiles-comparison/', analysis_end.get_education_profiles_comparison, name='education_profiles_comparison'),
     path('get-boxplot-data/',              analysis_end.get_boxplot_data,                  name='get_boxplot_data'),
+    path('student-comparison-stats/',      analysis_end.get_student_comparison_stats,      name='student_comparison_stats'),
 
     path('analyze-transfers/',          transfer_analysis.analyze_transfers,          name='analyze_transfers'),
     path('analyze-transfer-students/',  transfer_analysis.analyze_transfer_students,  name='analyze_transfer_students'),
 
     path('duplicate-accounts/', analysis_end.get_duplicate_accounts, name='duplicate_accounts'),
     path('possible-duplicate-accounts/', analysis_end.get_possible_duplicate_accounts, name='possible-duplicate-accounts/'),
+
+    path('analyze-student-lgm/', analysis_end.analyze_student_lgm, name='analyze-student-lgm/'),
 
     # STATSRESULT module
     path("courses/",                        statsresult.courses,                        name="courses"),
@@ -71,6 +74,7 @@ urlpatterns = [
     path("centers-by-region/",              statsresult.centers_by_region,              name='centers_by_region'),
     path('students/list/',                  statsresult.get_students_list,              name='students_list'),
     path('students/portrait/',              statsresult.get_student_portrait,           name='student_portrait'),
+    path('motivator-statistics/',           statsresult.get_motivator_statistics,       name='motivator_statistics'),
 
     path('dashboard-stats/',   stat.get_dashboard_stats,   name='dashboard_stats'),
     path('motivation-counts/', stat.get_motivation_counts, name='motivation_counts'),
@@ -78,9 +82,11 @@ urlpatterns = [
     path('overall-stats/',     stat.overall_stats,         name='overall_stats'),
     path('scores-result/',     stat.get_scores_result,     name='scores_result'),
     path('comp-boxplot/',      stat.get_data_boxplot, name='comp_boxplot'),
-    
+
     path('grades-competency-correlation/', stat.get_grades_competency_correlation, name='grades_competency_correlation'),
     path('competency-trend-by-year/',      stat.get_competency_trend_by_year,      name='competency_trend_by_year'),
+    path('top-correlations/', stat.get_top_correlations, name='top_correlations'),
+    path('competency-segmentation/', stat.get_competency_segmentation, name='competency_segmentation'),
 
     # AINTERP module
     # *empty*

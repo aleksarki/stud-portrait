@@ -22,6 +22,7 @@ const competencyLabels = {
 const getLabel = key => competencyLabels[key] || competencyLabels[key.replace('res_comp_', '').replace('_', ' ')] || key.replace('res_comp_', '').replace('_', ' ');
 
 const formatValue = value => Math.abs(value);
+const roundFormat = (value, num) => Number((value).toFixed(num));
 
 const Legendy = ({ selectedCourses, colors }) => (
     <div style={{ marginBottom: '24px', marginLeft: '40px' }}>
@@ -56,19 +57,19 @@ const Legendy = ({ selectedCourses, colors }) => (
     </div>
 );
 
-const Tooltippy = ({ active, payload = [], coordinate = {}, chartHeight = 0, label }) => {
+const Tooltippy = ({ active, payload = [], mot=true, label }) => {
     if (!active || !payload.length) return null;
-    const isTopHalf = coordinate.y < chartHeight / 2;
 
     const filtered = payload
-    .filter(e => (isTopHalf ? e.value > 0 : e.value < 0))
     .sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
     if (!filtered.length) return null;
 
     return (
     <div className="tooltip">
-        <p className="font-bold text-gray-800 mb-2 border-b pb-1" style={{marginBottom: "2px"}}>{getLabel(label)}
-        </p>{isTopHalf ? <p style={{color: "rgb(2, 81, 62)"}}>Мотиваторы</p> : <p style={{color: "rgb(107, 0, 0)"}}>Демотиваторы</p>}
+        {mot ? <p style={{color: "rgb(2, 81, 62)"}}>Мотиватор </p> : <p style={{color: "rgb(107, 0, 0)"}}>Демотиватор </p>}
+        <p style={{fontWeight: 500}}>{getLabel(label)}
+        </p>
+        <p className="tp-note">Доля студентов: </p>
         {filtered.map((entry, i) => {
             const courseNum = entry.payload[`${entry.dataKey}_course`];
             const color = entry.payload[`${entry.dataKey}_color`];
@@ -77,7 +78,7 @@ const Tooltippy = ({ active, payload = [], coordinate = {}, chartHeight = 0, lab
                 <div className="flex items-center gap-4">
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
                     <span>{courseNum} курс:   </span>
-                <span className="font-bold" style={{ color }}>{Math.abs(entry.value)}</span></div>
+                <span className="font-bold" style={{ color }}>{Math.round(entry.value*10000)/100}%</span></div>
                 </div>
                 
             );
@@ -89,17 +90,23 @@ const Tooltippy = ({ active, payload = [], coordinate = {}, chartHeight = 0, lab
 
 
 function MotTable({ data, currentFilters }) {
-
     const [tableOpen, setTableOpen] = useState(false);
-    if (!data) return null;
-    let all_m = 0;
-    let all_d = 0;
+    const [selected, setSelected] = useState(['М', 'Д', 'Н']);
 
+    if (!data) return null;
+
+    const mot_demot = ['М', 'Д', 'Н'];
+    const toggleChoice = (mot_demot) => {
+        setSelected(prev =>{
+            const next = prev.includes(mot_demot) ? prev.filter(c => c !== mot_demot) : [...prev, mot_demot]
+            return next;}
+        );
+    };
     const exportToExcel = () => {
         console.log(currentFilters);
         const excelData = [];
-        if (!data){
-            alert('Отсутствуют данные для скачивания');
+        if (!data || (!selected.includes('М') && !selected.includes('Д') && !selected.includes('Н'))){
+            alert('Отсутствуют данные для скачивания.');
             return;
         }
         data.forEach((row) => {
@@ -108,26 +115,39 @@ function MotTable({ data, currentFilters }) {
             const label = getLabel(row.name);
         
             // Строка для М
-            excelData.push({
+            if (selected.includes('М')){
+                excelData.push({
                 'Показатель': label,
                 'Тип': 'М',
                 '1 курс': row.course_1_high || 0,
                 '2 курс': row.course_2_high || 0,
                 '3 курс': row.course_3_high || 0,
                 '4 курс': row.course_4_high || 0,
-                'Всего' : (row.course_1_high || 0) + (row.course_2_high || 0) + (row.course_3_high || 0) + (row.course_4_high || 0),
-            });
+                'Все' : (row.all_high || 0),
+            });}
         
             // Строка для Д
-            excelData.push({
+            if (selected.includes('Д')){
+                excelData.push({
                 'Показатель': label,
                 'Тип': 'Д',
                 '1 курс': row.course_1_low || 0,
                 '2 курс': row.course_2_low || 0,
                 '3 курс': row.course_3_low || 0,
                 '4 курс': row.course_4_low || 0,
-                'Всего' : (row.course_1_low || 0) + (row.course_2_low || 0) + (row.course_3_low || 0) + (row.course_4_low || 0),
-            });
+                'Все' : (row.all_low || 0),
+            });}
+
+            if (selected.includes('Н')){
+                excelData.push({
+                'Показатель': label,
+                'Тип': 'Н',
+                '1 курс': row.course_1_mid || 0,
+                '2 курс': row.course_2_mid || 0,
+                '3 курс': row.course_3_mid || 0,
+                '4 курс': row.course_4_mid || 0,
+                'Все' : (row.all_mid || 0),
+            });}
         });
         
         const header = `${currentFilters.institute ? `${currentFilters.institute}, ` : ''} ${currentFilters.specialty ? `${currentFilters.specialty}, ` : ''} ${currentFilters.year ? `${currentFilters.year} учебный год ` : ''}`; 
@@ -137,8 +157,9 @@ function MotTable({ data, currentFilters }) {
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Статистика Мотиваторов");
     
-        XLSX.writeFile(workbook, `Статистика_Мотиваторов_${currentFilters.year || ''}.xlsx`);
+        XLSX.writeFile(workbook, `Статистика_Мотиваторов${currentFilters.year ? `_${currentFilters.year}` : ''}.xlsx`);
     };
+    console.log(selected.length, selected);
 
     return(
         <div className='table'>
@@ -151,7 +172,15 @@ function MotTable({ data, currentFilters }) {
             <div className="table-container">
             <div className="ct-top">
                 <div className="ct-note"><span className="ct-pos">М</span> - мотиватор, <span>   </span> 
-                <span className="ct-neg"> Д</span> - демотиватор</div>
+                <span className="ct-neg"> Д</span> - демотиватор, <span>   </span> <span className="ct-mid"> Н</span> - непроявленный</div>
+                <div className="choice-row">
+                    {mot_demot.map((i) => 
+                    <label key={i} className={i=='М' ? "box-mot" : (i=='Д' ? "box-demot" : "box-neutral")}>
+                    <input
+                    type="checkbox"
+                    checked={selected.includes(i)}
+                    onChange={() => toggleChoice(i)}
+                    /> {i} </label>)}</div>
                 <button className="btnExcel"
                     onClick={() => exportToExcel()}
                     onMouseOver={(e) => e.target.style.backgroundColor = '#15803d'}
@@ -165,7 +194,7 @@ function MotTable({ data, currentFilters }) {
                 <tr>
                     <th rowSpan={2} colSpan={1}>Мотиватор</th>
                     <th></th> 
-                    <th rowSpan={1} colSpan={5}>Количество студентов</th>
+                    <th rowSpan={1} colSpan={5}>Доля студентов</th>
                 </tr>
                 <tr>
                     <th style={{ textAlign: 'right' }}>Курс: </th> 
@@ -173,51 +202,57 @@ function MotTable({ data, currentFilters }) {
                     <th style={{ textAlign: 'center' }}>{2}</th>
                     <th style={{ textAlign: 'center' }}>3</th>
                     <th style={{ textAlign: 'center' }}>4</th>
-                    <th style={{ textAlign: 'center' }}>Всего</th>
+                    <th style={{ textAlign: 'center' }}>Все курсы</th>
                 </tr>
                 </thead>
                 <tbody>
                 {data.map((row) => (
                     <React.Fragment key={row.name}>
-                    <tr>
-                        <td rowSpan={2} className="ct-name" style={{ verticalAlign: 'middle' }}>
+                    {selected.length != 0 && (
+                    <td rowSpan={selected.length+1} className="ct-name" style={{ verticalAlign: 'middle' }}>
                         {getLabel(row.name)}
-                        </td>
+                    </td>)}
+                    {selected.includes('М') && (
+                    <tr>
                         <td className="ct-pos">М</td>
-                        { 
-                        Array.from({ length: 4 }, (_, i) => {
-                        const val = row[`course_${i + 1}_high`];
-                        all_m = all_m + val;
+                        {Array.from({ length: 4 }, (_, i) => {
+                        const val = Number((row[`course_${i + 1}_high`]).toFixed(3));
                         return (
                             <td key={`m-${i}`} className="mot">
                             {val || val === 0 ? val : '—'}
                             </td>
                         );
                         })}
-                        <td className="mot">{all_m}</td>
-                    </tr>
-
+                        <td className="mot">{Number((row['all_high']).toFixed(3))}</td></tr>)}
+                    {selected.includes('Д') &&( 
                     <tr>
                         <td className="ct-neg">Д</td>
                         {Array.from({ length: 4 }, (_, i) => {
-                        const val = row[`course_${i + 1}_low`];
-                        all_d = all_d + val;
+                        const val = Number((row[`course_${i + 1}_low`]).toFixed(3));
                         return (
                             <td key={`d-${i}`} className="demot">
                             {val || val === 0 ? val : '—'}
                             </td>
-                        );
-                        })}
-                        <td className="demot">{all_d}</td>
-                    </tr>
-                    </React.Fragment>
-                ))}
-                
-                </tbody>
+                        );})}
+                        <td className="demot">{Number((row['all_low']).toFixed(3))}</td>
+                    </tr>)}
+                    {selected.includes('Н') &&( 
+                    <tr>
+                        <td className="ct-mid">Н</td>
+                        {Array.from({ length: 4 }, (_, i) => {
+                        const val = Number((row[`course_${i + 1}_mid`]).toFixed(3));
+                        return (
+                            <td key={`d-${i}`} className="neutral">
+                            {val || val === 0 ? val : '—'}
+                            </td>
+                        );})}
+                        <td className="neutral">{Number((row['all_mid']).toFixed(3))}</td>
+                    </tr>)}
+                </React.Fragment>))}</tbody>
             </table>
             </div>
         </div>
-        </div>);
+       </div> );
 }
 
 //до 400 - демотиватор, 600+ мотиватор
@@ -377,6 +412,187 @@ function MotivatorStackedChart({ chart_data, currentFilters }) {
     );
 }
 
+function MotivatorCharts({ chart_data, currentFilters }) {
+    const allCourses = [1, 2, 3, 4];
+    const [selectedCourses, setSelectedCourses] = useState(allCourses);
+  
+    const toggleCourse = (course) => {
+        setSelectedCourses(prev =>{
+            const next = prev.includes(course) ? prev.filter(c => c !== course) : [...prev, course]
+            return next.sort((a, b) => a - b);}
+        );
+    };
+     
+    const colors = {
+        1: { high: " #A2CB8B", low: " #f5cd70" }, 
+        2: { high: " #81ae71", low: " #eaa157" },
+        3: { high: " #619257", low: " #da744a" },
+        4: { high: " #42763f", low: " #C44545" },
+    };
+    console.log(chart_data);
+    const processedData_pos = useMemo(() => {
+        if (!chart_data) return [];
+        return chart_data.map(item => {
+            const newItem = { ...item };
+            
+            //сортировка
+            const posValues = selectedCourses
+            .map(c => ({ course: c, val: item[`course_${c}_high`] || 0 }))
+            .sort((a, b) => a.val - b.val); 
+
+            let sum = 0;
+            posValues.forEach((obj, index) => {
+                sum = sum + obj.val;
+            newItem[`pos_seg_${index}`] = obj.val;
+            newItem[`pos_seg_${index}_course`] = obj.course;
+            newItem[`pos_seg_${index}_color`] = colors[obj.course].high;
+            });
+            newItem['sum'] = sum;
+
+            return newItem;
+        }).sort((a, b) => b.sum - a.sum);
+    }, [chart_data, selectedCourses]);
+
+    const processedData_neg = useMemo(() => {
+        if (!chart_data) return [];
+        return chart_data.map(item => {
+            const newItem = { ...item };
+            
+            //сортировка
+            const negValues = selectedCourses
+            .map(c => ({ course: c, val: item[`course_${c}_low`] || 0 }))
+            .sort((a, b) => a.val - b.val); 
+
+            let sum = 0;
+            negValues.forEach((obj, index) => {
+                sum = sum + obj.val;
+            newItem[`neg_seg_${index}`] = obj.val;
+            newItem[`neg_seg_${index}_course`] = obj.course;
+            newItem[`neg_seg_${index}_color`] = colors[obj.course].low;
+            });
+            newItem['sum'] = sum;
+
+            return newItem;
+        }).sort((a, b) => b.sum - a.sum); //сорт столбцов
+    }, [chart_data, selectedCourses]);
+
+    if (!chart_data || chart_data.length === 0) {
+        console.log('MotivatorChart: нет данных');
+        return <div className="p-4 text-gray-500 text-center">Нет данных для отображения</div>;
+    }
+
+    return (
+    <div className="motBarContainer w-full p-4 bg-white">
+        <div className="course-filters">
+            {[1, 2, 3, 4].map(course => (
+                <label key={course} className="filter-item">
+                <input
+                    type="checkbox"
+                    checked={selectedCourses.includes(course)}
+                    onChange={() => toggleCourse(course)}
+                />
+                <span>{course} Курс</span>
+                </label>
+            ))}
+        </div>
+        <Legendy selectedCourses={selectedCourses} colors={colors}/>
+        <div>
+        <div className="chart-container h-[100px]">
+            <ResponsiveContainer width="100%" height="80%">
+                <BarChart
+                    data={processedData_pos}
+                    barGap={-30}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
+                >
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
+                <XAxis
+                    dataKey="name"
+                    tickFormatter={getLabel}
+                    angle={-45}
+                    tickMargin={25}
+                    dx={-10}
+                    textAnchor={"end"}
+                    interval={0}
+                    height={80}
+                    stroke="#666"
+                />
+                <YAxis 
+                    tickFormatter={formatValue} 
+                    stroke="#666"
+                    label={{ value: 'Доля студентов', angle: -90, position: 'insideLeft', fontWeight: 500, fontSize: 11, fill: '#94a3b8' }}
+                
+                />
+                <Tooltip content={(props) => <Tooltippy {...props} mot={true}
+                wrapperStyle={{ overflow: "visible", pointerEvents: "none", zIndex: 9999 }} />} />
+                
+                <ReferenceLine y={0} stroke="#333" strokeWidth={1.5} />
+
+                {selectedCourses.map((_, index) => (
+                <Bar 
+                    key={`pos_${index}`} 
+                    dataKey={`pos_seg_${index}`} 
+                    stackId="positive" 
+                    barSize={30}
+                    barGap={5}
+                    strokeWidth={1.5}
+                >
+                    {processedData_pos.map((entry, i) => (
+                    <Cell key={i} fill={entry[`pos_seg_${index}_color`]} />
+                    ))}
+                </Bar>
+                ))}
+                </BarChart>
+            </ResponsiveContainer></div>
+            <div className="chart-container h-[100px]">
+            <ResponsiveContainer width="100%" height="80%">
+                <BarChart
+                    data={processedData_neg}
+                    barGap={-30}
+                    margin={{ top: 10, right: 30, left: 20, bottom: 40 }}
+                >
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
+                <XAxis
+                    dataKey="name"
+                    tickFormatter={getLabel}
+                    angle={-45}
+                    tickMargin={25}
+                    dx={-10}
+                    textAnchor={"end"}
+                    interval={0}
+                    height={80}
+                    stroke="#666"
+                />
+                <YAxis 
+                    stroke="#666"
+                    label={{ value: 'Количество студентов', angle: -90, position: 'insideLeft', fontWeight: 500, fontSize: 11, fill: '#94a3b8' }}
+                
+                />
+                <Tooltip content={(props) => <Tooltippy {...props} mot={false}
+                wrapperStyle={{ overflow: "visible", pointerEvents: "none", zIndex: 9999 }} />} />
+                
+                <ReferenceLine y={0} stroke="#333" strokeWidth={1.5} />
+
+                {selectedCourses.map((_, index) => (
+                    <Bar 
+                        key={`neg_${index}`} 
+                        dataKey={`neg_seg_${index}`} 
+                        stackId="negative" 
+                        barSize={30}
+                        strokeWidth={1.5}
+                    >
+                        {processedData_neg.map((entry, i) => (
+                        <Cell key={i} fill={entry[`neg_seg_${index}_color`]} />
+                        ))}
+                    </Bar>
+                ))}
+            </BarChart></ResponsiveContainer>
+        </div></div>
+        <div style={{margin:20, marginTop:0}}>
+        <MotTable data={chart_data} currentFilters={currentFilters}/></div>
+      </div>
+    );
+}
+
 //верх фильтры
 const FilterHeader = ({ filters, onFilterChange }) => {
     const [options, setOptions] = useState({ institutes: [], specialties: [], years: [] });
@@ -433,6 +649,11 @@ const FilterHeader = ({ filters, onFilterChange }) => {
         if (!value) return null; 
         return opts?.find(o => o.value === value) || null;
     };
+    const sorted = (opts) =>
+        (opts || []).slice().sort((a, b) =>
+          a.label.localeCompare(b.label, 'ru', {numeric: true, sensitivity: 'base' })
+        );
+
     if (loading) return <div>Загрузка фильтров...</div>;
     
     return (
@@ -442,7 +663,7 @@ const FilterHeader = ({ filters, onFilterChange }) => {
             placeholder="Институт..."
             isClearable
             isSearchable
-            options={options?.institutes || []}
+            options={sorted(options?.institutes) || []}
             onChange={opt => handleChange(opt, 'institute')}
             styles={customStyles}
             />
@@ -452,7 +673,7 @@ const FilterHeader = ({ filters, onFilterChange }) => {
             placeholder="Направление..."
             isClearable
             isSearchable
-            options={options?.specialties || []}
+            options={sorted(options?.specialties) || []}
             value={findOption(options?.specialties, filters?.specialty)}
             onChange={opt => handleChange(opt, 'specialty')}
             styles={customStyles}
@@ -463,7 +684,7 @@ const FilterHeader = ({ filters, onFilterChange }) => {
             placeholder="Год..."
             isClearable
             isSearchable
-            options={options?.years || []}
+            options={sorted(options?.years) || []}
             onChange={opt => handleChange(opt, 'year')}
             styles={customStyles}
             />
@@ -478,7 +699,8 @@ function AdminMotivatorsView(){
     const [loadingMotDash, setLoadingMotDash] = useState(false);
     const [isError, setErrorStatus] = useState(false);
     const [filters, setFilters] = useState({ institute: '', specialty: '', year: '' });
-    
+    const savedY = useRef(0);
+
     const loadMotivationCounts = async currentFilters => {
         setLoadingMotDash(true)
         setErrorStatus(false)
@@ -503,7 +725,11 @@ function AdminMotivatorsView(){
           if (name == 'institute') updated.specialty = '';
           return updated;
         });
+        savedY.current = window.scrollY;
     };
+    useEffect(() => {
+        requestAnimationFrame(() => window.scrollTo(0, savedY.current));
+      }, [filters]);
 
     return (
             <div className="AdminMotivatorView">
@@ -511,15 +737,19 @@ function AdminMotivatorsView(){
                     <Header title="Админ: График мотиваторов" name="Администратор1" />
                     <Sidebar linkTree={LINK_TREE} />
                     <Content>
-                        <FilterHeader onFilterChange={updateFilter} 
-                        filters={filters}/>
-                        {isError ? (<div className="p-10 text-center"> Ошибка при загрузке данных </div>) :
-                        (<>{loadingMotDash ? (
-                            <div className="p-10 text-center">Загрузка данных...</div>
-                                
-                            ) : <><MotivatorStackedChart chart_data={MotivationData?.data} currentFilters={filters}/>
-                            <MotivatorStatistics filters={filters} />
-                        </>}</>)}
+                        <div className="filters-cont">
+                        <FilterHeader
+                            onFilterChange={updateFilter} 
+                            filters={filters}
+                        /></div>
+                        {
+                            isError ? <div className="p-10 text-center"> Ошибка при загрузке данных </div> :
+                            loadingMotDash ? <div className="p-10 text-center">Загрузка данных...</div> :
+                            <>
+                                <MotivatorCharts chart_data={MotivationData?.data} currentFilters={filters}/>
+                                <MotivatorStatistics filters={filters} />
+                            </>
+                        }
                         
                     </Content>
                 </SidebarLayout>

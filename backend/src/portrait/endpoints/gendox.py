@@ -66,10 +66,7 @@ def generate_docx_resume(request):
     ai_text = None
     if with_ai and competencies_dict:
         try:
-            ai_text = generate_general_interpretation_with_ai(student_info, competencies_dict)
-            # Ограничим длину для резюме (не более 3 предложений)
-            if ai_text and len(ai_text) > 300:
-                ai_text = ai_text[:300] + '...'  # fixme this is preposterous
+            ai_text = generate_general_interpretation_with_ai_for_resume(student_info, competencies_dict)
         except:
             ai_text = None
 
@@ -89,7 +86,7 @@ def generate_docx_resume(request):
 
     # ФИО (крупным жирным шрифтом)
     name_para = doc.add_paragraph()
-    name_run = name_para.add_run('ФИО')
+    name_run = name_para.add_run('ФИО')  # fixme put actual name
     name_run.font.size = Pt(20)
     name_run.font.bold = True
     name_run.font.color.rgb = RGBColor(0, 0, 0)
@@ -127,8 +124,7 @@ def generate_docx_resume(request):
     info_items = [
         f"Место проживания:",
         f"Образование: {edu_level}",
-        f"Дата рождения: дд.мм.гггг",
-        f"Пол: {gender}"
+        f"Дата рождения: дд.мм.гггг"
     ]
 
     for item in info_items:
@@ -248,6 +244,7 @@ def generate_docx_resume(request):
     return docxResponse(doc, f"Резюме.docx")
 
 
+@cached()
 @method(GET)
 @jsonResponse
 @csrf_exempt
@@ -601,18 +598,74 @@ def format_gender(gender_code):
     return gender_map.get(gender_code.lower(), gender_code)
 
 
+def generate_general_interpretation_with_ai_for_resume(student_info, competencies_dict):
+    # Сортируем компетенции (общая логика для обоих случаев)
+    sorted_comps = sorted(competencies_dict.items(), key=lambda x: x[1], reverse=True)
+    strong = [name for name, _ in sorted_comps[:2]]
+    weak = [name for name, _ in sorted_comps[-2:]]
+
+    # Если модель недоступна
+    if not MlModel.AVAILABLE:
+        print("[model] (!): model not available")
+        return f"Студент демонстрирует сильные стороны в области {', '.join(strong)}. "
+
+    def level(value):
+        if value < 399:
+            return "начальный уровень"
+        if value < 599:
+            return "средний уровень"
+        return "высокий уровень"
+
+    # Формируем промпт с использованием strong/weak
+    prompt = (
+        f"Ты — карьерный консультант. "
+        f"Напиши краткую характеристику студента для использования в резюме, используя только данные о компетенциях. "
+        f"Подчеркни сильные стороны студента, не упоминай слабых сторон. "
+        f"Не добавляй никакой информации о внешности, возрасте или личных качествах, не указанных в данных.\n\n"
+        f"Курс: {student_info.get('course', 'X')}\n"
+        f"Направление: {student_info.get('direction', 'не указано')}\n"
+        f"Баллы развития компетенций (200-800):\n"
+    ) + (
+        "\n".join([f"{comp}: {val} ({level(val)})" for comp, val in competencies_dict.items()])
+    ) + (
+        f"\nСильные стороны (наиболее высокие баллы): {', '.join(strong)}\n"
+        f"Характеристика (4-5 предложений):"
+    )
+
+    text = MlModel.generate(prompt, max_length=1500, temperature=0.6, top_p=0.85)
+
+    # Если ответ пустой или содержит признаки галлюцинаций
+    if not text or any(phrase in text.lower() for phrase in ['внешность', 'возраст', 'рост', 'характер', 'build']):
+        print("[model] (!): model got high and generated garbage")
+
+    # Очистка от лишних символов
+    '''text = text.split('\n')[0].strip()
+    if text.endswith(','):
+        text = text[:-1]'''
+    return text
+
+
+
 def generate_general_interpretation_with_ai(student_info, competencies_dict):
     # Сортируем компетенции (общая логика для обоих случаев)
     sorted_comps = sorted(competencies_dict.items(), key=lambda x: x[1], reverse=True)
     strong = [name for name, _ in sorted_comps[:2]]
     weak = [name for name, _ in sorted_comps[-2:]]
 
-    # Если модель недоступна — возвращаем шаблонную заглушку
+    # Если модель недоступна
     if not MlModel.AVAILABLE:
+        print("[model] (!): model not available")
         return (
             f"Студент демонстрирует сильные стороны в области {', '.join(strong)}. "
             f"Рекомендуется обратить внимание на развитие {', '.join(weak)}."
         )
+
+    def level(value):
+        if value < 399:
+            return "начальный уровень"
+        if value < 599:
+            return "средний уровень"
+        return "высокий уровень"
 
     # Формируем промпт с использованием strong/weak
     prompt = (
@@ -620,20 +673,23 @@ def generate_general_interpretation_with_ai(student_info, competencies_dict):
         f"Не добавляй никакой информации о внешности, возрасте или личных качествах, не указанных в данных.\n\n"
         f"Курс: {student_info.get('course', 'X')}\n"
         f"Направление: {student_info.get('direction', 'не указано')}\n"
-        f"Сильные стороны (наиболее высокие баллы): {', '.join(strong)}\n"
+        f"Баллы развития компетенций (200-800):\n"
+    ) + (
+        "\n".join([f"{comp}: {val} ({level(val)})" for comp, val in competencies_dict.items()])
+    ) + (
+        f"\nСильные стороны (наиболее высокие баллы): {', '.join(strong)}\n"
         f"Зоны роста (наиболее низкие баллы): {', '.join(weak)}\n\n"
         f"Характеристика (2-3 предложения):"
     )
 
     text = MlModel.generate(prompt, max_length=150, temperature=0.6, top_p=0.85)
 
-    # Если ответ пустой или содержит признаки галлюцинаций — возвращаем заглушку
+    # Если ответ пустой или содержит признаки галлюцинаций
     if not text or any(phrase in text.lower() for phrase in ['внешность', 'возраст', 'рост', 'характер', 'build']):
-        return (f"Студент демонстрирует сильные стороны в области {', '.join(strong[:2])}. "
-                f"Рекомендуется обратить внимание на развитие {', '.join(weak[:2])}.")
+        print("[model] (!): model got high and generated garbage")
 
     # Очистка от лишних символов
-    text = text.split('\n')[0].strip()
+    '''text = text.split('\n')[0].strip()
     if text.endswith(','):
-        text = text[:-1]
+        text = text[:-1]'''
     return text

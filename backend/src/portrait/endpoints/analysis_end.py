@@ -2306,3 +2306,92 @@ def get_possible_duplicate_accounts(request):
         import traceback
         traceback.print_exc()
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+# ============================================================
+# LGM для конкретного студента
+# ============================================================
+
+@cached()
+@csrf_exempt
+@require_http_methods(["GET"])
+def analyze_student_lgm(request):
+    """
+    LGM для одного студента: возвращает его intercept, slope,
+    фактические точки и predicted-траекторию.
+
+    GET /portrait/analyze-student-lgm/?student_id=123&competency=res_comp_leadership
+    """
+    try:
+        student_id = request.GET.get('student_id')
+        competency = request.GET.get('competency', 'res_comp_leadership')
+        if not student_id:
+            return JsonResponse({'status': 'error', 'message': 'student_id required'}, status=400)
+
+        results = Results.objects.filter(
+            res_participant_id=student_id
+        ).order_by('res_year', 'res_course_num')
+
+        data = []
+        for r in results:
+            score = getattr(r, competency, None)
+            if score is not None and r.res_course_num:
+                data.append({
+                    'student_id': student_id,
+                    'time_point': r.res_course_num,
+                    'competency_score': score,
+                    'year': r.res_year,
+                    'course': r.res_course_num,
+                })
+
+        if len(data) < 2:
+            return JsonResponse({
+                'status': 'insufficient_data',
+                'message': 'Недостаточно данных для LGM (нужно минимум 2 замера)'
+            }, status=400)
+
+        df = pd.DataFrame(data)
+        lgm = LatentGrowthModel()
+
+        # fit() требует student_id, time_point, competency_score
+        analysis = lgm.fit(df)
+
+        if analysis['status'] != 'success':
+            return JsonResponse({'status': 'error', 'message': analysis.get('message')})
+
+        # У студента ровно одна траектория
+        traj = analysis['trajectories'][0] if analysis['trajectories'] else {}
+        intercept = traj.get('intercept', analysis['mean_intercept'])
+        slope = traj.get('slope', analysis['mean_slope'])
+
+        # Фактические точки (дедупликация по курсу — берём последний)
+        by_course = {}
+        for row in data:
+            c = row['course']
+            by_course[c] = row
+        actual_points = sorted(by_course.values(), key=lambda x: x['course'])
+
+        # Predicted trajectory по курсам 1–4
+        courses = [1, 2, 3, 4]
+        predicted = [
+            {'course': c, 'predicted': round(intercept + slope * (c - actual_points[0]['course']), 2)}
+            for c in courses
+        ]
+
+        return JsonResponse({
+            'status': 'success',
+            'competency': competency,
+            'intercept': round(float(intercept), 2),
+            'slope': round(float(slope), 4),
+            'r_squared': round(float(traj.get('r_squared', 0)), 3),
+            'n_measurements': len(actual_points),
+            'actual_points': [
+                {'course': p['course'], 'year': p['year'], 'score': p['competency_score']}
+                for p in actual_points
+            ],
+            'predicted_trajectory': predicted,
+        }, json_dumps_params={'ensure_ascii': False})
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
