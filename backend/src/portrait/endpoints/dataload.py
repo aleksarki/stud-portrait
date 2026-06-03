@@ -347,7 +347,7 @@ def get_expected_fields(request):
     """ Return expected field for each sheet.
     """
     return {
-        "Связь ФИО и ID":            ["rsv_id", "student_name", "student_gender"],
+        "Связь ФИО и ID":            ["rsv_id", "student_name", "student_gender", "email"],
         "Сравнение по компетенциям": [
             "center_name",   "edu_level_name",     "inst_name",          "part_rsv_id",
             "part_gender",   "part_institution",   "part_spec",          "part_edu_level",
