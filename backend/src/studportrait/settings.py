@@ -10,9 +10,13 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+from dotenv import load_dotenv
 from pathlib import Path
 import os
 import sys
+
+env_file = '.env.local' if os.environ.get('LOCAL_DEV') else '.env'
+load_dotenv(env_file)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -63,6 +67,10 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:8000",
 ]
 
+# LLM Service Configuration
+LLM_SERVICE_URL = os.environ.get('LLM_SERVICE_URL', 'http://localhost:8001')
+LLM_SERVICE_TIMEOUT = 60  # seconds
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -84,14 +92,20 @@ WSGI_APPLICATION = 'studportrait.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+print("[settings] (i): DB_HOST is", os.environ.get('DB_HOST', 'localhost'))
+print("[settings] (i): DB_PORT is", os.environ.get('DB_HOST', '5432'))
+print("[settings] (i): DB_NAME is", os.environ.get('DB_HOST', 'studportrait'))
+print("[settings] (i): DB_USER is", os.environ.get('DB_HOST', 'postgres'))
+print("[settings] (i): DB_PASSWORD is", os.environ.get('DB_HOST', 'password'))
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        'NAME': os.environ.get('DB_NAME', 'studportrait'),
-        'USER': os.environ.get('DB_USER', 'postgres'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', '2185'),
-        'HOST': os.environ.get('DB_HOST', 'database'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
         'PORT': os.environ.get('DB_PORT', '5432'),
+        'NAME': os.environ.get('DB_NAME', 'studportrait'),
+        'USER':  os.environ.get('DB_USER', 'postgres'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'password'),
     }
 }
 

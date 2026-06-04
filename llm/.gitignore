@@ -7,3 +7,5 @@ __pycache__/
 *.pyo
 *.pyd
 .Python
+
+app/llm_model/

@@ -33,11 +33,34 @@ services:
       - DB_NAME=studportrait
       - DB_USER=postgres
       - DB_PASSWORD=postgres
+      - LLM_SERVICE_URL=http://llm:8001
     depends_on:
       database:
         condition: service_healthy
+      llm:
+        service_started
     networks:
       - studportrait_network
+
+  llm:
+    build: ./llm
+    container_name: studportrait_llm
+    ports:
+      - "8001:8001"
+    volumes:
+      # Монтирование папки с моделью
+      - ./llm_model:/app/app/llm_model:ro
+      - cache:/app/cache
+    environment:
+      - CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
 
   frontend:
     build: ./frontend
@@ -57,6 +80,7 @@ services:
 
 volumes:
   postgres_data:
+  cache:
 
 networks:
   studportrait_network:

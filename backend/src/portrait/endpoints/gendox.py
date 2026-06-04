@@ -7,7 +7,7 @@ from docx.shared import Pt, Inches, RGBColor, Cm
 
 from .common import *
 from .genutils import *
-from ..mlmodel import MlModel
+from ..llmclient import LLM_CLIENT
 
 
 # ! ================================================== ENDPOINTS =================================================== ! #
@@ -605,7 +605,7 @@ def generate_general_interpretation_with_ai_for_resume(student_info, competencie
     weak = [name for name, _ in sorted_comps[-2:]]
 
     # Если модель недоступна
-    if not MlModel.AVAILABLE:
+    if not LLM_CLIENT.health_check()["status"] in ("unhealthy", "unavailable"):
         print("[model] (!): model not available")
         return f"Студент демонстрирует сильные стороны в области {', '.join(strong)}. "
 
@@ -632,7 +632,7 @@ def generate_general_interpretation_with_ai_for_resume(student_info, competencie
         f"Характеристика (4-5 предложений):"
     )
 
-    text = MlModel.generate(prompt, max_length=1500, temperature=0.6, top_p=0.85)
+    text = LLM_CLIENT.generate(prompt, max_length=1500, temperature=0.6, top_p=0.85)
 
     # Если ответ пустой или содержит признаки галлюцинаций
     if not text or any(phrase in text.lower() for phrase in ['внешность', 'возраст', 'рост', 'характер', 'build']):
@@ -653,7 +653,7 @@ def generate_general_interpretation_with_ai(student_info, competencies_dict):
     weak = [name for name, _ in sorted_comps[-2:]]
 
     # Если модель недоступна
-    if not MlModel.AVAILABLE:
+    if not LLM_CLIENT.health_check()["status"] in ("unhealthy", "unavailable"):
         print("[model] (!): model not available")
         return (
             f"Студент демонстрирует сильные стороны в области {', '.join(strong)}. "
@@ -682,7 +682,7 @@ def generate_general_interpretation_with_ai(student_info, competencies_dict):
         f"Характеристика (2-3 предложения):"
     )
 
-    text = MlModel.generate(prompt, max_length=150, temperature=0.6, top_p=0.85)
+    text = LLM_CLIENT.generate(prompt, max_length=150, temperature=0.6, top_p=0.85)
 
     # Если ответ пустой или содержит признаки галлюцинаций
     if not text or any(phrase in text.lower() for phrase in ['внешность', 'возраст', 'рост', 'характер', 'build']):

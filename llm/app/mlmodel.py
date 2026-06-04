@@ -57,8 +57,7 @@ class MlModel:
                 cls.TOKENIZER = None
                 cls.MODEL = None
                 cls.AVAILABLE = False
-                print(f"[model] (!): failed to load LLM model")
-                print(f"{e}")
+                print(f"[model] (!): failed to load LLM model: {e}")
 
             finally:
                 cls.LOAD_EVENT.set()  # unlock all, even if failed
