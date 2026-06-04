@@ -112,7 +112,7 @@ def import_excel(request):
                         continue
 
                     # Создаём или обновляем маппинг
-                    mapping, created = Studentmapping.objects.update_or_create(
+                    mapping, created = StudentMapping.objects.update_or_create(
                         rsv_id=str(rsv_id),
                         defaults={
                             'student_name': student_name,
@@ -137,7 +137,7 @@ def import_excel(request):
                     if not center_name:
                         continue
 
-                    center, _ = Competencecenters.objects.get_or_create(center_name=center_name)
+                    center, _ = CompetenceCenters.objects.get_or_create(center_name=center_name)
 
                     institution = None
                     if (inst_name := clean_value(row_data.get("inst_name"))):
@@ -145,15 +145,15 @@ def import_excel(request):
 
                     edu_level = None
                     if (edu_level_name := clean_value(row_data.get("edu_level_name"))):
-                        edu_level, _ = Educationlevels.objects.get_or_create(edu_level_name=edu_level_name)
+                        edu_level, _ = EducationLevels.objects.get_or_create(edu_level_name=edu_level_name)
 
                     form = None
                     if (form_name := clean_value(row_data.get("form_name"))):
-                        form, _ = Studyforms.objects.get_or_create(form_name=form_name)
+                        form, _ = EducationForms.objects.get_or_create(form_name=form_name)
 
                     spec = None
                     if (spec_name := clean_value(row_data.get("spec_name"))):
-                        spec, _ = Specialties.objects.get_or_create(spec_name=spec_name)
+                        spec, _ = EducationSpecialties.objects.get_or_create(spec_name=spec_name)
 
                     # part_rsv_id - это ID из тестирования РСВ (НЕ ФИО!)
                     rsv_id = clean_value(row_data.get("part_rsv_id"))
@@ -188,23 +188,23 @@ def import_excel(request):
                     year = clean_value(row_data.get("res_year"))
                     course_num = clean_value(row_data.get("res_course_num"), int)
 
-                    result, created_res = Results.objects.update_or_create(
+                    result, created_res = TestResults.objects.update_or_create(
                         res_participant=participant,
                         res_year=year,
                         res_course_num=course_num,
                         defaults={
-                            TRES.CENTER:      center,
-                            TRES.INSTITUTION: institution,
-                            TRES.EDU_LEVEL:   edu_level,
-                            TRES.EDU_FORM:    form,       # ForeignKey — объект OK
-                            TRES.EDU_SPEC:    spec,       # ForeignKey — объект OK
-                            TRES.POTENTIAL:   clean_value(row_data.get("res_high_potential")),
-                            TRES.REPORT:      clean_value(row_data.get("res_summary_report")),
+                            tRES.CENTER:      center,
+                            tRES.INSTITUTION: institution,
+                            tRES.EDU_LEVEL:   edu_level,
+                            tRES.EDU_FORM:    form,       # ForeignKey — объект OK
+                            tRES.EDU_SPEC:    spec,       # ForeignKey — объект OK
+                            tRES.POTENTIAL:   clean_value(row_data.get("res_high_potential")),
+                            tRES.REPORT:      clean_value(row_data.get("res_summary_report")),
                         }
                     )
 
                     # Обновляем компетенции
-                    Results.objects           \
+                    TestResults.objects           \
                         .filter(pk=result.pk) \
                         .update(**{comp: clean_value(row_data.get(comp), int) for comp in COMP.list})
 
@@ -231,7 +231,7 @@ def import_excel(request):
 
                     year = clean_value(row_data.get("res_year"))
 
-                    Results.objects                                         \
+                    TestResults.objects                                         \
                         .filter(res_participant=participant, res_year=year) \
                         .update(**{mot: clean_value(row_data.get(mot), float) for mot in MOT.list})
                     
@@ -252,7 +252,7 @@ def import_excel(request):
                         debugPrint(f"[xls load] (!): участник RSV ID {rsv_id} не найден")
                         continue
 
-                    Course.objects.update_or_create(
+                    CourseResults.objects.update_or_create(
                         course_participant=participant.part_id,
                         defaults={cur: clean_value(row_data.get(cur), float) for cur in CUR.list}
                     )
@@ -280,7 +280,7 @@ def import_excel(request):
                     # т.к. unique_together(res_participant, res_year, res_course_num) требует
                     # res_course_num, которого в этом листе нет.
                     # Записи создаются листом "Сравнение по компетенциям".
-                    updated = Results.objects                               \
+                    updated = TestResults.objects                               \
                         .filter(res_participant=participant, res_year=year) \
                         .update(**{val: clean_value(row_data.get(val), float) for val in VAL.list})
 
@@ -300,15 +300,15 @@ def import_excel(request):
 
                     # Ищем RSV ID по ФИО в таблице маппинга
                     try:
-                        mapping = Studentmapping.objects.get(student_name=student_name)
-                        rsv_id = mapping.rsv_id
-                    except Studentmapping.DoesNotExist:
+                        mapping = StudentMapping.objects.get(student_name=student_name)
+                        rsv_id = mapping.mapping_rsv
+                    except StudentMapping.DoesNotExist:
                         debugPrint(f"[xls load] (!): ФИО '{student_name}' не найдено в маппинге")
                         continue
-                    except Studentmapping.MultipleObjectsReturned:
+                    except StudentMapping.MultipleObjectsReturned:
                         debugPrint(f"[xls load] (!): несколько записей для ФИО '{student_name}'")
-                        mapping = Studentmapping.objects.filter(student_name=student_name).first()
-                        rsv_id = mapping.rsv_id
+                        mapping = StudentMapping.objects.filter(student_name=student_name).first()
+                        rsv_id = mapping.mapping_rsv
 
                     # Ищем участника по RSV ID
                     try:
@@ -323,7 +323,7 @@ def import_excel(request):
                     if not year or not discipline:
                         continue
 
-                    Academicperformance.objects.update_or_create(
+                    AcademicPerformances.objects.update_or_create(
                         perf_part_id=participant.part_id,
                         perf_year=year,
                         perf_discipline=discipline,
@@ -384,7 +384,7 @@ def get_templates(request):
     """ Get list of all data load templates.
     """
     return {'templates': list(
-        PortraitUploadtemplate.objects
+        DataUploadTemplate.objects
             .all()
             .values('id', 'name', 'description', 'config', 'updated_at')
     )}
@@ -406,14 +406,14 @@ def save_template(request):
     if not config:
         raise ResponseError("Missing config")
 
-    template, created = PortraitUploadtemplate.objects.update_or_create(
+    template, created = DataUploadTemplate.objects.update_or_create(
         name=name,
         defaults={'config': config, 'description': description}
     )
 
     return {
-        'id':      template.id,  # fixme looks like error
-        'name':    template.name,
+        'id':      template.template_id,  # fixme looks like error
+        'name':    template.template_name,
         'created': created
     }
 
@@ -424,7 +424,7 @@ def save_template(request):
 def delete_template(request, template_id):
     """ Delete data load template.
     """
-    PortraitUploadtemplate.objects.get(id=template_id).delete()
+    DataUploadTemplate.objects.get(id=template_id).delete()
     return {'status': 'deleted'}
 
 

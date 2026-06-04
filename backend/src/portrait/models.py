@@ -8,29 +8,35 @@
 from django.db import models
 
 
-class Academicperformance(models.Model):
+class Academicperformances(models.Model):
     perf_id = models.AutoField(primary_key=True)
-    perf_part = models.ForeignKey('Participants', models.DO_NOTHING)
-    perf_year = models.CharField(max_length=9)
-    perf_discipline = models.CharField(max_length=200)
-    perf_main_attestation = models.CharField(max_length=16, blank=True, null=True)
+    perf_participant = models.ForeignKey('Participants', models.DO_NOTHING, db_column='perf_participant')
+    perf_edu_discipline = models.ForeignKey('Educationdisciplines', models.DO_NOTHING, db_column='perf_edu_discipline')
+    perf_year = models.CharField(max_length=16)
+    perf_current = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    perf_digital = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    perf_main = models.IntegerField(blank=True, null=True)
+    perf_first_retake = models.IntegerField(blank=True, null=True)
+    perf_second_retake = models.IntegerField(blank=True, null=True)
+    perf_grade_retake = models.IntegerField(blank=True, null=True)
+    perf_final = models.IntegerField(blank=True, null=True)
 
     class Meta:
         managed = False
-        db_table = 'academicperformance'
-        unique_together = (('perf_part', 'perf_year', 'perf_discipline'),)
+        db_table = 'academicperformances'
+        unique_together = (('perf_participant', 'perf_year', 'perf_edu_discipline'),)
 
 
 class Competencecenters(models.Model):
     center_id = models.AutoField(primary_key=True)
-    center_name = models.CharField(max_length=512)
+    center_name = models.TextField()
 
     class Meta:
         managed = False
         db_table = 'competencecenters'
 
 
-class Course(models.Model):
+class Courseresults(models.Model):
     course_id = models.AutoField(primary_key=True)
     course_participant = models.ForeignKey('Participants', models.DO_NOTHING, db_column='course_participant')
     course_an_dec = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
@@ -58,21 +64,61 @@ class Course(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'course'
+        db_table = 'courseresults'
+
+
+class Datauploadtemplate(models.Model):
+    template_id = models.AutoField(primary_key=True)
+    template_name = models.CharField(unique=True, max_length=256)
+    template_description = models.TextField(blank=True, null=True)
+    template_config = models.TextField()  # This field type is a guess.
+    template_created_at = models.DateTimeField(blank=True, null=True)
+    template_updated_at = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'datauploadtemplate'
+
+
+class Educationdisciplines(models.Model):
+    edu_disc_id = models.AutoField(primary_key=True)
+    edu_disc_name = models.CharField(max_length=1024)
+
+    class Meta:
+        managed = False
+        db_table = 'educationdisciplines'
+
+
+class Educationforms(models.Model):
+    edu_form_id = models.AutoField(primary_key=True)
+    edu_form_name = models.CharField(max_length=64)
+
+    class Meta:
+        managed = False
+        db_table = 'educationforms'
 
 
 class Educationlevels(models.Model):
     edu_level_id = models.AutoField(primary_key=True)
-    edu_level_name = models.CharField(max_length=256)
+    edu_level_name = models.CharField(max_length=512)
 
     class Meta:
         managed = False
         db_table = 'educationlevels'
 
 
+class Educationspecialties(models.Model):
+    edu_spec_id = models.AutoField(primary_key=True)
+    edu_spec_name = models.CharField(max_length=1024)
+
+    class Meta:
+        managed = False
+        db_table = 'educationspecialties'
+
+
 class Institutions(models.Model):
     inst_id = models.AutoField(primary_key=True)
-    inst_name = models.CharField(max_length=512)
+    inst_name = models.TextField()
 
     class Meta:
         managed = False
@@ -81,43 +127,40 @@ class Institutions(models.Model):
 
 class Participants(models.Model):
     part_id = models.AutoField(primary_key=True)
-    part_rsv_id = models.CharField(unique=True, max_length=512)
-    part_gender = models.CharField(max_length=16, blank=True, null=True)
-    part_institution = models.ForeignKey(Institutions, models.DO_NOTHING, db_column='part_institution', blank=True, null=True)
-    part_spec = models.ForeignKey('Specialties', models.DO_NOTHING, db_column='part_spec', blank=True, null=True)
-    part_edu_level = models.ForeignKey(Educationlevels, models.DO_NOTHING, db_column='part_edu_level', blank=True, null=True)
-    part_form = models.ForeignKey('Studyforms', models.DO_NOTHING, db_column='part_form', blank=True, null=True)
+    part_rsv = models.CharField(unique=True, max_length=512)
     part_course_num = models.IntegerField(blank=True, null=True)
+    part_gender = models.IntegerField(blank=True, null=True)
 
     class Meta:
         managed = False
         db_table = 'participants'
 
 
-class PortraitUploadtemplate(models.Model):
-    name = models.CharField(unique=True, max_length=255)
-    description = models.TextField(blank=True, null=True)
-    config = models.JSONField()
-    created_at = models.DateTimeField(blank=True, null=True)
-    updated_at = models.DateTimeField(blank=True, null=True)
+class Studentmapping(models.Model):
+    mapping_id = models.AutoField(primary_key=True)
+    mapping_rsv = models.CharField(unique=True, max_length=512)
+    mapping_stud_name = models.CharField(max_length=512)
+    mapping_stud_gender = models.IntegerField(blank=True, null=True)
+    mapping_email = models.CharField(max_length=256, blank=True, null=True)
+    mapping_created_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         managed = False
-        db_table = 'portrait_uploadtemplate'
+        db_table = 'studentmapping'
 
 
-class Results(models.Model):
+class Testresults(models.Model):
     res_id = models.AutoField(primary_key=True)
     res_participant = models.ForeignKey(Participants, models.DO_NOTHING, db_column='res_participant')
-    res_center = models.ForeignKey(Competencecenters, models.DO_NOTHING, db_column='res_center', blank=True, null=True)
+    res_center = models.ForeignKey(Competencecenters, models.DO_NOTHING, db_column='res_center')
     res_institution = models.ForeignKey(Institutions, models.DO_NOTHING, db_column='res_institution', blank=True, null=True)
     res_edu_level = models.ForeignKey(Educationlevels, models.DO_NOTHING, db_column='res_edu_level', blank=True, null=True)
-    res_form = models.ForeignKey('Studyforms', models.DO_NOTHING, db_column='res_form', blank=True, null=True)
-    res_spec = models.ForeignKey('Specialties', models.DO_NOTHING, db_column='res_spec', blank=True, null=True)
-    res_course_num = models.IntegerField(blank=True, null=True)
-    res_year = models.TextField(blank=True, null=True)
-    res_high_potential = models.TextField(blank=True, null=True)
-    res_summary_report = models.TextField(blank=True, null=True)
+    res_edu_form = models.ForeignKey(Educationforms, models.DO_NOTHING, db_column='res_edu_form', blank=True, null=True)
+    res_edu_specialty = models.ForeignKey(Educationspecialties, models.DO_NOTHING, db_column='res_edu_specialty', blank=True, null=True)
+    res_course = models.IntegerField(blank=True, null=True)
+    res_year = models.CharField(max_length=16)
+    res_potential = models.IntegerField(blank=True, null=True)
+    res_report = models.CharField(max_length=1024, blank=True, null=True)
     res_comp_info_analysis = models.IntegerField(blank=True, null=True)
     res_comp_planning = models.IntegerField(blank=True, null=True)
     res_comp_result_orientation = models.IntegerField(blank=True, null=True)
@@ -155,36 +198,5 @@ class Results(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'results'
-        unique_together = (('res_participant', 'res_year', 'res_course_num'),)
-
-
-class Specialties(models.Model):
-    spec_id = models.AutoField(primary_key=True)
-    spec_name = models.CharField(max_length=512)
-
-    class Meta:
-        managed = False
-        db_table = 'specialties'
-
-
-class Studentmapping(models.Model):
-    mapping_id = models.AutoField(primary_key=True)
-    rsv_id = models.CharField(unique=True, max_length=512)
-    student_name = models.CharField(max_length=512)
-    student_gender = models.CharField(max_length=16, blank=True, null=True)
-    email = models.CharField(max_length=256, blank=True, null=True)  # добавлено
-    created_at = models.DateTimeField(blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = 'studentmapping'
-
-
-class Studyforms(models.Model):
-    form_id = models.AutoField(primary_key=True)
-    form_name = models.CharField(max_length=256)
-
-    class Meta:
-        managed = False
-        db_table = 'studyforms'
+        db_table = 'testresults'
+        unique_together = (('res_participant', 'res_year'),)

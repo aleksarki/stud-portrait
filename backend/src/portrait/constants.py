@@ -163,13 +163,6 @@ class TableCompetenceCenters:
     NAME = 'center_name'
 
 
-class TableEducationLevels:
-    """ Columns of EducationLevels database table.
-    """
-    ID =   'edu_level_id'
-    NAME = 'edu_level_name'
-
-
 class TableInstitutions:
     """ Columns of Institutions database table.
     """
@@ -177,47 +170,104 @@ class TableInstitutions:
     NAME = 'inst_name'
 
 
+class TableEducationLevels:
+    """ Columns of EducationLevels database table.
+    """
+    ID =   'edu_level_id'
+    NAME = 'edu_level_name'
+
+
+class TableEducationForms:
+    """ Columns of EducationForms database table.
+    """
+    ID =   'edu_form_id'
+    NAME = 'edu_form_name'
+
+
+class TableEducationSpecialties:
+    """ Columns of EducationSpecialties database table.
+    """
+    ID =   'edu_spec_id'
+    NAME = 'edu_spec_name'
+
+
+class TableEducationDisciplines:
+    """ Columns of EducationDisciplines database table.
+    """
+    ID =   'edu_disc_id'
+    NAME = 'edu_disc_name'
+
+
+class TableStudentMapping:
+    """ Columns of StudentMapping database table.
+    """
+    ID =      'mapping_id'
+    RSV =     'mapping_rsv'
+    NAME =    'mapping_stud_name'
+    GENDER =  'mapping_stud_gender'
+    EMAIL =   'mapping_email'
+    CREATED = 'mapping_created_at'
+
+
 class TableParticipants:
     """ Columns of Participants database table.
     """
-    ID =          'part_id'
-    RSV_ID =      'part_rsv_id'
-    GENDER =      'part_gender'
-    INSTITUTION = 'part_institution'
-    EDU_SPEC =    'part_spec'
-    EDU_LEVEL =   'part_edu_level'
-    EDU_FORM =    'part_form'
-    COURSE_NUM =  'part_course_num'
+    ID =     'part_id'
+    RSV =    'part_rsv'
+    COURSE = 'part_course_num'
+    GENDER = 'part_gender'
 
 
-class TableResults:
-    """ Columns of Results database table.
+class TableTestResults:
+    """ Columns of TestResults database table.
     """
     ID =          'res_id'
     PARTICIPANT = 'res_participant'
     CENTER =      'res_center'
     INSTITUTION = 'res_institution'
     EDU_LEVEL =   'res_edu_level'
-    EDU_FORM =    'res_form'
-    EDU_SPEC =    'res_spec'
-    COURSE_NUM =  'res_course_num'
+    EDU_FORM =    'res_edu_form'
+    EDU_SPEC =    'res_edu_specialty'
+    COURSE_NUM =  'res_course'
     YEAR =        'res_year'
-    POTENTIAL =   'res_high_potential'
-    REPORT =      'res_summary_report'
+    POTENTIAL =   'res_potential'
+    REPORT =      'res_report'
+    ...
 
 
-class TableSpecialties:
-    """ Columns of Specialties database table.
+class TableCourseResult:
+    """ Columns of CourseResults database table.
     """
-    ID =   'spec_id'
-    NAME = 'spec_name'
+    ID =          'course_id'
+    PARTICIPANT = 'course_participant'
+    ...
 
 
-class TableStudyForms:
-    """ Columns of StudyForms database table.
+class TableAcademicPerformances:
+    """ Columns of AcademicPerformances database table.
     """
-    ID =   'form_id'
-    NAME = 'form_name'
+    ID =             'perf_id'
+    PARTICIPANT =    'perf_participant'
+    EDU_DISCIPLINE = 'perf_edu_discipline'
+    YEAR =           'perf_year'
+    CURRENT =        'perf_current'
+    DIGITAL =        'perf_digital'
+    MAIN =           'perf_main'
+    FIRST_RETAKE =   'perf_first_retake'
+    SECOND_RETAKE =  'perf_second_retake'
+    GRADE_RETAKE =   'perf_grade_retake'
+    FINAL =          'perf_final'
+
+
+class TableDataUploadTemplate:
+    """ Columns of DataUploadTemplate database table.
+    """
+    ID =          'template_id'
+    NAME =        'template_name'
+    DESCRIPTION = 'template_description'
+    CONFIG =      'template_config'
+    CREATED =     'template_created_at'
+    UPDATED =     'template_updated_at'
 
 
 # ! ================================================== GEOGRAPHY =================================================== ! #

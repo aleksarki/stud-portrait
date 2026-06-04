@@ -14,12 +14,18 @@ from django.views.decorators.csrf import csrf_exempt
 
 from ..constants import (
     RsvCompetencies as COMP, RsvMotivators as MOT, RsvValues as VAL, RsvCourses as CUR,
-    TableCompetenceCenters as TCENTER, TableEducationLevels as TLEVEL,
-    TableInstitutions as TINST, TableParticipants as TPART, TableResults as TRES,
-    TableSpecialties as TSPEC, TableStudyForms as TFORM,
+    TableCompetenceCenters as tCENTER, TableInstitutions as tINST, TableEducationLevels as tLEVEL,
+    TableEducationForms as tFORM, TableEducationSpecialties as tSPEC, TableEducationDisciplines as tDISC,
+    TableStudentMapping as tMAP, TableParticipants as tPART, TableTestResults as tRES,
+    TableCourseResult as tCOURSE, TableAcademicPerformances as tPERF, TableDataUploadTemplate as tTEMPL,
     CENTERS_REGIONS
 )
-from ..models import *
+from ..models import (
+    Academicperformances as AcademicPerformances, Competencecenters as CompetenceCenters, Courseresults as CourseResults,
+    Datauploadtemplate as DataUploadTemplate, Educationdisciplines as EducationDisciplines, Educationforms as EducationForms,
+    Educationlevels as EducationLevels, Educationspecialties as EducationSpecialties, Institutions, Participants,
+    Studentmapping as StudentMapping, Testresults as TestResults
+)
 
 
 DELETE = "DELETE"

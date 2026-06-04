@@ -1,14 +1,15 @@
+from collections import defaultdict
+import numpy as np
+import traceback
+
 from django.db.models import Avg, Count, Q, F
 from django.http import JsonResponse
-from portrait.models import Results, Participants, Course, Institutions, Academicperformance
-import traceback
+
 from .common import *
-import numpy as np
-from collections import defaultdict
 
 # ноу кэш плз
 def get_year_metrics(year, filter):
-    res_queryset = Results.objects.filter(res_year=year, **filter)
+    res_queryset = TestResults.objects.filter(res_year=year, **filter)
     max_mot={"name": "-", "count": 0}
     max_demot={"name": "-", "count": 0}
     if not res_queryset.exists():
@@ -27,7 +28,7 @@ def get_year_metrics(year, filter):
 
     participant_ids = list(res_queryset.values_list('res_participant__part_id', flat=True).distinct())
     total_students = res_queryset.values('res_participant').distinct().count()
-    students_with_courses = Course.objects.filter(
+    students_with_courses = CourseResults.objects.filter(
         course_participant__in=participant_ids 
     ).count()
     
@@ -62,14 +63,14 @@ def filter_dash(request):
     try:
         inst = request.GET.get('institute')   
         if inst:
-            base=Results.objects.filter(res_institution__inst_name=inst)
+            base=TestResults.objects.filter(res_institution__inst_name=inst)
             specialties=list(base.values_list('res_spec__spec_name', flat=True).distinct())
             years = base.values_list('res_year', flat=True).distinct()
         else:
-            specialties = list(Results.objects.values_list('res_spec__spec_name', flat=True).distinct())
-            years = Results.objects.values_list('res_year', flat=True).distinct()
+            specialties = list(TestResults.objects.values_list('res_spec__spec_name', flat=True).distinct())
+            years = TestResults.objects.values_list('res_year', flat=True).distinct()
         
-        institutes = list(Results.objects.values_list('res_institution__inst_name', flat=True).distinct())
+        institutes = list(TestResults.objects.values_list('res_institution__inst_name', flat=True).distinct())
         
         data = {
             "institutes": [{"value": i, "label": str(i)} for i in institutes if i],
@@ -85,10 +86,10 @@ def filter_dash(request):
 def overall_stats(request):
     response_data={}
     try:
-        unis = Results.objects.values_list('res_institution__inst_name', flat=True).distinct().count()
-        results = Results.objects.values_list().distinct().count()
-        centers = Results.objects.values_list('res_center', flat=True).distinct().count()
-        years = Results.objects.values_list('res_year', flat=True).distinct()
+        unis = TestResults.objects.values_list('res_institution__inst_name', flat=True).distinct().count()
+        results = TestResults.objects.values_list().distinct().count()
+        centers = TestResults.objects.values_list('res_center', flat=True).distinct().count()
+        years = TestResults.objects.values_list('res_year', flat=True).distinct()
         min_year = 3000
         max_year = 0
         for i in years:
@@ -136,13 +137,13 @@ def get_dashboard_stats(request):
         if curr_data and prev_data:
             growth = ((curr_data['total_avg'] - prev_data['total_avg']) / prev_data['total_avg']) * 100 if prev_data['total_avg']!=0 else 0
 
-        unis = Results.objects.filter(res_year=curr_year)         \
+        unis = TestResults.objects.filter(res_year=curr_year)         \
             .values_list('res_institution__inst_name', flat=True) \
             .distinct()
 
         rate_list = []
         for uni in unis:
-            rows_data = Results.objects                                     \
+            rows_data = TestResults.objects                                     \
                 .filter(res_year=curr_year, res_institution__inst_name=uni) \
                 .values_list(*COMP.list)
             rows=np.array([np.array([np.nan if i==0 else i for i in row]) for row in rows_data]).astype(float)
@@ -251,7 +252,7 @@ def get_dashboard_stats(request):
 def get_competency_stats_courses(filter):
     courses = [1, 2, 3, 4]
     results = {}
-    main = Results.objects.filter(**filter)
+    main = TestResults.objects.filter(**filter)
     for course in courses:
         qs = main.filter(res_course_num=course)
         if qs.exists():
@@ -298,7 +299,7 @@ def get_motivation_counts(request):
                                 'high': {f: 0 for f in MOT.list},
                                 'mid': {f: 0 for f in MOT.list}}
                                 
-                cnt_all = Results.objects.filter(res_course_num=course, **base_filter)
+                cnt_all = TestResults.objects.filter(res_course_num=course, **base_filter)
                 cnt_low = cnt_all.filter(**{f"{field}__lt": 400}).count() 
                 cnt_high = cnt_all.filter(**{f"{field}__gte": 600}).count() 
                 cnt_mid = cnt_all.count() - cnt_low - cnt_high
@@ -333,7 +334,7 @@ scores={
 @cached()
 def get_scores_result(request):
     try:
-        if (Academicperformance.objects.count()==0):
+        if (AcademicPerformances.objects.count()==0):
             return JsonResponse({"status": "error", "message": 'no performance data'}, status=500)
     
         inst = request.GET.get('institute')
@@ -345,7 +346,7 @@ def get_scores_result(request):
         if spec: base_filter['res_spec__spec_name'] = spec
         if year:    base_filter['res_year'] = year
 
-        main = Results.objects.filter(**base_filter)
+        main = TestResults.objects.filter(**base_filter)
         if not main:
             response_data={"status": "error", "message": "empty results queryset", "data": [], "names": []}
             return JsonResponse(response_data, status=500) 
@@ -370,7 +371,7 @@ def get_scores_result(request):
                     count+=1
                     sum+=part_comps.get(comp)
             comp_by_part[pid]['avg']=sum/count if count!=0 else 0
-        ap = Academicperformance.objects.filter(
+        ap = AcademicPerformances.objects.filter(
             perf_part__in=participant_ids
         ).values('perf_part_id', 'perf_discipline', 'perf_main_attestation')
 
@@ -446,7 +447,7 @@ def get_data_boxplot(request):
         if year:    base_filter['res_year'] = year
         
         data_all = list(  
-            Results.objects.filter(**base_filter)
+            TestResults.objects.filter(**base_filter)
             .values('res_participant__part_id', *COMP.list)
         )
         data=[]
@@ -483,7 +484,7 @@ def get_grades_competency_correlation_v0(request):  # review need for this?
 
         # 2. Формирование объединённой выборки
         # Получаем для каждого студента: его компетенции (12 шт.) + курс
-        res_qs = Results.objects.filter(**base_filter)
+        res_qs = TestResults.objects.filter(**base_filter)
         if not res_qs.exists():
             return JsonResponse({
                 "status": "success",
@@ -518,7 +519,7 @@ def get_grades_competency_correlation_v0(request):  # review need for this?
 
         # Академические оценки по дисциплинам, отфильтрованные по тем же студентам
         ap_qs = (
-            Academicperformance.objects
+            AcademicPerformances.objects
             .filter(perf_part__in=participant_ids)
             .values('perf_part_id', 'perf_discipline', 'perf_main_attestation')
         )
@@ -657,13 +658,12 @@ def _grade_to_number(grade_str):
 @cached()
 def get_grades_competency_correlation(request):
     try:
-        from portrait.models import Academicperformance, Results
         # Шаг 1: соберём все оценки из Academicperformance + соответствующий результат компетенции
-        perf_qs = Academicperformance.objects.select_related('perf_part').all()
+        perf_qs = AcademicPerformances.objects.select_related('perf_part').all()
         pairs_data = defaultdict(list)
         scatter_data = []
         results_map = {}
-        results_qs = Results.objects.values(
+        results_qs = TestResults.objects.values(
             'res_participant_id', *COMP_KEYS
         )
         for r in results_qs:
@@ -774,7 +774,7 @@ def get_competency_trend_by_year(request):
         if spec:
             filters['res_spec__spec_name'] = spec
         
-        results_qs = Results.objects.filter(**filters).exclude(res_course_num__isnull=True)
+        results_qs = TestResults.objects.filter(**filters).exclude(res_course_num__isnull=True)
         
         courses = sorted(
             results_qs.values_list('res_course_num', flat=True).distinct()
@@ -825,8 +825,6 @@ def get_competency_trend_by_year(request):
 
 def get_top_correlations(request):
     try:
-        from portrait.models import Academicperformance, Results
-
         # Параметры запроса
         try:
             top_n = int(request.GET.get('top_n', 20))
@@ -862,7 +860,7 @@ def get_top_correlations(request):
                 pass
 
         # Шаг 1. Соберём результаты тестирования (баллы 12 компетенций) в словарь: participant_id -> {comp_key: value, ...}
-        results_qs = Results.objects.filter(**results_filter).values(
+        results_qs = TestResults.objects.filter(**results_filter).values(
             'res_participant_id', *COMP.list
         )
         results_map = {}
@@ -883,7 +881,7 @@ def get_top_correlations(request):
             })
 
         # Шаг 2. Идём по Academicperformance, агрегируем пары (оценка, балл) по ключу (дисциплина, компетенция).
-        perf_qs = Academicperformance.objects.values(
+        perf_qs = AcademicPerformances.objects.values(
             'perf_part_id', 'perf_discipline', 'perf_main_attestation'
         )
         pairs_data = defaultdict(list)  # (disc, comp_key) -> [(grade, comp_val), ...]
@@ -973,8 +971,6 @@ def get_top_correlations(request):
 
 def get_competency_segmentation(request):
     try:
-        from portrait.models import Academicperformance, Results
-
         # Параметры
         competency = request.GET.get('competency')
         if not competency or competency not in COMP.list:
@@ -1004,7 +1000,7 @@ def get_competency_segmentation(request):
         # Шаг 1. Берём студентов с непустой компетенцией
         # Получаем сразу все нужные поля (балл компетенции + все мотиваторы)
         select_fields = ['res_participant_id', competency] + list(MOT.list)
-        results_qs = Results.objects.filter(**results_filter).exclude(
+        results_qs = TestResults.objects.filter(**results_filter).exclude(
             **{f'{competency}__isnull': True}
         ).exclude(
             **{competency: 0}  # 0 в этой схеме означает «нет данных»
@@ -1057,7 +1053,7 @@ def get_competency_segmentation(request):
 
         # Шаг 4. Подгружаем академические оценки один раз
         all_participant_ids = set(results_map.keys())
-        perf_qs = Academicperformance.objects.filter(
+        perf_qs = AcademicPerformances.objects.filter(
             perf_part_id__in=all_participant_ids
         ).values('perf_part_id', 'perf_discipline', 'perf_main_attestation')
 

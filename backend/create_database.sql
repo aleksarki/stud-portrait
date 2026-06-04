@@ -1,8 +1,10 @@
 
+DROP TABLE IF EXISTS DataUploadTemplate   CASCADE;
 DROP TABLE IF EXISTS AcademicPerformances CASCADE;
 DROP TABLE IF EXISTS CourseResults        CASCADE;
 DROP TABLE IF EXISTS TestResults          CASCADE;
 DROP TABLE IF EXISTS Participants         CASCADE;
+DROP TABLE IF EXISTS StudentMapping       CASCADE;
 DROP TABLE IF EXISTS EducationDisciplines CASCADE;
 DROP TABLE IF EXISTS EducationSpecialties CASCADE;
 DROP TABLE IF EXISTS EducationForms       CASCADE;
@@ -207,7 +209,7 @@ CREATE TABLE AcademicPerformances
 CREATE INDEX idx_academic_performances_participant ON AcademicPerformances(perf_participant);
 
 -- Шаблон загрузки данных администратором
-CREATE TABLE portrait_uploadtemplate (
+CREATE TABLE DataUploadTemplate (
     template_id          INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     template_name        VARCHAR(256)  UNIQUE NOT NULL,
     template_description TEXT,

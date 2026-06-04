@@ -1,7 +1,6 @@
 import random
 from django.core.management.base import BaseCommand
-from ...models import Results, Academicperformance
-from ...constants import RsvCompetencies as COMP
+from ...endpoints.common import *
 
 COURSE_DISCIPLINES = {
     1: 'ПИР',
@@ -18,7 +17,7 @@ GRADE_SCALE = {
 }
 
 
-def get_mean_comp(result: Results) -> float:
+def get_mean_comp(result: TestResults) -> float:
     scores = [
         getattr(result, field)
         for field in COMP.list
@@ -58,15 +57,15 @@ class Command(BaseCommand):
         study_year = options['year']
         
         if options['clear']:
-            deleted, _ = Academicperformance.objects.filter(perf_year=study_year).delete()
+            deleted, _ = AcademicPerformances.objects.filter(perf_year=study_year).delete()
             self.stdout.write(self.style.WARNING(f'Удалено записей: {deleted}'))
 
-        results = Results.objects.select_related('res_participant').all()
+        results = TestResults.objects.select_related('res_participant').all()
         created_count = 0
         skipped_count = 0
         self.stdout.write('Заполнение...')
         for result in results:
-            course = result.res_course_num
+            course = result.res_course
             discipline = COURSE_DISCIPLINES.get(course)
 
             if discipline is None:
@@ -76,7 +75,7 @@ class Command(BaseCommand):
             mean = get_mean_comp(result)
             grade = generate_grade(mean)
 
-            _, created = Academicperformance.objects.get_or_create(
+            _, created = AcademicPerformances.objects.get_or_create(
                 perf_part=result.res_participant,
                 perf_year=study_year,
                 perf_discipline=discipline,

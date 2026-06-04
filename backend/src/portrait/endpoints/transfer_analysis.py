@@ -20,8 +20,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
-from .common import COMP
-from ..models import Results, Participants, Institutions, Specialties
+from .common import *
 
 
 def _year_sort_key(year_str):
@@ -44,10 +43,10 @@ def _detect_transfers(results_sorted):
     for i in range(1, len(results_sorted)):
         prev, curr = results_sorted[i - 1], results_sorted[i]
 
-        prev_inst = prev.res_institution_id
-        curr_inst = curr.res_institution_id
-        prev_spec = prev.res_spec_id
-        curr_spec = curr.res_spec_id
+        prev_inst = prev.res_institution
+        curr_inst = curr.res_institution
+        prev_spec = prev.res_edu_specialty
+        curr_spec = curr.res_edu_specialty
 
         inst_changed = prev_inst and curr_inst and prev_inst != curr_inst
         spec_changed = prev_spec and curr_spec and prev_spec != curr_spec
@@ -292,7 +291,7 @@ def analyze_transfer_students(request):
 
             students_out.append({
                 'part_id':   participant.part_id,
-                'rsv_id':    participant.part_rsv_id,
+                'rsv_id':    participant.part_rsv,
                 'transfers': events,
                 'trajectory': trajectory,
             })

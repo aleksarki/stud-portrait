@@ -26,19 +26,21 @@ def generate_docx_resume(request):
 
     # данные студента
     try:
+        # FIXME #
         participant = Participants.objects                                                      \
-            .select_related(TPART.INSTITUTION, TPART.EDU_SPEC, TPART.EDU_FORM, TPART.EDU_LEVEL) \
-            .get(**{TPART.ID: student_id})
+            .select_related(tPART.INSTITUTION, tPART.EDU_SPEC, tPART.EDU_FORM, tPART.EDU_LEVEL) \
+            .get(**{tPART.ID: student_id})
     except Participants.DoesNotExist:
         raise ResponseError(f"Participant {student_id} not found", status=404)
 
     # последние результаты для компетенций
-    latest_result = Results.objects                       \
-        .filter(**{TRES.PARTICIPANT: participant})        \
-        .order_by(desc(TRES.YEAR), desc(TRES.COURSE_NUM)) \
+    latest_result = TestResults.objects                       \
+        .filter(**{tRES.PARTICIPANT: participant})        \
+        .order_by(desc(tRES.YEAR), desc(tRES.COURSE_NUM)) \
         .first()
 
     # данные для ИИ
+    # FIXME #
     competencies_dict = {}
     student_info = {
         'direction': participant.part_spec.spec_name if participant.part_spec else '',
@@ -118,7 +120,7 @@ def generate_docx_resume(request):
     heading.runs[0].font.color.rgb = RGBColor(0, 70, 140)
     heading.space_after = Pt(10)
 
-    gender = format_gender(participant.part_gender)
+    # FIXME #
     edu_level = participant.part_edu_level.edu_level_name if participant.part_edu_level else 'Не указано'
 
     info_items = [
@@ -161,6 +163,7 @@ def generate_docx_resume(request):
     heading.runs[0].font.color.rgb = RGBColor(0, 70, 140)
     heading.space_after = Pt(10)
 
+    # FIXME #
     edu_items = [
         f"Уровень образования: {edu_level}",
         f"Учебное заведение: {participant.part_institution.inst_name if participant.part_institution else 'Не указано'}",
@@ -256,20 +259,22 @@ def get_student_resume_data(request):
     if not student_id:
         raise ResponseError("student_id required")
 
+    # FIXME #
     participant = Participants.objects                                                      \
-        .select_related(TPART.INSTITUTION, TPART.EDU_SPEC, TPART.EDU_FORM, TPART.EDU_LEVEL) \
-        .get(**{TPART.ID: student_id})
+        .select_related(tPART.INSTITUTION, tPART.EDU_SPEC, tPART.EDU_FORM, tPART.EDU_LEVEL) \
+        .get(**{tPART.ID: student_id})
 
-    results = Results.objects.filter(**{TRES.PARTICIPANT: participant})
+    results = TestResults.objects.filter(**{tRES.PARTICIPANT: participant})
     if year:
-        results = results.filter(**{TRES.YEAR: year})
-    results = results.order_by(desc(TRES.YEAR), desc(TRES.COURSE_NUM))
+        results = results.filter(**{tRES.YEAR: year})
+    results = results.order_by(desc(tRES.YEAR), desc(tRES.COURSE_NUM))
 
     if not results.exists():
         raise ResponseError("No results")
 
     latest_result = results.first()
 
+    # FIXME #
     resume_data = {
         'personal_info': {
             'name':       participant.part_rsv_id or '',
@@ -308,7 +313,7 @@ def get_student_resume_data(request):
         if not score or score == 0:
             continue
         comp_name = COMP.names[comp_field]
-        course = latest_result.res_course_num or 1
+        course = latest_result.res_course or 1
         prediction = predict_competency_level(score, course, [s for cf, s in all_scores.items() if cf != comp_field])
         comp_data = {
             'field': comp_field,
@@ -373,9 +378,9 @@ def generate_geography_report(request):
     doc.add_heading('1. География центров компетенций', level=1)
 
     # Получаем данные по центрам
-    results = Results.objects        \
-        .filter(**{TRES.YEAR: year}) \
-        .select_related(TRES.CENTER)
+    results = TestResults.objects        \
+        .filter(**{tRES.YEAR: year}) \
+        .select_related(tRES.CENTER)
 
     center_counts = defaultdict(int)
     for result in results:
@@ -432,7 +437,7 @@ def generate_geography_report(request):
 
     yearly_stats = []
     for yr in available_years:
-        yr_results = Results.objects.filter(**{TRES.YEAR: yr})
+        yr_results = TestResults.objects.filter(**{tRES.YEAR: yr})
         yr_centers = set()
         for res in yr_results:
             if res.res_center:
@@ -476,6 +481,7 @@ def generate_geography_report(request):
     doc.add_heading('3. География студентов', level=1)
 
     # Получаем данные о студентах
+    # FIXME #
     students_data = []
     for result in results:
         participant = result.res_participant
