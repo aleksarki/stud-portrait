@@ -54,7 +54,7 @@ INSERT INTO EducationLevels (edu_level_name) VALUES
 CREATE TABLE EducationForms
 (
     edu_form_id    INTEGER      PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    edu_form_name  VARCHAR(32)  NOT NULL
+    edu_form_name  VARCHAR(64)  NOT NULL
 );
 
 INSERT INTO EducationForms (edu_form_name) VALUES
@@ -66,7 +66,7 @@ INSERT INTO EducationForms (edu_form_name) VALUES
 CREATE TABLE EducationSpecialties
 (
     edu_spec_id    INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    edu_spec_name  VARCHAR(512)  NOT NULL
+    edu_spec_name  VARCHAR(1024)  NOT NULL
 );
 
 CREATE INDEX education_specialties_name ON EducationSpecialties(edu_spec_name);
@@ -74,22 +74,32 @@ CREATE INDEX education_specialties_name ON EducationSpecialties(edu_spec_name);
 -- Учебная дисциплина
 CREATE TABLE EducationDisciplines
 (
-    edu_disc_id    INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    edu_disc_name  VARCHAR(512)  NOT NULL
+    edu_disc_id    INTEGER        PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    edu_disc_name  VARCHAR(1024)  NOT NULL
+);
+
+-- Соотнесение студентов с тестированием РСВ
+CREATE TABLE StudentMapping (
+    mapping_id          INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    mapping_rsv         VARCHAR(512)  UNIQUE NOT NULL,
+    mapping_stud_name   VARCHAR(512)  NOT NULL,
+    mapping_stud_gender INT,
+    mapping_email       VARCHAR(256),
+    mapping_created_at  TIMESTAMP
 );
 
 -- Участник тестирования
 CREATE TABLE Participants
 (
-    part_id      INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    part_rsv_id  VARCHAR(512)  UNIQUE NOT NULL,  -- ID участника RSV
-    part_name    VARCHAR(1024),
-    part_gender  INT
+    part_id          INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    part_rsv         VARCHAR(512)  UNIQUE NOT NULL,  -- ID участника RSV,
+    part_course_num  INTEGER,
+    part_gender      INT
 );
 
 -- CREATE INDEX idx_participants_rsv_id ON Participants(part_rsv_id);
 
--- Результат прохождения тестирования РСВ
+-- Результат прохождения тестирования РСВ +
 CREATE TABLE TestResults
 (
     res_id             INTEGER      PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -145,7 +155,7 @@ CREATE TABLE TestResults
 
 CREATE INDEX idx_test_results_participant ON TestResults(res_participant);
 
--- Результат прохождения курсов РСВ
+-- Результат прохождения курсов РСВ +
 CREATE TABLE CourseResults
 (
     course_id           INTEGER  PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -177,7 +187,7 @@ CREATE TABLE CourseResults
 
 CREATE INDEX idx_course_results_participant ON CourseResults(course_participant);
 
--- Академическая успеваемость
+-- Академическая успеваемость +
 CREATE TABLE AcademicPerformances
 (
     perf_id              INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -195,3 +205,13 @@ CREATE TABLE AcademicPerformances
 );
 
 CREATE INDEX idx_academic_performances_participant ON AcademicPerformances(perf_participant);
+
+-- Шаблон загрузки данных администратором
+CREATE TABLE portrait_uploadtemplate (
+    template_id          INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    template_name        VARCHAR(256)  UNIQUE NOT NULL,
+    template_description TEXT,
+    template_config      JSON NOT NULL,
+    template_created_at  TIMESTAMP,
+    template_updated_at  TIMESTAMP
+);
