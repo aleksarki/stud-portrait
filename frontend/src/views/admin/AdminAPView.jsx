@@ -686,8 +686,9 @@ function AdminAPView() {
                 <Header title="Академические показатели и компетенции" name="Админимтратор1" />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
-                <FilterHeader onFilterChange={updateFilter} 
-                            filters={filters}/>
+                <div className="filters-cont">
+                    <FilterHeader onFilterChange={updateFilter} 
+                            filters={filters}/></div>
                 {isError ? (<div className="p-10 text-center"> Ошибка при загрузке данных </div>) :
                     (<>{LoadingData ? (
                     <div className="p-10 text-center">Загрузка данных...</div>)

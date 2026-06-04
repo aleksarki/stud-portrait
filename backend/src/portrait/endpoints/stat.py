@@ -6,8 +6,7 @@ from .common import *
 import numpy as np
 from collections import defaultdict
 
-
-@cached()
+# ноу кэш плз
 def get_year_metrics(year, filter):
     res_queryset = Results.objects.filter(res_year=year, **filter)
     max_mot={"name": "-", "count": 0}
@@ -248,8 +247,7 @@ def get_dashboard_stats(request):
         print(traceback.format_exc())
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
-
-@cached()
+#это вспомогательная, как кэш
 def get_competency_stats_courses(filter):
     courses = [1, 2, 3, 4]
     results = {}

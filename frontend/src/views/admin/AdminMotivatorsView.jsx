@@ -699,7 +699,8 @@ function AdminMotivatorsView(){
     const [loadingMotDash, setLoadingMotDash] = useState(false);
     const [isError, setErrorStatus] = useState(false);
     const [filters, setFilters] = useState({ institute: '', specialty: '', year: '' });
-    
+    const savedY = useRef(0);
+
     const loadMotivationCounts = async currentFilters => {
         setLoadingMotDash(true)
         setErrorStatus(false)
@@ -724,7 +725,11 @@ function AdminMotivatorsView(){
           if (name == 'institute') updated.specialty = '';
           return updated;
         });
+        savedY.current = window.scrollY;
     };
+    useEffect(() => {
+        requestAnimationFrame(() => window.scrollTo(0, savedY.current));
+      }, [filters]);
 
     return (
             <div className="AdminMotivatorView">
@@ -732,16 +737,17 @@ function AdminMotivatorsView(){
                     <Header title="Админ: График мотиваторов" name="Администратор1" />
                     <Sidebar linkTree={LINK_TREE} />
                     <Content>
+                        <div className="filters-cont">
                         <FilterHeader
                             onFilterChange={updateFilter} 
                             filters={filters}
-                        />
+                        /></div>
                         {
                             isError ? <div className="p-10 text-center"> Ошибка при загрузке данных </div> :
                             loadingMotDash ? <div className="p-10 text-center">Загрузка данных...</div> :
                             <>
-                                <MotivatorStatistics filters={filters} />
                                 <MotivatorCharts chart_data={MotivationData?.data} currentFilters={filters}/>
+                                <MotivatorStatistics filters={filters} />
                             </>
                         }
                         

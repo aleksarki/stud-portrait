@@ -272,3 +272,26 @@
         border-radius: 5px;
     }
 }
+
+// ============================================================
+// Фикс выпадающих списков в таблице маппинга
+// ============================================================
+.SuperUploadView {
+    .mapping-options {
+        overflow: visible !important;
+    }
+
+    .TitledCard,
+    .Table,
+    .TableRow,
+    .TableItem {
+        overflow: visible !important;
+    }
+
+    select {
+        position: relative;
+        z-index: 100;
+        max-width: 220px;
+        background: white;
+    }
+}
