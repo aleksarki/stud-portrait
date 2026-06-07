@@ -530,7 +530,7 @@ function CompRadar({ data }) {
                                 dataKey={course.key}
                                 stroke={course.color}
                                 fill={course.color}
-                                fillOpacity={0.08}
+                                fillOpacity={0.09}
                                 strokeOpacity={getStrokeOpacity(course.key)}
                                 onMouseEnter={() => setHoveredCourse(course.key)}
                                 onMouseLeave={() => setHoveredCourse(null)}
@@ -1184,7 +1184,7 @@ function AdminCompetencesView() {
                         <Dashboard data={dashboardData} filters={filters_} />
                     </></span>
                     {loading ? <div>Загрузка диаграммы..</div> :
-                        <><BoxPlots data={BoxplotData?.data} />
+                        <>{/*<BoxPlots data={BoxplotData?.data} />*/}
                             <CorrelationHeatmap data={correlationData} loading={loadingCorr} />
                             <CorrelationScatter correlationData={correlationData} loading={loadingCorr} filters={filters_} />
                             <CompetencyTrendLine data={trendData} loading={loadingTrend} />
