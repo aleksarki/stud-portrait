@@ -89,32 +89,23 @@ export default function CorrelationScatter({ correlationData, loading, filters }
       color: GRADE_COLORS[g] || '#888',
     }));
 
-  // Линия тренда — линейная регрессия y = a*x + b
+  // Линия средних по группам — ломаная через средние значения каждой оценки.
+  // Ломаная через средние точно совпадает с карточками статистики сверху.
   let trendSeries = null;
-  if (scatterPoints.length >= 2) {
-    const n = scatterPoints.length;
-    const xs = scatterPoints.map(p => p.grade);
-    const ys = scatterPoints.map(p => p.comp_value);
-    const sumX = xs.reduce((s, x) => s + x, 0);
-    const sumY = ys.reduce((s, y) => s + y, 0);
-    const sumXY = xs.reduce((s, x, i) => s + x * ys[i], 0);
-    const sumX2 = xs.reduce((s, x) => s + x * x, 0);
-    const denom = n * sumX2 - sumX * sumX;
-    if (denom !== 0) {
-      const slope = (n * sumXY - sumX * sumY) / denom;
-      const intercept = (sumY - slope * sumX) / n;
-      const minX = Math.min(...xs);
-      const maxX = Math.max(...xs);
-      trendSeries = {
-        name: 'Линия тренда',
-        type: 'line',
-        data: [
-          { x: minX, y: slope * minX + intercept },
-          { x: maxX, y: slope * maxX + intercept },
-        ],
-        color: '#2c3e50',
-      };
-    }
+  const groupMeans = Object.keys(gradeStats)
+    .map(g => ({
+      x: Number(g),
+      y: gradeStats[g].sum / gradeStats[g].count,
+    }))
+    .sort((a, b) => a.x - b.x);
+
+  if (groupMeans.length >= 2) {
+    trendSeries = {
+      name: 'Среднее по оценке',
+      type: 'line',
+      data: groupMeans,
+      color: '#2c3e50',
+    };
   }
   const finalSeries = trendSeries ? [...series, trendSeries] : series;
 
@@ -146,14 +137,21 @@ export default function CorrelationScatter({ correlationData, loading, filters }
       labels: { formatter: v => Math.round(v) },
     },
     markers: {
-      size: [3, 3, 3, 3, 0],
-      strokeWidth: 0,
-      fillOpacity: 0.55,
+      // Точки облака — 2px и сильно полупрозрачные (т.к. их ~10к и они накладываются),
+      // точка на ломаной средних — 6px заметная.
+      size: [2, 2, 2, 2, 6],
+      strokeWidth: [0, 0, 0, 0, 2],
+      strokeColors: ['#fff', '#fff', '#fff', '#fff', '#2c3e50'],
+      fillOpacity: [0.25, 0.25, 0.25, 0.25, 1],
+      shape: ['circle', 'circle', 'circle', 'circle', 'circle'],
+      hover: {
+        sizeOffset: 2,
+      },
     },
     stroke: {
       width: [0, 0, 0, 0, 3],
       curve: 'straight',
-      dashArray: [0, 0, 0, 0, 6],
+      dashArray: [0, 0, 0, 0, 0],
     },
     legend: {
       position: 'top',
@@ -162,6 +160,7 @@ export default function CorrelationScatter({ correlationData, loading, filters }
     },
     tooltip: {
       shared: false,
+      intersect: true,
       x: { formatter: v => `оценка ${Math.round(v)}` },
       y: { formatter: v => `${Math.round(v)} баллов` },
     },

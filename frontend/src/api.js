@@ -281,6 +281,13 @@ export function getAnalyzeStudentVam(studentId, competency = 'res_comp_leadershi
     return new AsyncChain(promise);
 }
 
+/** GET /portrait/analyze-student-lgm/ - LGM для конкретного студента */
+export function getAnalyzeStudentLgm(studentId, competency = 'res_comp_leadership') {
+    const params = new URLSearchParams({ student_id: studentId, competency });
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/analyze-student-lgm/?${params}`);
+    return new AsyncChain(promise);
+}
+
 /** POST /portrait/analyze-cohort-lgm/ - LGM для когорты */
 export function postAnalyzeCohortLgm(competency, institutionIds = [], directionIds = [], groupBy = 'institution') {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/analyze-cohort-lgm/`, {
