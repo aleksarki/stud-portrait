@@ -23,6 +23,74 @@ from .datanal import (
 
 from ..mlmodel import MlModel
 
+# ────────────────────────────────────────────────────────────
+# Вспомогательная функция: ID участников, прошедших >= 4 тестов
+# с учётом дублей аккаунтов (объединение по Email из Studentmapping)
+# ────────────────────────────────────────────────────────────
+
+def _get_qualified_participant_ids(min_tests: int = 4):
+    """
+    Возвращает (qualified_ids, total_unique_students):
+      - qualified_ids: set[int] — part_id всех участников, принадлежащих
+        "уникальным студентам" с суммарно >= min_tests Results.
+      - total_unique_students: int — количество таких уникальных студентов.
+
+    Логика объединения:
+      1. Студенты с одинаковым непустым Email в Studentmapping считаются
+         одним человеком (разные аккаунты РСВ).
+      2. Участники без Email или без Studentmapping считаются отдельными людьми.
+      3. Суммируем количество Results по всем аккаунтам одного человека.
+      4. Если итоговая сумма >= min_tests — все part_id этого человека включаются.
+    """
+    from collections import defaultdict
+
+    # rsv_id → email (или None)
+    rsv_to_email = {
+        m.rsv_id: (m.email.strip().lower() if m.email and m.email.strip() else None)
+        for m in Studentmapping.objects.only('rsv_id', 'email')
+    }
+
+    # rsv_id → part_id
+    rsv_to_part = {
+        p.part_rsv_id: p.part_id
+        for p in Participants.objects.only('part_id', 'part_rsv_id')
+        if p.part_rsv_id
+    }
+
+    # part_id → result_count
+    part_result_counts = dict(
+        Results.objects
+        .values('res_participant_id')
+        .annotate(cnt=Count('pk'))
+        .values_list('res_participant_id', 'cnt')
+    )
+
+    # Группируем part_id по "уникальному студенту"
+    # ключ: email (если есть) или "solo:{part_id}"
+    email_to_parts = defaultdict(list)
+    for rsv_id, email in rsv_to_email.items():
+        part_id = rsv_to_part.get(rsv_id)
+        if part_id is None:
+            continue
+        key = email if email else f'solo:{part_id}'
+        email_to_parts[key].append(part_id)
+
+    # Участники вообще без Studentmapping
+    all_mapped_part_ids = {pid for parts in email_to_parts.values() for pid in parts}
+    for part_id in part_result_counts:
+        if part_id not in all_mapped_part_ids:
+            email_to_parts[f'solo:{part_id}'].append(part_id)
+
+    qualified_ids = set()
+    total_unique = 0
+    for _key, part_ids in email_to_parts.items():
+        total = sum(part_result_counts.get(pid, 0) for pid in part_ids)
+        if total >= min_tests:
+            total_unique += 1
+            qualified_ids.update(part_ids)
+
+    return qualified_ids, total_unique
+
 # Ключ: название дисциплины, значение: множество кодов компетенций
 # fixme this should not be hardcoded
 DISCIPLINE_COMPETENCY_MAP = {
@@ -192,6 +260,9 @@ def analyze_cohort_lgm(request):
                 group_ids = [gid for gid in group_ids if gid is not None]
 
         # ---- 3. Сбор данных и расчёт LGM для каждой группы ----
+        # Только студенты с >= 4 тестированиями (с учётом объединения по Email)
+        qualified_ids, total_qualified_students = _get_qualified_participant_ids(min_tests=4)
+
         results = []
         for gid in group_ids:
             query = Q()
@@ -202,6 +273,9 @@ def analyze_cohort_lgm(request):
                 # Если вузы заданы как фильтр выборки — применяем
                 if clean_inst_ids:
                     query &= Q(res_institution_id__in=clean_inst_ids)
+
+            # Только квалифицированные участники
+            query &= Q(res_participant_id__in=qualified_ids)
 
             results_qs = Results.objects.filter(query).order_by(
                 'res_participant_id', 'res_year', 'res_course_num'
@@ -231,6 +305,17 @@ def analyze_cohort_lgm(request):
                     spec = Specialties.objects.filter(spec_id=gid).first()
                     group_name = spec.spec_name if spec else f"Направление {gid}"
 
+                # Агрегируем фактические средние баллы по курсам для этой группы
+                from collections import defaultdict
+                course_scores = defaultdict(list)
+                for row in data:
+                    if row.get('time_point') and row.get('competency_score') is not None:
+                        course_scores[int(row['time_point'])].append(float(row['competency_score']))
+                actual_by_course = [
+                    {'course': c, 'avg_score': round(float(np.mean(scores)), 2), 'n': len(scores)}
+                    for c, scores in sorted(course_scores.items())
+                ]
+
                 results.append({
                     'group_id': gid,
                     'group_name': group_name,
@@ -238,8 +323,10 @@ def analyze_cohort_lgm(request):
                     'n_students': analysis['n_students'],
                     'mean_intercept': analysis['mean_intercept'],
                     'mean_slope': analysis['mean_slope'],
+                    'mean_r_squared': analysis.get('mean_r_squared', 0),
                     'std_intercept': analysis['std_intercept'],
                     'std_slope': analysis['std_slope'],
+                    'actual_by_course': actual_by_course,
                     'interpretation': analysis.get('interpretation'),
                     'trajectories': analysis.get('trajectories', [])
                 })
@@ -254,6 +341,7 @@ def analyze_cohort_lgm(request):
             'status': 'success',
             'competency': competency,
             'group_by': group_by,
+            'total_qualified_students': total_qualified_students,
             'data': _convert_numpy_types(results)
         })
 
@@ -299,6 +387,9 @@ def get_lgm_growers(request):
 
         group_id = int(group_id)
 
+        # Только студенты с >= 4 тестированиями (объединение по Email)
+        qualified_ids, _ = _get_qualified_participant_ids(min_tests=4)
+
         # Формируем запрос — те же условия, что в analyze_cohort_lgm
         query = Q()
         if group_by == 'institution':
@@ -308,6 +399,8 @@ def get_lgm_growers(request):
             clean_inst_ids = [int(i) for i in institution_ids if str(i).isdigit()]
             if clean_inst_ids:
                 query &= Q(res_institution_id__in=clean_inst_ids)
+
+        query &= Q(res_participant_id__in=qualified_ids)
 
         results_qs = Results.objects.filter(query).order_by(
             'res_participant_id', 'res_year', 'res_course_num'
@@ -1025,28 +1118,27 @@ def get_competency_level_flow(request):
     """
     body = json.loads(request.body)
     competency = body.get('competency')
-    institution_ids = body.get('institution_ids', [])
-    direction_ids = body.get('direction_ids', [])
+    institution_ids = [int(i) for i in body.get('institution_ids', []) if str(i).isdigit()]
+    direction_ids   = [int(i) for i in body.get('direction_ids', [])   if str(i).isdigit()]
 
     if not competency:
         raise ResponseError("Competency required")
 
-    # Фильтруем участников
-    participants_qs = Participants.objects.all()
+    # Фильтруем Results напрямую по res_institution_id / res_spec_id
+    results_q = Q(**{f'{competency}__isnull': False})
     if institution_ids:
-        participants_qs = participants_qs.filter(**isIn(TPART.INSTITUTION, institution_ids))
+        results_q &= Q(res_institution_id__in=institution_ids)
     if direction_ids:
-        participants_qs = participants_qs.filter(**isIn(TPART.EDU_SPEC, direction_ids))
+        results_q &= Q(res_spec_id__in=direction_ids)
 
-    # Получаем все результаты выбранных участников, сортируем по студенту и курсу
-    results = Results.objects                                                               \
-        .filter(**isIn(TRES.PARTICIPANT, participants_qs.values_list(TPART.ID, flat=True))) \
-        .order_by(TRES.PARTICIPANT, TRES.COURSE_NUM)
+    results = Results.objects \
+        .filter(results_q) \
+        .order_by('res_participant_id', 'res_course_num')
 
     # Группируем по студентам
     student_data = {}
     for r in results:
-        sid = r.res_participant
+        sid = r.res_participant_id
         score = getattr(r, competency, None)
         if score is None:
             continue
@@ -1087,8 +1179,6 @@ def get_competency_level_flow(request):
     transition_counts = {}
     for sid, scores in student_data.items():
         sorted_courses = sorted(scores.keys())
-        if len(sorted_courses) > 1:
-            print(sid, scores)
         for i in range(len(sorted_courses)-1):
             c_from = sorted_courses[i]
             c_to = sorted_courses[i+1]
@@ -1119,28 +1209,27 @@ def get_competency_level_flow_yearly(request):
     """
     body = json.loads(request.body)
     competency = body.get('competency')
-    institution_ids = body.get('institution_ids', [])
-    direction_ids = body.get('direction_ids', [])
+    institution_ids = [int(i) for i in body.get('institution_ids', []) if str(i).isdigit()]
+    direction_ids   = [int(i) for i in body.get('direction_ids', [])   if str(i).isdigit()]
 
     if not competency:
         raise ResponseError("Competency required")
 
-    # Фильтруем участников
-    participants_qs = Participants.objects.all()
+    # Фильтруем Results напрямую по res_institution_id / res_spec_id
+    results_q = Q(**{f'{competency}__isnull': False})
     if institution_ids:
-        participants_qs = participants_qs.filter(**isIn(TPART.INSTITUTION, institution_ids))
+        results_q &= Q(res_institution_id__in=institution_ids)
     if direction_ids:
-        participants_qs = participants_qs.filter(**isIn(TPART.EDU_SPEC, direction_ids))
+        results_q &= Q(res_spec_id__in=direction_ids)
 
-    # Получаем все результаты выбранных участников, сортируем по студенту и курсу
-    results = Results.objects                                                               \
-        .filter(**isIn(TRES.PARTICIPANT, participants_qs.values_list(TPART.ID, flat=True))) \
-        .order_by(TRES.PARTICIPANT, TRES.COURSE_NUM)
+    results = Results.objects \
+        .filter(results_q) \
+        .order_by('res_participant_id', 'res_course_num')
 
     # Группируем по студентам
     student_data = {}
     for r in results:
-        sid = r.res_participant
+        sid = r.res_participant_id
         score = getattr(r, competency, None)
         if score is None:
             continue
@@ -1179,8 +1268,6 @@ def get_competency_level_flow_yearly(request):
     transition_counts = {}
     for sid, scores in student_data.items():
         sorted_courses = sorted(scores.keys())
-        if len(sorted_courses) > 1:
-            print(sid, scores)
         for i in range(len(sorted_courses)-1):
             c_from = sorted_courses[i]
             c_to = sorted_courses[i+1]
