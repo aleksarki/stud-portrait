@@ -27,6 +27,10 @@ services:
     restart: unless-stopped
     ports:
       - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - static_volume:/app/static
+      - media_volume:/app/media
     environment:
       - DB_HOST=database
       - DB_PORT=5432
@@ -38,7 +42,7 @@ services:
       database:
         condition: service_healthy
       llm:
-        service_started
+        condition: service_started
     networks:
       - studportrait_network
 
@@ -49,7 +53,7 @@ services:
       - "8001:8001"
     volumes:
       # Монтирование папки с моделью
-      - ./llm_model:/app/app/llm_model:ro
+      - ./llm/llm_model:/app/llm_model:ro
       - cache:/app/cache
     environment:
       - CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-}
@@ -81,6 +85,8 @@ services:
 volumes:
   postgres_data:
   cache:
+  static_volume:
+  media_volume:
 
 networks:
   studportrait_network:

@@ -8,7 +8,7 @@ DEVICE_CUDA = "cuda"
 DEVICE_CPU = "cpu"
 
 class MlModel:
-    PATH = Path(__file__).resolve().parent / "llm_model"
+    PATH = Path(__file__).resolve().parent.parent / "llm_model"
     MODEL = None
     TOKENIZER = None
     AVAILABLE = False               # model is accessible
