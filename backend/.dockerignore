@@ -40,8 +40,3 @@ docs/
 *.csv
 data/
 uploads/
-
-# Результаты (если не нужны)
-results*.xlsx
-cluster_centers*.xlsx
-plots_*/

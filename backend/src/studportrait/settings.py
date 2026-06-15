@@ -13,23 +13,32 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from dotenv import load_dotenv
 from pathlib import Path
 import os
-import sys
 
-env_file = '.env.local' if os.environ.get('LOCAL_DEV') else '.env'
+LOCAL_DEV = os.environ.get('LOCAL_DEV', 'false').lower() == 'true'
+
+if LOCAL_DEV:
+    env_file = '.env.local'
+    print("[settings] (i): Running in LOCAL_DEV mode")
+else:
+    env_file = '.env.docker'
+    print("[settings] (i): Running in DOCKER mode")
+
 load_dotenv(env_file)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-$8wbe#x&7-o8$0-3bd&th8)+y=23h1p8%g&=6_uv4iulzn#ien'
+SECRET_KEY = os.environ.get('SECRET_KEY', "django-insecure-$8wbe#x&7-o8$0-3bd&th8)+y=23h1p8%g&=6_uv4iulzn#ien")  # fixme !!!
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+
+print("[settings] (i): SECRET_KEY is", SECRET_KEY)
+print("[settings] (i): DEBUG is", DEBUG)
 
 ALLOWED_HOSTS = ['*']
 
@@ -93,10 +102,9 @@ WSGI_APPLICATION = 'studportrait.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 print("[settings] (i): DB_HOST is", os.environ.get('DB_HOST', 'localhost'))
-print("[settings] (i): DB_PORT is", os.environ.get('DB_HOST', '5432'))
-print("[settings] (i): DB_NAME is", os.environ.get('DB_HOST', 'studportrait'))
-print("[settings] (i): DB_USER is", os.environ.get('DB_HOST', 'postgres'))
-print("[settings] (i): DB_PASSWORD is", os.environ.get('DB_HOST', 'password'))
+print("[settings] (i): DB_PORT is", os.environ.get('DB_PORT', '5432'))
+print("[settings] (i): DB_NAME is", os.environ.get('DB_NAME', 'studportrait'))
+print("[settings] (i): DB_USER is", os.environ.get('DB_USER', 'postgres'))
 
 DATABASES = {
     "default": {
@@ -104,15 +112,19 @@ DATABASES = {
         'HOST': os.environ.get('DB_HOST', 'localhost'),
         'PORT': os.environ.get('DB_PORT', '5432'),
         'NAME': os.environ.get('DB_NAME', 'studportrait'),
-        'USER':  os.environ.get('DB_USER', 'postgres'),
+        'USER': os.environ.get('DB_USER', 'postgres'),
         'PASSWORD': os.environ.get('DB_PASSWORD', 'password'),
     }
 }
 
+# Redis Cache Configuration
+REDIS_HOST = os.environ.get('REDIS_HOST', '127.0.0.1')
+REDIS_PORT = os.environ.get('REDIS_PORT', '6379')
+
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/1",  # URL вашего Redis-сервера
+        "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}/1",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         },
@@ -157,6 +169,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+MEDIA_URL = 'media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

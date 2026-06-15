@@ -9,4 +9,8 @@ __pycache__/
 .Python
 
 .env
-.env.local
+.env.*
+
+/media/
+/static/
+/src/staticfiles/

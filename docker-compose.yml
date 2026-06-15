@@ -1,7 +1,6 @@
 services:
   database:
-    image: postgres:16-alpine
-    #build: ./database
+    build: ./database
     container_name: studportrait_db
     restart: unless-stopped
     environment:
@@ -21,6 +20,23 @@ services:
       retries: 5
       start_period: 20s
 
+  redis:
+    image: redis:7-alpine
+    container_name: studportrait_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - studportrait_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   backend:
     build: ./backend
     container_name: studportrait_backend
@@ -37,9 +53,14 @@ services:
       - DB_NAME=studportrait
       - DB_USER=postgres
       - DB_PASSWORD=postgres
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - LLM_SERVICE_URL=http://llm:8001
+      - LOCAL_DEV=false
     depends_on:
       database:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       llm:
         condition: service_started
@@ -65,6 +86,8 @@ services:
               count: all
               capabilities: [gpu]
     restart: unless-stopped
+    networks:
+      - studportrait_network
 
   frontend:
     build: ./frontend
@@ -84,6 +107,7 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:
   cache:
   static_volume:
   media_volume:
