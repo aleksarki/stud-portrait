@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
     ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis,
-    PolarRadiusAxis, Radar, LineChart, Line, ReferenceLine
+    PolarRadiusAxis, Radar, ReferenceLine
 } from "recharts";
 import Select from "react-select";
 import { getEducationProfilesComparison } from "../api";
@@ -15,16 +15,75 @@ const EduProfilesComparison = () => {
     const [availableYears, setAvailableYears] = useState([]);
     const [selectedSpecialties, setSelectedSpecialties] = useState([]);
     const [availableSpecialties, setAvailableSpecialties] = useState([]);
-    const [compareMode, setCompareMode] = useState('radar'); // 'radar', 'bar', 'delta'
+    const [compareMode, setCompareMode] = useState('radar');
     const [selectedPair, setSelectedPair] = useState(null);
     const [includeMotivators, setIncludeMotivators] = useState(true);
     const [includeValues, setIncludeValues] = useState(true);
+    
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
 
+    // Загрузка доступных направлений при монтировании
     useEffect(() => {
-        loadData();
-    }, [selectedYear, selectedSpecialties, includeMotivators, includeValues]);
+        loadSpecialties();
+    }, []);
 
+    // Загрузка данных при изменении фильтров
+    useEffect(() => {
+        if (!isInitialLoad && selectedSpecialties.length > 0) {
+            loadData();
+        }
+    }, [selectedYear, includeMotivators, includeValues, selectedSpecialties]);
+
+    // Загрузка списка доступных направлений
+    const loadSpecialties = async () => {
+        setLoading(true);
+        try {
+            // Используем ту же API функцию, но без фильтров
+            const response = getEducationProfilesComparison({
+                specialties: [],
+                year: null,
+                include_motivators: true,
+                include_values: true
+            });
+            
+            response.onSuccess(async (res) => {
+                const result = await res.json();
+                if (result.status === 'success') {
+                    const specialties = result.data.specialties.map(s => ({
+                        value: s.id,
+                        label: s.name,
+                        students: s.total_students
+                    }));
+                    setAvailableSpecialties(specialties);
+                    setData(result.data);
+                    
+                    // Извлекаем доступные годы из данных (если есть)
+                    // Или задаем фиксированные
+                    setAvailableYears([
+                        { value: '2023/2024', label: '2023/2024' },
+                        { value: '2024/2025', label: '2024/2025' },
+                        { value: '2025/2026', label: '2025/2026' }
+                    ]);
+                } else {
+                    console.error("Ошибка загрузки направлений:", result.message);
+                }
+            }).onError((error) => {
+                console.error("Ошибка загрузки направлений:", error);
+            }).finally(() => {
+                setLoading(false);
+                setIsInitialLoad(false);
+            });
+        } catch (error) {
+            console.error("Ошибка загрузки направлений:", error);
+            setLoading(false);
+            setIsInitialLoad(false);
+        }
+    };
+
+    // Загрузка данных с текущими фильтрами
     const loadData = async () => {
+        if (selectedSpecialties.length === 0) return;
+        
         setLoading(true);
         const filters = {
             specialties: selectedSpecialties.map(s => s.value),
@@ -33,34 +92,38 @@ const EduProfilesComparison = () => {
             include_values: includeValues
         };
         
-        getEducationProfilesComparison(filters)
-            .onSuccess(async response => {
-                const result = await response.json();
+        try {
+            const response = getEducationProfilesComparison(filters);
+            response.onSuccess(async (res) => {
+                const result = await res.json();
                 if (result.status === 'success') {
                     setData(result.data);
-                    // Обновляем доступные направления
-                    const specialties = result.data.specialties.map(s => ({
-                        value: s.id,
-                        label: s.name,
-                        students: s.total_students
-                    }));
-                    setAvailableSpecialties(specialties);
-                    
-                    // Обновляем доступные годы (из данных)
-                    // Это нужно будет добавить в бэкенд или загрузить отдельно
+                } else {
+                    console.error("Ошибка загрузки данных:", result.message);
                 }
-            })
-            .onError(error => console.error("Ошибка загрузки:", error))
-            .finally(() => setLoading(false));
+            }).onError((error) => {
+                console.error("Ошибка загрузки данных:", error);
+            }).finally(() => {
+                setLoading(false);
+            });
+        } catch (error) {
+            console.error("Ошибка загрузки данных:", error);
+            setLoading(false);
+        }
+    };
+
+    // Обработчик изменения выбранных направлений
+    const handleSpecialtyChange = (selected) => {
+        setSelectedSpecialties(selected || []);
     };
 
     // Подготовка данных для радиолокационной диаграммы
-    const prepareRadarData = () => {
+    const radarData = useMemo(() => {
         if (!data || selectedSpecialties.length === 0) return [];
         
         const fields = [];
         
-        if (includeMotivators && data.fields.motivators) {
+        if (includeMotivators && data.fields?.motivators) {
             Object.entries(data.fields.motivators).forEach(([key, name]) => {
                 const item = { field: name };
                 selectedSpecialties.forEach(spec => {
@@ -73,7 +136,7 @@ const EduProfilesComparison = () => {
             });
         }
         
-        if (includeValues && data.fields.values) {
+        if (includeValues && data.fields?.values) {
             Object.entries(data.fields.values).forEach(([key, name]) => {
                 const item = { field: name };
                 selectedSpecialties.forEach(spec => {
@@ -87,22 +150,22 @@ const EduProfilesComparison = () => {
         }
         
         return fields;
-    };
+    }, [data, selectedSpecialties, includeMotivators, includeValues]);
 
     // Подготовка данных для bar chart
-    const prepareBarData = () => {
+    const barData = useMemo(() => {
         if (!data || selectedSpecialties.length === 0) return [];
         
         const allData = [];
         const fields = [];
         
-        if (includeMotivators && data.fields.motivators) {
+        if (includeMotivators && data.fields?.motivators) {
             Object.entries(data.fields.motivators).forEach(([key, name]) => {
                 fields.push({ key, name, type: 'motivator' });
             });
         }
         
-        if (includeValues && data.fields.values) {
+        if (includeValues && data.fields?.values) {
             Object.entries(data.fields.values).forEach(([key, name]) => {
                 fields.push({ key, name, type: 'value' });
             });
@@ -120,11 +183,11 @@ const EduProfilesComparison = () => {
         });
         
         return allData;
-    };
+    }, [data, selectedSpecialties, includeMotivators, includeValues]);
 
     // Подготовка данных для дельты
-    const prepareDeltaData = () => {
-        if (!data || !selectedPair || !data.deltas[selectedPair]) return null;
+    const deltaData = useMemo(() => {
+        if (!data || !selectedPair || !data.deltas?.[selectedPair]) return null;
         
         const delta = data.deltas[selectedPair];
         const motivatorsDelta = Object.values(delta.motivators_delta || {});
@@ -136,13 +199,8 @@ const EduProfilesComparison = () => {
             motivators: motivatorsDelta.sort((a, b) => b.abs_delta - a.abs_delta),
             values: valuesDelta.sort((a, b) => b.abs_delta - a.abs_delta)
         };
-    };
+    }, [data, selectedPair]);
 
-    const radarData = prepareRadarData();
-    const barData = prepareBarData();
-    const deltaData = prepareDeltaData();
-
-    // Цветовая палитра
     const colors = ['#1976d2', '#f44336', '#4caf50', '#ff9800', '#9c27b0', '#00bcd4'];
 
     return (
@@ -154,16 +212,19 @@ const EduProfilesComparison = () => {
                         isMulti
                         options={availableSpecialties}
                         value={selectedSpecialties}
-                        onChange={setSelectedSpecialties}
+                        onChange={handleSpecialtyChange}
                         placeholder="Выберите направления для сравнения..."
                         className="select"
+                        isClearable={false}
+                        closeMenuOnSelect={false}
+                        isLoading={loading}
                     />
                 </div>
                 
                 <div className="filter-group">
                     <label>Год:</label>
                     <Select
-                        options={[]} // Добавить опции годов
+                        options={availableYears}
                         value={selectedYear}
                         onChange={setSelectedYear}
                         placeholder="Все годы"
@@ -224,7 +285,7 @@ const EduProfilesComparison = () => {
                         )}
                     </div>
 
-                    {compareMode === 'radar' && (
+                    {compareMode === 'radar' && radarData.length > 0 && (
                         <div className="radar-chart">
                             <h3>Сравнение профилей</h3>
                             <ResponsiveContainer width="100%" height={500}>
@@ -249,7 +310,7 @@ const EduProfilesComparison = () => {
                         </div>
                     )}
 
-                    {compareMode === 'bar' && (
+                    {compareMode === 'bar' && barData.length > 0 && (
                         <div className="bar-chart">
                             <h3>Сравнение по показателям</h3>
                             <ResponsiveContainer width="100%" height={600}>
@@ -310,11 +371,7 @@ const EduProfilesComparison = () => {
                                                     }}
                                                 />
                                                 <ReferenceLine x={0} stroke="#666" />
-                                                <Bar
-                                                    dataKey="delta"
-                                                    fill={(entry) => entry.delta > 0 ? '#4caf50' : '#f44336'}
-                                                    name="Разница"
-                                                >
+                                                <Bar dataKey="delta" name="Разница">
                                                     {deltaData.motivators.map((entry, idx) => (
                                                         <Bar 
                                                             key={idx}
@@ -398,6 +455,13 @@ const EduProfilesComparison = () => {
             {!loading && data && selectedSpecialties.length === 0 && (
                 <div className="no-data">
                     Выберите направления подготовки для сравнения
+                </div>
+            )}
+
+            {!loading && data && selectedSpecialties.length > 0 && 
+             radarData.length === 0 && barData.length === 0 && (
+                <div className="no-data">
+                    Нет данных для выбранных направлений
                 </div>
             )}
         </div>
