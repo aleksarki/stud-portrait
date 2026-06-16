@@ -249,7 +249,7 @@ def get_filter_options_with_counts(request):
         directions_query = directions_query.filter(res_participant__in=valid_students)
 
     directions_counts = directions_query                 \
-        .values('res_edu_specialty__edu_spec_id', 'res_edu_specialty__edu_spec_name') \  # ИЗМЕНЕНО
+        .values('res_edu_specialty__edu_spec_id', 'res_edu_specialty__edu_spec_name') \
         .annotate(count=Count('res_id'))                 \
         .order_by('-count')
 
@@ -295,7 +295,7 @@ def get_filter_options_with_counts(request):
         courses_query = courses_query.filter(res_participant__in=valid_students)
 
     courses_counts = courses_query       \
-        .values('res_course')        \  # ИЗМЕНЕНО: res_course
+        .values('res_course')        \
         .annotate(count=Count('res_id')) \
         .order_by('res_course')
 
@@ -365,7 +365,7 @@ def get_filter_options_with_counts(request):
 
     # Студенты - теперь с именем из StudentMapping
     students_query = Participants.objects         \
-        .annotate(results_count=Count('testresults')) \  # ИЗМЕНЕНО: related_name
+        .annotate(results_count=Count('testresults')) \
         .filter(results_count__gt=0)              \
         .order_by('part_rsv')[:1000]  # limit by 1000 for performance
 
