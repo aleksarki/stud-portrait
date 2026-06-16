@@ -16,18 +16,48 @@ from .common import *
 def courses(request):
     """ Information about course completion for '/admin/courses' page
     """
+    # Получаем параметры фильтрации из запроса (если нужны)
+    selected_institution_ids = request.GET.getlist('institution_ids[]')
+    selected_directions = request.GET.getlist('directions[]')
+    
+    # Преобразуем в int, если есть значения
+    try:
+        selected_institution_ids = list(map(int, selected_institution_ids)) if selected_institution_ids else []
+    except ValueError:
+        selected_institution_ids = []
+    
+    try:
+        selected_directions = list(map(int, selected_directions)) if selected_directions else []
+    except ValueError:
+        selected_directions = []
 
-    selected_institution_ids = list(map(int, selected_institution_ids or []))
-    selected_directions = list(map(int, selected_directions or []))
+    # Базовый запрос
+    courses_qs = CourseResults.objects.all().select_related('course_participant')
+    
+    # Применяем фильтры, если они переданы
+    if selected_institution_ids:
+        # Фильтруем через Participants → TestResults (учебная информация теперь в TestResults)
+        # Находим participants, у которых есть TestResults с нужными institution_ids
+        participant_ids = TestResults.objects.filter(
+            res_institution_id__in=selected_institution_ids
+        ).values_list('res_participant_id', flat=True).distinct()
+        courses_qs = courses_qs.filter(course_participant_id__in=participant_ids)
+    
+    if selected_directions:
+        participant_ids = TestResults.objects.filter(
+            res_edu_specialty_id__in=selected_directions
+        ).values_list('res_participant_id', flat=True).distinct()
+        courses_qs = courses_qs.filter(course_participant_id__in=participant_ids)
 
     courses_data = [
         {
             "course_id": course.course_id,
             "participant": {
                 "part_id":     course.course_participant.part_id,
-                "part_rsv":    course.course_participant.part_rsv,  # ИЗМЕНЕНО: part_rsv вместо part_rsv_id
+                "part_rsv":    course.course_participant.part_rsv,
                 "part_gender": course.course_participant.part_gender,
                 # Учебная информация теперь в TestResults, не в Participants
+                # Можно подтянуть из последнего TestResults, но для производительности оставляем None
                 "institution": None,
                 "specialty":   None,
                 "edu_level":   None,
@@ -35,9 +65,7 @@ def courses(request):
             },
             **{c: zeroIfNull(getattr(course, c)) for c in CUR.list}
         }
-        for course in CourseResults.objects
-            .all()
-            .select_related('course_participant')
+        for course in courses_qs
     ]
 
     return {"courses": courses_data}

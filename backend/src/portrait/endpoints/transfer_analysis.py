@@ -45,8 +45,8 @@ def _detect_transfers(results_sorted):
 
         prev_inst = prev.res_institution
         curr_inst = curr.res_institution
-        prev_spec = prev.res_edu_specialty  # ИЗМЕНЕНО: res_edu_specialty вместо res_spec
-        curr_spec = curr.res_edu_specialty  # ИЗМЕНЕНО: res_edu_specialty вместо res_spec
+        prev_spec = prev.res_edu_specialty
+        curr_spec = curr.res_edu_specialty
 
         inst_changed = prev_inst and curr_inst and prev_inst != curr_inst
         spec_changed = prev_spec and curr_spec and prev_spec != curr_spec
@@ -61,8 +61,8 @@ def _detect_transfers(results_sorted):
                 'year':      curr.res_year,
                 'from_inst': prev.res_institution.inst_name if prev.res_institution else '—',
                 'to_inst':   curr.res_institution.inst_name if curr.res_institution else '—',
-                'from_dir':  prev.res_edu_specialty.edu_spec_name if prev.res_edu_specialty else '—',  # ИЗМЕНЕНО
-                'to_dir':    curr.res_edu_specialty.edu_spec_name if curr.res_edu_specialty else '—',  # ИЗМЕНЕНО
+                'from_dir':  prev.res_edu_specialty.edu_spec_name if prev.res_edu_specialty else '—',
+                'to_dir':    curr.res_edu_specialty.edu_spec_name if curr.res_edu_specialty else '—',
                 'type':      transfer_type,
             })
     return events
@@ -104,23 +104,23 @@ def analyze_transfers(request):
             competency = COMP.LEADERSHIP
 
         # Берём всех участников у которых есть хотя бы 2 результата
-        # ИЗМЕНЕНО: related_name для TestResults теперь 'testresults'
+        # ИСПРАВЛЕНО: используем правильный related_name 'testresults_set'
         qs = (
             Participants.objects
-            .prefetch_related('testresults')  # ИЗМЕНЕНО: testresults вместо results_set
-            .annotate(result_count=Count('testresults'))  # ИЗМЕНЕНО: testresults
+            .prefetch_related('testresults_set')  # ИЗМЕНЕНО: testresults_set вместо testresults
+            .annotate(result_count=Count('testresults'))  # ИЗМЕНЕНО: testresults вместо testresults_set
             .filter(result_count__gte=2)
         )
         if institution_id:
             # Участники у которых хоть одна запись TestResults в этом вузе
-            qs = qs.filter(testresults__res_institution_id=institution_id).distinct()  # ИЗМЕНЕНО: testresults
+            qs = qs.filter(testresults__res_institution_id=institution_id).distinct()
 
         # ── Находим студентов с переводами ──────────────────────
         transfer_students = []   # (participant, events, results_sorted)
 
         for participant in qs:
             results_sorted = sorted(
-                participant.testresults.select_related('res_institution', 'res_edu_specialty').all(),  # ИЗМЕНЕНО
+                participant.testresults_set.select_related('res_institution', 'res_edu_specialty').all(),  # ИЗМЕНЕНО
                 key=lambda r: _year_sort_key(r.res_year)
             )
             if len(results_sorted) < 2:
@@ -181,8 +181,8 @@ def analyze_transfers(request):
             # Баллы по конкретной компетенции в разрезе курсов
             for r in results_sorted:
                 score = getattr(r, competency, None)
-                if score and r.res_course:  # ИЗМЕНЕНО: res_course вместо res_course_num
-                    course_dynamics[r.res_course].append(float(score))  # ИЗМЕНЕНО: res_course
+                if score and r.res_course:
+                    course_dynamics[r.res_course].append(float(score))
 
         dynamics = [
             {
@@ -254,20 +254,20 @@ def analyze_transfer_students(request):
         if competency not in COMP.list:
             competency = COMP.LEADERSHIP
 
-        # ИЗМЕНЕНО: related_name для TestResults теперь 'testresults'
+        # ИСПРАВЛЕНО: используем правильный related_name 'testresults_set'
         qs = (
             Participants.objects
             .annotate(result_count=Count('testresults'))  # ИЗМЕНЕНО: testresults
             .filter(result_count__gte=2)
         )
         if institution_id:
-            qs = qs.filter(testresults__res_institution_id=institution_id).distinct()  # ИЗМЕНЕНО: testresults
+            qs = qs.filter(testresults__res_institution_id=institution_id).distinct()
 
         students_out = []
 
         for participant in qs:
             results_sorted = sorted(
-                participant.testresults.select_related('res_institution', 'res_edu_specialty').all(),  # ИЗМЕНЕНО
+                participant.testresults_set.select_related('res_institution', 'res_edu_specialty').all(),  # ИЗМЕНЕНО
                 key=lambda r: _year_sort_key(r.res_year)
             )
             if len(results_sorted) < 2:
@@ -285,15 +285,15 @@ def analyze_transfer_students(request):
                 score = getattr(r, competency, None)
                 trajectory.append({
                     'year':        r.res_year,
-                    'course':      r.res_course,  # ИЗМЕНЕНО: res_course вместо res_course_num
+                    'course':      r.res_course,
                     'score':       float(score) if score else None,
                     'institution': r.res_institution.inst_name if r.res_institution else '—',
-                    'direction':   r.res_edu_specialty.edu_spec_name if r.res_edu_specialty else '—',  # ИЗМЕНЕНО
+                    'direction':   r.res_edu_specialty.edu_spec_name if r.res_edu_specialty else '—',
                 })
 
             students_out.append({
                 'part_id':   participant.part_id,
-                'rsv_id':    participant.part_rsv,  # ИЗМЕНЕНО: part_rsv вместо part_rsv_id
+                'rsv_id':    participant.part_rsv,
                 'transfers': events,
                 'trajectory': trajectory,
             })

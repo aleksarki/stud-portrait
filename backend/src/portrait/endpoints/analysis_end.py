@@ -694,10 +694,12 @@ def analyze_discipline_impact_advanced(request):
                             (before_result.res_institution.inst_name if before_result.res_institution else None) or
                             'Не указано'
                         )
+                        # ИСПРАВЛЕНИЕ: преобразуем grade в текст для совместимости с DisciplineImpactAnalyzer
+                        grade_text = convert_grade_to_text(perf.perf_main)
                         perf_data.append({
                             'student_id': student.part_id,
                             'discipline': perf.perf_edu_discipline.edu_disc_name,
-                            'grade': perf.perf_main,
+                            'grade': grade_text,  # теперь текстовая оценка
                             'year': year,
                             'institution': institution,
                             'direction': direction,
@@ -707,6 +709,7 @@ def analyze_discipline_impact_advanced(request):
             
             if not perf_data:
                 continue
+            
             print(f"[{competency}] Всего записей: {len(perf_data)}")
             print(f"[{competency}] Дисциплины: {set(d['discipline'] for d in perf_data)}")
             
@@ -719,9 +722,25 @@ def analyze_discipline_impact_advanced(request):
             if not filtered_perf_data:
                 continue
 
+            # ИСПРАВЛЕНИЕ: проверяем количество студентов по каждой дисциплине
             df = pd.DataFrame(filtered_perf_data)
+            
+            # Группируем по дисциплине и проверяем минимальное количество
+            valid_disciplines = []
+            for disc, group in df.groupby('discipline'):
+                unique_students = group['student_id'].nunique()
+                if unique_students >= min_students:
+                    valid_disciplines.append(disc)
+            
+            if not valid_disciplines:
+                print(f"[{competency}] Нет дисциплин с >= {min_students} студентами")
+                continue
+            
+            # Фильтруем данные только по валидным дисциплинам
+            df_filtered = df[df['discipline'].isin(valid_disciplines)]
+            
             analyzer = DisciplineImpactAnalyzer()
-            analysis = analyzer.analyze_discipline_impact(df, competency)
+            analysis = analyzer.analyze_discipline_impact(df_filtered, competency)
             
             if analysis['status'] == 'success':
                 analysis['competency'] = competency
@@ -744,6 +763,20 @@ def analyze_discipline_impact_advanced(request):
             'status': 'error',
             'message': str(e)
         }, status=500)
+
+
+def convert_grade_to_text(grade_num):
+    """Конвертирует числовую оценку (1-5) в текстовый формат для совместимости с DisciplineImpactAnalyzer."""
+    if grade_num is None:
+        return None
+    grade_map = {
+        5: 'отл.',
+        4: 'хор.',
+        3: 'удовл.',
+        2: 'неудовл.',
+        1: 'не явился'
+    }
+    return grade_map.get(grade_num, str(grade_num))
 
 
 def _convert_numpy_types(obj):
