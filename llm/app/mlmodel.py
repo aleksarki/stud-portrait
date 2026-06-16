@@ -8,7 +8,7 @@ DEVICE_CUDA = "cuda"
 DEVICE_CPU = "cpu"
 
 class MlModel:
-    PATH = Path(__file__).resolve().parent / "llm_model"
+    PATH = Path(__file__).resolve().parent.parent / "llm_model"
     MODEL = None
     TOKENIZER = None
     AVAILABLE = False               # model is accessible
@@ -57,8 +57,7 @@ class MlModel:
                 cls.TOKENIZER = None
                 cls.MODEL = None
                 cls.AVAILABLE = False
-                print(f"[model] (!): failed to load LLM model")
-                print(f"{e}")
+                print(f"[model] (!): failed to load LLM model: {e}")
 
             finally:
                 cls.LOAD_EVENT.set()  # unlock all, even if failed

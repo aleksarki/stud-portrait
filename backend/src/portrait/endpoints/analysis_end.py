@@ -21,7 +21,7 @@ from .datanal import (
     CrossSectionalAnalyzer
 )
 
-from ..mlmodel import MlModel
+from ..llmclient import LLM_CLIENT
 
 
 # ────────────────────────────────────────────────────────────
@@ -1642,7 +1642,7 @@ def ai_analytics_summary(request):
         else:
             prompt = "Неизвестный тип анализа."
 
-        result = MlModel.generate(prompt, max_length=600, temperature=0.2)
+        result = LLM_CLIENT.generate(prompt, max_length=600, temperature=0.2)
         if result is None:
             result = "⚠️ Модель временно недоступна. Попробуйте позже."
 

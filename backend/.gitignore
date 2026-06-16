@@ -8,4 +8,9 @@ __pycache__/
 *.pyd
 .Python
 
-src/portrait/llm_model/
+.env
+.env.*
+
+/media/
+/static/
+/src/staticfiles/
