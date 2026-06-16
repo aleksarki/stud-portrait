@@ -71,7 +71,7 @@ class Datauploadtemplate(models.Model):
     template_id = models.AutoField(primary_key=True)
     template_name = models.CharField(unique=True, max_length=256)
     template_description = models.TextField(blank=True, null=True)
-    template_config = models.TextField()  # This field type is a guess.
+    template_config = models.JSONField()  # This field type is a guess. // Switched to JSONField manually
     template_created_at = models.DateTimeField(blank=True, null=True)
     template_updated_at = models.DateTimeField(blank=True, null=True)
 

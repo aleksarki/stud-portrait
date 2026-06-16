@@ -17,21 +17,12 @@
         "edu_level_name": "L",
         "inst_name": "I",
         
-        "part_rsv_id": "C",
+        "part_rsv": "C",
         "part_gender": "E",
-        "part_institution": "I",
-        "part_spec": "O",
-        "part_edu_level": "L",
-        "part_form": "N",
         "part_course_num": "M",
         
-        "res_center": "H",
-        "res_institution": "I",
-        "res_edu_level": "L",
-        "res_form": "N",
-        "res_spec": "O",
-        "res_course_num": "M",
         "res_year": "B",
+        "res_course_num": "M",
         "res_high_potential": "D",
         "res_summary_report": "P",
         
@@ -56,7 +47,7 @@
       "name": "Мотивационный профиль",
       "start_row": 4,
       "columns": {
-        "part_rsv_id": "B",
+        "part_rsv": "B",
         "res_year": "C",
         
         "res_mot_autonomy": "D",
@@ -81,8 +72,9 @@
       "name": "Ценностный профиль",
       "start_row": 4,
       "columns": {
-        "part_rsv_id": "B",
+        "part_rsv": "B",
         "res_year": "C",
+        
         "res_val_honesty_justice": "D",
         "res_val_humanism": "E",
         "res_val_patriotism": "F",
@@ -95,7 +87,8 @@
       "name": "Образовательные курсы",
       "start_row": 4,
       "columns": {
-        "part_rsv_id": "B",
+        "part_rsv": "B",
+        
         "course_an_dec": "C",
         "course_client_focus": "D",
         "course_communication": "E",
@@ -127,7 +120,12 @@
         "perf_year": "A",
         "student_name": "B",
         "perf_discipline": "C",
-        "perf_main_attestation": "E"
+        "perf_current": "D",
+        "perf_main_attestation": "E",
+        "perf_first_retake": "F",
+        "perf_second_retake": "G",
+        "perf_grade_retake": "H",
+        "perf_final": "I"
       }
     }
   ]

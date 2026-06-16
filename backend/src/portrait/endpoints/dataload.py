@@ -5,6 +5,7 @@ import openpyxl.utils
 import json
 
 from django.db import transaction
+from django.utils import timezone
 
 from .common import *
 
@@ -21,8 +22,9 @@ def import_excel(request):
     1. Связь ФИО и ID - маппинг RSV ID → ФИО
     2. Сравнение по компетенциям - результаты РСВ
     3. Мотивационный профиль
-    4. Образовательные курсы
-    5. Итоги успеваемости участников - данные по дисциплинам
+    4. Ценностный профиль
+    5. Образовательные курсы
+    6. Итоги успеваемости участников - данные по дисциплинам
     """
     excel_file = request.FILES.get("file")
     config_json = request.POST.get("config_json")
@@ -42,6 +44,8 @@ def import_excel(request):
     created_count = 0
     updated_count = 0
     mapping_count = 0
+    participants_created = 0
+    participants_updated = 0
 
     with transaction.atomic():
         for sheet_info in config["sheets"]:
@@ -60,10 +64,10 @@ def import_excel(request):
             # Ключевое поле для определения конца данных
             KEY_FIELD = {
                 "Связь ФИО и ID":                "rsv_id",
-                "Сравнение по компетенциям":     "part_rsv_id",
-                "Мотивационный профиль":         "part_rsv_id",
-                "Образовательные курсы":         "part_rsv_id",
-                "Ценностный профиль":            "part_rsv_id",
+                "Сравнение по компетенциям":     "part_rsv",
+                "Мотивационный профиль":         "part_rsv",
+                "Ценностный профиль":            "part_rsv",
+                "Образовательные курсы":         "part_rsv",
                 "Итоги успеваемости участников": "student_name",
             }
             key_field = KEY_FIELD.get(sheet_name)
@@ -105,19 +109,20 @@ def import_excel(request):
                 if sheet_name == "Связь ФИО и ID":
                     rsv_id = clean_value(row_data.get("rsv_id"))
                     student_name = clean_value(row_data.get("student_name"))
-                    student_gender = clean_value(row_data.get("student_gender"))
+                    student_gender = parse_gender(row_data.get("student_gender"))  # ИЗМЕНЕНО: теперь INT
                     email = clean_value(row_data.get("email"))
 
                     if not rsv_id or not student_name:
                         continue
 
-                    # Создаём или обновляем маппинг
+                    # ИЗМЕНЕНО: новые имена полей
                     mapping, created = StudentMapping.objects.update_or_create(
-                        rsv_id=str(rsv_id),
+                        mapping_rsv=str(rsv_id),  # было rsv_id
                         defaults={
-                            'student_name': student_name,
-                            'student_gender': student_gender,
-                            'email': email
+                            'mapping_stud_name': student_name,    # было student_name
+                            'mapping_stud_gender': student_gender, # было student_gender, теперь INT
+                            'mapping_email': email,                # было email
+                            'mapping_created_at': timezone.now()   # добавлено
                         }
                     )
 
@@ -147,66 +152,72 @@ def import_excel(request):
                     if (edu_level_name := clean_value(row_data.get("edu_level_name"))):
                         edu_level, _ = EducationLevels.objects.get_or_create(edu_level_name=edu_level_name)
 
-                    form = None
+                    # ИЗМЕНЕНО: form → edu_form
+                    edu_form = None
                     if (form_name := clean_value(row_data.get("form_name"))):
-                        form, _ = EducationForms.objects.get_or_create(form_name=form_name)
+                        edu_form, _ = EducationForms.objects.get_or_create(edu_form_name=form_name)
 
-                    spec = None
+                    # ИЗМЕНЕНО: spec → edu_specialty
+                    edu_specialty = None
                     if (spec_name := clean_value(row_data.get("spec_name"))):
-                        spec, _ = EducationSpecialties.objects.get_or_create(spec_name=spec_name)
+                        edu_specialty, _ = EducationSpecialties.objects.get_or_create(edu_spec_name=spec_name)
 
-                    # part_rsv_id - это ID из тестирования РСВ (НЕ ФИО!)
-                    rsv_id = clean_value(row_data.get("part_rsv_id"))
-                    if not rsv_id:
+                    # part_rsv - это ID из тестирования РСВ
+                    rsv = clean_value(row_data.get("part_rsv"))  # ИЗМЕНЕНО: part_rsv вместо part_rsv_id
+                    if not rsv:
                         continue
 
                     # Получаем или создаём участника, сразу заполняя все part_* поля
+                    # ИЗМЕНЕНО: Participants теперь содержит ТОЛЬКО базовую информацию
                     participant, created = Participants.objects.get_or_create(
-                        part_rsv_id=str(rsv_id),
+                        part_rsv=str(rsv),  # ИЗМЕНЕНО: part_rsv вместо part_rsv_id
                         defaults={
                             'part_gender': parse_gender(row_data.get("part_gender")),
-                            'part_institution': institution,      # уже получен из inst_name
-                            'part_spec': spec,                    # уже получен из spec_name
-                            'part_edu_level': edu_level,          # уже получен из edu_level_name
-                            'part_form': form,                    # уже получен из form_name
                             'part_course_num': clean_value(row_data.get("part_course_num"), int),
                         }
                     )
 
-                    # Если участник уже существовал – обновляем все эти поля (кроме rsv_id)
-                    if not created:
+                    if created:
+                        participants_created += 1
+                    else:
+                        # Обновляем только если изменилось (без учебной информации!)
                         Participants.objects.filter(pk=participant.pk).update(
                             part_gender=parse_gender(row_data.get("part_gender")),
-                            part_institution=institution,
-                            part_spec=spec,
-                            part_edu_level=edu_level,
-                            part_form=form,
                             part_course_num=clean_value(row_data.get("part_course_num"), int),
                         )
+                        participants_updated += 1
 
                     # Создаём или обновляем результат
+                    # ИЗМЕНЕНО: TestResults теперь содержит ВСЮ учебную информацию
                     year = clean_value(row_data.get("res_year"))
-                    course_num = clean_value(row_data.get("res_course_num"), int)
+                    # ВНИМАНИЕ: unique_together теперь (res_participant, res_year) без course_num
+                    # course_num теперь отдельное поле в TestResults, но не входит в уникальность
 
+                    # Пытаемся найти существующий результат
                     result, created_res = TestResults.objects.update_or_create(
                         res_participant=participant,
                         res_year=year,
-                        res_course_num=course_num,
                         defaults={
-                            tRES.CENTER:      center,
+                            tRES.CENTER: center,
                             tRES.INSTITUTION: institution,
-                            tRES.EDU_LEVEL:   edu_level,
-                            tRES.EDU_FORM:    form,       # ForeignKey — объект OK
-                            tRES.EDU_SPEC:    spec,       # ForeignKey — объект OK
-                            tRES.POTENTIAL:   clean_value(row_data.get("res_high_potential")),
-                            tRES.REPORT:      clean_value(row_data.get("res_summary_report")),
+                            tRES.EDU_LEVEL: edu_level,
+                            tRES.EDU_FORM: edu_form,           # ИЗМЕНЕНО: edu_form
+                            tRES.EDU_SPEC: edu_specialty,      # ИЗМЕНЕНО: edu_specialty
+                            tRES.COURSE_NUM: clean_value(row_data.get("res_course_num"), int),  # ИЗМЕНЕНО: course_num
+                            tRES.POTENTIAL: clean_value(row_data.get("res_high_potential"), int),  # ИЗМЕНЕНО: potential
+                            tRES.REPORT: clean_value(row_data.get("res_summary_report")),       # ИЗМЕНЕНО: report
                         }
                     )
 
-                    # Обновляем компетенции
-                    TestResults.objects           \
-                        .filter(pk=result.pk) \
-                        .update(**{comp: clean_value(row_data.get(comp), int) for comp in COMP.list})
+                    # Обновляем компетенции (только если есть значения)
+                    comp_updates = {}
+                    for comp in COMP.list:
+                        value = clean_value(row_data.get(comp), int)
+                        if value is not None:
+                            comp_updates[comp] = value
+                    
+                    if comp_updates:
+                        TestResults.objects.filter(pk=result.pk).update(**comp_updates)
 
                     created_count += 1 if created_res else 0
                     updated_count += 0 if created_res else 1
@@ -219,118 +230,168 @@ def import_excel(request):
                 # ЛИСТ 3: "Мотивационный профиль"
                 # ============================================================
                 elif sheet_name == "Мотивационный профиль":
-                    rsv_id = clean_value(row_data.get("part_rsv_id"))
-                    if not rsv_id:
+                    rsv = clean_value(row_data.get("part_rsv"))  # ИЗМЕНЕНО: part_rsv
+                    if not rsv:
                         continue
 
                     try:
-                        participant = Participants.objects.get(part_rsv_id=str(rsv_id))
+                        participant = Participants.objects.get(part_rsv=str(rsv))  # ИЗМЕНЕНО: part_rsv
                     except Participants.DoesNotExist:
-                        debugPrint(f"[xls load] (!): участник RSV ID {rsv_id} не найден")
+                        debugPrint(f"[xls load] (!): участник RSV {rsv} не найден")
                         continue
 
                     year = clean_value(row_data.get("res_year"))
 
-                    TestResults.objects                                         \
-                        .filter(res_participant=participant, res_year=year) \
-                        .update(**{mot: clean_value(row_data.get(mot), float) for mot in MOT.list})
+                    # Обновляем мотиваторы
+                    mot_updates = {}
+                    for mot in MOT.list:
+                        value = clean_value(row_data.get(mot), float)
+                        if value is not None:
+                            mot_updates[mot] = value
                     
-                    updated_count += 1
+                    if mot_updates:
+                        updated_rows = TestResults.objects.filter(
+                            res_participant=participant, 
+                            res_year=year
+                        ).update(**mot_updates)
+                        updated_count += updated_rows
+                    
                     row_count += 1
 
                 # ============================================================
-                # ЛИСТ 4: "Образовательные курсы"
-                # ============================================================
-                elif sheet_name == "Образовательные курсы":
-                    rsv_id = clean_value(row_data.get("part_rsv_id"))
-                    if not rsv_id:
-                        continue
-
-                    try:
-                        participant = Participants.objects.get(part_rsv_id=str(rsv_id))
-                    except Participants.DoesNotExist:
-                        debugPrint(f"[xls load] (!): участник RSV ID {rsv_id} не найден")
-                        continue
-
-                    CourseResults.objects.update_or_create(
-                        course_participant=participant.part_id,
-                        defaults={cur: clean_value(row_data.get(cur), float) for cur in CUR.list}
-                    )
-                    
-                    updated_count += 1
-                    row_count += 1
-
-                # ============================================================
-                # ЛИСТ: "Ценностный профиль"
+                # ЛИСТ 4: "Ценностный профиль"
                 # ============================================================
                 elif sheet_name == "Ценностный профиль":
-                    rsv_id = clean_value(row_data.get("part_rsv_id"))
-                    if not rsv_id:
+                    rsv = clean_value(row_data.get("part_rsv"))  # ИЗМЕНЕНО: part_rsv
+                    if not rsv:
                         continue
 
                     try:
-                        participant = Participants.objects.get(part_rsv_id=str(rsv_id))
+                        participant = Participants.objects.get(part_rsv=str(rsv))
                     except Participants.DoesNotExist:
-                        debugPrint(f"[xls load] (!): участник RSV ID {rsv_id} не найден")
+                        debugPrint(f"[xls load] (!): участник RSV {rsv} не найден")
                         continue
 
                     year = clean_value(row_data.get("res_year"))
 
-                    # Обновляем только существующие записи Results — не создаём новые,
-                    # т.к. unique_together(res_participant, res_year, res_course_num) требует
-                    # res_course_num, которого в этом листе нет.
-                    # Записи создаются листом "Сравнение по компетенциям".
-                    updated = TestResults.objects                               \
-                        .filter(res_participant=participant, res_year=year) \
-                        .update(**{val: clean_value(row_data.get(val), float) for val in VAL.list})
-
-                    if updated == 0:
-                        debugPrint(f"[xls load] (!): ценности: Results для RSV ID {rsv_id} год {year} не найден, пропуск")
-                    updated_count += updated
+                    # Обновляем ценности
+                    val_updates = {}
+                    for val in VAL.list:
+                        value = clean_value(row_data.get(val), int)
+                        if value is not None:
+                            val_updates[val] = value
+                    
+                    if val_updates:
+                        updated_rows = TestResults.objects.filter(
+                            res_participant=participant, 
+                            res_year=year
+                        ).update(**val_updates)
+                        updated_count += updated_rows
+                    
                     row_count += 1
 
                 # ============================================================
-                # ЛИСТ 5: "Итоги успеваемости участников" (ДИСЦИПЛИНЫ)
+                # ЛИСТ 5: "Образовательные курсы"
+                # ============================================================
+                elif sheet_name == "Образовательные курсы":
+                    rsv = clean_value(row_data.get("part_rsv"))  # ИЗМЕНЕНО: part_rsv
+                    if not rsv:
+                        continue
+
+                    try:
+                        participant = Participants.objects.get(part_rsv=str(rsv))
+                    except Participants.DoesNotExist:
+                        debugPrint(f"[xls load] (!): участник RSV {rsv} не найден")
+                        continue
+
+                    # ИЗМЕНЕНО: курс теперь CourseResults, не связан с year
+                    # Используем update_or_create
+                    course_defaults = {}
+                    for cur in CUR.list:
+                        value = clean_value(row_data.get(cur), float)
+                        if value is not None:
+                            course_defaults[cur] = value
+                    
+                    if course_defaults:
+                        course_result, created_res = CourseResults.objects.update_or_create(
+                            course_participant=participant,  # ИЗМЕНЕНО: participant, а не participant.part_id
+                            defaults=course_defaults
+                        )
+                        if created_res:
+                            created_count += 1
+                        else:
+                            updated_count += 1
+                    
+                    row_count += 1
+
+                # ============================================================
+                # ЛИСТ 6: "Итоги успеваемости участников" (ДИСЦИПЛИНЫ)
                 # ============================================================
                 elif sheet_name == "Итоги успеваемости участников":
-                    # В дисциплинах указано ФИО студента
                     student_name = clean_value(row_data.get("student_name"))
                     if not student_name:
                         continue
 
                     # Ищем RSV ID по ФИО в таблице маппинга
                     try:
-                        mapping = StudentMapping.objects.get(student_name=student_name)
-                        rsv_id = mapping.mapping_rsv
+                        mapping = StudentMapping.objects.get(mapping_stud_name=student_name)  # ИЗМЕНЕНО
+                        rsv = mapping.mapping_rsv  # ИЗМЕНЕНО
                     except StudentMapping.DoesNotExist:
                         debugPrint(f"[xls load] (!): ФИО '{student_name}' не найдено в маппинге")
                         continue
                     except StudentMapping.MultipleObjectsReturned:
                         debugPrint(f"[xls load] (!): несколько записей для ФИО '{student_name}'")
-                        mapping = StudentMapping.objects.filter(student_name=student_name).first()
-                        rsv_id = mapping.mapping_rsv
+                        mapping = StudentMapping.objects.filter(mapping_stud_name=student_name).first()
+                        rsv = mapping.mapping_rsv
 
-                    # Ищем участника по RSV ID
+                    # Ищем участника по RSV
                     try:
-                        participant = Participants.objects.get(part_rsv_id=rsv_id)
+                        participant = Participants.objects.get(part_rsv=rsv)  # ИЗМЕНЕНО: part_rsv
                     except Participants.DoesNotExist:
-                        debugPrint(f"[xls load] (!): участник RSV ID {rsv_id} не найден")
+                        debugPrint(f"[xls load] (!): участник RSV {rsv} не найден")
                         continue
 
                     year = clean_value(row_data.get("perf_year"))
-                    discipline = clean_value(row_data.get("perf_discipline"))
+                    discipline_name = clean_value(row_data.get("perf_discipline"))
 
-                    if not year or not discipline:
+                    if not year or not discipline_name:
                         continue
 
-                    AcademicPerformances.objects.update_or_create(
-                        perf_part_id=participant.part_id,
-                        perf_year=year,
-                        perf_discipline=discipline,
-                        defaults={"perf_main_attestation": clean_value(row_data.get("perf_main_attestation"))}
+                    # ИЗМЕНЕНО: дисциплины теперь в отдельной таблице
+                    discipline, _ = EducationDisciplines.objects.get_or_create(
+                        edu_disc_name=discipline_name
                     )
 
-                    updated_count += 1
+                    # ИЗМЕНЕНО: обновленная структура AcademicPerformances
+                    # Оценки теперь числа (1-5)
+                    main_grade = convert_grade_to_int(clean_value(row_data.get("perf_main_attestation")))
+                    
+                    perf_defaults = {
+                        'perf_current': clean_value(row_data.get("perf_current"), float),
+                        'perf_digital': clean_value(row_data.get("perf_digital"), float),
+                        'perf_main': main_grade,
+                        # Добавляем новые поля, если есть в Excel
+                        'perf_first_retake': convert_grade_to_int(clean_value(row_data.get("perf_first_retake"))),
+                        'perf_second_retake': convert_grade_to_int(clean_value(row_data.get("perf_second_retake"))),
+                        'perf_grade_retake': convert_grade_to_int(clean_value(row_data.get("perf_grade_retake"))),
+                        'perf_final': convert_grade_to_int(clean_value(row_data.get("perf_final"))),
+                    }
+                    
+                    # Удаляем None значения
+                    perf_defaults = {k: v for k, v in perf_defaults.items() if v is not None}
+
+                    performance, created_perf = AcademicPerformances.objects.update_or_create(
+                        perf_participant=participant,
+                        perf_edu_discipline=discipline,
+                        perf_year=year,
+                        defaults=perf_defaults
+                    )
+
+                    if created_perf:
+                        created_count += 1
+                    else:
+                        updated_count += 1
+                    
                     row_count += 1
                     
                     if row_count % 100 == 0:
@@ -342,12 +403,16 @@ def import_excel(request):
     debugPrint(f"[xls load] (i): создано записей: {created_count}")
     debugPrint(f"[xls load] (i): обновлено записей: {updated_count}")
     debugPrint(f"[xls load] (i): связей ФИО→ID: {mapping_count}")
+    debugPrint(f"[xls load] (i): создано участников: {participants_created}")
+    debugPrint(f"[xls load] (i): обновлено участников: {participants_updated}")
 
     return {
         "status": "success", 
         "created": created_count, 
         "updated": updated_count,
-        "mapped": mapping_count
+        "mapped": mapping_count,
+        "participants_created": participants_created,
+        "participants_updated": participants_updated
     }
 
 
@@ -359,20 +424,25 @@ def get_expected_fields(request):
     """ Return expected field for each sheet.
     """
     return {
-        "Связь ФИО и ID":            ["rsv_id", "student_name", "student_gender", "email"],
-        "Сравнение по компетенциям": [
-            "center_name",   "edu_level_name",     "inst_name",          "part_rsv_id",
-            "part_gender",   "part_institution",   "part_spec",          "part_edu_level",
-            "part_form",     "part_course_num",    "res_center",         "res_institution",
-            "res_edu_level", "res_form",           "res_spec",           "res_course_num",
-            "res_year",      "res_high_potential", "res_summary_report", *COMP.list,
-            "spec_name",     "form_name"
+        "Связь ФИО и ID": [
+            "rsv_id",           # mapping_rsv
+            "student_name",     # mapping_stud_name
+            "student_gender",   # mapping_stud_gender (конвертится в INT)
+            "email"             # mapping_email
         ],
-        "Мотивационный профиль":         ["part_rsv_id", "res_year", *MOT.list],
-        "Ценностный профиль":            ["part_rsv_id", "res_year", *VAL.list],
-        "Образовательные курсы":         ["part_rsv_id", *CUR.list],
+        "Сравнение по компетенциям": [
+            "center_name", "inst_name", "edu_level_name", "form_name", "spec_name",
+            "part_rsv", "part_gender", "part_course_num",
+            "res_year", "res_course_num", "res_high_potential", "res_summary_report",
+            *COMP.list
+        ],
+        "Мотивационный профиль": ["part_rsv", "res_year", *MOT.list],
+        "Ценностный профиль": ["part_rsv", "res_year", *VAL.list],
+        "Образовательные курсы": ["part_rsv", *CUR.list],
         "Итоги успеваемости участников": [
-            "perf_year", "student_name", "perf_discipline", "perf_main_attestation"
+            "student_name", "perf_year", "perf_discipline",
+            "perf_current", "perf_digital", "perf_main_attestation",
+            "perf_first_retake", "perf_second_retake", "perf_grade_retake", "perf_final"
         ]
     }
 
@@ -383,11 +453,26 @@ def get_expected_fields(request):
 def get_templates(request):
     """ Get list of all data load templates.
     """
-    return {'templates': list(
-        DataUploadTemplate.objects
-            .all()
-            .values('id', 'name', 'description', 'config', 'updated_at')
-    )}
+    templates = DataUploadTemplate.objects.all().values(
+        'template_id',      # было 'id'
+        'template_name',    # было 'name'
+        'template_description',  # было 'description'
+        'template_config',       # было 'config'
+        'template_updated_at'    # было 'updated_at'
+    )
+    
+    # Переименовываем поля для обратной совместимости с фронтендом
+    renamed_templates = []
+    for t in templates:
+        renamed_templates.append({
+            'id': t['template_id'],
+            'name': t['template_name'],
+            'description': t['template_description'],
+            'config': t['template_config'],
+            'updated_at': t['template_updated_at']
+        })
+    
+    return {'templates': renamed_templates}
 
 
 @method(POST)
@@ -406,14 +491,24 @@ def save_template(request):
     if not config:
         raise ResponseError("Missing config")
 
+    # Используем новые имена полей
     template, created = DataUploadTemplate.objects.update_or_create(
-        name=name,
-        defaults={'config': config, 'description': description}
+        template_name=name,  # было 'name'
+        defaults={
+            'template_config': config,           # было 'config'
+            'template_description': description, # было 'description'
+            'template_updated_at': timezone.now()
+        }
     )
 
+    # Если только создали, устанавливаем created_at
+    if created:
+        template.template_created_at = timezone.now()
+        template.save()
+
     return {
-        'id':      template.template_id,  # fixme looks like error
-        'name':    template.template_name,
+        'id': template.template_id,        # было template.id
+        'name': template.template_name,    # было template.name
         'created': created
     }
 
@@ -424,8 +519,13 @@ def save_template(request):
 def delete_template(request, template_id):
     """ Delete data load template.
     """
-    DataUploadTemplate.objects.get(id=template_id).delete()
-    return {'status': 'deleted'}
+    try:
+        # Используем template_id как первичный ключ
+        template = DataUploadTemplate.objects.get(template_id=template_id)
+        template.delete()
+        return {'status': 'deleted', 'id': template_id}
+    except DataUploadTemplate.DoesNotExist:
+        raise ResponseError(f"Template with id {template_id} not found", status=404)
 
 
 # ============================== UTILITIES ============================== #
@@ -449,20 +549,70 @@ def clean_value(value, value_type: type[str] | type[int] | type[float] = str) ->
     if value is None:
         return None
 
+    # Если это уже нужный тип
+    if isinstance(value, value_type) and value_type != str:
+        return value
+
     s = str(value).strip()
 
     # Маркеры пустых значений
-    if s.lower() in ("", "-", "–", "—", "отсутствует", "н/д", "н/п", "нет", "na", "n/a"):
+    if s.lower() in ("", "-", "–", "—", "отсутствует", "н/д", "н/п", "нет", "na", "n/a", "null", "none"):
         return None
     
     try:
         if value_type == int:
+            # Обработка float в int
+            if isinstance(value, float):
+                return int(value) if not pd.isna(value) else None
             return int(float(s.replace(",", ".")))
         
         if value_type == float:
+            if isinstance(value, (int, float)):
+                return float(value)
             return float(s.replace(",", "."))
     
-    except ValueError:
+    except (ValueError, TypeError):
         return None
 
     return s or None
+
+
+def convert_grade_to_int(grade_str: str | None) -> int | None:
+    """ Конвертирует текстовую оценку в число (1-5).
+        'отл.' → 5
+        'хор.' → 4
+        'удовл.' → 3
+        'неудовл.' → 2
+        'не явился' → 1
+    """
+    if grade_str is None:
+        return None
+    
+    s = str(grade_str).strip().lower()
+    
+    grade_map = {
+        'отл.': 5,
+        'отлично': 5,
+        'хор.': 4,
+        'хорошо': 4,
+        'удовл.': 3,
+        'удовлетворительно': 3,
+        'неудовл.': 2,
+        'неудовлетворительно': 2,
+        'не явился': 1,
+        'неявка': 1,
+    }
+    
+    # Пробуем прямой маппинг
+    if s in grade_map:
+        return grade_map[s]
+    
+    # Пробуем как число
+    try:
+        num = int(float(s))
+        if 1 <= num <= 5:
+            return num
+    except:
+        pass
+    
+    return None
