@@ -344,7 +344,7 @@ def group_data(request):  # REVIEW
         raise ResponseError("Grouping column not specified")
 
     results_query = TestResults.objects      \
-        .filter(isIn(tRES.ID, selected_ids)) \
+        .filter(**isIn(tRES.ID, selected_ids)) \
         .select_related(
             tRES.PARTICIPANT, tRES.CENTER, tRES.INSTITUTION,
             tRES.EDU_LEVEL, tRES.EDU_FORM, tRES.EDU_SPEC
@@ -575,10 +575,10 @@ RESULTS_FIELD_MAP = {
     'center':         J(tRES.CENTER,      tCENTER.NAME),
     'institution':    J(tRES.INSTITUTION, tINST.NAME),
     'edu_level':      J(tRES.EDU_LEVEL,   tLEVEL.NAME),
-    'study_form':     J(tRES.EDU_FORM,    tFORM.NAME),
-    'specialty':      J(tRES.EDU_SPEC,    tSPEC.NAME),
+    'study_form':     J(tRES.EDU_FORM,    tFORM.NAME),      # ИЗМЕНЕНО: tFORM вместо tStudyForms
+    'specialty':      J(tRES.EDU_SPEC,    tSPEC.NAME),      # ИЗМЕНЕНО: tSPEC вместо tSpecialties
     'res_year':       tRES.YEAR,
-    'res_course_num': tRES.COURSE_NUM
+    'res_course_num': tRES.COURSE_NUM                        # ИЗМЕНЕНО: COURSE_NUM вместо COURSE_NUM
 }
 
 
@@ -599,22 +599,23 @@ def acquire_session(id: str) -> DataViewSession:
 def result_to_json(result, visible_columns=None):  # REVIEW
     """ Format results data before dispatching it.
     """
+    # ИЗМЕНЕНО: обновлены названия полей для новой схемы
     base_data = {
         "res_id": result.res_id,
         "participant": {
             "part_id":        result.res_participant.part_id,
-            "part_rsv_id":    result.res_participant.part_rsv_id,
+            "part_rsv":       result.res_participant.part_rsv,        # было part_rsv_id
             "part_gender":    result.res_participant.part_gender,
         },
         "center":             result.res_center.center_name       if result.res_center      else None,
         "institution":        result.res_institution.inst_name    if result.res_institution else None,
         "edu_level":          result.res_edu_level.edu_level_name if result.res_edu_level   else None,
-        "study_form":         result.res_form.form_name           if result.res_form        else None,
-        "specialty":          result.res_spec.spec_name           if result.res_spec        else None,
+        "study_form":         result.res_edu_form.edu_form_name   if result.res_edu_form    else None,  # было res_form
+        "specialty":          result.res_edu_specialty.edu_spec_name if result.res_edu_specialty else None,  # было res_spec
         "res_year":           result.res_year,
-        "res_course_num":     result.res_course_num,
-        "res_high_potential": result.res_high_potential,
-        "res_summary_report": result.res_summary_report,
+        "res_course_num":     result.res_course,                   # было res_course_num
+        "res_potential":      result.res_potential,                # было res_high_potential
+        "res_report":         result.res_report,                   # было res_summary_report
     }
 
     if visible_columns:
@@ -651,19 +652,20 @@ def result_to_json(result, visible_columns=None):  # REVIEW
 def format_result_for_export(result, visible_columns=None):  # REVIEW
     """ Format results data before putting it into Excel.
     """
+    # ИЗМЕНЕНО: обновлены названия полей для новой схемы
     row = {
         "ID результата":       result.res_id,
-        "ID РСВ результата":   result.res_participant.part_rsv_id,
+        "ID РСВ":              result.res_participant.part_rsv,      # было part_rsv_id
         "Пол":                 result.res_participant.part_gender,
         "Центр компетенций":   result.res_center.center_name       if result.res_center      else "",
         "Учебное заведение":   result.res_institution.inst_name    if result.res_institution else "",
         "Уровень образования": result.res_edu_level.edu_level_name if result.res_edu_level   else "",
-        "Форма обучения":      result.res_form.form_name           if result.res_form        else "",
-        "Специальность":       result.res_spec.spec_name           if result.res_spec        else "",
+        "Форма обучения":      result.res_edu_form.edu_form_name   if result.res_edu_form    else "",  # было res_form
+        "Специальность":       result.res_edu_specialty.edu_spec_name if result.res_edu_specialty else "",  # было res_spec
         "Учебный год":         result.res_year,
-        "Номер курса":         result.res_course_num,
-        "Высокий потенциал":   result.res_high_potential or "",
-        "Сводный отчет":       result.res_summary_report or "",
+        "Номер курса":         result.res_course,                   # было res_course_num
+        "Потенциал":           result.res_potential or "",          # было res_high_potential
+        "Отчет":               result.res_report or "",             # было res_summary_report
     }
 
     all_fields = {}
@@ -680,17 +682,17 @@ def format_result_for_export(result, visible_columns=None):  # REVIEW
 
 
 def get_group_value(result, grouping_column):  # REVIEW
-    """ Get value for groupping from result.
+    """ Get value for grouping from result.
     """ # what?
     match grouping_column:
         case 'part_gender':    return attrIfObj(result.res_participant, 'part_gender')
         case 'center':         return attrIfObj(result.res_center,      'center_name')
         case 'institution':    return attrIfObj(result.res_institution, 'inst_name')
         case 'edu_level':      return attrIfObj(result.res_edu_level,   'edu_level_name')
-        case 'study_form':     return attrIfObj(result.res_form,        'form_name')
-        case 'specialty':      return attrIfObj(result.res_spec,        'spec_name')
+        case 'study_form':     return attrIfObj(result.res_edu_form,    'edu_form_name')      # было res_form
+        case 'specialty':      return attrIfObj(result.res_edu_specialty, 'edu_spec_name')    # было res_spec
         case 'res_year':       return result.res_year
-        case 'res_course_num': return result.res_course_num
+        case 'res_course_num': return result.res_course                 # было res_course_num
         case _:                return None
 
 
