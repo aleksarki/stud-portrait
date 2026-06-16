@@ -25,21 +25,19 @@ def courses(request):
             "course_id": course.course_id,
             "participant": {
                 "part_id":     course.course_participant.part_id,
-                "part_rsv_id":   course.course_participant.part_rsv_id,
+                "part_rsv":    course.course_participant.part_rsv,  # ИЗМЕНЕНО: part_rsv вместо part_rsv_id
                 "part_gender": course.course_participant.part_gender,
-                "institution": attrIfObj(course.course_participant.part_institution, 'inst_name'),
-                "specialty":   attrIfObj(course.course_participant.part_spec,        'spec_name'),
-                "edu_level":   attrIfObj(course.course_participant.part_edu_level,   'edu_level_name'),
-                "study_form":  attrIfObj(course.course_participant.part_form,        'form_name'),
+                # Учебная информация теперь в TestResults, не в Participants
+                "institution": None,
+                "specialty":   None,
+                "edu_level":   None,
+                "study_form":  None,
             },
             **{c: zeroIfNull(getattr(course, c)) for c in CUR.list}
         }
         for course in CourseResults.objects
             .all()
-            .select_related(
-                'course_participant', 'course_participant__part_institution', 'course_participant__part_spec',
-                'course_participant__part_edu_level', 'course_participant__part_form'
-            )
+            .select_related('course_participant')
     ]
 
     return {"courses": courses_data}
@@ -64,9 +62,7 @@ def student_results(request):
         raise ResponseError("stud_id must be an integer")
 
     try:
-        participant = Participants.objects                                                  \
-            .select_related('part_institution', 'part_spec', 'part_edu_level', 'part_form') \
-            .get(part_id=stud_id)
+        participant = Participants.objects.get(part_id=stud_id)
     except Participants.DoesNotExist:
         raise ResponseError("Student not found", status=404)
 
@@ -74,15 +70,15 @@ def student_results(request):
         {
             "res_id":             result.res_id,
             "res_year":           result.res_year,
-            "res_course_num":     result.res_course,
-            "res_high_potential": result.res_potential,
-            "res_summary_report": result.res_report,
+            "res_course":         result.res_course,  # ИЗМЕНЕНО: res_course вместо res_course_num
+            "res_potential":      result.res_potential,  # ИЗМЕНЕНО: res_potential вместо res_high_potential
+            "res_report":         result.res_report,  # ИЗМЕНЕНО: res_report вместо res_summary_report
 
             "center":      attrIfObj(result.res_center,        'center_name'),
             "institution": attrIfObj(result.res_institution,   'inst_name'),
             "edu_level":   attrIfObj(result.res_edu_level,     'edu_level_name'),
-            "study_form":  attrIfObj(result.res_edu_form,      'form_name'),
-            "specialty":   attrIfObj(result.res_edu_specialty, 'spec_name'),
+            "study_form":  attrIfObj(result.res_edu_form,      'edu_form_name'),  # ИЗМЕНЕНО: edu_form_name
+            "specialty":   attrIfObj(result.res_edu_specialty, 'edu_spec_name'),  # ИЗМЕНЕНО: edu_spec_name
 
             **{c: getattr(result, c)             for c in COMP.list},
             **{m: zeroIfNull(getattr(result, m)) for m in MOT.list},
@@ -91,20 +87,31 @@ def student_results(request):
         for result in TestResults.objects
             .filter(res_participant=stud_id)
             .select_related(
-                'res_center', 'res_institution', 'res_edu_level', 'res_form', 'res_spec'
+                'res_center', 'res_institution', 'res_edu_level', 'res_edu_form', 'res_edu_specialty'
             )
     ]
 
-    # FIXME #
+    # Пытаемся получить ФИО из StudentMapping
+    try:
+        mapping = StudentMapping.objects.get(mapping_rsv=participant.part_rsv)
+        student_name = mapping.mapping_stud_name
+    except StudentMapping.DoesNotExist:
+        student_name = participant.part_rsv
+
+    # Ищем последний результат для получения учебной информации
+    latest_result = TestResults.objects.filter(res_participant=stud_id).order_by('-res_year', '-res_course').first()
+
     return {
         "student": {
             "stud_id":     participant.part_id,
-            "stud_rsv_id":   participant.part_rsv,
+            "stud_rsv":    participant.part_rsv,  # ИЗМЕНЕНО: part_rsv вместо part_rsv_id
+            "stud_name":   student_name,
             "stud_gender": participant.part_gender,
-            "institution": attrIfObj(participant.part_institution, 'inst_name'),
-            "specialty":   attrIfObj(participant.part_spec,        'spec_name'),
-            "edu_level":   attrIfObj(participant.part_edu_level,   'edu_level_name'),
-            "study_form":  attrIfObj(participant.part_form,        'form_name'),
+            # Учебная информация берется из последнего TestResults
+            "institution": attrIfObj(latest_result.res_institution, 'inst_name') if latest_result else None,
+            "specialty":   attrIfObj(latest_result.res_edu_specialty, 'edu_spec_name') if latest_result else None,
+            "edu_level":   attrIfObj(latest_result.res_edu_level, 'edu_level_name') if latest_result else None,
+            "study_form":  attrIfObj(latest_result.res_edu_form, 'edu_form_name') if latest_result else None,
             "course_num":  participant.part_course_num
         },
         "results": results_list
@@ -118,7 +125,7 @@ def student_results(request):
 def get_institution_directions(request):
     """
     Возвращает направления, которые есть в выбранных институтах.
-    Извлекает уникальные пары (institution, direction) из таблицы Results.
+    Извлекает уникальные пары (institution, direction) из таблицы TestResults.
     """
     institution_ids = request.GET.getlist('institution_ids') or request.GET.getlist('institution_ids[]')
 
@@ -129,16 +136,16 @@ def get_institution_directions(request):
         institution_ids = []
 
     if not institution_ids:
-        directions = EducationSpecialties.objects.all().values('spec_id', 'spec_name').order_by('spec_name')
+        directions = EducationSpecialties.objects.all().values('edu_spec_id', 'edu_spec_name').order_by('edu_spec_name')
     else:
         directions = EducationSpecialties.objects.filter(
-            results_set__res_institution_id__in=institution_ids
-        ).distinct().values('spec_id', 'spec_name').order_by('spec_name')
+            testresults__res_institution_id__in=institution_ids
+        ).distinct().values('edu_spec_id', 'edu_spec_name').order_by('edu_spec_name')
 
     return {
         "status": "success",
         "directions": [
-            {"id": d['spec_id'], "name": d['spec_name']}
+            {"id": d['edu_spec_id'], "name": d['edu_spec_name']}
             for d in directions
         ]
     }
@@ -163,7 +170,7 @@ def get_filter_options_with_counts(request):
     # all filters except the current one
     base_results = TestResults.objects.select_related(
         'res_institution',
-        'res_spec'
+        'res_edu_specialty'
     )
 
     # institutions
@@ -172,11 +179,11 @@ def get_filter_options_with_counts(request):
 
     if selected_directions:
         institutions_query = institutions_query.filter(
-            res_spec__spec_id__in=selected_directions
+            res_edu_specialty__edu_spec_id__in=selected_directions  # ИЗМЕНЕНО: res_edu_specialty
         )
 
     if selected_courses:
-        institutions_query = institutions_query.filter(res_course_num__in=selected_courses)
+        institutions_query = institutions_query.filter(res_course__in=selected_courses)  # ИЗМЕНЕНО: res_course
 
     if selected_test_attempts:
         student_attempts = TestResults.objects \
@@ -221,7 +228,7 @@ def get_filter_options_with_counts(request):
         )
 
     if selected_courses:
-        directions_query = directions_query.filter(res_course_num__in=selected_courses)
+        directions_query = directions_query.filter(res_course__in=selected_courses)  # ИЗМЕНЕНО: res_course
 
     if selected_test_attempts:
         student_attempts = TestResults.objects \
@@ -242,17 +249,17 @@ def get_filter_options_with_counts(request):
         directions_query = directions_query.filter(res_participant__in=valid_students)
 
     directions_counts = directions_query                 \
-        .values('res_spec__spec_id', 'res_spec__spec_name') \
+        .values('res_edu_specialty__edu_spec_id', 'res_edu_specialty__edu_spec_name') \  # ИЗМЕНЕНО
         .annotate(count=Count('res_id'))                 \
         .order_by('-count')
 
     directions_list = [
         {
-            "id":    item['res_spec__spec_id'],
-            "name":  item['res_spec__spec_name'],
+            "id":    item['res_edu_specialty__edu_spec_id'],
+            "name":  item['res_edu_specialty__edu_spec_name'],
             "count": item['count']
         }
-        for item in directions_counts if item['res_spec__spec_name']
+        for item in directions_counts if item['res_edu_specialty__edu_spec_name']
     ]
 
     # courses
@@ -266,7 +273,7 @@ def get_filter_options_with_counts(request):
 
     if selected_directions:
         courses_query = courses_query.filter(
-            res_spec__spec_id__in=selected_directions
+            res_edu_specialty__edu_spec_id__in=selected_directions  # ИЗМЕНЕНО
         )
 
     if selected_test_attempts:
@@ -288,17 +295,17 @@ def get_filter_options_with_counts(request):
         courses_query = courses_query.filter(res_participant__in=valid_students)
 
     courses_counts = courses_query       \
-        .values('res_course_num')        \
+        .values('res_course')        \  # ИЗМЕНЕНО: res_course
         .annotate(count=Count('res_id')) \
-        .order_by('res_course_num')
+        .order_by('res_course')
 
     courses_list = [
         {
-            "id":    item['res_course_num'],
-            "name":  f"{item['res_course_num']} курс",
+            "id":    item['res_course'],
+            "name":  f"{item['res_course']} курс",
             "count": item['count']
         }
-        for item in courses_counts if item['res_course_num']
+        for item in courses_counts if item['res_course']
     ]
 
     # test attempts
@@ -312,11 +319,11 @@ def get_filter_options_with_counts(request):
 
     if selected_directions:
         attempts_query = attempts_query.filter(
-            res_spec__spec_id__in=selected_directions
+            res_edu_specialty__edu_spec_id__in=selected_directions  # ИЗМЕНЕНО
         )
 
     if selected_courses:
-        attempts_query = attempts_query.filter(res_course_num__in=selected_courses)
+        attempts_query = attempts_query.filter(res_course__in=selected_courses)  # ИЗМЕНЕНО: res_course
 
     student_attempts = attempts_query \
         .values('res_participant')    \
@@ -356,19 +363,25 @@ def get_filter_options_with_counts(request):
         for comp_info in competencies_data
     ]
 
+    # Студенты - теперь с именем из StudentMapping
     students_query = Participants.objects         \
-        .annotate(results_count=Count('results')) \
+        .annotate(results_count=Count('testresults')) \  # ИЗМЕНЕНО: related_name
         .filter(results_count__gt=0)              \
-        .order_by('part_rsv_id')[:1000]  # limit by 1000 for performance
+        .order_by('part_rsv')[:1000]  # limit by 1000 for performance
 
-    students_list = [
-        {
+    students_list = []
+    for student in students_query:
+        try:
+            mapping = StudentMapping.objects.get(mapping_rsv=student.part_rsv)
+            student_name = mapping.mapping_stud_name
+        except StudentMapping.DoesNotExist:
+            student_name = student.part_rsv
+            
+        students_list.append({
             "id":     student.part_id,
-            "rsv_id": f"{student.part_rsv} (ID: {student.part_id})",
+            "rsv_id": f"{student_name} (ID: {student.part_id})",
             "count":  student.results_count
-        }
-        for student in students_query
-    ]
+        })
 
     return {"data": {
         "institutions":  institutions_list,
@@ -443,18 +456,18 @@ def get_motivator_statistics(request):
         year = request.GET.get('year')
         group_by = request.GET.get('group_by', 'specialty')  # specialty, course, specialty_course
 
-        # Базовый запрос
+        # Базовый запрос - учебная информация теперь в TestResults
         queryset = TestResults.objects.select_related(
             'res_participant',
-            'res_participant__part_spec',
-            'res_participant__part_institution'
+            'res_edu_specialty',
+            'res_institution'
         )
 
         # Применяем фильтры
         if institute_id:
-            queryset = queryset.filter(res_participant__part_institution__inst_id=institute_id)
+            queryset = queryset.filter(res_institution__inst_id=institute_id)
         if specialty_id:
-            queryset = queryset.filter(res_participant__part_spec__spec_id=specialty_id)
+            queryset = queryset.filter(res_edu_specialty__edu_spec_id=specialty_id)
         if year:
             queryset = queryset.filter(res_year=year)
 
@@ -465,7 +478,7 @@ def get_motivator_statistics(request):
             specialties = EducationSpecialties.objects.all()
             
             for specialty in specialties:
-                specialty_results = queryset.filter(res_participant__part_spec=specialty)
+                specialty_results = queryset.filter(res_edu_specialty=specialty)
                 
                 if not specialty_results.exists():
                     continue
@@ -507,7 +520,7 @@ def get_motivator_statistics(request):
             # Группировка по курсам
             results = []
             for course_num in range(1, 5):  # 1-4 курсы
-                course_results = queryset.filter(res_course_num=course_num)
+                course_results = queryset.filter(res_course=course_num)  # ИЗМЕНЕНО: res_course
                 
                 if not course_results.exists():
                     continue
@@ -556,8 +569,8 @@ def get_motivator_statistics(request):
                 
                 for course_num in range(1, 5):
                     course_results = queryset.filter(
-                        res_participant__part_spec=specialty,
-                        res_course_num=course_num
+                        res_edu_specialty=specialty,
+                        res_course=course_num  # ИЗМЕНЕНО: res_course
                     )
                     
                     if not course_results.exists():
@@ -622,25 +635,40 @@ def get_students_list(request):
         search = request.GET.get('search', '')
         limit = int(request.GET.get('limit', 50))
         
-        queryset = Participants.objects.select_related(
-            'part_institution', 'part_spec', 'part_edu_level', 'part_form'
-        )
+        # Participants теперь содержит только базовую информацию
+        queryset = Participants.objects.all()
         
+        # Поиск по RSV или через StudentMapping
         if search:
+            # Ищем в StudentMapping по имени
+            matching_mappings = StudentMapping.objects.filter(
+                Q(mapping_stud_name__icontains=search) |
+                Q(mapping_rsv__icontains=search)
+            ).values_list('mapping_rsv', flat=True)
+            
             queryset = queryset.filter(
-                Q(part_rsv_id__icontains=search) |
-                Q(part_institution__inst_name__icontains=search) |
-                Q(part_spec__spec_name__icontains=search)
+                Q(part_rsv__icontains=search) |
+                Q(part_rsv__in=matching_mappings)
             )
         
-        # FIXME #
         students = []
         for student in queryset[:limit]:
+            # Пытаемся получить имя из StudentMapping
+            try:
+                mapping = StudentMapping.objects.get(mapping_rsv=student.part_rsv)
+                student_name = mapping.mapping_stud_name
+            except StudentMapping.DoesNotExist:
+                student_name = student.part_rsv
+                
+            # Ищем последний результат для учебной информации
+            latest_result = TestResults.objects.filter(res_participant=student).order_by('-res_year', '-res_course').first()
+            
             students.append({
                 'id': student.part_id,
                 'rsv_id': student.part_rsv,
-                'institution': student.part_institution.inst_name if student.part_institution else 'Не указан',
-                'specialty': student.part_spec.spec_name if student.part_spec else 'Не указана',
+                'name': student_name,
+                'institution': attrIfObj(latest_result.res_institution, 'inst_name') if latest_result else 'Не указан',
+                'specialty': attrIfObj(latest_result.res_edu_specialty, 'edu_spec_name') if latest_result else 'Не указана',
                 'course': student.part_course_num,
                 'gender': student.part_gender
             })
@@ -670,24 +698,33 @@ def get_student_portrait(request):
         
         # Получаем основную информацию о студенте
         try:
-            student = Participants.objects.select_related(
-                'part_institution', 'part_spec', 'part_edu_level', 'part_form'
-            ).get(part_id=student_id)
+            student = Participants.objects.get(part_id=student_id)
         except Participants.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'Student not found'}, status=404)
         
-        # FIXME #
+        # Ищем маппинг для получения ФИО
+        try:
+            mapping = StudentMapping.objects.get(mapping_rsv=student.part_rsv)
+            student_name = mapping.mapping_stud_name
+        except StudentMapping.DoesNotExist:
+            student_name = student.part_rsv
+        
+        # Ищем последний результат для учебной информации
+        latest_result = TestResults.objects.filter(res_participant=student).order_by('-res_year', '-res_course').first()
+        
         # Основная информация
         student_info = {
             'id': student.part_id,
             'rsv_id': student.part_rsv,
+            'name': student_name,
             'gender': student.part_gender or 'Не указан',
-            'institution': student.part_institution.inst_name if student.part_institution else 'Не указано',
-            'institution_id': student.part_institution.inst_id if student.part_institution else None,
-            'specialty': student.part_spec.spec_name if student.part_spec else 'Не указана',
-            'specialty_id': student.part_spec.spec_id if student.part_spec else None,
-            'edu_level': student.part_edu_level.edu_level_name if student.part_edu_level else 'Не указан',
-            'study_form': student.part_form.form_name if student.part_form else 'Не указана',
+            # Учебная информация из последнего TestResults
+            'institution': attrIfObj(latest_result.res_institution, 'inst_name') if latest_result else 'Не указано',
+            'institution_id': latest_result.res_institution.inst_id if latest_result and latest_result.res_institution else None,
+            'specialty': attrIfObj(latest_result.res_edu_specialty, 'edu_spec_name') if latest_result else 'Не указана',
+            'specialty_id': latest_result.res_edu_specialty.edu_spec_id if latest_result and latest_result.res_edu_specialty else None,
+            'edu_level': attrIfObj(latest_result.res_edu_level, 'edu_level_name') if latest_result else 'Не указан',
+            'study_form': attrIfObj(latest_result.res_edu_form, 'edu_form_name') if latest_result else 'Не указана',
             'current_course': student.part_course_num
         }
         
@@ -744,9 +781,9 @@ def get_student_portrait(request):
             
             test_results.append({
                 'year': result.res_year,
-                'course_num': result.res_course,
+                'course': result.res_course,  # ИЗМЕНЕНО: res_course вместо course_num
                 'center': result.res_center.center_name if result.res_center else None,
-                'high_potential': result.res_potential,
+                'potential': result.res_potential,  # ИЗМЕНЕНО: potential вместо high_potential
                 'competencies': competencies,
                 'motivators': motivators,
                 'values': values
@@ -754,15 +791,21 @@ def get_student_portrait(request):
         
         # Получаем оценки по дисциплинам
         academic_performance = AcademicPerformances.objects.filter(
-            perf_part=student
-        ).order_by('perf_year', 'perf_discipline')
+            perf_participant=student
+        ).select_related('perf_edu_discipline').order_by('perf_year', 'perf_edu_discipline__edu_disc_name')
         
         grades = []
         for grade in academic_performance:
             grades.append({
                 'year': grade.perf_year,
-                'discipline': grade.perf_edu_discipline,
-                'main_attestation': grade.perf_main,
+                'discipline': grade.perf_edu_discipline.edu_disc_name if grade.perf_edu_discipline else None,
+                'main': grade.perf_main,  # ИЗМЕНЕНО: main вместо main_attestation
+                'current': grade.perf_current,
+                'digital': grade.perf_digital,
+                'first_retake': grade.perf_first_retake,
+                'second_retake': grade.perf_second_retake,
+                'grade_retake': grade.perf_grade_retake,
+                'final': grade.perf_final,
             })
         
         # Получаем пройденные курсы
