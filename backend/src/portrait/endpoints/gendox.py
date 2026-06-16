@@ -26,12 +26,16 @@ def generate_docx_resume(request):
 
     # данные студента
     try:
-        # FIXME #
-        participant = Participants.objects                                                      \
-            .select_related(tPART.INSTITUTION, tPART.EDU_SPEC, tPART.EDU_FORM, tPART.EDU_LEVEL) \
-            .get(**{tPART.ID: student_id})
+        participant = Participants.objects.get(**{tPART.ID: student_id})
     except Participants.DoesNotExist:
         raise ResponseError(f"Participant {student_id} not found", status=404)
+
+    # Ищем маппинг для получения ФИО
+    try:
+        mapping = StudentMapping.objects.get(mapping_rsv=participant.part_rsv)
+        student_name = mapping.mapping_stud_name
+    except StudentMapping.DoesNotExist:
+        student_name = participant.part_rsv or f"Участник {student_id}"
 
     # последние результаты для компетенций
     latest_result = TestResults.objects                       \
@@ -39,15 +43,21 @@ def generate_docx_resume(request):
         .order_by(desc(tRES.YEAR), desc(tRES.COURSE_NUM)) \
         .first()
 
-    # данные для ИИ
-    # FIXME #
+    # данные для ИИ (учебная информация теперь в TestResults)
     competencies_dict = {}
     student_info = {
-        'direction': participant.part_spec.spec_name if participant.part_spec else '',
+        'direction': '',
         'course':    participant.part_course_num or 1,
-        'form':      participant.part_form.form_name if participant.part_form else '',
-        'level':     participant.part_edu_level.edu_level_name if participant.part_edu_level else ''
+        'form':      '',
+        'level':     '',
+        'institution': ''
     }
+
+    if latest_result:
+        student_info['direction'] = latest_result.res_edu_specialty.edu_spec_name if latest_result.res_edu_specialty else ''
+        student_info['form'] = latest_result.res_edu_form.edu_form_name if latest_result.res_edu_form else ''
+        student_info['level'] = latest_result.res_edu_level.edu_level_name if latest_result.res_edu_level else ''
+        student_info['institution'] = latest_result.res_institution.inst_name if latest_result.res_institution else ''
 
     # Список компетенций в порядке, который используется в genutils
     # fixme why the order??????????
@@ -88,7 +98,7 @@ def generate_docx_resume(request):
 
     # ФИО (крупным жирным шрифтом)
     name_para = doc.add_paragraph()
-    name_run = name_para.add_run('ФИО')  # fixme put actual name
+    name_run = name_para.add_run(student_name)
     name_run.font.size = Pt(20)
     name_run.font.bold = True
     name_run.font.color.rgb = RGBColor(0, 0, 0)
@@ -120,8 +130,7 @@ def generate_docx_resume(request):
     heading.runs[0].font.color.rgb = RGBColor(0, 70, 140)
     heading.space_after = Pt(10)
 
-    # FIXME #
-    edu_level = participant.part_edu_level.edu_level_name if participant.part_edu_level else 'Не указано'
+    edu_level = student_info['level'] or 'Не указано'
 
     info_items = [
         f"Место проживания:",
@@ -163,13 +172,12 @@ def generate_docx_resume(request):
     heading.runs[0].font.color.rgb = RGBColor(0, 70, 140)
     heading.space_after = Pt(10)
 
-    # FIXME #
     edu_items = [
         f"Уровень образования: {edu_level}",
-        f"Учебное заведение: {participant.part_institution.inst_name if participant.part_institution else 'Не указано'}",
+        f"Учебное заведение: {student_info['institution'] or 'Не указано'}",
         f"Год окончания: ____________________",
-        f"Специальность: {participant.part_spec.spec_name if participant.part_spec else 'Не указано'}",
-        f"Форма обучения: {participant.part_form.form_name if participant.part_form else 'Не указана'}"
+        f"Специальность: {student_info['direction'] or 'Не указано'}",
+        f"Форма обучения: {student_info['form'] or 'Не указана'}"
     ]
 
     for item in edu_items:
@@ -244,7 +252,7 @@ def generate_docx_resume(request):
     footer_run.font.color.rgb = RGBColor(150, 150, 150)
     footer_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-    return docxResponse(doc, f"Резюме.docx")
+    return docxResponse(doc, f"Резюме_{student_name}.docx")
 
 
 @cached()
@@ -259,10 +267,17 @@ def get_student_resume_data(request):
     if not student_id:
         raise ResponseError("student_id required")
 
-    # FIXME #
-    participant = Participants.objects                                                      \
-        .select_related(tPART.INSTITUTION, tPART.EDU_SPEC, tPART.EDU_FORM, tPART.EDU_LEVEL) \
-        .get(**{tPART.ID: student_id})
+    try:
+        participant = Participants.objects.get(**{tPART.ID: student_id})
+    except Participants.DoesNotExist:
+        raise ResponseError(f"Participant {student_id} not found", status=404)
+
+    # Ищем маппинг для получения ФИО
+    try:
+        mapping = StudentMapping.objects.get(mapping_rsv=participant.part_rsv)
+        student_name = mapping.mapping_stud_name
+    except StudentMapping.DoesNotExist:
+        student_name = participant.part_rsv or f"Участник {student_id}"
 
     results = TestResults.objects.filter(**{tRES.PARTICIPANT: participant})
     if year:
@@ -274,19 +289,20 @@ def get_student_resume_data(request):
 
     latest_result = results.first()
 
-    # FIXME #
+    # Учебная информация теперь в TestResults
     resume_data = {
         'personal_info': {
-            'name':       participant.part_rsv_id or '',
+            'name':       student_name,
             'gender':     participant.part_gender or '',
-            'student_id': student_id
+            'student_id': student_id,
+            'rsv_id':     participant.part_rsv
         },
         'education': {
-            'institution': participant.part_institution.inst_name if participant.part_institution else '',
-            'direction':   participant.part_spec.spec_name if participant.part_spec else '',
-            'form':        participant.part_form.form_name if participant.part_form else '',
-            'level':       participant.part_edu_level.edu_level_name if participant.part_edu_level else '',
-            'course':      participant.part_course_num
+            'institution': latest_result.res_institution.inst_name if latest_result.res_institution else '',
+            'direction':   latest_result.res_edu_specialty.edu_spec_name if latest_result.res_edu_specialty else '',
+            'form':        latest_result.res_edu_form.edu_form_name if latest_result.res_edu_form else '',
+            'level':       latest_result.res_edu_level.edu_level_name if latest_result.res_edu_level else '',
+            'course':      participant.part_course_num or latest_result.res_course
         },
         'competencies': [],
         'generated_at': datetime.now().isoformat(),
@@ -481,22 +497,31 @@ def generate_geography_report(request):
     doc.add_heading('3. География студентов', level=1)
 
     # Получаем данные о студентах
-    # FIXME #
     students_data = []
     for result in results:
         participant = result.res_participant
-        if participant and participant.part_institution:
+        if participant:
+            # Ищем маппинг для получения ФИО
+            try:
+                mapping = StudentMapping.objects.get(mapping_rsv=participant.part_rsv)
+                student_name = mapping.mapping_stud_name
+            except StudentMapping.DoesNotExist:
+                student_name = participant.part_rsv
+                
             students_data.append({
-                'student_id': participant.part_rsv_id,
-                'institution': participant.part_institution.inst_name,
-                'specialty': participant.part_spec.spec_name if participant.part_spec else None,
-                'course': participant.part_course_num
+                'student_id': participant.part_id,
+                'rsv_id': participant.part_rsv,
+                'name': student_name,
+                'institution': result.res_institution.inst_name if result.res_institution else None,
+                'specialty': result.res_edu_specialty.edu_spec_name if result.res_edu_specialty else None,
+                'course': participant.part_course_num or result.res_course
             })
 
     # Группировка по вузам
     institution_stats = defaultdict(int)
     for student in students_data:
-        institution_stats[student['institution']] += 1
+        if student['institution']:
+            institution_stats[student['institution']] += 1
 
     doc.add_heading('Распределение студентов по учебным заведениям:', level=2)
     table = doc.add_table(rows=1, cols=3)
@@ -593,15 +618,18 @@ def generate_geography_report(request):
 
 def format_gender(gender_code):
     """Преобразует код пола в читаемый формат."""
-    if not gender_code:
+    if gender_code is None:
         return "Не указан"
+    # В новой БД пол хранится как INT (1 - мужской, 2 - женский)
     gender_map = {
+        1: 'Мужской',
+        2: 'Женский',
         'м': 'Мужской',
         'М': 'Мужской',
         'ж': 'Женский',
         'Ж': 'Женский'
     }
-    return gender_map.get(gender_code.lower(), gender_code)
+    return gender_map.get(gender_code, str(gender_code))
 
 
 def generate_general_interpretation_with_ai_for_resume(student_info, competencies_dict):
@@ -644,12 +672,7 @@ def generate_general_interpretation_with_ai_for_resume(student_info, competencie
     if not text or any(phrase in text.lower() for phrase in ['внешность', 'возраст', 'рост', 'характер', 'build']):
         print("[model] (!): model got high and generated garbage")
 
-    # Очистка от лишних символов
-    '''text = text.split('\n')[0].strip()
-    if text.endswith(','):
-        text = text[:-1]'''
     return text
-
 
 
 def generate_general_interpretation_with_ai(student_info, competencies_dict):
@@ -694,8 +717,4 @@ def generate_general_interpretation_with_ai(student_info, competencies_dict):
     if not text or any(phrase in text.lower() for phrase in ['внешность', 'возраст', 'рост', 'характер', 'build']):
         print("[model] (!): model got high and generated garbage")
 
-    # Очистка от лишних символов
-    '''text = text.split('\n')[0].strip()
-    if text.endswith(','):
-        text = text[:-1]'''
     return text
