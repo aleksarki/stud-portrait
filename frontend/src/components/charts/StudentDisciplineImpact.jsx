@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 
 import { getStudentDisciplineImpact } from '../../api';
 import { COMPETENCIES_NAMES } from '../../utilities';
+import { disciplineAffectsCompetency } from '../../disciplineCompetencyMap';
 
 const StudentDisciplineImpact = ({ studentId }) => {
     const [data, setData] = useState(null);
@@ -34,48 +35,60 @@ const StudentDisciplineImpact = ({ studentId }) => {
 
     return (
         <div className="student-discipline-impact">
-            <h3>📚 Влияние дисциплин на ваши компетенции</h3>
+            <h3>Влияние дисциплин на ваши компетенции</h3>
             <p className="info-text">
                 Для каждой дисциплины показаны баллы компетенций до и после её изучения, а также изменение.
             </p>
             <div className="disciplines-list">
-                {data.map((item, idx) => (
-                    <div key={idx} className="discipline-card">
-                        <div className="discipline-header">
-                            <strong>{item.discipline}</strong>
-                            <span>Оценка: {item.grade}</span>
-                            <span>Год: {item.year}</span>
-                        </div>
-                        <table className="impact-table">
-                            <thead>
-                                <tr>
-                                    <th>Компетенция</th>
-                                    <th>До</th>
-                                    <th>После</th>
-                                    <th>Изменение</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {Object.entries(item.competencies_before).map(([comp, before]) => {
-                                    const after = item.competencies_after[comp];
-                                    if (after === undefined) return null;
-                                    const diff = after - before;
-                                    const diffClass = diff > 0 ? 'positive' : diff < 0 ? 'negative' : 'neutral';
-                                    return (
-                                        <tr key={comp}>
-                                            <td>{COMPETENCIES_NAMES[comp] || comp}</td>
-                                            <td>{before}</td>
-                                            <td>{after}</td>
-                                            <td className={`diff ${diffClass}`}>
-                                                {diff > 0 ? '+' : ''}{diff}
-                                            </td>
+                {data.map((item, idx) => {
+                    const rows = Object.entries(item.competencies_before)
+                        .map(([comp, before]) => {
+                            const after = item.competencies_after[comp];
+                            if (after === undefined) return null;
+                            const compName = COMPETENCIES_NAMES[comp] || comp;
+                            if (!disciplineAffectsCompetency(item.discipline, comp)) return null;
+                            const diff = after - before;
+                            const diffClass = diff > 0 ? 'positive' : diff < 0 ? 'negative' : 'neutral';
+                            return { comp, compName, before, after, diff, diffClass };
+                        })
+                        .filter(Boolean);
+
+                    return (
+                        <div key={idx} className="discipline-card">
+                            <div className="discipline-header">
+                                <strong>{item.discipline}</strong>
+                                <span>Оценка: {item.grade}</span>
+                                <span>Год: {item.year}</span>
+                            </div>
+                            {rows.length === 0 ? (
+                                <div className="no-data">Нет данных по связанным компетенциям</div>
+                            ) : (
+                                <table className="impact-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Компетенция</th>
+                                            <th>До</th>
+                                            <th>После</th>
+                                            <th>Изменение</th>
                                         </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                ))}
+                                    </thead>
+                                    <tbody>
+                                        {rows.map(({ comp, compName, before, after, diff, diffClass }) => (
+                                            <tr key={comp}>
+                                                <td>{compName}</td>
+                                                <td>{before}</td>
+                                                <td>{after}</td>
+                                                <td className={`diff ${diffClass}`}>
+                                                    {diff > 0 ? '+' : ''}{diff}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );

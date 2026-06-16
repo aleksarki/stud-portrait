@@ -262,46 +262,6 @@ function StudentMainView() {
                                     <p>{analyticsData.general_interpretation}</p>
                                 </div>
                             )}
-
-                            <div className="analytics-cards-grid">
-                                {analyticsData.competencies?.map((comp) => {
-                                    if (!comp.ai) return null;
-                                    return (
-                                        <div key={comp.field} className="analytics-card">
-                                            <div className="analytics-card-header">
-                                                <div className="competency-title">
-                                                    <span className="emoji">{comp.ai.emoji}</span>
-                                                    <h3>{comp.name}</h3>
-                                                </div>
-                                                <div className="score-badge">{comp.score}/800</div>
-                                            </div>
-                                            <div className="progress-bar">
-                                                <div
-                                                    className="progress-fill"
-                                                    style={{ width: `${comp.percentage}%`, backgroundColor: comp.ai.color }}
-                                                />
-                                            </div>
-                                            <div className="level-indicator" style={{ color: comp.ai.color }}>
-                                                <strong>{comp.ai.level.toUpperCase()}</strong> уровень
-                                                <span className="percentile">({comp.ai.percentile}-й процентиль)</span>
-                                            </div>
-                                            <div className="interpretation">
-                                                <p>{comp.ai.interpretation}</p>
-                                            </div>
-                                            {comp.ai.recommendations?.length > 0 && (
-                                                <div className="recommendations">
-                                                    <strong>📌 Рекомендации:</strong>
-                                                    <ul>
-                                                        {comp.ai.recommendations.map((rec, idx) => (
-                                                            <li key={idx}>{rec}</li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
                         </div>
                     )}
 
