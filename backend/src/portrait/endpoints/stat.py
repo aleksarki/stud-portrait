@@ -26,10 +26,10 @@ def get_year_metrics(year, filter):
     valid_values = [v for v in avgs.values() if v is not None]
     total_avg = sum(valid_values) / len(COMP.list) if valid_values else 0
 
-    participant_ids = list(res_queryset.values_list('res_participant__part_id', flat=True).distinct())
+    participant_ids = list(res_queryset.values_list('res_participant_id', flat=True).distinct())
     total_students = res_queryset.values('res_participant').distinct().count()
     students_with_courses = CourseResults.objects.filter(
-        course_participant__in=participant_ids 
+        course_participant_id__in=participant_ids 
     ).count()
     
     for f in MOT.list: ## мотиваторы
@@ -47,7 +47,7 @@ def get_year_metrics(year, filter):
             max_demot["name"]=f
     
     course_percent = (students_with_courses / total_students * 100) if total_students > 0 else 0
-    students_uni = total_students * 1.2 #тут должны быть обучающиеся в унике вообще
+    students_uni = total_students * 1.2  # тут должны быть обучающиеся в унике вообще
     return {
         "total_avg": round(total_avg, 2),
         "course_percent": round(course_percent, 1),
@@ -63,11 +63,11 @@ def filter_dash(request):
     try:
         inst = request.GET.get('institute')   
         if inst:
-            base=TestResults.objects.filter(res_institution__inst_name=inst)
-            specialties=list(base.values_list('res_spec__spec_name', flat=True).distinct())
+            base = TestResults.objects.filter(res_institution__inst_name=inst)
+            specialties = list(base.values_list('res_edu_specialty__edu_spec_name', flat=True).distinct())
             years = base.values_list('res_year', flat=True).distinct()
         else:
-            specialties = list(TestResults.objects.values_list('res_spec__spec_name', flat=True).distinct())
+            specialties = list(TestResults.objects.values_list('res_edu_specialty__edu_spec_name', flat=True).distinct())
             years = TestResults.objects.values_list('res_year', flat=True).distinct()
         
         institutes = list(TestResults.objects.values_list('res_institution__inst_name', flat=True).distinct())
@@ -98,10 +98,10 @@ def overall_stats(request):
             max_year=max(max_year, year+1)
         response_data = {
             "status": "success", 
-            'unis':unis,
-            'results':results,
-            'centers':centers,
-            'years': {'min':min_year, 'max':max_year}
+            'unis': unis,
+            'results': results,
+            'centers': centers,
+            'years': {'min': min_year, 'max': max_year}
         }
         return JsonResponse(response_data)
     except Exception as e:
@@ -120,7 +120,7 @@ def get_dashboard_stats(request):
 
         base_filter = {}
         if inst: base_filter['res_institution__inst_name'] = inst
-        if spec: base_filter['res_spec__spec_name'] = spec
+        if spec: base_filter['res_edu_specialty__edu_spec_name'] = spec
         
         if year:
             curr_year = year
@@ -146,15 +146,15 @@ def get_dashboard_stats(request):
             rows_data = TestResults.objects                                     \
                 .filter(res_year=curr_year, res_institution__inst_name=uni) \
                 .values_list(*COMP.list)
-            rows=np.array([np.array([np.nan if i==0 else i for i in row]) for row in rows_data]).astype(float)
+            rows = np.array([np.array([np.nan if i is None or i == 0 else i for i in row]) for row in rows_data]).astype(float)
             avg = np.mean(np.delete(rows, np.where(np.isnan(rows))))
             rate_list.append({'uni_name': uni, 'overall_avg': round(avg,3)})
-        rate_list=sorted(
+        rate_list = sorted(
             rate_list,
             key=lambda x: (x['overall_avg'] is None, -(x['overall_avg'] or 0))
         )
-        if inst: #место выбранного в %
-            place=[i for i, item in enumerate(rate_list) if item['uni_name'] == inst]
+        if inst:  # место выбранного в %
+            place = [i for i, item in enumerate(rate_list) if item['uni_name'] == inst]
             if len(place)>0:
                 uni_place = place[0]/len(rate_list) * 100
             else: uni_place = -1
@@ -163,7 +163,7 @@ def get_dashboard_stats(request):
 
         else: 
             uni_place = 0
-            best_uni = next((r for r in rate_list if r['overall_avg'] is not None), None) #Лучший ВУЗ
+            best_uni = next((r for r in rate_list if r['overall_avg'] is not None), None)  # Лучший ВУЗ
             
             if best_uni:
                 uni_name = best_uni['uni_name']
@@ -171,51 +171,50 @@ def get_dashboard_stats(request):
             else:
                 uni_name = "Нет данных"
                 uni_score = 0
-        print(uni_name, uni_place, uni_score)
+        
         sorted_comps = sorted(curr_data['all_comps'].items(), key=lambda x: x[1], reverse=True)
         sorted_comps_prev = sorted(prev_data['all_comps'].items(), key=lambda x: x[1], reverse=True)
         
         if not sorted_comps:
             best_comp = {"name": "-", "val": 0}
             worst_comp = {"name": "-", "val": 0}
-            best_comp = {"name": "-", "val": 0}
-            worst_comp = {"name": "-", "val": 0}
+            best_comp_prev = {"name": "-", "val": 0}
+            worst_comp_prev = {"name": "-", "val": 0}
         else:
             best_comp_prev = {"name": sorted_comps_prev[0][0], "val": prev_data['all_comps'][sorted_comps_prev[0][0]]}
             worst_comp_prev = {"name": sorted_comps_prev[-1][0], "val": prev_data['all_comps'][sorted_comps_prev[-1][0]]}
             best_comp = {"name": sorted_comps[0][0], "val": sorted_comps[0][1]}
             worst_comp = {"name": sorted_comps[-1][0], "val": sorted_comps[-1][1]}
-        chart=[]
+        
+        chart = []
         for k, v in curr_data['all_comps'].items():
-            delta=v-prev_data['all_comps'][k]
-            if prev_data['all_comps'][k]==0:
-                delta=0
+            delta = v - prev_data['all_comps'][k]
+            if prev_data['all_comps'][k] == 0:
+                delta = 0
             chart.append({"name": k, "score": v, "prev_score": prev_data['all_comps'][k]})
-            #table.append({"name": k, "score": v, "prev_score": prev_data['all_comps'][k], "delta": delta})
         
         base_filter['res_year'] = curr_year
-        radar=get_competency_stats_courses(base_filter) #radar
+        radar = get_competency_stats_courses(base_filter)  # radar
         
-        motiv={'name':{'prev': '-', 'curr':'-'}, 'count': {'prev': 0, 'curr': 0}}
+        motiv = {'name': {'prev': '-', 'curr': '-'}, 'count': {'prev': 0, 'curr': 0}}
         
-        #топ мотиватор
-        if prev_data["motivator"]["name"]==curr_data["motivator"]["name"]:
-            motiv['name']={'prev': curr_data["motivator"]["name"], 'curr': curr_data["motivator"]["name"]}
-            motiv['count']={'prev':prev_data["motivator"]["count"], 'curr':curr_data["motivator"]["count"]}
+        # топ мотиватор
+        if prev_data["motivator"]["name"] == curr_data["motivator"]["name"]:
+            motiv['name'] = {'prev': curr_data["motivator"]["name"], 'curr': curr_data["motivator"]["name"]}
+            motiv['count'] = {'prev': prev_data["motivator"]["count"], 'curr': curr_data["motivator"]["count"]}
         else:
-            motiv['name']={'prev':prev_data["motivator"]["name"], 'curr':curr_data["motivator"]["name"]}
-            motiv['count']={'prev':prev_data["motivator"]["count"], 'curr':curr_data["motivator"]["count"]}
+            motiv['name'] = {'prev': prev_data["motivator"]["name"], 'curr': curr_data["motivator"]["name"]}
+            motiv['count'] = {'prev': prev_data["motivator"]["count"], 'curr': curr_data["motivator"]["count"]}
         
-        #демотиватор
-        demotiv={'name':{'prev': '-', 'curr':'-'}, 'count': {'prev': 0, 'curr': 0}}
-        if prev_data["demotivator"]["name"]==curr_data["demotivator"]["name"]:
-            demotiv['name']={'prev': curr_data["demotivator"]["name"], 'curr': curr_data["demotivator"]["name"]}
-            demotiv['count']={'prev':prev_data["demotivator"]["count"], 'curr':curr_data["demotivator"]["count"]}
+        # демотиватор
+        demotiv = {'name': {'prev': '-', 'curr': '-'}, 'count': {'prev': 0, 'curr': 0}}
+        if prev_data["demotivator"]["name"] == curr_data["demotivator"]["name"]:
+            demotiv['name'] = {'prev': curr_data["demotivator"]["name"], 'curr': curr_data["demotivator"]["name"]}
+            demotiv['count'] = {'prev': prev_data["demotivator"]["count"], 'curr': curr_data["demotivator"]["count"]}
         else:
-            demotiv['name']={'prev':prev_data["demotivator"]["name"], 'curr':curr_data["demotivator"]["name"]}
-            demotiv['count']={'prev':prev_data["demotivator"]["count"], 'curr':curr_data["demotivator"]["count"]}
+            demotiv['name'] = {'prev': prev_data["demotivator"]["name"], 'curr': curr_data["demotivator"]["name"]}
+            demotiv['count'] = {'prev': prev_data["demotivator"]["count"], 'curr': curr_data["demotivator"]["count"]}
         
-
         response_data = {
             "status": "success",
             "col1": {
@@ -243,24 +242,24 @@ def get_dashboard_stats(request):
         }
         return JsonResponse(response_data)
         
-
     except Exception as e:
         print(traceback.format_exc())
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
-#это вспомогательная
+
+# это вспомогательная
 def get_competency_stats_courses(filter):
     courses = [1, 2, 3, 4]
     results = {}
     main = TestResults.objects.filter(**filter)
     for course in courses:
-        qs = main.filter(res_course_num=course)
+        qs = main.filter(res_course=course)  # ИЗМЕНЕНО: res_course вместо res_course_num
         if qs.exists():
             avgs = qs.aggregate(**{field: Avg(field) for field in COMP.list})
             results[course] = avgs
         else:
             results[course] = {f: 0 for f in COMP.list}
-    #print(results)
+    
     chart_data = []
     for field in COMP.list:
         row = {"name": field}
@@ -274,15 +273,15 @@ def get_competency_stats_courses(filter):
 @cached()
 def get_motivation_counts(request):
     try:
-        
         inst = request.GET.get('institute')
         spec = request.GET.get('specialty')
         year = request.GET.get('year')
 
         base_filter = {}
         if inst: base_filter['res_institution__inst_name'] = inst
-        if spec: base_filter['res_spec__spec_name'] = spec
-        if year:    base_filter['res_year'] = year
+        if spec: base_filter['res_edu_specialty__edu_spec_name'] = spec
+        if year: base_filter['res_year'] = year
+        
         courses = [1, 2, 3, 4]
         results = {}
         bar_data = []
@@ -299,7 +298,7 @@ def get_motivation_counts(request):
                                 'high': {f: 0 for f in MOT.list},
                                 'mid': {f: 0 for f in MOT.list}}
                                 
-                cnt_all = TestResults.objects.filter(res_course_num=course, **base_filter)
+                cnt_all = TestResults.objects.filter(res_course=course, **base_filter)  # ИЗМЕНЕНО: res_course
                 cnt_low = cnt_all.filter(**{f"{field}__lt": 400}).count() 
                 cnt_high = cnt_all.filter(**{f"{field}__gte": 600}).count() 
                 cnt_mid = cnt_all.count() - cnt_low - cnt_high
@@ -309,32 +308,40 @@ def get_motivation_counts(request):
                 cnt_high_all += cnt_high
                 cnt_mid_all += cnt_mid
 
-                row[f"course_{course}_high"] = cnt_low/cnt_all.count() if (cnt_all !=0) else 0
-                row[f"course_{course}_low"] = cnt_high/cnt_all.count() if (cnt_all !=0) !=0 else 0
-                row[f"course_{course}_mid"] = cnt_mid/cnt_all.count() if cnt_all !=0 else 0
+                row[f"course_{course}_high"] = cnt_low / cnt_all.count() if (cnt_all.count() != 0) else 0
+                row[f"course_{course}_low"] = cnt_high / cnt_all.count() if (cnt_all.count() != 0) else 0
+                row[f"course_{course}_mid"] = cnt_mid / cnt_all.count() if cnt_all.count() != 0 else 0
             
-            row["all_high"] = cnt_high_all/cnt_all_all if cnt_all_all!=0 else 0
-            row["all_low"] = cnt_low_all/cnt_all_all if cnt_all_all!=0 else 0
-            row["all_mid"] = cnt_mid_all/cnt_all_all if cnt_all_all!=0 else 0
+            row["all_high"] = cnt_high_all / cnt_all_all if cnt_all_all != 0 else 0
+            row["all_low"] = cnt_low_all / cnt_all_all if cnt_all_all != 0 else 0
+            row["all_mid"] = cnt_mid_all / cnt_all_all if cnt_all_all != 0 else 0
             bar_data.append(row)
 
-        response_data={"status": "success", "data": bar_data}
+        response_data = {"status": "success", "data": bar_data}
         return JsonResponse(response_data)
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
-scores={
-    'неудовл.':2,
-    'удовл.':3,
-    'хор.':4,
-    'отл.':5
+
+scores = {
+    'неудовл.': 2,
+    'удовл.': 3,
+    'хор.': 4,
+    'отл.': 5,
+    # Добавляем числовые варианты для новой БД
+    '2': 2,
+    '3': 3,
+    '4': 4,
+    '5': 5,
+    'не явился': 1,
+    '1': 1
 }
 
 
 @cached()
 def get_scores_result(request):
     try:
-        if (AcademicPerformances.objects.count()==0):
+        if (AcademicPerformances.objects.count() == 0):
             return JsonResponse({"status": "error", "message": 'no performance data'}, status=500)
     
         inst = request.GET.get('institute')
@@ -343,48 +350,49 @@ def get_scores_result(request):
 
         base_filter = {}
         if inst: base_filter['res_institution__inst_name'] = inst
-        if spec: base_filter['res_spec__spec_name'] = spec
-        if year:    base_filter['res_year'] = year
+        if spec: base_filter['res_edu_specialty__edu_spec_name'] = spec
+        if year: base_filter['res_year'] = year
 
         main = TestResults.objects.filter(**base_filter)
         if not main:
-            response_data={"status": "error", "message": "empty results queryset", "data": [], "names": []}
+            response_data = {"status": "error", "message": "empty results queryset", "data": [], "names": []}
             return JsonResponse(response_data, status=500) 
-        participant_ids = list(main.values_list('res_participant__part_id', flat=True).distinct())
-        result=[]
+        
+        participant_ids = list(main.values_list('res_participant_id', flat=True).distinct())
+        result = []
         avgs = {}
-        comp_by_part={}
+        comp_by_part = {}
 
         for pid in participant_ids:
-            part_comps = main.filter(res_participant__part_id=pid)
-            if part_comps.count()>1:
+            part_comps = main.filter(res_participant_id=pid)
+            if part_comps.count() > 1:
                 part_comps = part_comps.aggregate(**{field: Avg(field) for field in COMP.list})
             else:
                 part_comps = list(part_comps.values(*COMP.list))[0]
-                #print(part_comps)
             count = 0
-            sum = 0 
+            sum_val = 0 
             comp_by_part[pid] = {}
             for comp in COMP.list:
-                comp_by_part[pid][comp]=part_comps.get(comp) if part_comps.get(comp) is not None else 0
-                if part_comps.get(comp) is not None and part_comps.get(comp)!=0:
-                    count+=1
-                    sum+=part_comps.get(comp)
-            comp_by_part[pid]['avg']=sum/count if count!=0 else 0
+                comp_by_part[pid][comp] = part_comps.get(comp) if part_comps.get(comp) is not None else 0
+                if part_comps.get(comp) is not None and part_comps.get(comp) != 0:
+                    count += 1
+                    sum_val += part_comps.get(comp)
+            comp_by_part[pid]['avg'] = sum_val / count if count != 0 else 0
+            
         ap = AcademicPerformances.objects.filter(
-            perf_part__in=participant_ids
-        ).values('perf_part_id', 'perf_discipline', 'perf_main_attestation')
+            perf_participant_id__in=participant_ids  # ИЗМЕНЕНО: perf_participant_id
+        ).values('perf_participant_id', 'perf_edu_discipline__edu_disc_name', 'perf_main')
 
-        #disciplines = list({r['perf_discipline'] for r in ap})
-        disciplines = ['ПИР','УП','Эксплуатационная практика','Преддипломная практика']
+        # disciplines - берем из таблицы EducationDisciplines
+        disciplines = ['ПИР', 'УП', 'Эксплуатационная практика', 'Преддипломная практика']
         by_discipline = defaultdict(list)
         
         for record in ap:
-            pid = record['perf_part_id']
-            grade=scores.get(record['perf_main_attestation'])
+            pid = record['perf_participant_id']
+            grade = record['perf_main']  # ИЗМЕНЕНО: теперь число (1-5), не строка
             if grade is None or comp_by_part[pid]['avg'] is None:
                 continue
-            by_discipline[record['perf_discipline']].append({
+            by_discipline[record['perf_edu_discipline__edu_disc_name']].append({
                 'participant_id': pid,
                 'grade': grade,
                 **comp_by_part.get(pid, {}),
@@ -394,8 +402,7 @@ def get_scores_result(request):
             {'discipline': disc, 'participants': parts}
             for disc, parts in by_discipline.items()
         ]
-        #print('we tuta1?')  ## lol what # )))
-        response_data={"status": "success", "data": result, "names":disciplines}
+        response_data = {"status": "success", "data": result, "names": disciplines}
         return JsonResponse(response_data) 
     except Exception as e:
         import traceback
@@ -426,11 +433,11 @@ def calc_boxplot(values, ids):
     ]
 
     return [
-        int(np.min(non_outliers)), 
+        int(np.min(non_outliers)) if len(non_outliers) > 0 else int(np.min(arr)),
         int(q1),
         int(np.percentile(arr, 50)),
         int(q3),
-        int(np.max(non_outliers)),  
+        int(np.max(non_outliers)) if len(non_outliers) > 0 else int(np.max(arr)),
     ], outliers
 
 
@@ -443,25 +450,25 @@ def get_data_boxplot(request):
 
         base_filter = {}
         if inst: base_filter['res_institution__inst_name'] = inst
-        if spec: base_filter['res_spec__spec_name'] = spec
-        if year:    base_filter['res_year'] = year
+        if spec: base_filter['res_edu_specialty__edu_spec_name'] = spec
+        if year: base_filter['res_year'] = year
         
         data_all = list(  
             TestResults.objects.filter(**base_filter)
-            .values('res_participant__part_id', *COMP.list)
+            .values('res_participant_id', *COMP.list)  # ИЗМЕНЕНО: res_participant_id
         )
-        data=[]
+        data = []
         for f in COMP.list:
             values = [row[f] for row in data_all]
-            ids    = [row['res_participant__part_id'] for row in data_all]
+            ids    = [row['res_participant_id'] for row in data_all]
             box, outliers = calc_boxplot(values, ids)
             if box:
                 data.append({
                     'comp': f,
                     'box': box,  # min, q1, median, q3, max
-                    'out': outliers #выбросы
+                    'out': outliers  # выбросы
                 })
-        response_data={"status": "success", "data": data}
+        response_data = {"status": "success", "data": data}
         return JsonResponse(response_data) 
     except Exception as e:
         import traceback
@@ -479,7 +486,7 @@ def get_grades_competency_correlation_v0(request):  # review need for this?
 
         base_filter = {}
         if inst: base_filter['res_institution__inst_name'] = inst
-        if spec: base_filter['res_spec__spec_name'] = spec
+        if spec: base_filter['res_edu_specialty__edu_spec_name'] = spec
         if year: base_filter['res_year'] = year
 
         # 2. Формирование объединённой выборки
@@ -496,7 +503,7 @@ def get_grades_competency_correlation_v0(request):  # review need for this?
             })
 
         participant_ids = list(
-            res_qs.values_list('res_participant__part_id', flat=True).distinct()
+            res_qs.values_list('res_participant_id', flat=True).distinct()  # ИЗМЕНЕНО: res_participant_id
         )
 
         # Средний балл компетенций по каждому студенту (если у студента несколько
@@ -504,24 +511,24 @@ def get_grades_competency_correlation_v0(request):  # review need for this?
         # в get_scores_result для агрегации)
         comp_qs = (
             res_qs
-            .values('res_participant__part_id', 'res_course_num')
+            .values('res_participant_id', 'res_course')  # ИЗМЕНЕНО: res_course
             .annotate(**{f'avg_{f}': Avg(f) for f in COMP.list})
         )
         # Словарь pid -> {competency_field: avg_score, "course": N}
         comp_by_part = {}
         for r in comp_qs:
-            pid = r['res_participant__part_id']
+            pid = r['res_participant_id']
             comp_by_part[pid] = {
                 f: (float(r[f'avg_{f}']) if r.get(f'avg_{f}') is not None else None)
                 for f in COMP.list
             }
-            comp_by_part[pid]['__course'] = r.get('res_course_num')
+            comp_by_part[pid]['__course'] = r.get('res_course')
 
         # Академические оценки по дисциплинам, отфильтрованные по тем же студентам
         ap_qs = (
             AcademicPerformances.objects
-            .filter(perf_part__in=participant_ids)
-            .values('perf_part_id', 'perf_discipline', 'perf_main_attestation')
+            .filter(perf_participant_id__in=participant_ids)  # ИЗМЕНЕНО: perf_participant_id
+            .values('perf_participant_id', 'perf_edu_discipline__edu_disc_name', 'perf_main')  # ИЗМЕНЕНО: поля
         )
 
         # 3. Собираем таблицу наблюдений и сырые точки scatter
@@ -531,11 +538,11 @@ def get_grades_competency_correlation_v0(request):  # review need for this?
         disciplines_set = set()
 
         for row in ap_qs:
-            pid = row['perf_part_id']
-            disc = row['perf_discipline']
-            grade = scores.get(row['perf_main_attestation'])  # словарь scores уже есть в файле
-            if grade is None:
-                continue  # пропускаем «зачёт», NULL и т.п.
+            pid = row['perf_participant_id']
+            disc = row['perf_edu_discipline__edu_disc_name']
+            grade = row['perf_main']  # ИЗМЕНЕНО: теперь число
+            if grade is None or grade == 1:  # 'не явился'
+                continue
 
             comps = comp_by_part.get(pid)
             if not comps:
@@ -651,6 +658,9 @@ def _grade_to_number(grade_str):
     # Преобразует строку оценки в число. Возвращает None, если не распознано
     if grade_str is None:
         return None
+    # Если это уже число, возвращаем его
+    if isinstance(grade_str, (int, float)):
+        return int(grade_str) if 1 <= int(grade_str) <= 5 else None
     g = str(grade_str).strip().lower()
     return ATTESTATION_MAP.get(g)
 
@@ -658,8 +668,7 @@ def _grade_to_number(grade_str):
 @cached()
 def get_grades_competency_correlation(request):
     try:
-        # Шаг 1: соберём все оценки из Academicperformance + соответствующий результат компетенции
-        perf_qs = AcademicPerformances.objects.select_related('perf_part').all()
+        perf_qs = AcademicPerformances.objects.select_related('perf_participant', 'perf_edu_discipline').all()
         pairs_data = defaultdict(list)
         scatter_data = []
         results_map = {}
@@ -670,23 +679,26 @@ def get_grades_competency_correlation(request):
             results_map.setdefault(r['res_participant_id'], r)
         
         disciplines_set = set()
-        for perf in perf_qs.values('perf_part_id', 'perf_discipline', 'perf_main_attestation'):
-            grade_num = _grade_to_number(perf['perf_main_attestation'])
-            if grade_num is None:
+        for perf in perf_qs:
+            pid = perf.perf_participant_id
+            disc = perf.perf_edu_discipline.edu_disc_name if perf.perf_edu_discipline else None
+            grade = perf.perf_main  # ИЗМЕНЕНО: теперь число напрямую
+            if grade is None or grade == 1:  # 'не явился'
                 continue
             
-            res = results_map.get(perf['perf_part_id'])
+            res = results_map.get(pid)
             if res is None:
                 continue
             
-            disc = perf['perf_discipline']
+            if not disc:
+                continue
             disciplines_set.add(disc)
             
             for comp_key in COMP_KEYS:
                 comp_val = res.get(comp_key)
                 if comp_val is None:
                     continue
-                pairs_data[(disc, comp_key)].append((grade_num, comp_val))
+                pairs_data[(disc, comp_key)].append((grade, comp_val))
         
         # Шаг 2: считаем корреляцию Пирсона по каждой паре (дисциплина, компетенция)
         correlations = []
@@ -772,12 +784,12 @@ def get_competency_trend_by_year(request):
         if inst:
             filters['res_institution__inst_name'] = inst
         if spec:
-            filters['res_spec__spec_name'] = spec
+            filters['res_edu_specialty__edu_spec_name'] = spec
         
-        results_qs = TestResults.objects.filter(**filters).exclude(res_course_num__isnull=True)
+        results_qs = TestResults.objects.filter(**filters).exclude(res_course__isnull=True)  # ИЗМЕНЕНО: res_course
         
         courses = sorted(
-            results_qs.values_list('res_course_num', flat=True).distinct()
+            results_qs.values_list('res_course', flat=True).distinct()  # ИЗМЕНЕНО: res_course
         )
         
         trends = []
@@ -785,7 +797,7 @@ def get_competency_trend_by_year(request):
             points = []
             for course_num in courses:
                 course_qs = results_qs.filter(
-                    res_course_num=course_num
+                    res_course=course_num  # ИЗМЕНЕНО: res_course
                 ).exclude(**{f'{comp_key}__isnull': True})
                 
                 agg = course_qs.aggregate(avg=Avg(comp_key), n=Count('res_id'))
@@ -830,7 +842,7 @@ def get_top_correlations(request):
             top_n = int(request.GET.get('top_n', 20))
         except (TypeError, ValueError):
             top_n = 20
-        top_n = max(1, min(top_n, 500))  # ограничение [1..500]
+        top_n = max(1, min(top_n, 500))
 
         sort_by = request.GET.get('sort_by', 'abs').lower()
         if sort_by not in ('abs', 'positive', 'negative'):
@@ -840,7 +852,7 @@ def get_top_correlations(request):
             min_n = int(request.GET.get('min_n', 30))
         except (TypeError, ValueError):
             min_n = 30
-        min_n = max(3, min_n)  # хотя бы 3, иначе корреляция не считается
+        min_n = max(3, min_n)
 
         institute = request.GET.get('institute')
         specialty = request.GET.get('specialty')
@@ -852,7 +864,7 @@ def get_top_correlations(request):
         if institute:
             results_filter['res_institution__inst_name'] = institute
         if specialty:
-            results_filter['res_spec__spec_name'] = specialty
+            results_filter['res_edu_specialty__edu_spec_name'] = specialty
         if year:
             try:
                 results_filter['res_year'] = int(year)
@@ -882,19 +894,19 @@ def get_top_correlations(request):
 
         # Шаг 2. Идём по Academicperformance, агрегируем пары (оценка, балл) по ключу (дисциплина, компетенция).
         perf_qs = AcademicPerformances.objects.values(
-            'perf_part_id', 'perf_discipline', 'perf_main_attestation'
+            'perf_participant_id', 'perf_edu_discipline__edu_disc_name', 'perf_main'
         )
-        pairs_data = defaultdict(list)  # (disc, comp_key) -> [(grade, comp_val), ...]
+        pairs_data = defaultdict(list)
         disciplines_set = set()
 
         for perf in perf_qs:
-            grade_num = _grade_to_number(perf['perf_main_attestation'])
-            if grade_num is None:
+            grade = perf['perf_main']
+            if grade is None or grade == 1:  # 'не явился'
                 continue
-            res = results_map.get(perf['perf_part_id'])
+            res = results_map.get(perf['perf_participant_id'])
             if res is None:
                 continue
-            disc = perf['perf_discipline']
+            disc = perf['perf_edu_discipline__edu_disc_name']
             if not disc:
                 continue
             disciplines_set.add(disc)
@@ -902,7 +914,7 @@ def get_top_correlations(request):
                 comp_val = res.get(comp_key)
                 if comp_val is None:
                     continue
-                pairs_data[(disc, comp_key)].append((grade_num, comp_val))
+                pairs_data[(disc, comp_key)].append((grade, comp_val))
 
         # Шаг 3. Считаем корреляцию Пирсона по каждой паре
         all_correlations = []
@@ -913,7 +925,7 @@ def get_top_correlations(request):
             grades = np.array([p[0] for p in pairs], dtype=float)
             comps = np.array([p[1] for p in pairs], dtype=float)
             if grades.std() == 0 or comps.std() == 0:
-                continue  # вырожденный случай — корреляция не определена
+                continue
             corr = float(np.corrcoef(grades, comps)[0, 1])
             if np.isnan(corr):
                 continue
@@ -935,8 +947,8 @@ def get_top_correlations(request):
             filtered.sort(key=lambda c: c['value'], reverse=True)
         elif sort_by == 'negative':
             filtered = [c for c in all_correlations if c['value'] < 0]
-            filtered.sort(key=lambda c: c['value'])  # самые отрицательные первыми
-        else:  # abs
+            filtered.sort(key=lambda c: c['value'])
+        else:
             filtered = list(all_correlations)
             filtered.sort(key=lambda c: c['abs_value'], reverse=True)
 
@@ -993,7 +1005,7 @@ def get_competency_segmentation(request):
         if institute:
             results_filter['res_institution__inst_name'] = institute
         if specialty:
-            results_filter['res_spec__spec_name'] = specialty
+            results_filter['res_edu_specialty__edu_spec_name'] = specialty
         if year:
             results_filter['res_year'] = year
 
@@ -1003,7 +1015,7 @@ def get_competency_segmentation(request):
         results_qs = TestResults.objects.filter(**results_filter).exclude(
             **{f'{competency}__isnull': True}
         ).exclude(
-            **{competency: 0}  # 0 в этой схеме означает «нет данных»
+            **{competency: 0}
         ).values(*select_fields)
 
         # Один студент мог сдавать несколько раз — берём первый
@@ -1038,7 +1050,7 @@ def get_competency_segmentation(request):
 
         # Для каждой группы — множество participant_id
         group_participants = {g['name']: set() for g in groups_def}
-        group_records = {g['name']: [] for g in groups_def}  # для мотиваторов
+        group_records = {g['name']: [] for g in groups_def}
 
         for pid, r in results_map.items():
             v = r[competency]
@@ -1054,22 +1066,21 @@ def get_competency_segmentation(request):
         # Шаг 4. Подгружаем академические оценки один раз
         all_participant_ids = set(results_map.keys())
         perf_qs = AcademicPerformances.objects.filter(
-            perf_part_id__in=all_participant_ids
-        ).values('perf_part_id', 'perf_discipline', 'perf_main_attestation')
+            perf_participant_id__in=all_participant_ids
+        ).values('perf_participant_id', 'perf_edu_discipline__edu_disc_name', 'perf_main')
 
-        # raw_grades[group_name][discipline] = [grade_num, ...]
         raw_grades = {g['name']: defaultdict(list) for g in groups_def}
         for perf in perf_qs:
-            pid = perf['perf_part_id']
-            grade_num = _grade_to_number(perf['perf_main_attestation'])
-            if grade_num is None:
+            pid = perf['perf_participant_id']
+            grade = perf['perf_main']
+            if grade is None or grade == 1:
                 continue
-            disc = perf['perf_discipline']
+            disc = perf['perf_edu_discipline__edu_disc_name']
             if not disc:
                 continue
             for g in groups_def:
                 if pid in group_participants[g['name']]:
-                    raw_grades[g['name']][disc].append(grade_num)
+                    raw_grades[g['name']][disc].append(grade)
                     break
 
         # Шаг 5. Собираем итоговый JSON по группам
@@ -1089,7 +1100,7 @@ def get_competency_segmentation(request):
             # Средние оценки по дисциплинам
             disc_avgs = []
             for disc, grades in raw_grades[g['name']].items():
-                if len(grades) < 3:  # отсекаем мусор
+                if len(grades) < 3:
                     continue
                 disc_avgs.append({
                     'discipline': disc,
@@ -1124,7 +1135,7 @@ def get_competency_segmentation(request):
                         1 for r in records
                         if r.get(mot_key) is not None and r.get(mot_key) >= motivator_threshold
                     )
-                    percent = round(high_count / n * 100, 1)
+                    percent = round(high_count / n * 100, 1) if n > 0 else 0
                     if percent > 0:
                         motiv_stats.append({
                             'key': mot_key,
@@ -1171,5 +1182,3 @@ def get_competency_segmentation(request):
             'message': str(e),
             'groups': [],
         }, status=500)
-
-
