@@ -3,7 +3,7 @@
 
 Логика определения перевода:
   Студент считается "переведённым" если между двумя соседними записями Results
-  изменился res_institution_id (смена вуза) или res_spec_id (смена направления).
+  изменился res_institution_id (смена вуза) или res_edu_specialty_id (смена направления).
   Сравниваем записи, отсортированные по res_year.
 
 Endpoints:
@@ -33,7 +33,7 @@ def _year_sort_key(year_str):
 
 def _detect_transfers(results_sorted):
     """
-    Принимает список Result-объектов, отсортированных по году.
+    Принимает список TestResult-объектов, отсортированных по году.
     Возвращает список событий перевода:
       { 'year': str, 'from_inst': str, 'to_inst': str,
         'from_dir': str,  'to_dir': str,
@@ -45,8 +45,8 @@ def _detect_transfers(results_sorted):
 
         prev_inst = prev.res_institution
         curr_inst = curr.res_institution
-        prev_spec = prev.res_edu_specialty
-        curr_spec = curr.res_edu_specialty
+        prev_spec = prev.res_edu_specialty  # ИЗМЕНЕНО: res_edu_specialty вместо res_spec
+        curr_spec = curr.res_edu_specialty  # ИЗМЕНЕНО: res_edu_specialty вместо res_spec
 
         inst_changed = prev_inst and curr_inst and prev_inst != curr_inst
         spec_changed = prev_spec and curr_spec and prev_spec != curr_spec
@@ -61,15 +61,15 @@ def _detect_transfers(results_sorted):
                 'year':      curr.res_year,
                 'from_inst': prev.res_institution.inst_name if prev.res_institution else '—',
                 'to_inst':   curr.res_institution.inst_name if curr.res_institution else '—',
-                'from_dir':  prev.res_spec.spec_name        if prev.res_spec        else '—',
-                'to_dir':    curr.res_spec.spec_name        if curr.res_spec        else '—',
+                'from_dir':  prev.res_edu_specialty.edu_spec_name if prev.res_edu_specialty else '—',  # ИЗМЕНЕНО
+                'to_dir':    curr.res_edu_specialty.edu_spec_name if curr.res_edu_specialty else '—',  # ИЗМЕНЕНО
                 'type':      transfer_type,
             })
     return events
 
 
 def _avg_comp(result):
-    """Среднее по всем компетенциям для одного Result."""
+    """Среднее по всем компетенциям для одного TestResult."""
     vals = [getattr(result, f) for f in COMP.list if getattr(result, f)]
     return float(np.mean(vals)) if vals else None
 
@@ -104,22 +104,23 @@ def analyze_transfers(request):
             competency = COMP.LEADERSHIP
 
         # Берём всех участников у которых есть хотя бы 2 результата
+        # ИЗМЕНЕНО: related_name для TestResults теперь 'testresults'
         qs = (
             Participants.objects
-            .prefetch_related('results_set')
-            .annotate(result_count=Count('results'))
+            .prefetch_related('testresults')  # ИЗМЕНЕНО: testresults вместо results_set
+            .annotate(result_count=Count('testresults'))  # ИЗМЕНЕНО: testresults
             .filter(result_count__gte=2)
         )
         if institution_id:
-            # Участники у которых хоть одна запись Results в этом вузе
-            qs = qs.filter(results__res_institution_id=institution_id).distinct()
+            # Участники у которых хоть одна запись TestResults в этом вузе
+            qs = qs.filter(testresults__res_institution_id=institution_id).distinct()  # ИЗМЕНЕНО: testresults
 
         # ── Находим студентов с переводами ──────────────────────
         transfer_students = []   # (participant, events, results_sorted)
 
         for participant in qs:
             results_sorted = sorted(
-                participant.results_set.select_related('res_institution', 'res_spec').all(),
+                participant.testresults.select_related('res_institution', 'res_edu_specialty').all(),  # ИЗМЕНЕНО
                 key=lambda r: _year_sort_key(r.res_year)
             )
             if len(results_sorted) < 2:
@@ -180,8 +181,8 @@ def analyze_transfers(request):
             # Баллы по конкретной компетенции в разрезе курсов
             for r in results_sorted:
                 score = getattr(r, competency, None)
-                if score and r.res_course_num:
-                    course_dynamics[r.res_course_num].append(float(score))
+                if score and r.res_course:  # ИЗМЕНЕНО: res_course вместо res_course_num
+                    course_dynamics[r.res_course].append(float(score))  # ИЗМЕНЕНО: res_course
 
         dynamics = [
             {
@@ -253,19 +254,20 @@ def analyze_transfer_students(request):
         if competency not in COMP.list:
             competency = COMP.LEADERSHIP
 
+        # ИЗМЕНЕНО: related_name для TestResults теперь 'testresults'
         qs = (
             Participants.objects
-            .annotate(result_count=Count('results'))
+            .annotate(result_count=Count('testresults'))  # ИЗМЕНЕНО: testresults
             .filter(result_count__gte=2)
         )
         if institution_id:
-            qs = qs.filter(results__res_institution_id=institution_id).distinct()
+            qs = qs.filter(testresults__res_institution_id=institution_id).distinct()  # ИЗМЕНЕНО: testresults
 
         students_out = []
 
         for participant in qs:
             results_sorted = sorted(
-                participant.results_set.select_related('res_institution', 'res_spec').all(),
+                participant.testresults.select_related('res_institution', 'res_edu_specialty').all(),  # ИЗМЕНЕНО
                 key=lambda r: _year_sort_key(r.res_year)
             )
             if len(results_sorted) < 2:
@@ -277,21 +279,21 @@ def analyze_transfer_students(request):
             if transfer_type and not any(e['type'] == transfer_type for e in events):
                 continue
 
-            # Траектория: одна точка на каждый Result
+            # Траектория: одна точка на каждый TestResult
             trajectory = []
             for r in results_sorted:
                 score = getattr(r, competency, None)
                 trajectory.append({
                     'year':        r.res_year,
-                    'course':      r.res_course_num,
+                    'course':      r.res_course,  # ИЗМЕНЕНО: res_course вместо res_course_num
                     'score':       float(score) if score else None,
                     'institution': r.res_institution.inst_name if r.res_institution else '—',
-                    'direction':   r.res_spec.spec_name        if r.res_spec        else '—',
+                    'direction':   r.res_edu_specialty.edu_spec_name if r.res_edu_specialty else '—',  # ИЗМЕНЕНО
                 })
 
             students_out.append({
                 'part_id':   participant.part_id,
-                'rsv_id':    participant.part_rsv,
+                'rsv_id':    participant.part_rsv,  # ИЗМЕНЕНО: part_rsv вместо part_rsv_id
                 'transfers': events,
                 'trajectory': trajectory,
             })
