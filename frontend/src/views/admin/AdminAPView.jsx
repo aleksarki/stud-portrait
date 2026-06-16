@@ -83,7 +83,7 @@ function DisciplineScatter({ discipline, participants }) {
             <Scatter
                 data={chartData}
                 fill="rgb(101, 142, 208)"
-                fillOpacity={0.25}
+                fillOpacity={0.15}
                 stroke="rgb(101, 142, 208)"
                 strokeOpacity={0.5}
                 r={4}

@@ -248,7 +248,7 @@ def get_dashboard_stats(request):
         print(traceback.format_exc())
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
-#это вспомогательная, как кэш
+#это вспомогательная
 def get_competency_stats_courses(filter):
     courses = [1, 2, 3, 4]
     results = {}
@@ -1171,4 +1171,5 @@ def get_competency_segmentation(request):
             'message': str(e),
             'groups': [],
         }, status=500)
+
 
