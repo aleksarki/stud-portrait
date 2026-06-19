@@ -119,15 +119,15 @@ function SuperSqlView() {
     // Примеры запросов для быстрой вставки
     const insertExampleQuery = type => {
         const examples = {
-            results: "SELECT * FROM results LIMIT 50;",
-            participants: "SELECT * FROM participants LIMIT 50;",
+            results: "SELECT * FROM TestResults LIMIT 50;",
+            participants: "SELECT * FROM Participants LIMIT 50;",
             join: `SELECT 
-    r.res_id,
-    p.part_rsv_id,
-    r.res_year,
-    r.res_course_num
-FROM results r
-LEFT JOIN participants p ON r.res_participant = p.part_id
+    res_id,
+    part_rsv,
+    res_year,
+    res_course
+FROM TestResults
+LEFT JOIN Participants ON res_participant = part_id
 LIMIT 50;`
         };
         setQuery(examples[type] || '');
