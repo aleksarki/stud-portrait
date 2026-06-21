@@ -27,6 +27,7 @@ class LLMServiceClient:
     ) -> Optional[str]:
         """ Send request for text generation.
         """
+        print(f"[llm] (i): model got prompt:", repr(prompt))
         try:
             payload = {
                 "prompt": prompt,
@@ -37,13 +38,14 @@ class LLMServiceClient:
 
             response = self.client.post(
                 f"{self.base_url}/generate",
-                json=payload
+                json=payload,
+                timeout=120
             )
             response.raise_for_status()
 
             data = response.json()
             if data.get("success"):
-                print(f"[llm] (i): model generated text")
+                print(f"[llm] (i): model generated text:", repr(data.get("response")))
                 return data.get("response")
             else:
                 print(f"[llm] (!): model service error: {data.get('error')}")

@@ -2,6 +2,10 @@ from pathlib import Path
 import threading
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 DEVICE_AUTO = "auto"
 DEVICE_CUDA = "cuda"
@@ -22,14 +26,14 @@ class MlModel:
         """
         with cls.LOAD_LOCK:
             try:
-                print(f"[model] (i): loading model from folder {cls.PATH}")
+                logger.info(f"[model] (i): loading model from folder {cls.PATH}")
                 cls.LOAD_ATTEMPTED = True
 
                 if not cls.PATH.exists():
                     raise FileNotFoundError(f"[model] (!): model folder does not exist: {cls.PATH}")
 
                 device = DEVICE_CUDA if torch.cuda.is_available() else DEVICE_CPU
-                print(f"[model] (i): using device {device}")
+                logger.info(f"[model] (i): using device {device}")
 
                 tokenizer = AutoTokenizer.from_pretrained(cls.PATH, trust_remote_code=True, local_files_only=True)
                 if tokenizer.pad_token is None:
@@ -51,13 +55,13 @@ class MlModel:
                 cls.TOKENIZER = tokenizer
                 cls.MODEL = model
                 cls.AVAILABLE = True
-                print("[model] (i): model loaded successfully")
+                logger.info("[model] (i): model loaded successfully")
 
             except Exception as e:
                 cls.TOKENIZER = None
                 cls.MODEL = None
                 cls.AVAILABLE = False
-                print(f"[model] (!): failed to load LLM model: {e}")
+                logger.info(f"[model] (!): failed to load LLM model: {e}")
 
             finally:
                 cls.LOAD_EVENT.set()  # unlock all, even if failed
@@ -81,6 +85,8 @@ class MlModel:
 
     @classmethod
     def generate(cls, prompt: str, max_length=400, temperature=.15, top_p=.85):
+        logger.info(f"[model] (i): model got prompt: '{prompt}'")
+
         model, tokenizer = cls.get()
         if model is None:
             return None
@@ -109,7 +115,6 @@ class MlModel:
             .strip()                              \
             .rpartition("assistant")[-1]
 
-        print(f"[model] (i): model got prompt: '{prompt}'")
-        print(f"[model] (i): model generated response: '{response}'")
+        logger.info(f"[model] (i): model generated response: '{response}'")
 
         return response

@@ -5,6 +5,10 @@ from threading import Thread
 import time
 import torch
 from typing import Optional, List
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 from .mlmodel import MlModel
 
@@ -32,20 +36,20 @@ class HealthResponse(BaseModel):
 async def lifespan(app: FastAPI):
     """ Manage lifespan.
     """
-    print("[llm] (i): starting llm service")
+    logger.info("[llm] (i): starting llm service")
 
     def load_in_background():
-        print("[llm] (i): initiating load of llm in background")
+        logger.info("[llm] (i): initiating load of llm in background")
         if MlModel.load():
-            print("[llm] (i): model hot and ready")
+            logger.info("[llm] (i): model hot and ready")
         else:
-            print("[llm] (!): llm load failed; it'll load on request")
+            logger.info("[llm] (!): llm load failed; it'll load on request")
 
     Thread(target=load_in_background, daemon=True).start()
 
     yield
 
-    print("[llm] (i): shutting down llm service")
+    logger.info("[llm] (i): shutting down llm service")
 
 
 app = FastAPI(
@@ -87,9 +91,10 @@ async def wait_for_model(timeout: float = 120.):
 async def generate(request: GenerationRequest):
     """ Generate response using LLM.
     """
+    logger.info("!!!!!")
     if not MlModel.AVAILABLE:
         # wait a bit for the model, if not loaded yet
-        print("[llm] (!): model not ready, waiting for load")
+        logger.info("[llm] (!): model not ready, waiting for load")
         if not MlModel.waitForLoad(timeout=30.0):
             return GenerationResponse(
                 success=False,
@@ -98,6 +103,8 @@ async def generate(request: GenerationRequest):
 
     try:
         start_time = time.time()
+        
+        logger.info(f"[model] (i): model got prompt: '{request.prompt}'")
         
         response = MlModel.generate(
             prompt=request.prompt,
@@ -109,7 +116,7 @@ async def generate(request: GenerationRequest):
         generation_time = time.time() - start_time
 
         if response is not None:
-            print(f"[llm] (i): generated response in {generation_time:.2f}s")
+            logger.info(f"[llm] (i): generated response in {generation_time:.2f}s")
             return GenerationResponse(
                 success=True,
                 response=response,
@@ -123,7 +130,7 @@ async def generate(request: GenerationRequest):
             )
 
     except Exception as e:
-        print(f"[llm] (!): generation failed: {str(e)}")
+        logger.info(f"[llm] (!): generation failed: {str(e)}")
         return GenerationResponse(
             success=False,
             error=str(e)
