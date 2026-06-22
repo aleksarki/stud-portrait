@@ -3,11 +3,6 @@ portrait/endpoints/curriculum_end.py
 
 Эндпоинт для суперадмина: запускает парсинг учебного плана ТюмГУ,
 сохраняет результат в DisciplineCompetencyMapping.
-
-Добавьте в urls.py:
-    from .endpoints import curriculum_end
-    path('parse-curriculum/',     curriculum_end.parse_curriculum_view,   name='parse_curriculum'),
-    path('parse-curriculum/log/', curriculum_end.get_parse_log,           name='parse_curriculum_log'),
 """
 
 import threading
@@ -27,19 +22,10 @@ from ..curriculum_parser import parse_curriculum
 # ──────────────────────────────────────────────────────────────────────────────
 
 def _run_parser(log_id: int, specialty_name: str) -> None:
-    """
-    Запускается в отдельном потоке чтобы не блокировать HTTP-ответ.
-    После завершения обновляет CurriculumParseLog.
-    """
     log = CurriculumParseLog.objects.get(pk=log_id)
     try:
-        last_step = {"text": "", "cur": 0, "total": 0}
-
         def _progress(step, cur=0, total=0):
-            last_step["text"]  = step
-            last_step["cur"]   = cur
-            last_step["total"] = total
-            # Обновляем запись — фронтенд опрашивает /parse-curriculum/log/
+            # обновляем только прогресс, но не трогаем статус
             CurriculumParseLog.objects.filter(pk=log_id).update(
                 disciplines_found=total,
                 disciplines_saved=cur,
@@ -50,7 +36,6 @@ def _run_parser(log_id: int, specialty_name: str) -> None:
             progress_callback=_progress,
         )
 
-        # Сохраняем (или обновляем) маппинги — upsert по disc_name
         saved = 0
         for disc in result.disciplines:
             _, created = DisciplineCompetencyMapping.objects.update_or_create(
@@ -59,22 +44,23 @@ def _run_parser(log_id: int, specialty_name: str) -> None:
                     "rsv_competencies":      disc.rsv_competencies,
                     "standard_competencies": disc.standard_competencies,
                     "semester":              disc.semester,
+                    # parsed_at
                 },
             )
             saved += 1
 
-        log.status            = CurriculumParseLog.STATUS_SUCCESS
+        log.status = CurriculumParseLog.STATUS_SUCCESS
         log.disciplines_found = len(result.disciplines)
         log.disciplines_saved = saved
-        log.source_url        = result.source_url
-        log.finished_at       = timezone.now()
+        log.source_url = result.source_url
+        log.finished_at = timezone.now()
         log.save()
 
     except Exception as exc:
         import traceback
-        log.status        = CurriculumParseLog.STATUS_ERROR
+        log.status = CurriculumParseLog.STATUS_ERROR
         log.error_message = f"{exc}\n\n{traceback.format_exc()}"
-        log.finished_at   = timezone.now()
+        log.finished_at = timezone.now()
         log.save()
 
 

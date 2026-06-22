@@ -3,13 +3,6 @@ portrait/services/curriculum_parser.py
 
 Сервис парсинга учебного плана ТюмГУ и сопоставления дисциплин
 с РСВ-компетенциями через семантические эмбеддинги.
-
-Логика перенесена из ноутбука parcer_embeddings.ipynb.
-
-Зависимости (добавить в requirements.txt):
-    beautifulsoup4>=4.12
-    pdfplumber>=0.10
-    sentence-transformers>=2.7
 """
 
 from __future__ import annotations
@@ -163,47 +156,86 @@ def _fetch_bytes(url: str) -> Optional[bytes]:
 
 
 def _extract_curriculum_table(pdf_bytes: bytes) -> Optional[pd.DataFrame]:
-    """Извлекает таблицу дисциплин из PDF учебного плана."""
-    all_rows: list[list] = []
+    """Извлекает таблицу дисциплин из PDF — только страницы 0 и 1,
+    как в оригинальном блокноте."""
     try:
         with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-            for page in pdf.pages:
-                for table in (page.extract_tables() or []):
-                    if table:
-                        all_rows.extend(table)
+            # Страница 0 — основная таблица дисциплин
+            table_page0 = pdf.pages[0].extract_tables()
+            if not table_page0 or not table_page0[0]:
+                logger.warning("Таблица не найдена на странице 0")
+                return None
+            t0 = table_page0[0]
+            df_page0 = pd.DataFrame(t0[1:], columns=t0[0]).fillna("")
+
+            # Страница 1 — практики (преддипломная, эксплуатационная)
+            table_page1 = pdf.pages[1].extract_tables() if len(pdf.pages) > 1 else []
+            df_page1 = pd.DataFrame()
+            if table_page1 and table_page1[0]:
+                t1 = table_page1[0]
+                df_page1 = pd.DataFrame(t1[1:], columns=t1[0]).fillna("")
+
     except Exception as exc:
         logger.error("Ошибка чтения PDF: %s", exc)
         return None
 
-    if not all_rows:
-        return None
+    # Извлекаем основную подтаблицу (логика extract_subtable из блокнота)
+    result_df = _extract_subtable(df_page0)
 
-    df = pd.DataFrame(all_rows).fillna("")
+    # Добираем практики со страницы 1
+    if not df_page1.empty:
+        practice_names = [
+            "Преддипломная практика",
+            "Эксплуатационная практика",
+            "Проектно-исследовательская работа",
+            "Управление проектами",
+        ]
+        practice_df = _extract_rows_by_name(df_page1, practice_names)
+        if not practice_df.empty:
+            result_df = pd.concat([result_df, practice_df], ignore_index=True)
 
-    # Ищем строку-заголовок: первая колонка содержит слово «дисциплин»
-    col0 = df.iloc[:, 0].astype(str).str.lower()
-    header_matches = col0[col0.str.contains('дисциплин', na=False)].index.tolist()
-    if not header_matches:
-        logger.warning("Заголовочная строка не найдена в PDF")
-        return None
-    header_idx = header_matches[0]
+    return result_df if not result_df.empty else None
 
-    # Границы данных: строки после заголовка до первой «пустой» строки
-    start = header_idx + 1
-    end = start
-    for i in range(start, len(df)):
-        val = str(df.iloc[i, 0]).strip()
-        if val == "" or val.replace('.', '', 1).isdigit():
-            end = i
-        else:
+def _extract_subtable(df: pd.DataFrame) -> pd.DataFrame:
+    """Точная копия extract_subtable из блокнота."""
+    if df is None or df.empty:
+        return pd.DataFrame(columns=RESULT_COLUMNS)
+
+    first_col = df.iloc[:, 0].astype(str).str.strip()
+
+    # Ищем строку с '1' — начало нумерованного списка дисциплин
+    start_index = None
+    for idx, val in enumerate(first_col):
+        if val == '1':
+            start_index = idx
+            break
+    if start_index is None:
+        logger.warning("Строка с '1' не найдена — структура PDF изменилась?")
+        return pd.DataFrame(columns=RESULT_COLUMNS)
+
+    # Идём вниз пока номера идут подряд
+    end_index = start_index
+    expected = 1
+    for idx in range(start_index, len(df)):
+        try:
+            if int(first_col.iloc[idx]) == expected:
+                end_index = idx
+                expected += 1
+            else:
+                break
+        except (ValueError, TypeError):
             break
 
-    n_cols = min(len(df.columns), len(RESULT_COLUMNS))
-    data_cols = list(range(1, n_cols))
-    result = df.iloc[start:end + 1, data_cols].copy()
-    result.columns = RESULT_COLUMNS[: len(data_cols)]
+    data_cols = _data_columns(df)
+    result = df.iloc[start_index:end_index + 1, data_cols].copy()
+    result.columns = RESULT_COLUMNS
     return result.reset_index(drop=True)
 
+
+def _data_columns(df: pd.DataFrame) -> list[int]:
+    """Колонка 1 = дисциплина, последние 9 = семестры + компетенции."""
+    ncols = df.shape[1]
+    return [1] + list(range(ncols - 9, ncols))
 
 def _extract_rows_by_name(df: pd.DataFrame, names: list[str]) -> pd.DataFrame:
     """Достаёт конкретные строки (практики) по точному названию дисциплины."""
