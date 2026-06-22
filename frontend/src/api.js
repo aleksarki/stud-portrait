@@ -636,3 +636,28 @@ export function getPossibleDuplicateAccounts() {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/possible-duplicate-accounts/`);
     return new AsyncChain(promise);
 }
+
+// Запускает парсинг учебного плана ТюмГУ в фоновом режиме.
+// POST /portrait/parse-curriculum/
+export function postParseCurriculum(specialtyName) {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/parse-curriculum/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(specialtyName ? { specialty_name: specialtyName } : {}),
+    });
+    return new AsyncChain(promise);
+}
+
+// Возвращает журнал запусков парсера (последние 10).
+// GET /portrait/parse-curriculum/log/
+export function getParseCurriculumLog() {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/parse-curriculum/log/`);
+    return new AsyncChain(promise);
+}
+
+// Возвращает все сохранённые маппинги дисциплин → компетенции.
+// GET /portrait/parse-curriculum/mappings/
+export function getParseCurriculumMappings() {
+    const promise = fetch(`${PROTOCOL}://${HOST}/portrait/parse-curriculum/mappings/`);
+    return new AsyncChain(promise);
+}

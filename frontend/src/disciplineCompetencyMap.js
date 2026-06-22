@@ -1,73 +1,137 @@
-// Карта соответствия дисциплин и компетенций, на которые они реально влияют.
-// Используется для фильтрации таблицы "Влияние дисциплин на компетенции":
-// дисциплина должна показывать строки только для компетенций из её набора,
-// а не для всех компетенций подряд.
+// disciplineCompetencyMap.js
 //
-// Ключи компетенций — это поля результатов (res_comp_*), как в RsvCompetencies
-// (constants.py) и как приходят в competencies_before/competencies_after
-// из getStudentDisciplineImpact. Использование "сырых" ключей вместо
-// отображаемых названий избегает несоответствий из-за разной формулировки
-// (например "Лидерство" vs "Лидерство (Контроль)").
+// ОБНОВЛЁННАЯ ВЕРСИЯ:
+// Вместо хардкоженного маппинга загружает данные из API (из БД, куда парсер
+// записал результат). Хранит кеш в памяти — загружается один раз за сессию.
+//
+// Публичный API модуля остался прежним:
+//   disciplineAffectsCompetency(disciplineName, competencyKey) → bool
+//   filterCompetenciesForDiscipline(disciplineName, competencies) → array
+//   loadDisciplineMap() → Promise  (вызовите один раз при старте приложения)
 
-export const DISCIPLINE_COMPETENCIES_MAP = {
+import { getParseCurriculumMappings } from "./api";
+
+// ─── Внутренний кеш ──────────────────────────────────────────────────────────
+// { 'Название дисциплины': Set(['res_comp_leadership', …]), … }
+let _map = null;
+let _loadPromise = null;
+
+// ─── Резервный статический маппинг ───────────────────────────────────────────
+// Используется, если БД пуста (парсер ещё не запускался).
+const FALLBACK_MAP = {
     'Проектно-исследовательская работа': new Set([
-        'res_comp_info_analysis',      // Анализ информации
-        'res_comp_communication',      // Коммуникация
-        'res_comp_leadership',         // Лидерство
-        'res_comp_partnership',        // Партнёрство
-        'res_comp_planning'            // Планирование
+        'res_comp_info_analysis',
+        'res_comp_communication',
+        'res_comp_leadership',
+        'res_comp_partnership',
+        'res_comp_planning',
     ]),
     'Управление проектами': new Set([
-        'res_comp_communication',      // Коммуникация
-        'res_comp_leadership',         // Лидерство
-        'res_comp_result_orientation', // Ориентация на результат
-        'res_comp_partnership',        // Партнёрство
-        'res_comp_planning',           // Планирование
-        'res_comp_rules_compliance',   // Соблюдение правил
-        'res_comp_stress_resistance'   // Стрессоустойчивость
+        'res_comp_communication',
+        'res_comp_leadership',
+        'res_comp_result_orientation',
+        'res_comp_partnership',
+        'res_comp_planning',
+        'res_comp_rules_compliance',
+        'res_comp_stress_resistance',
     ]),
     'Эксплуатационная практика': new Set([
-        'res_comp_info_analysis',      // Анализ информации
-        'res_comp_communication',      // Коммуникация
-        'res_comp_leadership',         // Лидерство
-        'res_comp_result_orientation', // Ориентация на результат
-        'res_comp_partnership',        // Партнёрство
-        'res_comp_planning',           // Планирование
-        'res_comp_rules_compliance'    // Соблюдение правил
+        'res_comp_info_analysis',
+        'res_comp_communication',
+        'res_comp_leadership',
+        'res_comp_result_orientation',
+        'res_comp_partnership',
+        'res_comp_planning',
+        'res_comp_rules_compliance',
     ]),
     'Преддипломная практика': new Set([
-        'res_comp_info_analysis',      // Анализ информации
-        'res_comp_communication',      // Коммуникация
-        'res_comp_leadership',         // Лидерство
-        'res_comp_result_orientation', // Ориентация на результат
-        'res_comp_partnership',        // Партнёрство
-        'res_comp_planning',           // Планирование
-        'res_comp_rules_compliance'    // Соблюдение правил
-    ])
+        'res_comp_info_analysis',
+        'res_comp_communication',
+        'res_comp_leadership',
+        'res_comp_result_orientation',
+        'res_comp_partnership',
+        'res_comp_planning',
+        'res_comp_rules_compliance',
+    ]),
 };
+
+// ─── Загрузка из API ─────────────────────────────────────────────────────────
+
+/**
+ * Загружает маппинги из БД и кеширует их.
+ * Вызывайте при старте приложения (в App.jsx или аналогичном месте).
+ * Повторные вызовы возвращают тот же Promise (идемпотентны).
+ */
+export function loadDisciplineMap() {
+    if (_map !== null) return Promise.resolve(_map);
+    if (_loadPromise)  return _loadPromise;
+
+    _loadPromise = new Promise((resolve) => {
+        getParseCurriculumMappings()
+            .onSuccess(async (r) => {
+                const data = await r.json();
+                if (data.status === "success" && data.mappings?.length > 0) {
+                    _map = {};
+                    for (const m of data.mappings) {
+                        _map[m.discipline] = new Set(m.rsv_competencies);
+                    }
+                } else {
+                    // БД пустая — используем резервный маппинг
+                    _map = FALLBACK_MAP;
+                }
+                resolve(_map);
+            })
+            .onError(() => {
+                // Сеть недоступна — используем резервный маппинг
+                _map = FALLBACK_MAP;
+                resolve(_map);
+            });
+    });
+
+    return _loadPromise;
+}
+
+/**
+ * Принудительно сбрасывает кеш.
+ * Полезно вызывать после успешного запуска парсера.
+ */
+export function invalidateDisciplineMap() {
+    _map = null;
+    _loadPromise = null;
+}
+
+// ─── Публичные утилиты (синхронные, используют кеш) ─────────────────────────
+
+function _getMap() {
+    // Синхронное получение кеша. Если loadDisciplineMap() ещё не завершился,
+    // возвращаем null — вызывающий код должен учитывать это.
+    return _map;
+}
 
 /**
  * Возвращает true, если дисциплина может влиять на указанную компетенцию.
  *
- * @param disciplineName - название дисциплины (item.discipline)
- * @param competencyKey  - "сырой" ключ компетенции (res_comp_*),
- *                         т.е. ключ из competencies_before/after, БЕЗ перевода в отображаемое имя
- *
- * Для дисциплин, отсутствующих в карте, по умолчанию возвращает true
- * (чтобы не скрывать данные по неизвестным дисциплинам без явного решения).
+ * @param {string} disciplineName - точное название дисциплины
+ * @param {string} competencyKey  - ключ компетенции (res_comp_*)
  */
 export function disciplineAffectsCompetency(disciplineName, competencyKey) {
-    const set = DISCIPLINE_COMPETENCIES_MAP[disciplineName];
-    if (!set) return true;
+    const map = _getMap();
+    if (!map) return true;  // кеш не готов — показываем всё
+    const set = map[disciplineName];
+    if (!set) return true;  // неизвестная дисциплина — не скрываем
     return set.has(competencyKey);
 }
 
 /**
- * Фильтрует список компетенций (объекты с полем key или строки-ключи),
- * оставляя только те, на которые данная дисциплина реально влияет.
+ * Фильтрует список компетенций, оставляя только связанные с дисциплиной.
+ *
+ * @param {string} disciplineName
+ * @param {Array<{key: string}|string>} competencies
  */
 export function filterCompetenciesForDiscipline(disciplineName, competencies) {
-    const set = DISCIPLINE_COMPETENCIES_MAP[disciplineName];
+    const map = _getMap();
+    if (!map) return competencies;
+    const set = map[disciplineName];
     if (!set) return competencies;
     return competencies.filter(c => set.has(c.key ?? c));
 }

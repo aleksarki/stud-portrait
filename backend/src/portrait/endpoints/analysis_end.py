@@ -22,6 +22,7 @@ from .datanal import (
 )
 
 from ..llmclient import LLM_CLIENT
+from ..models import DisciplineCompetencyMapping
 
 
 # ────────────────────────────────────────────────────────────
@@ -93,35 +94,49 @@ def _get_qualified_participant_ids(min_tests: int = 4):
     return qualified_ids, total_unique
 
 
-# Ключ: название дисциплины, значение: множество кодов компетенций
-# fixme this should not be hardcoded
-DISCIPLINE_COMPETENCY_MAP = {
-    'Проектно-исследовательская работа': {
-        COMP.LEADERSHIP,
-        COMP.RESULT_ORIENT,
-        COMP.PASSIVE_VOCAB,
-        COMP.PLANNING
-    },
-    'Управление проектами': {
-        COMP.CLIENT_FOCUS,
-        COMP.LEADERSHIP,
-        COMP.RESULT_ORIENT,
-        COMP.PLANNING
-    },
-    'Эксплуатационная практика': {
-        COMP.INFO_ANALYSIS,
-        COMP.LEADERSHIP,
-        COMP.PASSIVE_VOCAB,
-        COMP.PLANNING
-    },
-    'Преддипломная практика': {
-        COMP.CLIENT_FOCUS,
-        COMP.LEADERSHIP,
-        COMP.RESULT_ORIENT,
-        COMP.PASSIVE_VOCAB,
-        COMP.PLANNING
+def get_discipline_competency_map() -> dict[str, set[str]]:
+    """
+    Возвращает маппинг {название_дисциплины: {res_comp_*}} из БД.
+ 
+    Если таблица пуста (парсер ещё не запускался), возвращает
+    резервный статический словарь чтобы не сломать уже работающий
+    функционал.
+    """
+    rows = DisciplineCompetencyMapping.objects.all()
+    if rows.exists():
+        return {
+            row.disc_name: set(row.rsv_competencies)
+            for row in rows
+        }
+ 
+    # ── Резервный маппинг (старое поведение до запуска парсера) ──────────────
+    return {
+        'Проектно-исследовательская работа': {
+            COMP.LEADERSHIP,
+            COMP.RESULT_ORIENT,
+            COMP.PASSIVE_VOCAB,
+            COMP.PLANNING,
+        },
+        'Управление проектами': {
+            COMP.CLIENT_FOCUS,
+            COMP.LEADERSHIP,
+            COMP.RESULT_ORIENT,
+            COMP.PLANNING,
+        },
+        'Эксплуатационная практика': {
+            COMP.INFO_ANALYSIS,
+            COMP.LEADERSHIP,
+            COMP.PASSIVE_VOCAB,
+            COMP.PLANNING,
+        },
+        'Преддипломная практика': {
+            COMP.CLIENT_FOCUS,
+            COMP.LEADERSHIP,
+            COMP.RESULT_ORIENT,
+            COMP.PASSIVE_VOCAB,
+            COMP.PLANNING,
+        },
     }
-}
 
 
 # ============================================================
@@ -624,6 +639,8 @@ def analyze_discipline_impact_advanced(request):
         
         results = []
         
+        _disc_map = get_discipline_competency_map()
+
         for competency in competencies:
             perf_query = AcademicPerformances.objects.select_related('perf_participant', 'perf_edu_discipline')
             
@@ -715,8 +732,8 @@ def analyze_discipline_impact_advanced(request):
             
             filtered_perf_data = [
                 record for record in perf_data
-                if record['discipline'] in DISCIPLINE_COMPETENCY_MAP and
-                competency in DISCIPLINE_COMPETENCY_MAP[record['discipline']]
+                if record['discipline'] in _disc_map and
+                competency in _disc_map[record['discipline']]
             ]
 
             if not filtered_perf_data:
@@ -835,6 +852,9 @@ def get_discipline_heatmap_data(request):
             COMP.COMMUNICATION
         ]
         
+        # Загружаем маппинг из БД один раз (с резервным статическим словарём)
+        discipline_competency_map = get_discipline_competency_map()
+
         # Собираем все дисциплины и их эффекты
         heatmap_data = []
         
@@ -886,11 +906,10 @@ def get_discipline_heatmap_data(request):
             ).order_by('-res_course').first()
             
             if before_result and after_result:
-                # Направление: ищем в результате, затем у участника
                 direction = (
                     (after_result.res_edu_specialty.edu_spec_name if after_result.res_edu_specialty else None) or
                     (before_result.res_edu_specialty.edu_spec_name if before_result.res_edu_specialty else None) or
-                    (student.part_spec.edu_spec_name      if student.part_spec      else None) or
+                    (student.part_spec.edu_spec_name if student.part_spec else None) or
                     'Не указано'
                 )
                 for comp in competencies:
@@ -919,12 +938,10 @@ def get_discipline_heatmap_data(request):
                     after = df[f'{comp}_after'].dropna()
                     
                     if len(before) >= 3 and len(after) >= 3:
-                        # Cohen's d effect size
                         mean_diff = after.mean() - before.mean()
                         std_pooled = np.sqrt((before.std()**2 + after.std()**2) / 2)
                         cohens_d = mean_diff / std_pooled if std_pooled > 0 else 0
                         
-                        # t-test
                         t_stat, p_value = stats.ttest_rel(after, before)
                         
                         heatmap_data.append({
@@ -941,13 +958,14 @@ def get_discipline_heatmap_data(request):
         heatmap_data = _convert_numpy_types(heatmap_data)
         
         full_heatmap = []
-        for disc, expected_comps in DISCIPLINE_COMPETENCY_MAP.items():
+        for disc, expected_comps in discipline_competency_map.items():
             for comp in competencies:
-                # Проверяем, ожидаема ли эта компетенция для дисциплины
                 if comp not in expected_comps:
                     continue
-                # Ищем существующую запись
-                existing = next((item for item in heatmap_data if item['discipline'] == disc and item['competency'] == comp), None)
+                existing = next(
+                    (item for item in heatmap_data if item['discipline'] == disc and item['competency'] == comp),
+                    None
+                )
                 if existing:
                     full_heatmap.append(existing)
                 else:
@@ -962,11 +980,10 @@ def get_discipline_heatmap_data(request):
                         'n_students': 0
                     })
 
-        # Используем full_heatmap в ответе
         return JsonResponse({
             'status': 'success',
             'data': full_heatmap,
-            'disciplines': list(DISCIPLINE_COMPETENCY_MAP.keys()),
+            'disciplines': list(discipline_competency_map.keys()),
             'competencies': competencies
         })
         

@@ -25,6 +25,8 @@ import NumberField from "../../components/ui/NumberField";
 import { ADMIN_PALETTE } from "../../components/ui/palette";
 import Select, { Option } from "../../components/ui/Select";
 
+import CurriculumParserSection from "../../components/CurriculumParserSection";
+
 import "./SuperUploadView.scss";
 
 /** Конвертирует 0-based индекс колонки в Excel-нотацию: 0→A, 25→Z, 26→AA, 27→AB, ... */
@@ -474,6 +476,9 @@ function SuperUploadView() {
                     <h2>Загрузка данных «Россия — страна возможностей»</h2>
                     {step === "upload" && renderUploadStep()}
                     {step === "mapping" && renderMappingEditor()}
+
+                    <h2>Учебный план ТюмГУ</h2>
+                    <CurriculumParserSection />
                 </Content>
             </SidebarLayout>
         </div>
