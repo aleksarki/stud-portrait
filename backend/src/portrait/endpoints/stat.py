@@ -7,7 +7,7 @@ from django.http import JsonResponse
 
 from .common import *
 
-# ноу кэш плз
+# 
 def get_year_metrics(year, filter):
     res_queryset = TestResults.objects.filter(res_year=year, **filter)
     max_mot={"name": "-", "count": 0}
