@@ -108,22 +108,6 @@ sudo service redis-server stop
 
 1. Create PostgresQL database.
 
-2. Excecute SQL code from 'backend\create_database.sql' in your database query tool.
+2. Excecute SQL code from 'database\init.sql' in your database query tool.
 
-3. Create file 'backend\src\studportrait\env.py':
-
-```python
-env = {
-    'NAME': '<DB name>',
-    'USER': '<DB user>',
-    'PASSWORD': '<DB password>',
-    'HOST': 'localhost',
-    'PORT': '5432'
-}
-```
-
-**Filling with data**
-
-1. Get database & backend running.
-
-2. Perform request '...'
+3. Create file 'backend\.env.local'.
