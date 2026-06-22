@@ -32,6 +32,8 @@ import AiInsightPanel from "../../../components/AiInsightPanel";
 import "./AdminAnalysisDisciplinesView.scss";
 
 function AdminAnalysisDisciplinesView() {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
     // -------------------- STATE --------------------
     const [sessionId, setSessionId] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -550,7 +552,7 @@ function AdminAnalysisDisciplinesView() {
     return (
         <div className="AdminAnalysisDisciplinesView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                <Header title="Админ: Анализ данных" name="Администратор" />
+                <Header title="Админ: Анализ данных" name={user.username} />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <h2>Анализ влияния дисциплин на компетенции</h2>

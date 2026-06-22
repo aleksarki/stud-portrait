@@ -695,6 +695,8 @@ const FilterHeader = ({ filters, onFilterChange }) => {
 
 
 function AdminMotivatorsView(){
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
     const [MotivationData, setMotivationData] = useState(null);
     const [loadingMotDash, setLoadingMotDash] = useState(false);
     const [isError, setErrorStatus] = useState(false);
@@ -734,7 +736,7 @@ function AdminMotivatorsView(){
     return (
             <div className="AdminMotivatorView">
                 <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                    <Header title="Админ: График мотиваторов" name="Администратор1" />
+                    <Header title="Админ: График мотиваторов" name={user.username} />
                     <Sidebar linkTree={LINK_TREE} />
                     <Content>
                         <div className="filters-cont">

@@ -625,6 +625,8 @@ const FilterHeader = ({ filters, onFilterChange }) => {
 };
   
 function AdminAPView() {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    
     const [ScatterData, setScatterData] = useState(null);
     const [LoadingData, setLoading] = useState(false);
     const [filters, setFilters] = useState({ institute: '', specialty: '', year: '' });
@@ -683,7 +685,7 @@ function AdminAPView() {
     return (
         <div className="AdminAPView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                <Header title="Академические показатели и компетенции" name="Админимтратор1" />
+                <Header title="Академические показатели и компетенции" name={user.username} />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                 <div className="filters-cont">

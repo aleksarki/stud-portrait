@@ -19,6 +19,8 @@ import "./AdminCoursesView.scss";
 import { ADMIN_PALETTE } from '../../components/ui/palette.js';
 
 function AdminCoursesView() {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    
     const [coursesData, setCoursesData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedRows, setSelectedRows] = useState(new Set());
@@ -148,7 +150,7 @@ function AdminCoursesView() {
         return (
             <div className="AdminCoursesView">
                 <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                    <Header title="Админ: Образовательные курсы" name="Администратор1" />
+                    <Header title="Админ: Образовательные курсы" name={user.username} />
                     <Sidebar linkTree={LINK_TREE} />
                     <Content>
                         <LoadingSpinner text="Загрузка данных по курсам..." />
@@ -161,7 +163,7 @@ function AdminCoursesView() {
     return (
         <div className="AdminCoursesView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                <Header title="Админ: Образовательные курсы" name="Администратор1" />
+                <Header title="Админ: Образовательные курсы" name={user.username} />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <div className="courses-container">

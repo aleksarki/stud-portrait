@@ -386,7 +386,8 @@ function Dashboard({ data }) {
 
 
 function AdminMainView() {
-
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    
     const [dashboardData, setDashboardData] = useState(null);
     const [loadingDash, setLoadingDash] = useState(false);
     const [filters, setFilters] = useState({ institute: '', specialty: '', year: '' });
@@ -411,7 +412,7 @@ function AdminMainView() {
     return (
         <div className="AdminMainView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                <Header title="Админ: Главная" name="Администратор1" />
+                <Header title="Админ: Главная" name={user.username} />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <FilterHeader onFilterChange={updateFilter} 

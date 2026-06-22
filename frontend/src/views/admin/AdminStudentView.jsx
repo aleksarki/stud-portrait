@@ -390,6 +390,8 @@ const CoursesCard = ({ courses }) => {
 };
 
 function AdminStudentView() {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
     const [selectedStudentId, setSelectedStudentId] = useState(null);
     const [studentPortrait, setStudentPortrait] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -420,7 +422,7 @@ function AdminStudentView() {
     return (
         <div className="AdminStudentView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                <Header title="Админ: Просмотр студента" name="Администратор1" />
+                <Header title="Админ: Просмотр студента" name={user.username} />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <h2>Цифровой портрет студента</h2>

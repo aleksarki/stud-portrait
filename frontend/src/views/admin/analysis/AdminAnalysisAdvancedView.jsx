@@ -37,6 +37,8 @@ import VamDotPlot from '../../../components/charts/VamDotPlot';
 import "./AdminAnalysisAdvancedView.scss";
 
 function AdminAnalysisAdvancedView() {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
     // -------------------- STATE --------------------
     const [sessionId, setSessionId] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -743,7 +745,7 @@ function AdminAnalysisAdvancedView() {
     return (
         <div className="AdminAnalysisAdvancedView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                <Header title="Админ: Анализ данных" name="Администратор" />
+                <Header title="Админ: Анализ данных" name={user.username} />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <h2>Визуализации</h2>

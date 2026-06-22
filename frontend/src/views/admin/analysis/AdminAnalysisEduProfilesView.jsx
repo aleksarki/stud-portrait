@@ -5,10 +5,11 @@ import { LINK_TREE } from "../../../utilities";
 import "./AdminAnalysisEduProfilesView.scss";
 
 function AdminAnalysisEduProfilesView() {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
     return (
         <div className="AdminAnalysisEduProfilesView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                <Header title="Админ: Анализ профилей образования" name="Администратор1" />
+                <Header title="Админ: Анализ профилей образования" name={user.username} />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <h2>Сравнение областей образования</h2>

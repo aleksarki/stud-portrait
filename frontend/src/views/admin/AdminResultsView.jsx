@@ -35,6 +35,8 @@ import Select, { Option, OptionGroup } from "../../components/ui/Select.jsx";
 import "./AdminResultsView.scss";
 
 function AdminResultsView() {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
     const [sessionId, setSessionId] = useState(null);
     const [results, setResults] = useState([]);
     const [totalCount, setTotalCount] = useState(0);
@@ -494,7 +496,7 @@ function AdminResultsView() {
     return (
         <div className="AdminResultsView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                <Header title="Админ: Результаты тестирования" name="Администратор1" />
+                <Header title="Админ: Результаты тестирования" name={user.username} />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <div className="results-container">

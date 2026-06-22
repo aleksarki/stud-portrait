@@ -14,6 +14,8 @@ import Select, { Option } from "../../../components/ui/Select";
 import "./AdminAiAnalyticsView.scss";
 
 function AdminAiAnalyticsView() {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
     const [sessionId, setSessionId] = useState(null);
     const [loading, setLoading] = useState(false);
     const [generating, setGenerating] = useState(false);
@@ -99,7 +101,7 @@ function AdminAiAnalyticsView() {
     return (
         <div className="AdminAiAnalyticsView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                <Header title="Админ: ИИ-аналитика" name="Администратор" />
+                <Header title="Админ: ИИ-аналитика" name={user.username} />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <h2>Интеллектуальная аналитика</h2>
