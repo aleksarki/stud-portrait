@@ -6,7 +6,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Pt, Inches, RGBColor, Cm
 
 from .common import *
-from .genutils import *
+from .ainterp import *
 from ..llmclient import LLM_CLIENT
 
 
@@ -253,116 +253,6 @@ def generate_docx_resume(request):
     footer_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
     return docxResponse(doc, f"Резюме_{student_name}.docx")
-
-
-@cached()
-@method(GET)
-@jsonResponse
-@csrf_exempt
-def get_student_resume_data(request):
-    student_id = request.GET.get('student_id')
-    year = request.GET.get('year')
-    with_ai = request.GET.get('with_ai', 'true').lower() == 'true'
-
-    if not student_id:
-        raise ResponseError("student_id required")
-
-    try:
-        participant = Participants.objects.get(**{tPART.ID: student_id})
-    except Participants.DoesNotExist:
-        raise ResponseError(f"Participant {student_id} not found", status=404)
-
-    # Ищем маппинг для получения ФИО
-    try:
-        mapping = StudentMapping.objects.get(mapping_rsv=participant.part_rsv)
-        student_name = mapping.mapping_stud_name
-    except StudentMapping.DoesNotExist:
-        student_name = participant.part_rsv or f"Участник {student_id}"
-
-    results = TestResults.objects.filter(**{tRES.PARTICIPANT: participant})
-    if year:
-        results = results.filter(**{tRES.YEAR: year})
-    results = results.order_by(desc(tRES.YEAR), desc(tRES.COURSE_NUM))
-
-    if not results.exists():
-        raise ResponseError("No results")
-
-    latest_result = results.first()
-
-    # Учебная информация теперь в TestResults
-    resume_data = {
-        'personal_info': {
-            'name':       student_name,
-            'gender':     participant.part_gender or '',
-            'student_id': student_id,
-            'rsv_id':     participant.part_rsv
-        },
-        'education': {
-            'institution': latest_result.res_institution.inst_name if latest_result.res_institution else '',
-            'direction':   latest_result.res_edu_specialty.edu_spec_name if latest_result.res_edu_specialty else '',
-            'form':        latest_result.res_edu_form.edu_form_name if latest_result.res_edu_form else '',
-            'level':       latest_result.res_edu_level.edu_level_name if latest_result.res_edu_level else '',
-            'course':      participant.part_course_num or latest_result.res_course
-        },
-        'competencies': [],
-        'generated_at': datetime.now().isoformat(),
-        'year':         year or latest_result.res_year
-    }
-
-    # fixme why the order??????????
-    competencies_order = [
-        'res_comp_leadership', 'res_comp_communication', 'res_comp_self_development',
-        'res_comp_result_orientation', 'res_comp_stress_resistance', 'res_comp_client_focus',
-        'res_comp_planning', 'res_comp_info_analysis', 'res_comp_partnership',
-        'res_comp_rules_compliance', 'res_comp_emotional_intel', 'res_comp_passive_vocab'
-    ]
-
-    all_scores = {}
-    for comp_field in competencies_order:
-        score = getattr(latest_result, comp_field, None)
-        if score and score > 0:
-            all_scores[comp_field] = score
-
-    # Для каждой компетенции используем ТОЛЬКО шаблонные интерпретации (без ИИ)
-    for comp_field in competencies_order:
-        score = getattr(latest_result, comp_field, None)
-        if not score or score == 0:
-            continue
-        comp_name = COMP.names[comp_field]
-        course = latest_result.res_course or 1
-        prediction = predict_competency_level(score, course, [s for cf, s in all_scores.items() if cf != comp_field])
-        comp_data = {
-            'field': comp_field,
-            'name': comp_name,
-            'score': score,
-            'max_score': 800,
-            'percentage': ((score - 200) / 600) * 100,
-            'ai': {
-                'level':           prediction['level'],
-                'level_code':      prediction['level_code'],
-                'confidence':      prediction['confidence'],
-                'percentile':      prediction['percentile'],
-                'emoji':           get_level_emoji(prediction['level']),
-                'color':           get_level_color(prediction['level']),
-                'interpretation':  generate_interpretation(score, prediction['level'], comp_name, course, prediction['percentile']),
-                'recommendations': generate_recommendations(comp_field, prediction['level'], course)
-            }
-        }
-        resume_data['competencies'].append(comp_data)
-
-    # Общая интерпретация (ИИ)
-    if with_ai:
-        competencies_dict = {comp['name']: comp['score'] for comp in resume_data['competencies']}
-        try:
-            general_text = generate_general_interpretation_with_ai(resume_data['education'], competencies_dict)
-            resume_data['general_interpretation'] = general_text
-        except Exception as e:
-            print(f"General AI generation failed: {e}")
-            resume_data['general_interpretation'] = None
-    else:
-        resume_data['general_interpretation'] = None
-
-    return {'data': resume_data}
 
 
 @method(GET)
@@ -616,30 +506,13 @@ def generate_geography_report(request):
 
 # ! ================================================== UTILITIES =================================================== ! #
 
-def format_gender(gender_code):
-    """Преобразует код пола в читаемый формат."""
-    if gender_code is None:
-        return "Не указан"
-    # В новой БД пол хранится как INT (1 - мужской, 2 - женский)
-    gender_map = {
-        1: 'Мужской',
-        2: 'Женский',
-        'м': 'Мужской',
-        'М': 'Мужской',
-        'ж': 'Женский',
-        'Ж': 'Женский'
-    }
-    return gender_map.get(gender_code, str(gender_code))
-
-
 def generate_general_interpretation_with_ai_for_resume(student_info, competencies_dict):
     # Сортируем компетенции (общая логика для обоих случаев)
     sorted_comps = sorted(competencies_dict.items(), key=lambda x: x[1], reverse=True)
     strong = [name for name, _ in sorted_comps[:2]]
-    weak = [name for name, _ in sorted_comps[-2:]]
 
     # Если модель недоступна
-    if not LLM_CLIENT.health_check()["status"] in ("unhealthy", "unavailable"):
+    if not LLM_CLIENT.health_check()["status"] in ("healthy", "available"):
         print("[model] (!): model not available")
         return f"Студент демонстрирует сильные стороны в области {', '.join(strong)}. "
 
@@ -650,7 +523,7 @@ def generate_general_interpretation_with_ai_for_resume(student_info, competencie
             return "средний уровень"
         return "высокий уровень"
 
-    # Формируем промпт с использованием strong/weak
+    # Формируем промпт с использованием strong
     prompt = (
         f"Ты — карьерный консультант. "
         f"Напиши краткую характеристику студента для использования в резюме, используя только данные о компетенциях. "
@@ -667,51 +540,6 @@ def generate_general_interpretation_with_ai_for_resume(student_info, competencie
     )
 
     text = LLM_CLIENT.generate(prompt, max_length=1500, temperature=0.6, top_p=0.85)
-
-    # Если ответ пустой или содержит признаки галлюцинаций
-    if not text or any(phrase in text.lower() for phrase in ['внешность', 'возраст', 'рост', 'характер', 'build']):
-        print("[model] (!): model got high and generated garbage")
-
-    return text
-
-
-def generate_general_interpretation_with_ai(student_info, competencies_dict):
-    # Сортируем компетенции (общая логика для обоих случаев)
-    sorted_comps = sorted(competencies_dict.items(), key=lambda x: x[1], reverse=True)
-    strong = [name for name, _ in sorted_comps[:2]]
-    weak = [name for name, _ in sorted_comps[-2:]]
-
-    # Если модель недоступна
-    if not LLM_CLIENT.health_check()["status"] in ("unhealthy", "unavailable"):
-        print("[model] (!): model not available")
-        return (
-            f"Студент демонстрирует сильные стороны в области {', '.join(strong)}. "
-            f"Рекомендуется обратить внимание на развитие {', '.join(weak)}."
-        )
-
-    def level(value):
-        if value < 399:
-            return "начальный уровень"
-        if value < 599:
-            return "средний уровень"
-        return "высокий уровень"
-
-    # Формируем промпт с использованием strong/weak
-    prompt = (
-        f"Ты — карьерный консультант. Напиши краткую характеристику студента, используя только данные о компетенциях. "
-        f"Не добавляй никакой информации о внешности, возрасте или личных качествах, не указанных в данных.\n\n"
-        f"Курс: {student_info.get('course', 'X')}\n"
-        f"Направление: {student_info.get('direction', 'не указано')}\n"
-        f"Баллы развития компетенций (200-800):\n"
-    ) + (
-        "\n".join([f"{comp}: {val} ({level(val)})" for comp, val in competencies_dict.items()])
-    ) + (
-        f"\nСильные стороны (наиболее высокие баллы): {', '.join(strong)}\n"
-        f"Зоны роста (наиболее низкие баллы): {', '.join(weak)}\n\n"
-        f"Характеристика (2-3 предложения):"
-    )
-
-    text = LLM_CLIENT.generate(prompt, max_length=150, temperature=0.6, top_p=0.85)
 
     # Если ответ пустой или содержит признаки галлюцинаций
     if not text or any(phrase in text.lower() for phrase in ['внешность', 'возраст', 'рост', 'характер', 'build']):

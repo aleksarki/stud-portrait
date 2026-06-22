@@ -83,10 +83,10 @@ def zeroIfNull(value: Any | None) -> float:
     """
     return float(value) if value is not None else 0
 
-def attrIfObj(obj: Any | None, attr: str) -> Any | None:
+def attrIfObj(obj: Any | None, attr: str, wild=None) -> Any | None:
     """ Get attribute of an object if it is not None; else None.
     """
-    return getattr(obj, attr) if obj is not None else None
+    return getattr(obj, attr) if obj is not None else wild
 
 def attrElseNone(obj: Any, attr: str) -> Any | None:
     """ Get attribute if the object has it; else None.

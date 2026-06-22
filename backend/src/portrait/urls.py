@@ -90,7 +90,7 @@ urlpatterns = [
     path('competency-segmentation/', stat.get_competency_segmentation, name='competency_segmentation'),
 
     # AINTERP module
-    # *empty*
+    path('gendox/student-resume-data/',  ainterp.interpret_student_results,   name='gendox_student_resume_data'),
 
     path('parse-curriculum/',          curriculum_end.parse_curriculum_view, name='parse_curriculum'),
     path('parse-curriculum/log/',      curriculum_end.get_parse_log,         name='parse_curriculum_log'),
@@ -98,7 +98,6 @@ urlpatterns = [
 
     # GENDOX module
     path('gendox/generate-resume-docx/', gendox.generate_docx_resume,      name='gendox_generate_resume_docx'),
-    path('gendox/student-resume-data/',  gendox.get_student_resume_data,   name='gendox_student_resume_data'),
     path('gendox/geography-report/',     gendox.generate_geography_report, name='gendox_geography_report'),
 
 ]
