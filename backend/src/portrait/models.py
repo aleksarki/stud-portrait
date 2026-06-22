@@ -202,14 +202,6 @@ class Testresults(models.Model):
         unique_together = (('res_participant', 'res_year'),)
 
 class DisciplineCompetencyMapping(models.Model):
-    """
-    Хранит результат парсинга учебного плана ТюмГУ:
-    дисциплина → список РСВ-компетенций (res_comp_*).
- 
-    Заполняется через эндпоинт POST /portrait/parse-curriculum/.
-    Используется вместо захардкоженного DISCIPLINE_COMPETENCY_MAP
-    в analysis_end.py.
-    """
     disc_name = models.CharField(
         max_length=1024,
         unique=True,
@@ -247,10 +239,6 @@ class DisciplineCompetencyMapping(models.Model):
  
  
 class CurriculumParseLog(models.Model):
-    """
-    Журнал запусков парсера учебного плана.
-    Отображается суперадмину в UI.
-    """
     STATUS_RUNNING = "running"
     STATUS_SUCCESS = "success"
     STATUS_ERROR   = "error"
