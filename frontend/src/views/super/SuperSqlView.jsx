@@ -75,6 +75,8 @@ const exportToCSV = (data, query) => {
 };
 
 function SuperSqlView() {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
     const [query, setQuery] = useState('');
     const [result, setResult] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -136,7 +138,7 @@ LIMIT 50;`
     return (
         <div className="SuperSqlView">
             <SidebarLayout style={LAYOUT_STYLE.ADMIN}>
-                <Header title="Суперадмин: SQL-запросник" name="СуперАдминистратор1" />
+                <Header title="Суперадмин: SQL-запросник" name={user.username} />
                 <Sidebar linkTree={SUPER_LINK_TREE} />
                 <Content>
                     <h3>SQL Консоль</h3>

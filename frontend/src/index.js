@@ -1,10 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
 
-import App from "./views/App";
 import ErrorView from "./views/ErrorView";
+import Login from "./components/Login";
 
+// Admin Views
 import AdminAnalysisAdvancedView from "./views/admin/analysis/AdminAnalysisAdvancedView";
 import AdminAnalysisDisciplinesView from "./views/admin/analysis/AdminAnalysisDisciplinesView";
 import AdminAiAnalyticsView from "./views/admin/analysis/AdminAiAnalyticsView";
@@ -25,9 +26,11 @@ import AdminAPView from "./views/admin/AdminAPView";
 import AdminCompetencesView from "./views/admin/AdminCompetencesView";
 import AdminStudentView from "./views/admin/AdminStudentView";
 
+// Student Views
 import StudentMainView from "./views/student/StudentMainView";
 import StudentReportView from "./views/student/StudentReportView";
 
+// Superadmin Views
 import SuperAuditView from "./views/super/SuperAuditView";
 import SuperSqlView from "./views/super/SuperSqlView";
 import SuperUploadView from "./views/super/SuperUploadView";
@@ -35,114 +38,259 @@ import SuperUploadView from "./views/super/SuperUploadView";
 import reportWebVitals from "./reportWebVitals";
 import "./index.css";
 
+const PrivateRoute = ({ children, requiredRole }) => {
+  const userData = localStorage.getItem('user');
+  const user = userData ? JSON.parse(userData) : null;
+
+  console.log('PrivateRoute check:', { user, requiredRole });
+
+  if (!user) {
+    console.log('No user, redirecting to login');
+    return <Navigate to="/login" replace />;
+  }
+
+  if (requiredRole && user.role !== requiredRole) {
+    console.log(`Wrong role: ${user.role}, required: ${requiredRole}`);
+    const redirectMap = {
+      'superadmin': '/super/audit',
+      'admin': '/admin/stats',
+      'student': `/student/${user.participant_id || 'not-found'}`
+    };
+    return <Navigate to={redirectMap[user.role] || '/login'} replace />;
+  }
+
+  return children;
+};
+
+// Компонент для проверки авторизации и перенаправления на правильную страницу
+const AuthRedirect = () => {
+  const userData = localStorage.getItem('user');
+  const user = userData ? JSON.parse(userData) : null;
+
+  if (!user) {
+      return <Navigate to="/login" replace />;
+  }
+
+  // Проверяем, что роль правильная
+  const redirectMap = {
+      'superadmin': '/super/audit',
+      'admin': '/admin/stats',
+      'student': `/student/${user.participant_id || 'not-found'}`
+  };
+
+  const redirectUrl = redirectMap[user.role] || '/login';
+  return <Navigate to={redirectUrl} replace />;
+};
+
 const router = createBrowserRouter([
+  // Публичные маршруты
   {
-    path: "/",  // should be excluded
-    element: <App />,
-    errorElement: <ErrorView />
+    path: '/login',
+    element: <Login />
+  },
+  
+  // Корневой маршрут - перенаправляет на основе роли
+  {
+    path: '/',
+    element: <AuthRedirect />
   },
 
-  /* STUDENT VIEWS */
-
+  // Студенческие маршруты (только для студентов)
   {
     path: "/student/:studentId",
-    element: <StudentMainView />
+    element: (
+      <PrivateRoute requiredRole="student">
+        <StudentMainView />
+      </PrivateRoute>
+    )
   },
   {
     path: "/student/:studentId/report/:reportType",
-    element: <StudentReportView />
+    element: (
+      <PrivateRoute requiredRole="student">
+        <StudentReportView />
+      </PrivateRoute>
+    )
   },
 
-  /* ADMIN VIEWS */
-
+  // Административные маршруты (только для админов и суперадминов)
   {
     path: "/admin/",
-    element: <AdminMainView />
+    element: (
+      <PrivateRoute requiredRole="admin">
+        <AdminMainView />
+      </PrivateRoute>
+    )
   },
   {
     path: "/admin/geography",
-    element: <AdminGeographyView />
+    element: (
+      <PrivateRoute requiredRole="admin">
+        <AdminGeographyView />
+      </PrivateRoute>
+    )
   },
   {
     path: "/admin/help",
-    element: <AdminHelpView />
+    element: (
+      <PrivateRoute requiredRole="admin">
+        <AdminHelpView />
+      </PrivateRoute>
+    )
   },
   {
     path: "/admin/stats",
-    element: <AdminStatsView />
+    element: (
+      <PrivateRoute requiredRole="admin">
+        <AdminStatsView />
+      </PrivateRoute>
+    )
   },
   {
     path: "/admin/results",
-    element: <AdminResultsView />
+    element: (
+      <PrivateRoute requiredRole="admin">
+        <AdminResultsView />
+      </PrivateRoute>
+    )
   },
   {
     path: "/admin/analysis/disciplines",
-    element: <AdminAnalysisDisciplinesView />
+    element: (
+      <PrivateRoute requiredRole="admin">
+        <AdminAnalysisDisciplinesView />
+      </PrivateRoute>
+    )
   },
   {
     path: "/admin/analysis/advanced",
-    element: <AdminAnalysisAdvancedView />
+    element: (
+      <PrivateRoute requiredRole="admin">
+        <AdminAnalysisAdvancedView />
+      </PrivateRoute>
+    )
   },
   {
     path: "/admin/analysis/ai-analytics",
-    element: <AdminAiAnalyticsView />
+    element: (
+      <PrivateRoute requiredRole="admin">
+        <AdminAiAnalyticsView />
+      </PrivateRoute>
+    )
   },
   {
     path: "/admin/analysis/edu-profiles",
-    element: <AdminAnalysisEduProfilesView />
+    element: (
+      <PrivateRoute requiredRole="admin">
+        <AdminAnalysisEduProfilesView />
+      </PrivateRoute>
+    )
   },
   {
     path: "/admin/analysis/transfered-students",
-    element: <AdminTransferAnalysisView />
+    element: (
+      <PrivateRoute requiredRole="admin">
+        <AdminTransferAnalysisView />
+      </PrivateRoute>
+    )
   },
   {
     path: "/admin/analysis/dublicate-accounts",
-    element: <AdminDuplicateAccountsChecker />
+    element: (
+      <PrivateRoute requiredRole="admin">
+        <AdminDuplicateAccountsChecker />
+      </PrivateRoute>
+    )
   },
   {
     path: "/admin/analysis/anomalous-students",
-    element: <AdminAnomalousStudentView />
+    element: (
+      <PrivateRoute requiredRole="admin">
+        <AdminAnomalousStudentView />
+      </PrivateRoute>
+    )
   },
   {
     path: "/admin/courses",
-    element: <AdminCoursesView />
+    element: (
+      <PrivateRoute requiredRole="admin">
+        <AdminCoursesView />
+      </PrivateRoute>
+    )
   },
   {
     path: "/admin/grouping",
-    element: <AdminGroupingView />
+    element: (
+      <PrivateRoute requiredRole="admin">
+        <AdminGroupingView />
+      </PrivateRoute>
+    )
   },
   {
     path: "/admin/competences",
-    element: <AdminCompetencesView/>
+    element: (
+      <PrivateRoute requiredRole="admin">
+        <AdminCompetencesView />
+      </PrivateRoute>
+    )
   },
   {
     path: "/admin/motivators",
-    element: <AdminMotivatorsView/>
+    element: (
+      <PrivateRoute requiredRole="admin">
+        <AdminMotivatorsView />
+      </PrivateRoute>
+    )
   },
   {
     path: "/admin/AP",
-    element: <AdminAPView />
+    element: (
+      <PrivateRoute requiredRole="admin">
+        <AdminAPView />
+      </PrivateRoute>
+    )
   },
   {
     path: "/admin/student/",
-    element: <AdminStudentView />
+    element: (
+      <PrivateRoute requiredRole="admin">
+        <AdminStudentView />
+      </PrivateRoute>
+    )
   },
 
-  /* SUPERADMIN VIEWS */
-
+  // Суперадминские маршруты (только для суперадминов)
   {
     path: "/super/audit",
-    element: <SuperAuditView />
+    element: (
+      <PrivateRoute requiredRole="superadmin">
+        <SuperAuditView />
+      </PrivateRoute>
+    )
   },
   {
     path: "/super/upload",
-    element: <SuperUploadView />
+    element: (
+      <PrivateRoute requiredRole="superadmin">
+        <SuperUploadView />
+      </PrivateRoute>
+    )
   },
   {
     path: "/super/sql",
-    element: <SuperSqlView />
+    element: (
+      <PrivateRoute requiredRole="superadmin">
+        <SuperSqlView />
+      </PrivateRoute>
+    )
+  },
+
+  // Обработка 404 - перенаправление на логин
+  {
+    path: '*',
+    element: <Navigate to="/login" replace />
   }
-])
+]);
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

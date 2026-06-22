@@ -31,6 +31,8 @@ const competencyLabels = {
 
 
 function AdminStatsView() {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('overview');
@@ -236,7 +238,7 @@ function AdminStatsView() {
         return (
             <div className="AdminStatsView">
                 <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                    <Header title="Админ: Статистика тестирования" name="Администратор1" />
+                    <Header title="Админ: Статистика тестирования" name={user.username} />
                     <Sidebar linkTree={LINK_TREE} />
                     <Content>
                         <div className="loading-content">
@@ -251,7 +253,7 @@ function AdminStatsView() {
     return (
         <div className="AdminStatsView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                <Header title="Админ: Статистика тестирования" name="Администратор1" />
+                <Header title="Админ: Статистика тестирования" name={user.username} />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <div className="stats-container">
@@ -485,7 +487,16 @@ function AdminStatsView() {
                                             height={400}
                                         />
                                     </TitledCard>
-                                    <TitledCard title="Прохождение тестирования за текущий период">
+                                    <TitledCard title="Распределение по специальностям">
+                                        <Chart
+                                            options={{
+                                                ...pieChartOptions,
+                                                labels: stats?.specialtiesDistribution?.specialties || []
+                                            }}
+                                            series={stats?.specialtiesDistribution?.counts || []}
+                                            type="pie"
+                                            height={400}
+                                        />
                                     </TitledCard>
                                 </div>
 
@@ -583,21 +594,6 @@ function AdminStatsView() {
                                             )}
                                         </div>
                                     </Card>
-                                </div>
-
-                                {/* Четвёртый ряд диаграмм */}
-                                <div className="charts-row">
-                                    <TitledCard title="Распределение по специальностям">
-                                        <Chart
-                                            options={{
-                                                ...pieChartOptions,
-                                                labels: stats?.specialtiesDistribution?.specialties || []
-                                            }}
-                                            series={stats?.specialtiesDistribution?.counts || []}
-                                            type="pie"
-                                            height={400}
-                                        />
-                                    </TitledCard>
                                 </div>
                             </div>
                         )}

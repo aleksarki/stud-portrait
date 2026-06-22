@@ -27,6 +27,8 @@ import BoxplotChart from "../../../components/charts/BoxplotChart";
 import "./AdminAnomalousStudentView.scss";
 
 function AdminAnomalousStudentView() {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
     const [sessionId, setSessionId] = useState(null);
     const [loading, setLoading] = useState(false);
 
@@ -160,7 +162,7 @@ function AdminAnomalousStudentView() {
     return (
         <div className="AdminAnomalousStudentView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                <Header title="Аномальные студенты" name="Администратор" />
+                <Header title="Аномальные студенты" name={user.username} />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <h2>Выявление выбросов по компетенциям (метод ящиков с усами)</h2>

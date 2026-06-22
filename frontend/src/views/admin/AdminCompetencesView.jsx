@@ -1120,6 +1120,8 @@ function CompetencyTrendLine({ data, loading }) {
 }
 
 function AdminCompetencesView() {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    
     const [loading, setLoading] = useState(false);
     const [dashboardData, setDashboardData] = useState(null);
     const [loadingDash, setLoadingDash] = useState(false);
@@ -1202,7 +1204,7 @@ function AdminCompetencesView() {
         return (
             <div className="AdminCompetencesView">
                 <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                    <Header title="Админ: Компетенции" name="Администратор1" />
+                    <Header title="Админ: Компетенции" name={user.username} />
                     <Sidebar linkTree={LINK_TREE} />
                     <Content>
                         <div className="filters-cont">
@@ -1219,7 +1221,7 @@ function AdminCompetencesView() {
     return (
         <div className="AdminCompetencesView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                <Header title="Админ: Компетенции" name="Администратор1" />
+                <Header title="Админ: Компетенции" name={user.username} />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <div className="filters-cont">

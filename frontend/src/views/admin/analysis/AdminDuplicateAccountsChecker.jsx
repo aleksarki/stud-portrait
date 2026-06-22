@@ -89,7 +89,9 @@ const StudentCard = ({ student, emailKey, expandedStudent, toggleStudent }) => {
 };
 
 // ─── Главный компонент ────────────────────────────────────────
-const AdminDuplicateAccountsChecker = () => {
+function AdminDuplicateAccountsChecker() {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
     const [loading, setLoading] = useState(false);
     const [data, setData] = useState(null);
     const [possibleData, setPossibleData] = useState(null);
@@ -128,7 +130,7 @@ const AdminDuplicateAccountsChecker = () => {
     return (
         <div className="AdminDuplicateAccountsChecker">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                <Header title="Админ: Проверка дублирующихся аккаунтов" name="Администратор" />
+                <Header title="Админ: Проверка дублирующихся аккаунтов" name={user.username} />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <LoadingSpinner loading={loading} text="Поиск дублирующихся аккаунтов..." />
@@ -212,5 +214,4 @@ const AdminDuplicateAccountsChecker = () => {
     );
 };
 
-export { AdminDuplicateAccountsChecker };
 export default AdminDuplicateAccountsChecker;

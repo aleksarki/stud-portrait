@@ -54,6 +54,8 @@ const TrajectoryTooltip = ({ active, payload, label }) => {
 };
 
 function AdminTransferAnalysisView() {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
     // ── Фильтры ────────────────────────────────────────────
     const [institutions, setInstitutions]         = useState([]);
     const [selectedInst, setSelectedInst]         = useState('');
@@ -287,7 +289,7 @@ function AdminTransferAnalysisView() {
     return (
         <div className="AdminTransferAnalysisView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                <Header title="Админ: Анализ переводов" name="Администратор" />
+                <Header title="Админ: Анализ переводов" name={user.username} />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <h2>Анализ студентов, сменивших вуз или направление</h2>

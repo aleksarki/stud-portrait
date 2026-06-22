@@ -39,7 +39,7 @@ class LLMServiceClient:
             response = self.client.post(
                 f"{self.base_url}/generate",
                 json=payload,
-                timeout=120
+                timeout=240
             )
             response.raise_for_status()
 

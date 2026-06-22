@@ -19,6 +19,8 @@ import { ADMIN_PALETTE } from "../../components/ui/palette";
 import "./AdminGeographyView.scss";
 
 function AdminGeographyView() {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    
     const YEARS = ['2021/2022', '2022/2023', '2023/2024', '2024/2025', '2025/2026'];
 
     const [selectedYear, setSelectedYear] = useState('2024/2025');
@@ -98,7 +100,7 @@ function AdminGeographyView() {
     return (
         <div className="AdminGeographyView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                <Header title="Админ: География тестирования" name="Администратор1" />
+                <Header title="Админ: География тестирования" name={user.username} />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <div className="page-header">

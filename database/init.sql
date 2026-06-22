@@ -100,6 +100,8 @@ CREATE TABLE Participants
     part_gender      INT
 );
 
+-- CREATE INDEX idx_participants_rsv_id ON Participants(part_rsv_id);
+
 -- Результат прохождения тестирования РСВ
 CREATE TABLE TestResults
 (

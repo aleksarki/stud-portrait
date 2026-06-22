@@ -52,6 +52,8 @@ function colLetterToIndex(letter) {
 }
 
 function SuperUploadView() {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
     const [step, setStep] = useState("upload");
     const [selectedFile, setSelectedFile] = useState(null);
     const [fileHeaders, setFileHeaders] = useState({});
@@ -470,7 +472,7 @@ function SuperUploadView() {
     return (
         <div className="SuperUploadView">
             <SidebarLayout style={LAYOUT_STYLE.ADMIN}>
-                <Header title="Суперадмин: Загрузка данных" name="СуперАдминистратор1" />
+                <Header title="Суперадмин: Загрузка данных" name={user.username} />
                 <Sidebar linkTree={SUPER_LINK_TREE} />
                 <Content>
                     <h2>Загрузка данных «Россия — страна возможностей»</h2>

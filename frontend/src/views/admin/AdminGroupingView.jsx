@@ -18,7 +18,9 @@ import Select, { Option } from '../../components/ui/Select.jsx';
 import "./AdminGroupingView.scss";
 
 function AdminGroupingView() {
-    const location = useLocation(); // Теперь это работает правильно
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    
+    const location = useLocation();
     const navigate = useNavigate();
     const [groupingData, setGroupingData] = useState(null);
     const [chartData, setChartData] = useState(null);
@@ -90,7 +92,7 @@ function AdminGroupingView() {
         return (
             <div className="AdminGroupingView">
                 <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                    <Header title="Админ: Группировка данных" name="Администратор1" />
+                    <Header title="Админ: Группировка данных" name={user.username} />
                     <Sidebar linkTree={LINK_TREE} />
                     <Content>
                         <div className="loading">
@@ -106,7 +108,7 @@ function AdminGroupingView() {
     return (
         <div className="AdminGroupingView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                <Header title="Админ: Группировка данных" name="Администратор1" />
+                <Header title="Админ: Группировка данных" name={user.username} />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <div className="grouping-container">

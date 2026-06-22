@@ -16,6 +16,12 @@ import os
 
 LOCAL_DEV = os.environ.get('LOCAL_DEV', 'false').lower() == 'true'
 
+IN_DOCKER = os.environ.get('IN_DOCKER', 'false').lower() == 'true'
+
+if not IN_DOCKER and not LOCAL_DEV:
+    LOCAL_DEV = True
+    print("[settings] (i): Auto-detected LOCAL_DEV mode (not in Docker)")
+
 if LOCAL_DEV:
     env_file = '.env.local'
     print("[settings] (i): Running in LOCAL_DEV mode")
@@ -47,6 +53,7 @@ ALLOWED_HOSTS = ['*']
 
 INSTALLED_APPS = [
     'portrait.apps.PortraitConfig',
+    'accounts',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -69,12 +76,55 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'studportrait.urls'
 
+# CSRF settings
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+
+CSRF_COOKIE_HTTPONLY = False  # Важно для React! Позволяет читать CSRF токен из cookie
+CSRF_COOKIE_SAMESITE = 'Lax'  # Или 'None' для кросс-доменных запросов
+CSRF_USE_SESSIONS = False
+
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
 ]
+
+# Разрешаем отправку cookies и авторизационных заголовков
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_ALL_ORIGINS = True  # Только для разработки
+
+# Дополнительные настройки CORS
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+SESSION_COOKIE_SAMESITE = 'Lax'  # Или 'None'
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = False  # True только для HTTPS
 
 # LLM Service Configuration
 LLM_SERVICE_URL = os.environ.get('LLM_SERVICE_URL', 'http://localhost:8001')
@@ -83,7 +133,7 @@ LLM_SERVICE_TIMEOUT = 60  # seconds
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -105,6 +155,7 @@ print("[settings] (i): DB_HOST is", os.environ.get('DB_HOST', 'localhost'))
 print("[settings] (i): DB_PORT is", os.environ.get('DB_PORT', '5432'))
 print("[settings] (i): DB_NAME is", os.environ.get('DB_NAME', 'studportrait'))
 print("[settings] (i): DB_USER is", os.environ.get('DB_USER', 'postgres'))
+print("[settings] (i): DB_PASSWORD is", os.environ.get('DB_PASSWORD', 'password'))
 
 DATABASES = {
     "default": {
@@ -133,6 +184,18 @@ CACHES = {
     }
 }
 
+# Authentication settings
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'dashboard'  # или 'home'
+LOGOUT_REDIRECT_URL = 'login'
+
+# Session settings
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 7 дней
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+]
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

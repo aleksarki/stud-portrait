@@ -24,7 +24,7 @@ from ..models import (
     Academicperformances as AcademicPerformances, Competencecenters as CompetenceCenters, Courseresults as CourseResults,
     Datauploadtemplate as DataUploadTemplate, Educationdisciplines as EducationDisciplines, Educationforms as EducationForms,
     Educationlevels as EducationLevels, Educationspecialties as EducationSpecialties, Institutions, Participants,
-    Studentmapping as StudentMapping, Testresults as TestResults
+    Studentmapping as StudentMapping, Testresults as TestResults, DisciplineCompetencyMapping, CurriculumParseLog
 )
 
 
@@ -113,7 +113,8 @@ def successResponse(data: dict = dict(), status: int = 200) -> JsonResponse:
     """ Take in dict data, unpack it into returned JSON response with success status.
     """
     try:
-        debugPrint(f"success {status}:", json.dumps(data, indent=4, ensure_ascii=False))  # there may be error like decimal
+        pass
+        # debugPrint(f"success {status}:", json.dumps(data, indent=4, ensure_ascii=False))  # there may be error like decimal
     except:                                                                               # not being json-serialisable
         pass
     return JsonResponse({"status": "success", **data}, status=status)
