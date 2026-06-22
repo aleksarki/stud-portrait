@@ -24,7 +24,7 @@ from ..models import (
     Academicperformances as AcademicPerformances, Competencecenters as CompetenceCenters, Courseresults as CourseResults,
     Datauploadtemplate as DataUploadTemplate, Educationdisciplines as EducationDisciplines, Educationforms as EducationForms,
     Educationlevels as EducationLevels, Educationspecialties as EducationSpecialties, Institutions, Participants,
-    Studentmapping as StudentMapping, Testresults as TestResults
+    Studentmapping as StudentMapping, Testresults as TestResults, DisciplineCompetencyMapping, CurriculumParseLog
 )
 
 

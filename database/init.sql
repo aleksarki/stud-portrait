@@ -1,16 +1,17 @@
-
-DROP TABLE IF EXISTS DataUploadTemplate   CASCADE;
-DROP TABLE IF EXISTS AcademicPerformances CASCADE;
-DROP TABLE IF EXISTS CourseResults        CASCADE;
-DROP TABLE IF EXISTS TestResults          CASCADE;
-DROP TABLE IF EXISTS Participants         CASCADE;
-DROP TABLE IF EXISTS StudentMapping       CASCADE;
-DROP TABLE IF EXISTS EducationDisciplines CASCADE;
-DROP TABLE IF EXISTS EducationSpecialties CASCADE;
-DROP TABLE IF EXISTS EducationForms       CASCADE;
-DROP TABLE IF EXISTS EducationLevels      CASCADE;
-DROP TABLE IF EXISTS Institutions         CASCADE;
-DROP TABLE IF EXISTS CompetenceCenters    CASCADE;
+DROP TABLE IF EXISTS DataUploadTemplate              CASCADE;
+DROP TABLE IF EXISTS AcademicPerformances            CASCADE;
+DROP TABLE IF EXISTS CourseResults                   CASCADE;
+DROP TABLE IF EXISTS TestResults                     CASCADE;
+DROP TABLE IF EXISTS Participants                    CASCADE;
+DROP TABLE IF EXISTS StudentMapping                  CASCADE;
+DROP TABLE IF EXISTS EducationDisciplines            CASCADE;
+DROP TABLE IF EXISTS EducationSpecialties            CASCADE;
+DROP TABLE IF EXISTS EducationForms                  CASCADE;
+DROP TABLE IF EXISTS EducationLevels                 CASCADE;
+DROP TABLE IF EXISTS Institutions                    CASCADE;
+DROP TABLE IF EXISTS CompetenceCenters               CASCADE;
+DROP TABLE IF EXISTS DisciplineCompetencyMapping     CASCADE;
+DROP TABLE IF EXISTS CurriculumParseLog              CASCADE;
 
 -- Центр компетенций
 CREATE TABLE CompetenceCenters
@@ -67,7 +68,7 @@ INSERT INTO EducationForms (edu_form_name) VALUES
 -- Специальность
 CREATE TABLE EducationSpecialties
 (
-    edu_spec_id    INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    edu_spec_id    INTEGER        PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     edu_spec_name  VARCHAR(1024)  NOT NULL
 );
 
@@ -184,7 +185,7 @@ CREATE TABLE CourseResults
     course_career_management       DECIMAL(5,2)  CHECK (course_career_management      BETWEEN 0 AND 1),
     course_burnout                 DECIMAL(5,2)  CHECK (course_burnout                BETWEEN 0 AND 1),
     course_cross_cultural_comm     DECIMAL(5,2)  CHECK (course_cross_cultural_comm    BETWEEN 0 AND 1),
-    course_mentoring               DECIMAL(5,2)  CHECK (course_mentoring              BETWEEN 0 AND 1) 
+    course_mentoring               DECIMAL(5,2)  CHECK (course_mentoring              BETWEEN 0 AND 1)
 );
 
 CREATE INDEX idx_course_results_participant ON CourseResults(course_participant);
@@ -193,16 +194,16 @@ CREATE INDEX idx_course_results_participant ON CourseResults(course_participant)
 CREATE TABLE AcademicPerformances
 (
     perf_id              INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    perf_participant     INT           NOT NULL REFERENCES Participants(part_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    perf_participant     INT           NOT NULL REFERENCES Participants(part_id)              ON DELETE CASCADE  ON UPDATE CASCADE,
     perf_edu_discipline  INT           NOT NULL REFERENCES EducationDisciplines(edu_disc_id)  ON DELETE RESTRICT ON UPDATE CASCADE,
     perf_year            VARCHAR(16)   NOT NULL,
-    perf_current         DECIMAL(5,2), -- todo: CHECK                              -- итог текущей успеваемости
-    perf_digital         DECIMAL(5,2), -- todo: CHECK                              -- цифровая культура ?????
-    perf_main            INT           CHECK (perf_main          BETWEEN 1 AND 5),  -- основная аттестация  -- 1 = 'не явился'
-    perf_first_retake    INT           CHECK (perf_first_retake  BETWEEN 1 AND 5),  -- первая повторная аттестация
-    perf_second_retake   INT           CHECK (perf_second_retake BETWEEN 1 AND 5),  -- вторая повторная аттестация
-    perf_grade_retake    INT           CHECK (perf_grade_retake  BETWEEN 1 AND 5),  -- пересдача на повышенную оценку
-    perf_final           INT           CHECK (perf_final         BETWEEN 1 AND 5),  -- иоговая оценка
+    perf_current         DECIMAL(5,2),                                                         -- итог текущей успеваемости
+    perf_digital         DECIMAL(5,2),                                                         -- цифровая культура
+    perf_main            INT           CHECK (perf_main          BETWEEN 1 AND 5),             -- основная аттестация (1 = 'не явился')
+    perf_first_retake    INT           CHECK (perf_first_retake  BETWEEN 1 AND 5),             -- первая повторная аттестация
+    perf_second_retake   INT           CHECK (perf_second_retake BETWEEN 1 AND 5),             -- вторая повторная аттестация
+    perf_grade_retake    INT           CHECK (perf_grade_retake  BETWEEN 1 AND 5),             -- пересдача на повышенную оценку
+    perf_final           INT           CHECK (perf_final         BETWEEN 1 AND 5),             -- итоговая оценка
     UNIQUE(perf_participant, perf_year, perf_edu_discipline)
 );
 
@@ -213,7 +214,41 @@ CREATE TABLE DataUploadTemplate (
     template_id          INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     template_name        VARCHAR(256)  UNIQUE NOT NULL,
     template_description TEXT,
-    template_config      JSON NOT NULL,
+    template_config      JSON          NOT NULL,
     template_created_at  TIMESTAMP,
     template_updated_at  TIMESTAMP
 );
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Парсер учебного плана ТюмГУ
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- Маппинг дисциплин → РСВ-компетенции.
+-- Заполняется парсером через POST /portrait/parse-curriculum/.
+-- Используется в аналитике вместо захардкоженного словаря в analysis_end.py.
+CREATE TABLE DisciplineCompetencyMapping
+(
+    id                     INTEGER        PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    disc_name              VARCHAR(1024)  UNIQUE NOT NULL,
+    rsv_competencies       JSON           NOT NULL DEFAULT '[]',  -- ['res_comp_leadership', ...]
+    standard_competencies  JSON           NOT NULL DEFAULT '[]',  -- ['УК-1', 'ОПК-2', ...]
+    semester               INTEGER,                               -- 1–8, NULL если не определён
+    parsed_at              TIMESTAMP      NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_disc_comp_map_name ON DisciplineCompetencyMapping(disc_name);
+
+-- Журнал запусков парсера (отображается суперадмину в UI).
+CREATE TABLE CurriculumParseLog
+(
+    id                  INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    started_at          TIMESTAMP     NOT NULL DEFAULT NOW(),
+    finished_at         TIMESTAMP,
+    status              VARCHAR(16)   NOT NULL DEFAULT 'running',  -- running | success | error
+    disciplines_found   INTEGER       NOT NULL DEFAULT 0,
+    disciplines_saved   INTEGER       NOT NULL DEFAULT 0,
+    source_url          VARCHAR(512)  NOT NULL DEFAULT '',
+    error_message       TEXT          NOT NULL DEFAULT ''
+);
+
+CREATE INDEX idx_parse_log_started ON CurriculumParseLog(started_at DESC);

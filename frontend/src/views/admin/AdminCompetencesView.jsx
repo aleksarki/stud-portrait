@@ -9,9 +9,6 @@ import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import * as XLSX from 'xlsx';
 
-import CorrelationHeatmap from './CorrelationHeatmap';
-import CorrelationScatter from './CorrelationScatter';
-import TopCorrelationsTable from './TopCorrelationsTable';
 import CompetencySegmentation from './CompetencySegmentation';
 
 import FlexRow, { ALIGN, JUSTIFY, WRAP } from '../../components/FlexRow.jsx';
@@ -1234,10 +1231,7 @@ function AdminCompetencesView() {
                     </></span>
                     {loading ? <div>Загрузка диаграммы..</div> :
                         <>{/*<BoxPlots data={BoxplotData?.data} />*/}
-                            <CorrelationHeatmap data={correlationData} loading={loadingCorr} />
-                            <CorrelationScatter correlationData={correlationData} loading={loadingCorr} filters={filters_} />
                             <CompetencyTrendLine data={trendData} loading={loadingTrend} />
-                            <TopCorrelationsTable filters={filters_} />
                             <CompetencySegmentation filters={filters_} />
                         </>}
                 </Content>

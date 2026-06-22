@@ -7,7 +7,8 @@ from .endpoints import (
     analysis_end, transfer_analysis,
     statsresult, stat,
     ainterp,
-    gendox
+    gendox,
+    curriculum_end,
 )
 
 urlpatterns = [
@@ -90,6 +91,10 @@ urlpatterns = [
     # AINTERP module
     path('gendox/student-resume-data/',  ainterp.interpret_student_results,   name='gendox_student_resume_data'),
     path('ai-analytics-summary/',        ainterp.ai_analytics_summary,        name='ai_analytics_summary'),
+
+    path('parse-curriculum/',          curriculum_end.parse_curriculum_view, name='parse_curriculum'),
+    path('parse-curriculum/log/',      curriculum_end.get_parse_log,         name='parse_curriculum_log'),
+    path('parse-curriculum/mappings/', curriculum_end.get_saved_mappings,    name='parse_curriculum_mappings'),
 
     # GENDOX module
     path('gendox/generate-resume-docx/', gendox.generate_docx_resume,      name='gendox_generate_resume_docx'),
