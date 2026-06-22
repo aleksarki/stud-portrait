@@ -237,8 +237,8 @@ class DisciplineCompetencyMapping(models.Model):
     )
  
     class Meta:
-        # managed = True  ← Django создаёт таблицу при миграции
-        db_table = "discipline_competency_mapping"
+        managed = False
+        db_table = "DisciplineCompetencyMapping"
         verbose_name = "Маппинг дисциплин → компетенции"
         verbose_name_plural = "Маппинг дисциплин → компетенции"
  
@@ -269,7 +269,8 @@ class CurriculumParseLog(models.Model):
     error_message      = models.TextField(blank=True)
  
     class Meta:
-        db_table = "curriculum_parse_log"
+        managed = False
+        db_table = "CurriculumParseLog"
         ordering = ["-started_at"]
         verbose_name = "Лог парсинга учебного плана"
         verbose_name_plural = "Логи парсинга учебного плана"
