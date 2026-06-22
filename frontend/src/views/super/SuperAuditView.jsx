@@ -19,6 +19,8 @@ import NoData from "../../components/ui/NoData";
 import "./SuperAuditView.scss";
 
 function SuperAuditView() {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
     const [schema, setSchema] = useState(null);
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -82,7 +84,7 @@ function SuperAuditView() {
     return (
         <div className="SuperAuditView">
             <SidebarLayout style={LAYOUT_STYLE.ADMIN}>
-                <Header title="Суперадмин: Аудит данных" name="СуперАдминистратор1" />
+                <Header title="Суперадмин: Аудит данных" name={user.username} />
                 <Sidebar linkTree={SUPER_LINK_TREE} />
                 <Content>
                     <h2>Статистика и аудит данных</h2>
