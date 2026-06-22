@@ -1,0 +1,121 @@
+// CurriculumParserSection.scss
+
+.CurriculumParserSection {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+
+    .parser-description {
+        font-size: 14px;
+        color: #555;
+        line-height: 1.6;
+        margin-bottom: 16px;
+        padding: 12px 16px;
+        background: #f0f7ff;
+        border-left: 4px solid #2196f3;
+        border-radius: 0 6px 6px 0;
+    }
+
+    .parser-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+    }
+
+    // Сообщение после запуска
+    .launch-msg {
+        padding: 10px 14px;
+        border-radius: 6px;
+        font-size: 13px;
+        margin-bottom: 8px;
+
+        &--info  { background: #e3f2fd; color: #1565c0; border-left: 3px solid #2196f3; }
+        &--error { background: #ffebee; color: #c62828; border-left: 3px solid #f44336; }
+    }
+
+    // Баннер последнего запуска
+    .last-run-banner {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        flex-wrap: wrap;
+        margin-bottom: 4px;
+
+        &.status-running { background: #fff8e1; border: 1px solid #ffe082; color: #f57f17; }
+        &.status-success { background: #e8f5e9; border: 1px solid #a5d6a7; color: #2e7d32; }
+        &.status-error   { background: #ffebee; border: 1px solid #ffcdd2; color: #c62828; }
+
+        .run-label  { font-weight: 600; }
+        .run-status { font-weight: 500; }
+        .run-time   { color: inherit; opacity: 0.8; }
+        .run-count  { font-weight: 600; }
+        .run-source { color: inherit; text-decoration: underline; }
+    }
+
+    // Блок с текстом ошибки
+    .error-details {
+        background: #fff5f5;
+        border: 1px solid #ffa0a0;
+        border-radius: 6px;
+        padding: 12px 16px;
+        font-size: 13px;
+
+        pre {
+            margin: 6px 0 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-size: 12px;
+            color: #c62828;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    }
+
+    // Бейджи статуса
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 9px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+
+        &.status-running { background: #fff8e1; color: #f57f17; }
+        &.status-success { background: #e8f5e9; color: #2e7d32; }
+        &.status-error   { background: #ffebee; color: #c62828; }
+    }
+
+    .no-mappings {
+        color: #999;
+        font-size: 14px;
+        margin-top: 10px;
+    }
+
+    // Таблица маппингов
+    .mappings-table {
+        margin-top: 12px;
+        font-size: 13px;
+    }
+
+    .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .tag {
+        display: inline-block;
+        padding: 2px 7px;
+        border-radius: 10px;
+        font-size: 12px;
+
+        &--std { background: #e3f2fd; color: #1565c0; }
+        &--rsv { background: #f3e5f5; color: #6a1b9a; }
+    }
+}
