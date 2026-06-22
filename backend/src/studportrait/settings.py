@@ -16,6 +16,12 @@ import os
 
 LOCAL_DEV = os.environ.get('LOCAL_DEV', 'false').lower() == 'true'
 
+IN_DOCKER = os.environ.get('IN_DOCKER', 'false').lower() == 'true'
+
+if not IN_DOCKER and not LOCAL_DEV:
+    LOCAL_DEV = True
+    print("[settings] (i): Auto-detected LOCAL_DEV mode (not in Docker)")
+
 if LOCAL_DEV:
     env_file = '.env.local'
     print("[settings] (i): Running in LOCAL_DEV mode")
@@ -132,7 +138,6 @@ CACHES = {
         "TIMEOUT": 300  # Время жизни кэша по умолчанию: 300 секунд (5 минут)
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

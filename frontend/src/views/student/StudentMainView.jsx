@@ -230,7 +230,7 @@ function StudentMainView() {
 
                             <div className="hero-actions">
                                 <Button
-                                    text={analyticsLoading ? "Загрузка..." : showAnalytics ? "Скрыть аналитику" : "AI-аналитика"}
+                                    text={analyticsLoading ? "Загрузка..." : showAnalytics ? "Скрыть аналитику" : "ИИ-аналитика"}
                                     onClick={toggleAnalytics}
                                     disabled={analyticsLoading}
                                     palette={STUDENT_PALETTE.BLUE}

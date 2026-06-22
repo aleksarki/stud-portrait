@@ -51,7 +51,6 @@ urlpatterns = [
 
     path('get-competency-level-flow/',        analysis_end.get_competency_level_flow,        name='get_competency_level_flow'),
     path('get-competency-level-flow-yearly/', analysis_end.get_competency_level_flow_yearly, name='get_competency_level_flow'),
-    path('ai-analytics-summary/',             analysis_end.ai_analytics_summary,             name='ai_analytics_summary'),
     path('get-disciplines/',                  analysis_end.get_disciplines,                  name='get-disciplines'),   
     
     path('education-profiles-comparison/', analysis_end.get_education_profiles_comparison, name='education_profiles_comparison'),
@@ -90,6 +89,7 @@ urlpatterns = [
 
     # AINTERP module
     path('gendox/student-resume-data/',  ainterp.interpret_student_results,   name='gendox_student_resume_data'),
+    path('ai-analytics-summary/',        ainterp.ai_analytics_summary,        name='ai_analytics_summary'),
 
     # GENDOX module
     path('gendox/generate-resume-docx/', gendox.generate_docx_resume,      name='gendox_generate_resume_docx'),

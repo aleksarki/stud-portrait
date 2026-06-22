@@ -485,7 +485,16 @@ function AdminStatsView() {
                                             height={400}
                                         />
                                     </TitledCard>
-                                    <TitledCard title="Прохождение тестирования за текущий период">
+                                    <TitledCard title="Распределение по специальностям">
+                                        <Chart
+                                            options={{
+                                                ...pieChartOptions,
+                                                labels: stats?.specialtiesDistribution?.specialties || []
+                                            }}
+                                            series={stats?.specialtiesDistribution?.counts || []}
+                                            type="pie"
+                                            height={400}
+                                        />
                                     </TitledCard>
                                 </div>
 
@@ -583,21 +592,6 @@ function AdminStatsView() {
                                             )}
                                         </div>
                                     </Card>
-                                </div>
-
-                                {/* Четвёртый ряд диаграмм */}
-                                <div className="charts-row">
-                                    <TitledCard title="Распределение по специальностям">
-                                        <Chart
-                                            options={{
-                                                ...pieChartOptions,
-                                                labels: stats?.specialtiesDistribution?.specialties || []
-                                            }}
-                                            series={stats?.specialtiesDistribution?.counts || []}
-                                            type="pie"
-                                            height={400}
-                                        />
-                                    </TitledCard>
                                 </div>
                             </div>
                         )}

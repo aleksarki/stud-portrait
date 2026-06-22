@@ -99,7 +99,7 @@ function AdminAiAnalyticsView() {
     return (
         <div className="AdminAiAnalyticsView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                <Header title="Админ: AI-аналитика" name="Администратор" />
+                <Header title="Админ: ИИ-аналитика" name="Администратор" />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <h2>Интеллектуальная аналитика</h2>

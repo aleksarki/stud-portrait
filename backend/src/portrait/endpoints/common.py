@@ -113,7 +113,8 @@ def successResponse(data: dict = dict(), status: int = 200) -> JsonResponse:
     """ Take in dict data, unpack it into returned JSON response with success status.
     """
     try:
-        debugPrint(f"success {status}:", json.dumps(data, indent=4, ensure_ascii=False))  # there may be error like decimal
+        pass
+        # debugPrint(f"success {status}:", json.dumps(data, indent=4, ensure_ascii=False))  # there may be error like decimal
     except:                                                                               # not being json-serialisable
         pass
     return JsonResponse({"status": "success", **data}, status=status)
