@@ -4,24 +4,40 @@ import CompetencyTooltip from "./CompetencyTooltip";
 import "./LineCompetencyTooltip.scss";
 
 function LineCompetencyTooltip({ name, description, position, years, values }) {
+    const getBarColor = value => {
+        if (value === null || value === undefined) return '#cccccc';
+        if (value < 400) return '#e0cf30';
+        if (value < 600) return '#c3da45';
+        return '#219b25';
+    };
+
+    const barColors = values.map(v => getBarColor(v));
+
     const chartOptions = {
         chart: {
-            type: 'line',
+            type: 'bar',
             height: 200,
             zoom: { enabled: false },
             toolbar: { show: false }
         },
-        stroke: {
-            curve: 'smooth',
-            width: 3,
-            colors: ['#1976d2']
+        colors: barColors,
+        plotOptions: {
+            bar: {
+                distributed: true,
+                borderRadius: 3,
+                columnWidth: '60%',
+                dataLabels: { position: 'center' }
+            }
         },
-        markers: {
-            size: 6,
-            strokeColors: '#fff',
-            strokeWidth: 2,
-            hover: { size: 8 }
+        dataLabels: {
+            enabled: true,
+            formatter: val => val ?? '',
+            style: {
+                fontSize: '11px',
+                colors: ['#333']
+            }
         },
+        legend: { show: false },
         grid: {
             borderColor: '#e0e0e0',
             strokeDashArray: 3,
@@ -58,47 +74,14 @@ function LineCompetencyTooltip({ name, description, position, years, values }) {
                 show: true,
                 color: '#78909C'
             }
-        },
-        annotations: {
-            yaxis: [
-                {
-                    y: 399,
-                    y2: 200,
-                    borderColor: 'transparent',
-                    fillColor: '#FFF9C4',
-                    opacity: .6,
-                },
-                {
-                    y: 599,
-                    y2: 400,
-                    borderColor: 'transparent',
-                    fillColor: '#C8E6C9',
-                    opacity: .6,
-                },
-                {
-                    y: 800,
-                    y2: 600,
-                    borderColor: 'transparent',
-                    fillColor: '#A5D6A7',
-                    opacity: .6,
-                }
-            ]
         }
     };
 
-    const getPointColor = value => {
-        if (value < 400) return '#e0cf30ff';
-        if (value < 600) return '#c3da45ff';
-        return '#219b25ff';
-    };
-
-    // data to pass into the chart
     const chartSeries = [{
         name: name,
         data: values.map((value, index) => ({
             x: years[index],
-            y: value,
-            fillColor: getPointColor(value)
+            y: value
         }))
     }];
 
@@ -114,7 +97,7 @@ function LineCompetencyTooltip({ name, description, position, years, values }) {
                         <ReactApexChart
                             options={chartOptions}
                             series={chartSeries}
-                            type="line"
+                            type="bar"
                             height={200}
                         />
                     </div>
@@ -126,7 +109,7 @@ function LineCompetencyTooltip({ name, description, position, years, values }) {
                             Текущее значение: <strong>{values[0]}</strong>
                         </div>
                         <div className="value-category">
-                            Категория: <span style={{color: getPointColor(values[0])}}>
+                            Категория: <span style={{color: getBarColor(values[0])}}>
                                 {values[0] < 400 ? 'низкий' : values[0] < 600 ? 'средний' : 'высокий'}
                             </span>
                         </div>
