@@ -21,10 +21,19 @@
         // Стили для многострочных подписей
         .apexcharts-xaxis-label {
             tspan {
-                font-size: 11px !important;
+                font-size: 14px !important;
                 font-weight: 500 !important;
                 line-height: 1.2 !important;
+                fill: #111111 !important;
             }
+        }
+
+        .apexcharts-radar-series ~ g text,
+        text.apexcharts-xaxis-label,
+        .apexcharts-yaxis-label,
+        g[class*="apexcharts-xaxis"] text {
+            font-size: 14px !important;
+            fill: #111111 !important;
         }
         
         // Увеличиваем отступы для многострочных labels
