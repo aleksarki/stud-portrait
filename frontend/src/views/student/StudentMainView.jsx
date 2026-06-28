@@ -8,6 +8,7 @@ import {
     MOTIVATORS_NAMES
 } from "../../utilities";
 
+import ResumeBuilderModal from "../../components/ResumeBuilderModal";
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 import StudentComparisonStats from "../../components/StudentComparisonStats";
 import Title from "../../components/Title";
@@ -45,6 +46,7 @@ function StudentMainView() {
     const [availableYears, setAvailableYears] = useState([]);
     const [selectedYear, setSelectedYear] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [resumeModalVisible, setResumeModalVisible] = useState(false);
 
     // Аналитика компетенций
     const [analyticsData, setAnalyticsData] = useState(null);
@@ -236,9 +238,8 @@ function StudentMainView() {
                                     palette={STUDENT_PALETTE.BLUE}
                                 />
                                 <Button
-                                    text={resumeGenerating ? "Загрузка..." : "Скачать резюме"}
-                                    onClick={generateDocxResume}
-                                    disabled={resumeGenerating}
+                                    text="Создать резюме"
+                                    onClick={() => setResumeModalVisible(true)}
                                     palette={STUDENT_PALETTE.GREEN}
                                 />
                             </div>
@@ -353,6 +354,13 @@ function StudentMainView() {
                         <h3>📚 Влияние дисциплин на ваши компетенции</h3>
                         <StudentDisciplineImpact studentId={studentId} />
                     </div>
+
+                    <ResumeBuilderModal
+                        visible={resumeModalVisible}
+                        setVisible={setResumeModalVisible}
+                        studentId={studentId}
+                        studentName={studentName}
+                    />
 
                 </Content>
             </SidebarLayout>

@@ -606,7 +606,9 @@ export function getStudentPortrait(studentId) {
 export function getStudentResumeData(studentId, year) {
     const params = new URLSearchParams();
     params.append('student_id', studentId);
-    params.append('year', year);
+    if (year && year !== 'null' && year !== 'undefined') {
+        params.append('year', year);
+    }
     params.append('with_ai', 'true');
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/gendox/student-resume-data/?${params}`);
     return new AsyncChain(promise);
@@ -615,7 +617,18 @@ export function getStudentResumeData(studentId, year) {
 export function windowGenerateDocxResume(studentId) {
     const params = new URLSearchParams();
     params.append('student_id', studentId);
+    params.append('with_ai', 'true');
     return new WindowChain(`${PROTOCOL}://${HOST}/portrait/gendox/generate-resume-docx/?${params}`);
+}
+
+export function generateResumeDocx(params) {
+    const url = `${PROTOCOL}://${HOST}/portrait/gendox/generate-resume-docx/?${params.toString()}`;
+    return fetch(url, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        }
+    });
 }
 
 // Генерация отчёта по географии

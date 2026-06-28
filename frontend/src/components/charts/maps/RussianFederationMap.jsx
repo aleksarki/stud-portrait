@@ -14,49 +14,50 @@ function RussianFederationMap({
     showVisualMap = true, 
     min = 0, 
     max = 100,
-    highlightedRegion = null,
+    highlightedRegion = "Тюменская область",
     highlightColor = '#ff4444'
 }) {
     const [ready, setReady] = useState(false);
 
     useEffect(() => {
         const loadMapData = async () => {
-            const response = await fetch('/data/russia.geojson');
-            const geoJson = await response.json();
-            echarts.registerMap("Russia", geoJson);
-            setReady(true);
+            try {
+                const response = await fetch('/data/russia.geojson');
+                const geoJson = await response.json();
+                echarts.registerMap("Russia", geoJson);
+                setReady(true);
+            } catch (error) {
+                console.error("Failed to load map data:", error);
+                setReady(true);
+            }
         };
         
         loadMapData();
     }, []);
 
-    // Вычисляем данные для визуализации с исключением выделенного региона из шкалы
+    // Вычисляем данные для визуализации
     const { visualMapData, seriesData, actualMin, actualMax } = useMemo(() => {
         if (!regionData.length) {
             return { visualMapData: [], seriesData: [], actualMin: min, actualMax: max };
         }
 
-        // Отделяем выделенный регион от остальных
-        const highlightedItem = highlightedRegion 
-            ? regionData.find(item => item.name === highlightedRegion)
-            : null;
+        // Находим min/max для всех регионов
+        const values = regionData
+            .map(item => item.value)
+            .filter(v => v !== undefined && !isNaN(v));
         
-        const otherRegions = highlightedRegion
-            ? regionData.filter(item => item.name !== highlightedRegion)
-            : regionData;
-
-        // Находим min/max только среди остальных регионов
-        const values = otherRegions.map(item => item.value).filter(v => v !== undefined && !isNaN(v));
         const calculatedMin = values.length > 0 ? Math.min(...values) : min;
         const calculatedMax = values.length > 0 ? Math.max(...values) : max;
 
-        // Создаём данные для серии (карты)
+        // Создаём данные для серии
         const seriesItems = regionData.map(item => {
-            // Если это выделенный регион - добавляем специальный стиль
-            if (highlightedRegion && item.name === highlightedRegion) {
+            const isHighlighted = highlightedRegion && item.name === highlightedRegion;
+            
+            // Если это выделенный регион (Тюменская область) - добавляем специальный стиль
+            if (isHighlighted) {
                 return {
                     name: item.name,
-                    value: item.value,
+                    value: item.value || 0,
                     itemStyle: {
                         areaColor: highlightColor,
                         borderColor: '#ffffff',
@@ -67,25 +68,29 @@ function RussianFederationMap({
                             shadowColor: 'rgba(255,68,68,0.5)'
                         }
                     },
+                    // Подпись всегда видна для выделенного региона
                     label: {
                         show: true,
                         fontSize: 12,
                         fontWeight: 'bold',
-                        color: '#fff',
-                        textShadowBlur: 2,
-                        textShadowColor: 'rgba(0,0,0,0.5)'
+                        color: '#ffffff',
+                        textShadowBlur: 3,
+                        textShadowColor: 'rgba(0,0,0,0.8)'
                     }
                 };
             }
-            // Остальные регионы - обычная обработка
+            // Остальные регионы - без подписи по умолчанию
             return {
                 name: item.name,
-                value: item.value
+                value: item.value || 0,
+                label: {
+                    show: false  // скрываем подписи для всех остальных
+                }
             };
         });
 
         return {
-            visualMapData: otherRegions,
+            visualMapData: regionData,
             seriesData: seriesItems,
             actualMin: calculatedMin,
             actualMax: calculatedMax
@@ -95,12 +100,13 @@ function RussianFederationMap({
     const chartOption = {
         title: {
             text: highlightedRegion 
-                ? `${title} (${highlightedRegion})`
+                ? `${title} (${highlightedRegion} выделена)`
                 : title,
             left: "center",
             textStyle: {
                 fontSize: 16,
-                fontWeight: "normal"
+                fontWeight: "normal",
+                color: "#333"
             }
         },
         tooltip: {
@@ -130,19 +136,29 @@ function RussianFederationMap({
             min: actualMin,
             max: actualMax,
             left: "left",
-            top: "bottom",
+            bottom: 10,
             calculable: true,
             inRange: {
-                color: ['#e0f3f8', '#abd9e9', '#74add1', '#4575b4', '#313695']
+                color: [
+                    '#e8f4f8',  // очень светло-голубой
+                    '#b3d9e8',  // светло-голубой
+                    '#7ebcd8',  // средний голубой
+                    '#4a9fc8',  // яркий голубой
+                    '#1a7fb5',  // насыщенный голубой
+                    '#0c5f8a'   // насыщенно-синий
+                ]
             },
             outOfRange: {
-                color: ['#ccc']
+                color: ['#e0e0e0']
             },
-            text: ["Высокий", "Низкий"],
+            text: ["Макс. " + actualMax, "Мин. " + actualMin],
             textStyle: {
-                color: "#333"
+                color: "#333",
+                fontSize: 11
             },
-            show: true
+            show: true,
+            itemWidth: 20,
+            itemHeight: 140
         } : null,
         series: [
             {
@@ -150,46 +166,52 @@ function RussianFederationMap({
                 type: "map",
                 map: "Russia",
                 roam: true,
-                zoom: 2,
-                center: [100, 60],
+                zoom: 1.5,
+                center: [95, 60],
                 scaleLimit: {
                     min: 0.8,
                     max: 15
                 },
                 itemStyle: {
-                    normal: {
-                        borderColor: "#ffffff",
-                        borderWidth: 1,
-                        areaColor: "#f0f0f0",
-                        shadowBlur: 0
-                    },
-                    emphasis: {
+                    borderColor: "#2c3e50",
+                    borderWidth: 1.5,
+                    areaColor: "#f0f0f0",
+                    shadowBlur: 0
+                },
+                // Настройки при наведении
+                emphasis: {
+                    itemStyle: {
                         areaColor: "#ffd966",
-                        borderWidth: 1,
-                        borderColor: "#fff",
-                        shadowBlur: 5,
+                        borderWidth: 2.5,
+                        borderColor: "#1a3c5a",
+                        shadowBlur: 8,
                         shadowOffsetX: 0,
                         shadowOffsetY: 0,
-                        shadowColor: "rgba(0,0,0,0.2)"
-                    }
-                },
-                label: {
-                    normal: {
-                        show: false,
-                        fontSize: 10
+                        shadowColor: "rgba(0,0,0,0.3)"
                     },
-                    emphasis: {
+                    // Подпись появляется при наведении на любой регион
+                    label: {
                         show: true,
                         fontSize: 12,
                         fontWeight: "bold",
-                        color: "#333"
+                        color: "#1a3c5a",
+                        textShadowBlur: 3,
+                        textShadowColor: 'rgba(255,255,255,0.9)'
                     }
+                },
+                // По умолчанию подписи скрыты (кроме выделенного региона)
+                label: {
+                    show: false,  // все подписи скрыты по умолчанию
+                    fontSize: 10,
+                    color: "#333",
+                    fontWeight: "normal"
                 },
                 data: seriesData,
                 silent: false,
                 select: {
                     disabled: false
-                }
+                },
+                visualMap: true
             }
         ],
         backgroundColor: "transparent",
@@ -212,6 +234,10 @@ function RussianFederationMap({
     
     const onChartReady = chart => {
         chart.on("click", onChartClick);
+        
+        window.addEventListener('resize', () => {
+            chart.resize();
+        });
     };
 
     if (!ready) {
@@ -222,7 +248,7 @@ function RussianFederationMap({
         <div className="RussianFederationMap">
             <EChartsReact
                 option={chartOption}
-                style={{ height: "500px", width: "100%" }}
+                style={{ height: "550px", width: "100%" }}
                 onChartReady={onChartReady}
                 opts={{ renderer: "canvas" }}
             />
@@ -231,89 +257,3 @@ function RussianFederationMap({
 }
 
 export default RussianFederationMap;
-
-/* [
-'Бурятия',
-'Карачаево-Черкесская республика',
-'Сахалинская область',
-'Воронежская область',
-'Томская область',
-'Новосибирская область',
-'Ненецкий автономный округ',
-'Магаданская область',
-'Камчатский край',
-'Приморский край',
-'Ставропольский край',
-'Алтайский край',
-'Москва',
-'Тыва',
-'Тамбовская область',
-'Свердловская область',
-'Ханты-Мансийский автономный округ - Югра',
-'Чукотский автономный округ',
-'Тюменская область',
-'Владимирская область',
-'Московская область',
-'Волгоградская область',
-'Оренбургская область',
-'Самарская область',
-'Астраханская область',
-'Адыгея',
-'Республика Калмыкия',
-'Краснодарский край',
-'Ростовская область',
-'Мурманская область',
-'Псковская область',
-'Санкт-Петербург',
-'Ленинградская область',
-'Республика Мордовия',
-'Татарстан',
-'Кировская область',
-'Костромская область',
-'Тверская область',
-'Тульская область',
-'Калужская область',
-'Ульяновская область',
-'Марий Эл',
-'Смоленская область',
-'Пермский край',
-'Ивановская область',
-'Чувашия',
-'Северная Осетия - Алания',
-'Брянская область',
-'Пензенская область',
-'Белгородская область',
-'Липецкая область',
-'Новгородская область',
-'Архангельская область',
-'Нижегородская область',
-'Курганская область',
-'Курская область',
-'Забайкальский край',
-'Алтай',
-'Рязанская область',
-'Ямало-Ненецкий автономный округ',
-'Красноярский край',
-'Республика Саха (Якутия)',
-'Дагестан',
-'Омская область',
-'Республика Коми',
-'Чеченская республика',
-'Кабардино-Балкарская республика',
-'Саратовская область',
-'Калининградская область',
-'Орловская область',
-'Республика Карелия',
-'Иркутская область',
-'Амурская область',
-'Еврейская автономная область',
-'Хабаровский край',
-'Кемеровская область',
-'Республика Хакасия',
-'Ярославская область',
-'Удмуртская республика',
-'Вологодская область',
-'Ингушетия',
-'Челябинская область',
-'Башкортостан'
-] */
