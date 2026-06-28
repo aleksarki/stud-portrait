@@ -91,4 +91,75 @@ UserProfile.objects.filter(user=user).update(role='admin')
 
 7. Загрузить данные на странице загрузки данных;
 
-8. Радоваться жизни.
+8. Создать аккаунт студента:
+
+```cmd
+python manage.py shell
+```
+
+```python
+from django.contrib.auth.models import User
+from accounts.models import UserProfile
+from portrait.models import Participants, Studentmapping
+
+username = 'student1'
+email = 'stud0000000001@study.utmn.ru'
+password = 'Student123!'
+
+user = User.objects.create_user(
+	username=username,
+	email=email,
+	password=password
+)
+
+user, created = User.objects.get_or_create(
+    username=username,
+    defaults={
+        'email': email,
+        'password': password
+    }
+)
+
+if created:
+    user.set_password(password)
+    user.save()
+    print(f"User {username} created")
+else:
+    print(f"User {username} already exists")
+
+profile, created = UserProfile.objects.update_or_create(
+    user=user,
+    defaults={'role': 'student'}
+)
+
+student_mapping = Studentmapping.objects.filter(
+    mapping_email=email
+).first()
+
+if student_mapping:
+    print(f"Found StudentMapping: {student_mapping.mapping_rsv}")
+
+    participant = Participants.objects.filter(
+        part_rsv=student_mapping.mapping_rsv
+    ).first()
+    
+    if participant:
+        profile.participant = participant
+        profile.save()
+        print(f"Linked to participant ID: {participant.part_id}")
+    else:
+        print("Participant not found")
+else:
+    print(f"StudentMapping not found for email: {email}")
+    print("Creating StudentMapping...")
+
+    new_mapping = Studentmapping.objects.create(
+        mapping_rsv=username,
+        mapping_stud_name='Student Name',
+        mapping_stud_gender=1,
+        mapping_email=email
+    )
+    print(f"StudentMapping created with RSV: {new_mapping.mapping_rsv}")
+```
+
+9. Радоваться жизни.
