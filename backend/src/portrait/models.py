@@ -230,7 +230,7 @@ class DisciplineCompetencyMapping(models.Model):
  
     class Meta:
         managed = False
-        db_table = "DisciplineCompetencyMapping"
+        db_table = "disciplinecompetencymapping"
         verbose_name = "Маппинг дисциплин → компетенции"
         verbose_name_plural = "Маппинг дисциплин → компетенции"
  
@@ -258,7 +258,7 @@ class CurriculumParseLog(models.Model):
  
     class Meta:
         managed = False
-        db_table = "CurriculumParseLog"
+        db_table = "curriculumparselog"
         ordering = ["-started_at"]
         verbose_name = "Лог парсинга учебного плана"
         verbose_name_plural = "Логи парсинга учебного плана"
