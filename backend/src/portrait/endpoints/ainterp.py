@@ -225,8 +225,11 @@ def interpret_student_results(request):
         student_name = participant.part_rsv or f"Участник {student_id}"
 
     results = TestResults.objects.filter(**{tRES.PARTICIPANT: participant})
-    if year:
+    
+    # Исправляем обработку year - проверяем на "null" и None
+    if year and year.lower() != 'null' and year != 'undefined':
         results = results.filter(**{tRES.YEAR: year})
+    
     results = results.order_by(desc(tRES.YEAR), desc(tRES.COURSE_NUM))
 
     if not results.exists():
@@ -252,10 +255,9 @@ def interpret_student_results(request):
         },
         'competencies': [],
         'generated_at': datetime.now().isoformat(),
-        'year':         year or latest_result.res_year
+        'year':         latest_result.res_year if not year or year.lower() == 'null' or year == 'undefined' else year
     }
 
-    # fixme why the order??????????
     competencies_order = [
         'res_comp_leadership', 'res_comp_communication', 'res_comp_self_development',
         'res_comp_result_orientation', 'res_comp_stress_resistance', 'res_comp_client_focus',
@@ -269,7 +271,6 @@ def interpret_student_results(request):
         if score and score > 0:
             all_scores[comp_field] = score
 
-    # Для каждой компетенции используем ТОЛЬКО шаблонные интерпретации (без ИИ)
     for comp_field in competencies_order:
         score = getattr(latest_result, comp_field, None)
         if not score or score == 0:
@@ -296,8 +297,9 @@ def interpret_student_results(request):
         }
         resume_data['competencies'].append(comp_data)
 
-    # Общая интерпретация (ИИ)
+    # Общая интерпретация (ИИ) - используем ТОЛЬКО компетенции из latest_result
     if with_ai:
+        # Используем словарь компетенций для AI
         competencies_dict = {comp['name']: comp['score'] for comp in resume_data['competencies']}
         try:
             general_text = generate_general_interpretation_with_ai(resume_data['education'], competencies_dict)

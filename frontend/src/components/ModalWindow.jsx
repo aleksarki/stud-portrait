@@ -1,22 +1,33 @@
+// src/components/ui/ModalWindow.jsx
 import React, { useState } from "react";
 
 import "./ModalWindow.scss";
 
 function ModalWindow({ children, title, visible = true, setVisible }) {
     if (!visible) {
-        return <></>;
+        return null;
     }
 
     const arr = React.Children.toArray(children);
 
+    const handleBackgroundClick = (e) => {
+        if (e.target === e.currentTarget) {
+            setVisible?.(false);
+        }
+    };
+
     return (
-        <div className="ModalWindow">
-            <div className="content">
+        <div 
+            className="ModalWindow" 
+            onClick={handleBackgroundClick}
+        >
+            <div className="content" onClick={(e) => e.stopPropagation()}>
                 <div className="ModalHeader">
                     <span className="title">{title}</span>
                     <button 
                         className="close-btn"
                         onClick={() => setVisible?.(false)}
+                        type="button"
                     >
                         ✕
                     </button>

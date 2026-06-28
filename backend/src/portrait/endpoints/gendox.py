@@ -1,9 +1,11 @@
 from collections import defaultdict
 from datetime import datetime
 from docx import Document
-from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.enum.table import WD_TABLE_ALIGNMENT, WD_ALIGN_VERTICAL
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Pt, Inches, RGBColor, Cm
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
 
 from .common import *
 from .ainterp import *
@@ -16,15 +18,26 @@ from ..llmclient import LLM_CLIENT
 @httpResponse
 @csrf_exempt
 def generate_docx_resume(request):
-    """ Generate professional Docx resume.
+    """ Generate professional Docx resume with two-column layout.
     """
+    # Получаем параметры из запроса
     student_id = request.GET.get('student_id')
     with_ai = request.GET.get('with_ai', 'true').lower() == 'true'
+    
+    # Пользовательские данные из конструктора
+    phone = request.GET.get('phone', '')
+    email = request.GET.get('email', '')
+    birth_date = request.GET.get('birth_date', '')
+    graduation_year = request.GET.get('graduation_year', '')
+    work_experience = request.GET.get('work_experience', '')
+    courses = request.GET.get('courses', '')
+    languages = request.GET.get('languages', '')
+    skills = request.GET.get('skills', '')
 
     if not student_id:
         raise ResponseError("Missing student_id")
 
-    # данные студента
+    # Получаем данные студента
     try:
         participant = Participants.objects.get(**{tPART.ID: student_id})
     except Participants.DoesNotExist:
@@ -37,13 +50,13 @@ def generate_docx_resume(request):
     except StudentMapping.DoesNotExist:
         student_name = participant.part_rsv or f"Участник {student_id}"
 
-    # последние результаты для компетенций
+    # Последние результаты для компетенций
     latest_result = TestResults.objects                       \
         .filter(**{tRES.PARTICIPANT: participant})        \
         .order_by(desc(tRES.YEAR), desc(tRES.COURSE_NUM)) \
         .first()
 
-    # данные для ИИ (учебная информация теперь в TestResults)
+    # Данные для ИИ
     competencies_dict = {}
     student_info = {
         'direction': '',
@@ -59,8 +72,7 @@ def generate_docx_resume(request):
         student_info['level'] = latest_result.res_edu_level.edu_level_name if latest_result.res_edu_level else ''
         student_info['institution'] = latest_result.res_institution.inst_name if latest_result.res_institution else ''
 
-    # Список компетенций в порядке, который используется в genutils
-    # fixme why the order??????????
+    # Список компетенций в порядке для отображения
     competencies_order = [
         'res_comp_leadership', 'res_comp_communication', 'res_comp_self_development',
         'res_comp_result_orientation', 'res_comp_stress_resistance', 'res_comp_client_focus',
@@ -74,7 +86,14 @@ def generate_docx_resume(request):
             if score and score > 0:
                 competencies_dict[COMP.names[comp]] = score
 
-    # Генерация ИИ-интерпретации, если включено и есть данные
+    # Если навыки не указаны вручную, генерируем через AI
+    if not skills and with_ai and competencies_dict:
+        try:
+            skills = generate_skills_from_competencies(competencies_dict, student_info)
+        except:
+            skills = ", ".join([name for name, _ in sorted(competencies_dict.items(), key=lambda x: x[1], reverse=True)[:5]])
+
+    # Генерация AI-интерпретации
     ai_text = None
     if with_ai and competencies_dict:
         try:
@@ -82,15 +101,16 @@ def generate_docx_resume(request):
         except:
             ai_text = None
 
+    # Создаем документ
     doc = Document()
 
-    # Настройка полей (стандартные для резюме)
+    # Настройка полей
     sections = doc.sections
     for section in sections:
-        section.top_margin = Cm(2)
-        section.bottom_margin = Cm(2)
-        section.left_margin = Cm(2.5)
-        section.right_margin = Cm(2)
+        section.top_margin = Cm(1.5)
+        section.bottom_margin = Cm(1.5)
+        section.left_margin = Cm(1.5)
+        section.right_margin = Cm(1.5)
 
     # ============================================================
     # ШАПКА РЕЗЮМЕ
@@ -99,159 +119,262 @@ def generate_docx_resume(request):
     # ФИО (крупным жирным шрифтом)
     name_para = doc.add_paragraph()
     name_run = name_para.add_run(student_name)
-    name_run.font.size = Pt(20)
+    name_run.font.size = Pt(22)
     name_run.font.bold = True
     name_run.font.color.rgb = RGBColor(0, 0, 0)
     name_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    name_para.space_after = Pt(6)
+    name_para.space_after = Pt(4)
 
-    # Должность
+    # Должность/заголовок
     position_para = doc.add_paragraph()
-    position_run = position_para.add_run('Резюме на должность')
+    position_run = position_para.add_run('Резюме')
     position_run.font.size = Pt(14)
     position_run.font.color.rgb = RGBColor(80, 80, 80)
+    position_run.font.italic = True
     position_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    position_para.space_after = Pt(8)
-
-    # Контакты
-    contact_para = doc.add_paragraph()
-    contact_run = contact_para.add_run('Телефон: +7 (ХХХ) ХХХ-ХХ-ХХ\nEmail: email@example.com')
-    contact_run.font.size = Pt(11)
-    contact_run.font.color.rgb = RGBColor(100, 100, 100)
-    contact_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    contact_para.space_after = Pt(18)
+    position_para.space_after = Pt(12)
 
     # ============================================================
-    # ЛИЧНАЯ ИНФОРМАЦИЯ
+    # ОСНОВНАЯ ТАБЛИЦА С ДВУМЯ КОЛОНКАМИ
     # ============================================================
 
-    heading = doc.add_heading('ЛИЧНАЯ ИНФОРМАЦИЯ', level=1)
-    heading.runs[0].font.size = Pt(14)
-    heading.runs[0].font.color.rgb = RGBColor(0, 70, 140)
-    heading.space_after = Pt(10)
-
-    edu_level = student_info['level'] or 'Не указано'
-
-    info_items = [
-        f"Место проживания:",
-        f"Образование: {edu_level}",
-        f"Дата рождения: дд.мм.гггг"
-    ]
-
-    for item in info_items:
-        p = doc.add_paragraph(item, style='List Bullet')
-        p.paragraph_format.left_indent = Inches(0.25)
-        p.runs[0].font.size = Pt(11)
-        p.space_after = Pt(4)
-
-    doc.add_paragraph().space_after = Pt(6)
+    # Создаем таблицу с двумя колонками
+    table = doc.add_table(rows=1, cols=2)
+    table.autofit = False
+    
+    # Настройка ширины колонок (узкая 30%, широкая 70%)
+    table.columns[0].width = Cm(5.5)
+    table.columns[1].width = Cm(13.5)
+    
+    # Отключаем границы таблицы
+    for row in table.rows:
+        for cell in row.cells:
+            # Получаем или создаем элемент tcPr
+            tcPr = cell._element.tcPr
+            if tcPr is None:
+                tcPr = OxmlElement('w:tcPr')
+                cell._element.append(tcPr)
+            
+            # Удаляем существующие границы если есть
+            borders = tcPr.find(qn('w:tcBorders'))
+            if borders is not None:
+                tcPr.remove(borders)
+            
+            # Создаем новые границы без линий
+            borders = OxmlElement('w:tcBorders')
+            for border_name in ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']:
+                border = OxmlElement(f'w:{border_name}')
+                border.set(qn('w:val'), 'none')
+                border.set(qn('w:sz'), '0')
+                border.set(qn('w:space'), '0')
+                border.set(qn('w:color'), 'auto')
+                borders.append(border)
+            tcPr.append(borders)
+    
+    # Получаем ячейки
+    left_cell = table.cell(0, 0)
+    right_cell = table.cell(0, 1)
+    
+    # Выравнивание по верхнему краю
+    left_cell.vertical_alignment = WD_ALIGN_VERTICAL.TOP
+    right_cell.vertical_alignment = WD_ALIGN_VERTICAL.TOP
+    
+    # Отступы внутри ячеек
+    left_cell.margin_top = Cm(0.3)
+    left_cell.margin_bottom = Cm(0.3)
+    left_cell.margin_left = Cm(0.3)
+    left_cell.margin_right = Cm(0.3)
+    
+    right_cell.margin_top = Cm(0.3)
+    right_cell.margin_bottom = Cm(0.3)
+    right_cell.margin_left = Cm(0.5)
+    right_cell.margin_right = Cm(0.3)
 
     # ============================================================
-    # ОПЫТ РАБОТЫ
+    # ЛЕВАЯ КОЛОНКА (Узкая)
     # ============================================================
 
-    heading = doc.add_heading('ОПЫТ РАБОТЫ', level=1)
-    heading.runs[0].font.size = Pt(14)
-    heading.runs[0].font.color.rgb = RGBColor(0, 70, 140)
-    heading.space_after = Pt(10)
+    # --- КОНТАКТЫ ---
+    h = left_cell.add_paragraph()
+    h_run = h.add_run("КОНТАКТЫ")
+    h_run.font.bold = True
+    h_run.font.size = Pt(11)
+    h_run.font.color.rgb = RGBColor(0, 70, 140)
+    h.space_after = Pt(6)
+    h.paragraph_format.keep_with_next = True
 
-    # Пустые строки для заполнения студентом
-    for _ in range(4):
-        p = doc.add_paragraph()
-        p.add_run('_' * 100).font.color.rgb = RGBColor(200, 200, 200)
-        p.space_after = Pt(8)
+    if phone:
+        p = left_cell.add_paragraph()
+        p.paragraph_format.space_after = Pt(2)
+        p.add_run(phone).font.size = Pt(9)
+    
+    if email:
+        p = left_cell.add_paragraph()
+        p.paragraph_format.space_after = Pt(2)
+        p.add_run(email).font.size = Pt(9)
+    
+    if birth_date:
+        p = left_cell.add_paragraph()
+        p.paragraph_format.space_after = Pt(2)
+        p.add_run(birth_date).font.size = Pt(9)
+    
+    # Разделитель
+    left_cell.add_paragraph().paragraph_format.space_after = Pt(10)
 
-    doc.add_paragraph().space_after = Pt(6)
+    # --- НАВЫКИ ---
+    if skills:
+        h = left_cell.add_paragraph()
+        h_run = h.add_run("НАВЫКИ")
+        h_run.font.bold = True
+        h_run.font.size = Pt(11)
+        h_run.font.color.rgb = RGBColor(0, 70, 140)
+        h.space_after = Pt(6)
+        h.paragraph_format.keep_with_next = True
+        
+        # Разбиваем навыки по запятой
+        skills_list = [s.strip() for s in skills.split(",") if s.strip()]
+        for skill in skills_list[:10]:
+            p = left_cell.add_paragraph()
+            p.paragraph_format.space_after = Pt(2)
+            p.paragraph_format.left_indent = Inches(0.2)
+            p.add_run("• ").font.size = Pt(9)
+            p.add_run(skill).font.size = Pt(9)
+        
+        left_cell.add_paragraph().paragraph_format.space_after = Pt(6)
+
+    # --- ЯЗЫКИ ---
+    if languages:
+        h = left_cell.add_paragraph()
+        h_run = h.add_run("ЯЗЫКИ")
+        h_run.font.bold = True
+        h_run.font.size = Pt(11)
+        h_run.font.color.rgb = RGBColor(0, 70, 140)
+        h.space_after = Pt(6)
+        h.paragraph_format.keep_with_next = True
+        
+        languages_list = [l.strip() for l in languages.split(",") if l.strip()]
+        for lang in languages_list:
+            p = left_cell.add_paragraph()
+            p.paragraph_format.space_after = Pt(2)
+            p.paragraph_format.left_indent = Inches(0.2)
+            p.add_run("• ").font.size = Pt(9)
+            p.add_run(lang).font.size = Pt(9)
+
+    # Добавляем пустое пространство внизу левой колонки
+    for _ in range(5):
+        left_cell.add_paragraph()
 
     # ============================================================
-    # ОБРАЗОВАНИЕ
+    # ПРАВАЯ КОЛОНКА (Широкая)
     # ============================================================
 
-    heading = doc.add_heading('ОБРАЗОВАНИЕ', level=1)
-    heading.runs[0].font.size = Pt(14)
-    heading.runs[0].font.color.rgb = RGBColor(0, 70, 140)
-    heading.space_after = Pt(10)
+    # --- ОПЫТ РАБОТЫ ---
+    if work_experience:
+        h = right_cell.add_paragraph()
+        h_run = h.add_run("ОПЫТ РАБОТЫ")
+        h_run.font.bold = True
+        h_run.font.size = Pt(11)
+        h_run.font.color.rgb = RGBColor(0, 70, 140)
+        h.space_after = Pt(6)
+        h.paragraph_format.keep_with_next = True
+        
+        exp_items = [e.strip() for e in work_experience.split("\n") if e.strip()]
+        for exp in exp_items:
+            p = right_cell.add_paragraph()
+            p.paragraph_format.space_after = Pt(4)
+            p.paragraph_format.left_indent = Inches(0.2)
+            p.add_run("• ").font.size = Pt(10)
+            p.add_run(exp).font.size = Pt(10)
+        
+        right_cell.add_paragraph().paragraph_format.space_after = Pt(8)
 
-    edu_items = [
-        f"Уровень образования: {edu_level}",
-        f"Учебное заведение: {student_info['institution'] or 'Не указано'}",
-        f"Год окончания: ____________________",
-        f"Специальность: {student_info['direction'] or 'Не указано'}",
-        f"Форма обучения: {student_info['form'] or 'Не указана'}"
-    ]
+    # --- ОБРАЗОВАНИЕ ---
+    h = right_cell.add_paragraph()
+    h_run = h.add_run("ОБРАЗОВАНИЕ")
+    h_run.font.bold = True
+    h_run.font.size = Pt(11)
+    h_run.font.color.rgb = RGBColor(0, 70, 140)
+    h.space_after = Pt(6)
+    h.paragraph_format.keep_with_next = True
 
+    edu_level = student_info.get('level', 'Не указано')
+    institution = student_info.get('institution', 'Не указано')
+    direction = student_info.get('direction', 'Не указано')
+    
+    edu_items = []
+    if institution and institution != 'Не указано':
+        edu_items.append(f"Учебное заведение: {institution}")
+    if direction and direction != 'Не указано':
+        edu_items.append(f"Специальность: {direction}")
+    if edu_level and edu_level != 'Не указано':
+        edu_items.append(f"Уровень: {edu_level}")
+    if graduation_year:
+        edu_items.append(f"Год окончания: {graduation_year}")
+    
+    if not edu_items and graduation_year:
+        edu_items.append(f"Год окончания: {graduation_year}")
+    
     for item in edu_items:
-        p = doc.add_paragraph(item, style='List Bullet')
-        p.paragraph_format.left_indent = Inches(0.25)
-        p.runs[0].font.size = Pt(11)
-        p.space_after = Pt(4)
+        p = right_cell.add_paragraph()
+        p.paragraph_format.space_after = Pt(2)
+        p.paragraph_format.left_indent = Inches(0.2)
+        p.add_run("• ").font.size = Pt(10)
+        p.add_run(item).font.size = Pt(10)
+    
+    right_cell.add_paragraph().paragraph_format.space_after = Pt(8)
 
-    doc.add_paragraph().space_after = Pt(6)
+    # --- КУРСЫ ---
+    if courses:
+        h = right_cell.add_paragraph()
+        h_run = h.add_run("КУРСЫ")
+        h_run.font.bold = True
+        h_run.font.size = Pt(11)
+        h_run.font.color.rgb = RGBColor(0, 70, 140)
+        h.space_after = Pt(6)
+        h.paragraph_format.keep_with_next = True
+        
+        course_items = [c.strip() for c in courses.split("\n") if c.strip()]
+        for course in course_items:
+            p = right_cell.add_paragraph()
+            p.paragraph_format.space_after = Pt(2)
+            p.paragraph_format.left_indent = Inches(0.2)
+            p.add_run("• ").font.size = Pt(10)
+            p.add_run(course).font.size = Pt(10)
+        
+        right_cell.add_paragraph().paragraph_format.space_after = Pt(8)
 
-    # ============================================================
-    # ДОПОЛНИТЕЛЬНАЯ ИНФОРМАЦИЯ (с ИИ-интерпретацией)
-    # ============================================================
-
-    heading = doc.add_heading('ДОПОЛНИТЕЛЬНАЯ ИНФОРМАЦИЯ', level=1)
-    heading.runs[0].font.size = Pt(14)
-    heading.runs[0].font.color.rgb = RGBColor(0, 70, 140)
-    heading.space_after = Pt(10)
-
-    # Если есть AI-текст, добавляем его как выделенный абзац
+    # --- AI-ИНТЕРПРЕТАЦИЯ ---
     if ai_text:
-        p = doc.add_paragraph()
-        p.paragraph_format.left_indent = Inches(0.25)
-        p.space_after = Pt(8)
-        run = p.add_run("Характеристика по результатам диагностики: ")
-        run.font.bold = True
-        run.font.size = Pt(11)
-        run = p.add_run(ai_text)
-        run.font.size = Pt(11)
-        run.font.italic = True
-        run.font.color.rgb = RGBColor(60, 60, 60)
-        doc.add_paragraph().space_after = Pt(6)
+        h = right_cell.add_paragraph()
+        h_run = h.add_run("ХАРАКТЕРИСТИКА")
+        h_run.font.bold = True
+        h_run.font.size = Pt(11)
+        h_run.font.color.rgb = RGBColor(0, 70, 140)
+        h.space_after = Pt(6)
+        h.paragraph_format.keep_with_next = True
+        
+        p = right_cell.add_paragraph()
+        p.paragraph_format.space_after = Pt(2)
+        p.paragraph_format.left_indent = Inches(0.2)
+        p.add_run("• ").font.size = Pt(10)
+        
+        ai_text_lines = ai_text.split(". ")
+        for i, line in enumerate(ai_text_lines):
+            if line.strip():
+                if i > 0:
+                    p = right_cell.add_paragraph()
+                    p.paragraph_format.space_after = Pt(2)
+                    p.paragraph_format.left_indent = Inches(0.2)
+                    p.add_run("  ").font.size = Pt(10)
+                p.add_run(line.strip() + ". ").font.size = Pt(10)
+                p.add_run().font.italic = True
+                p.add_run().font.color.rgb = RGBColor(60, 60, 60)
 
-    # Остальные поля для заполнения (языки, навыки и т.д.)
-    additional_info_items = [
-        'Иностранные языки: _______________________________________________',
-        'Компьютерные навыки: _______________________________________________',
-        'Наличие водительских прав (категории): _______________________________________________',
-        'Наличие медицинской книжки: _______________________________________________',
-        'Занятия в свободное время: _______________________________________________',
-        'Личные качества: _______________________________________________'
-    ]
+    # Добавляем пустое пространство внизу правой колонки
+    for _ in range(3):
+        right_cell.add_paragraph()
 
-    for item in additional_info_items:
-        p = doc.add_paragraph(item, style='List Bullet')
-        p.paragraph_format.left_indent = Inches(0.25)
-        p.runs[0].font.size = Pt(11)
-        p.space_after = Pt(6)
-
-    # Примечание для "Личные качества"
-    note_para = doc.add_paragraph()
-    note_para.paragraph_format.left_indent = Inches(0.5)
-    note_run = note_para.add_run(
-        'Примечание: В разделе "Личные качества" укажите ваши профессиональные качества, '
-        'такие как ответственность, коммуникабельность, стрессоустойчивость, '
-        'целеустремлённость и т.д.'
-    )
-    note_run.font.size = Pt(9)
-    note_run.font.italic = True
-    note_run.font.color.rgb = RGBColor(120, 120, 120)
-    note_para.space_after = Pt(12)
-
-    # ============================================================
-    # ПОДВАЛ
-    # ============================================================
-
-    footer_para = doc.add_paragraph()
-    footer_run = footer_para.add_run(
-        f'Дата формирования резюме: {datetime.now().strftime("%d.%m.%Y")}'
-    )
-    footer_run.font.size = Pt(9)
-    footer_run.font.color.rgb = RGBColor(150, 150, 150)
-    footer_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-
+    # Возвращаем документ
     return docxResponse(doc, f"Резюме_{student_name}.docx")
 
 
@@ -506,43 +629,108 @@ def generate_geography_report(request):
 
 # ! ================================================== UTILITIES =================================================== ! #
 
-def generate_general_interpretation_with_ai_for_resume(student_info, competencies_dict):
-    # Сортируем компетенции (общая логика для обоих случаев)
+def generate_skills_from_competencies(competencies_dict, student_info):
+    """Generate professional skills list from competencies using AI."""
+    if not competencies_dict:
+        return ""
+    
+    # Сортируем компетенции по убыванию
     sorted_comps = sorted(competencies_dict.items(), key=lambda x: x[1], reverse=True)
-    strong = [name for name, _ in sorted_comps[:2]]
+    
+    # Формируем промпт для генерации навыков
+    prompt = (
+        f"Ты — эксперт по развитию карьеры. На основе баллов развития компетенций студента "
+        f"сформируй список из 5-7 ключевых навыков для резюме.\n\n"
+        f"Направление подготовки: {student_info.get('direction', 'не указано')}\n"
+        f"Курс: {student_info.get('course', 'X')}\n\n"
+        f"Результаты диагностики компетенций (шкала 200-800):\n"
+    )
+    
+    prompt += "\n".join([f"- {comp}: {val}" for comp, val in sorted_comps[:8]]) + "\n\n"
+    
+    prompt += (
+        "Инструкция:\n"
+        "1. Выбери 5-7 наиболее сильных компетенций студента\n"
+        "2. Преобразуй их в конкретные профессиональные навыки\n"
+        "3. Навыки должны быть практическими и применимыми в работе\n"
+        "4. Учитывай направление подготовки студента\n"
+        "5. Используй профессиональную терминологию\n"
+        "6. Верни ТОЛЬКО список навыков через запятую, без пояснений\n"
+        "7. Навыки должны быть краткими (2-4 слова каждый)\n\n"
+        "Навыки:"
+    )
+    
+    try:
+        skills_text = LLM_CLIENT.generate(prompt, max_length=500, temperature=0.5, top_p=0.9)
+        # Очищаем результат от лишних символов
+        skills_text = skills_text.replace('\n', '').replace('"', '').replace("'", "")
+        # Разбиваем по запятой и чистим
+        skills_list = [s.strip() for s in skills_text.split(",") if s.strip()]
+        
+        # Если получилось слишком много или слишком мало, корректируем
+        if len(skills_list) > 10:
+            skills_list = skills_list[:7]
+        elif len(skills_list) < 3 and competencies_dict:
+            # fallback - берем названия топ-5 компетенций
+            skills_list = [name for name, _ in sorted_comps[:5]]
+        
+        return ", ".join(skills_list)
+        
+    except Exception as e:
+        print(f"[model] Error generating skills: {e}")
+        # Fallback - берем топ-5 компетенций
+        return ", ".join([name for name, _ in sorted_comps[:5]])
 
-    # Если модель недоступна
-    if not LLM_CLIENT.health_check()["status"] in ("healthy", "available"):
-        print("[model] (!): model not available")
-        return f"Студент демонстрирует сильные стороны в области {', '.join(strong)}. "
 
+def generate_general_interpretation_with_ai_for_resume(student_info, competencies_dict):
+    """Generate a professional resume interpretation using AI."""
+    if not competencies_dict:
+        return ""
+    
+    # Сортируем компетенции
+    sorted_comps = sorted(competencies_dict.items(), key=lambda x: x[1], reverse=True)
+    strong = [name for name, _ in sorted_comps[:3]]
+    
     def level(value):
         if value < 399:
             return "начальный уровень"
         if value < 599:
             return "средний уровень"
         return "высокий уровень"
-
-    # Формируем промпт с использованием strong
+    
+    # Формируем промпт
     prompt = (
-        f"Ты — карьерный консультант. "
-        f"Напиши краткую характеристику студента для использования в резюме, используя только данные о компетенциях. "
+        f"Ты — карьерный консультант. Напиши краткую характеристику студента для использования в резюме. "
         f"Подчеркни сильные стороны студента, не упоминай слабых сторон. "
         f"Не добавляй никакой информации о внешности, возрасте или личных качествах, не указанных в данных.\n\n"
         f"Курс: {student_info.get('course', 'X')}\n"
         f"Направление: {student_info.get('direction', 'не указано')}\n"
         f"Баллы развития компетенций (200-800):\n"
-    ) + (
-        "\n".join([f"{comp}: {val} ({level(val)})" for comp, val in competencies_dict.items()])
-    ) + (
-        f"\nСильные стороны (наиболее высокие баллы): {', '.join(strong)}\n"
-        f"Характеристика (4-5 предложений):"
     )
-
-    text = LLM_CLIENT.generate(prompt, max_length=1500, temperature=0.6, top_p=0.85)
-
-    # Если ответ пустой или содержит признаки галлюцинаций
-    if not text or any(phrase in text.lower() for phrase in ['внешность', 'возраст', 'рост', 'характер', 'build']):
-        print("[model] (!): model got high and generated garbage")
-
-    return text
+    
+    prompt += "\n".join([f"- {comp}: {val} ({level(val)})" for comp, val in sorted_comps[:8]])
+    prompt += f"\n\nСильные стороны (наиболее высокие баллы): {', '.join(strong)}"
+    prompt += "\n\nХарактеристика (3-4 предложения, профессиональный стиль):"
+    
+    try:
+        text = LLM_CLIENT.generate(prompt, max_length=800, temperature=0.5, top_p=0.85)
+        
+        # Очищаем текст
+        text = text.strip()
+        
+        # Проверяем на галлюцинации
+        if not text or any(phrase in text.lower() for phrase in ['внешность', 'возраст', 'рост']):
+            print("[model] Model generated suspicious content, using fallback")
+            raise ValueError("Suspicious content detected")
+        
+        # Если текст слишком короткий, дополняем
+        if len(text.split()) < 20:
+            text = f"Студент демонстрирует высокий уровень развития компетенций, особенно в области {', '.join(strong)}. "
+        
+        return text
+        
+    except Exception as e:
+        print(f"[model] Error generating interpretation: {e}")
+        # Fallback
+        return f"Студент демонстрирует сильные стороны в области {', '.join(strong)}. Обладает развитыми навыками самоорганизации и достижения целей, готов к профессиональному развитию."
+    

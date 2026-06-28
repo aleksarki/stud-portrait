@@ -130,7 +130,7 @@ def xlsxResponse(data: list, sheetname: str, filename: str = "file.xlsx", status
     debugPrint(f"success {status}:", filename)
     return response
 
-def docxResponse(doc: DocumentObject, filename: str = "file.xlsx", status: int = 200):
+def docxResponse(doc: DocumentObject, filename: str = "file.docx", status: int = 200):
     """ Return HTTP response carrying a Word file.
     """
     buffer = BytesIO()
