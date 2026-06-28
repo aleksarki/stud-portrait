@@ -254,3 +254,68 @@ class StudentsAmount(models.Model):
                 name="unique_institution_year",
             )
         ]
+
+class DisciplineCompetencyMapping(models.Model):
+    disc_name = models.CharField(
+        max_length=1024,
+        unique=True,
+        db_index=True,
+        verbose_name="Название дисциплины",
+    )
+    # ['res_comp_leadership', 'res_comp_planning', …]
+    rsv_competencies = models.JSONField(
+        default=list,
+        verbose_name="РСВ-компетенции (res_comp_*)",
+    )
+    # ['УК-1', 'УК-3', 'ОПК-2', …]
+    standard_competencies = models.JSONField(
+        default=list,
+        verbose_name="Стандартные компетенции ФГОС",
+    )
+    semester = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name="Семестр",
+    )
+    parsed_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Дата последнего парсинга",
+    )
+ 
+    class Meta:
+        managed = False
+        db_table = "disciplinecompetencymapping"
+        verbose_name = "Маппинг дисциплин → компетенции"
+        verbose_name_plural = "Маппинг дисциплин → компетенции"
+ 
+    def __str__(self) -> str:
+        return f"{self.disc_name} → {self.rsv_competencies}"
+ 
+ 
+class CurriculumParseLog(models.Model):
+    STATUS_RUNNING = "running"
+    STATUS_SUCCESS = "success"
+    STATUS_ERROR   = "error"
+    STATUS_CHOICES = [
+        (STATUS_RUNNING, "Выполняется"),
+        (STATUS_SUCCESS, "Успешно"),
+        (STATUS_ERROR,   "Ошибка"),
+    ]
+ 
+    started_at         = models.DateTimeField(auto_now_add=True)
+    finished_at        = models.DateTimeField(null=True, blank=True)
+    status             = models.CharField(max_length=16, choices=STATUS_CHOICES, default=STATUS_RUNNING)
+    disciplines_found  = models.IntegerField(default=0)
+    disciplines_saved  = models.IntegerField(default=0)
+    source_url         = models.URLField(max_length=512, blank=True)
+    error_message      = models.TextField(blank=True)
+ 
+    class Meta:
+        managed = False
+        db_table = "curriculumparselog"
+        ordering = ["-started_at"]
+        verbose_name = "Лог парсинга учебного плана"
+        verbose_name_plural = "Логи парсинга учебного плана"
+ 
+    def __str__(self) -> str:
+        return f"[{self.status}] {self.started_at:%Y-%m-%d %H:%M}"
