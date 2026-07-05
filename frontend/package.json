@@ -27,6 +27,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "starts": "set HTTPS=true && react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "test:visual": "node test/selenium/visual-runner.js",
