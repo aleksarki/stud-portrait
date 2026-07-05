@@ -23,6 +23,13 @@
 
         transition: all 0.2s ease;
 
+        span:first-child {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: calc(100% - 20px); // место для стрелки
+        }
+
         &:not(.disabled) {
             &:hover {
                 color: var(--hoverFg);

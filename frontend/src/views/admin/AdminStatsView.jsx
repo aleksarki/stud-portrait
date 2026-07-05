@@ -521,54 +521,6 @@ function AdminStatsView() {
                                             height={400}
                                         />
                                     </TitledCard>
-                                    <TitledCard title="Топ-15 центров компетенций">
-                                        <Chart
-                                            options={{
-                                                ...barChartOptions,
-                                                xaxis: { categories: stats?.participantsByCenter?.centers || [] },
-                                                plotOptions: {
-                                                    bar: {
-                                                        horizontal: true
-                                                    }
-                                                }
-                                            }}
-                                            series={[{
-                                                name: 'Участники',
-                                                data: stats?.participantsByCenter?.counts || []
-                                            }]}
-                                            type="bar"
-                                            height={400}
-                                        />
-                                    </TitledCard>
-                                </div>
-
-                                {/* Третий ряд диаграмм */}
-                                <div className="charts-row">
-                                    <Card>
-                                        <FlexRow margin='0 0 20 0' align={ALIGN.CENTER} justify={JUSTIFY.SPACE_BETWEEN}>
-                                            <span className="card-title">Все центры компетенций ({stats?.uniqueCenters || 0})</span>
-                                            <Button
-                                                text={showAllCenters ? 'Скрыть' : 'Показать все'}
-                                                onClick={() => setShowAllCenters(!showAllCenters)}
-                                                palette={ADMIN_PALETTE.CYAN}
-                                            />
-                                        </FlexRow>
-                                        <div className="centers-list">
-                                            {stats?.available_values?.center && stats.available_values.center.length > 0 ? (
-                                                <div className={`centers-grid ${showAllCenters ? 'expanded' : 'collapsed'}`}>
-                                                    {stats.available_values.center.map((center, index) => (
-                                                        <div key={index} className="center-item">
-                                                            <span className="center-name">{center}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <div className="no-data">
-                                                    Нет данных о центрах компетенций
-                                                </div>
-                                            )}
-                                        </div>
-                                    </Card>
                                     <Card>
                                         <FlexRow margin='0 0 20 0' align={ALIGN.CENTER} justify={JUSTIFY.SPACE_BETWEEN}>
                                             <span className="card-title">Все учебные заведения ({stats?.uniqueInstitutions || 0})</span>
@@ -590,6 +542,54 @@ function AdminStatsView() {
                                             ) : (
                                                 <div className="no-data">
                                                     Нет данных об учебных заведениях
+                                                </div>
+                                            )}
+                                        </div>
+                                    </Card>
+                                </div>
+
+                                {/* Третий ряд диаграмм */}
+                                <div className="charts-row">
+                                    <TitledCard title="Топ-15 центров компетенций">
+                                        <Chart
+                                            options={{
+                                                ...barChartOptions,
+                                                xaxis: { categories: stats?.participantsByCenter?.centers || [] },
+                                                plotOptions: {
+                                                    bar: {
+                                                        horizontal: true
+                                                    }
+                                                }
+                                            }}
+                                            series={[{
+                                                name: 'Участники',
+                                                data: stats?.participantsByCenter?.counts || []
+                                            }]}
+                                            type="bar"
+                                            height={400}
+                                        />
+                                    </TitledCard>
+                                    <Card>
+                                        <FlexRow margin='0 0 20 0' align={ALIGN.CENTER} justify={JUSTIFY.SPACE_BETWEEN}>
+                                            <span className="card-title">Все центры компетенций ({stats?.uniqueCenters || 0})</span>
+                                            <Button
+                                                text={showAllCenters ? 'Скрыть' : 'Показать все'}
+                                                onClick={() => setShowAllCenters(!showAllCenters)}
+                                                palette={ADMIN_PALETTE.CYAN}
+                                            />
+                                        </FlexRow>
+                                        <div className="centers-list">
+                                            {stats?.available_values?.center && stats.available_values.center.length > 0 ? (
+                                                <div className={`centers-grid ${showAllCenters ? 'expanded' : 'collapsed'}`}>
+                                                    {stats.available_values.center.map((center, index) => (
+                                                        <div key={index} className="center-item">
+                                                            <span className="center-name">{center}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="no-data">
+                                                    Нет данных о центрах компетенций
                                                 </div>
                                             )}
                                         </div>

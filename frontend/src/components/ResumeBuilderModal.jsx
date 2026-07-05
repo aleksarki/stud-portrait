@@ -144,7 +144,7 @@ function ResumeBuilderModal({ visible, setVisible, studentId, studentName }) {
 
     return (
         <ModalWindow
-            title={`Конструктор резюме — ${studentName || "Студент"}`}
+            title={`Конструктор резюме: ${studentName || "Студент"}`}
             visible={visible}
             setVisible={setVisible}
         >

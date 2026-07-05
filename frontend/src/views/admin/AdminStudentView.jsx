@@ -98,7 +98,6 @@ const StudentSearch = ({ onSelectStudent }) => {
 
     return (
         <div className="student-search">
-            <Label text="Поиск студента:" palette={LABEL_PALETTE.BLUE} />
             <div className="search-container">
                 <input
                     type="text"
@@ -132,17 +131,21 @@ const StudentSearch = ({ onSelectStudent }) => {
 // Компонент информации о студенте
 const StudentInfoCard = ({ student }) => {
     if (!student) return null;
-    
+
     return (
-        <LabelledBox label="📋 Основная информация">
+        <LabelledBox label="Основная информация">
             <div className="info-grid">
                 <div className="info-item">
-                    <span className="info-label">ID студента:</span>
+                    <span className="info-label">Имя:</span>
+                    <span className="info-value">{student.name}</span>
+                </div>
+                <div className="info-item">
+                    <span className="info-label">RSV ID студента:</span>
                     <span className="info-value">{student.rsv_id}</span>
                 </div>
                 <div className="info-item">
                     <span className="info-label">Пол:</span>
-                    <span className="info-value">{student.gender}</span>
+                    <span className="info-value">{student.gender === 1 ? 'м' : 'ж'}</span>
                 </div>
                 <div className="info-item">
                     <span className="info-label">Учебное заведение:</span>
@@ -218,12 +221,12 @@ const TestResultsCard = ({ testResults }) => {
                     </button>
                 ))}
             </div>
-            
+
             {currentResult && (
                 <>
                     <div className="test-info">
                         <div className="test-meta">
-                            <span>Курс: {currentResult.course_num}</span>
+                            <span>Курс: {currentResult.course}</span>
                             {currentResult.center && <span>ЦК: {currentResult.center}</span>}
                             {currentResult.high_potential && (
                                 <span className={`high-potential ${currentResult.high_potential === 'Да' ? 'yes' : 'no'}`}>
@@ -293,7 +296,7 @@ const TestResultsCard = ({ testResults }) => {
 const AcademicPerformanceCard = ({ grades }) => {
     if (!grades || grades.length === 0) {
         return (
-            <LabelledBox label="📚 Оценки по дисциплинам">
+            <LabelledBox label="Оценки по дисциплинам">
                 <div className="no-data">Нет данных об успеваемости</div>
             </LabelledBox>
         );
@@ -304,26 +307,25 @@ const AcademicPerformanceCard = ({ grades }) => {
         if (!groupedByYear[grade.year]) groupedByYear[grade.year] = [];
         groupedByYear[grade.year].push(grade);
     });
-    
+
     return (
-        <LabelledBox label="📚 Оценки по дисциплинам">
-            {Object.entries(groupedByYear).map(([year, yearGrades]) => (
-                <div key={year} className="grades-year">
-                    <h4>{year}</h4>
-                    <Table>
-                        <TableHeader>
-                            <TableItem>Дисциплина</TableItem>
-                            <TableItem>Оценка</TableItem>
-                        </TableHeader>
-                        {yearGrades.map((grade, idx) => (
-                            <TableRow key={idx}>
-                                <TableItem>{grade.discipline}</TableItem>
-                                <TableItem>{grade.main_attestation || '—'}</TableItem>
-                            </TableRow>
-                        ))}
-                    </Table>
-                </div>
-            ))}
+        <LabelledBox label="Оценки по дисциплинам">
+            <Table>
+                <TableHeader>
+                    <TableItem>Учебный год</TableItem>
+                    <TableItem>Дисциплина</TableItem>
+                    <TableItem>Оценка</TableItem>
+                </TableHeader>
+                {Object.entries(groupedByYear).map(([year, yearGrades]) => (
+                    yearGrades.map((grade, idx) => (
+                        <TableRow key={idx}>
+                            <TableItem>{year}</TableItem>
+                            <TableItem>{grade.discipline}</TableItem>
+                            <TableItem>{grade.main || '—'}</TableItem>
+                        </TableRow>
+                    ))
+                ))}
+            </Table>
         </LabelledBox>
     );
 };
@@ -332,7 +334,7 @@ const AcademicPerformanceCard = ({ grades }) => {
 const CoursesCard = ({ courses }) => {
     if (!courses || courses.length === 0) {
         return (
-            <LabelledBox label="🎓 Пройденные образовательные курсы">
+            <LabelledBox label="Пройденные образовательные курсы">
                 <div className="no-data">Нет данных о пройденных курсах</div>
             </LabelledBox>
         );
@@ -365,7 +367,7 @@ const CoursesCard = ({ courses }) => {
     ];
     
     return (
-        <LabelledBox label="🎓 Пройденные образовательные курсы">
+        <LabelledBox label="Пройденные образовательные курсы">
             {courses.map((course, idx) => (
                 <div key={idx} className="course-item">
                     <h4>Курс {idx + 1}</h4>

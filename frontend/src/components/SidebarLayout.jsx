@@ -109,7 +109,7 @@ export function Header({ title, name, showLogout = true }) {
                 <Dropdown 
                     label={
                         <div className="user-info">
-                            <span className="user-name">{userName}</span>
+                            <span className="user-name">{userName} </span>
                             {userRole && (
                                 <span className="user-role-badge">{getRoleDisplay()}</span>
                             )}
