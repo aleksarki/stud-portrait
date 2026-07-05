@@ -57,6 +57,7 @@ services:
       - REDIS_PORT=6379
       - LLM_SERVICE_URL=http://llm:8001
       - LOCAL_DEV=false
+      - IN_DOCKER=true 
     depends_on:
       database:
         condition: service_healthy

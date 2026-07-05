@@ -7,25 +7,90 @@ function RadarChart({title, seriesLabel, seriesData, categories, competencyKeys,
     const formatCategoryLabels = (categories) => {
         return categories.map(category => {
             const words = category.split(' ');
-            if (words.length <= 2) return category;
             
-            // Разбиваем на две строки
-            const mid = Math.ceil(words.length / 2);
-            const line1 = words.slice(0, mid).join(' ');
-            const line2 = words.slice(mid).join(' ');
+            // Если одно длинное слово — разбиваем по символам
+            if (words.length === 1 && category.length > 12) {
+                const mid = Math.ceil(category.length / 2);
+                return [category.slice(0, mid) + '-', category.slice(mid)];
+            }
             
-            return [line1, line2];
+            // Если несколько слов — разбиваем на строки
+            if (words.length > 2) {
+                const mid = Math.ceil(words.length / 2);
+                return [
+                    words.slice(0, mid).join(' '),
+                    words.slice(mid).join(' ')
+                ];
+            }
+
+            // Если два слова и суммарно длинные — тоже разбиваем
+            if (words.length === 2 && category.length > 14) {
+                return [words[0], words[1]];
+            }
+
+            return category;
         });
     };
 
     const formattedCategories = formatCategoryLabels(categories);
+
+    const pushRadarLabels = (el) => {
+        const labels = el.querySelectorAll('.apexcharts-xaxis-label');
+        const svgEl = el.querySelector('svg');
+        if (!labels.length || !svgEl) return;
+
+        const svgOrigin = svgEl.getBoundingClientRect();
+        const cx = svgOrigin.width / 2;
+        const cy = svgOrigin.height / 2;
+        const PUSH = 20;
+
+        labels.forEach(label => {
+            const rect = label.getBoundingClientRect();
+
+            const lx = rect.left - svgOrigin.left + rect.width / 2;
+            const ly = rect.top - svgOrigin.top + rect.height / 2;
+
+            const dx = lx - cx;
+            const dy = ly - cy;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist === 0) return;
+
+            // Учитываем размер лейбла — компенсируем "овальность"
+            const labelHalfW = rect.width / 2;
+            const labelHalfH = rect.height / 2;
+            const labelRadius = Math.sqrt(labelHalfW * labelHalfW + labelHalfH * labelHalfH);
+
+            // Нормализуем вектор и добавляем PUSH + компенсацию размера лейбла
+            const nx = dx / dist;
+            const ny = dy / dist;
+
+            // Компенсация: вычитаем проекцию размера лейбла на направление
+            const compensation = Math.abs(nx * labelHalfW) + Math.abs(ny * labelHalfH);
+            const totalPush = PUSH - compensation + labelRadius * 0.5;
+
+            const ox = nx * totalPush;
+            const oy = ny * totalPush;
+
+            const current = label.getAttribute('transform') || '';
+            const clean = current.replace(/translate\([^)]*\)/, '').trim();
+            label.setAttribute('transform', `${clean} translate(${ox}, ${oy})`);
+        });
+    };
 
     const chartOptions = {
         chart: {
             type: 'radar',
             toolbar: { show: false },
             dropShadow: { enabled: true, blur: 1, left: 1, top: 1 },
-            width: '100%'
+            width: '100%',
+            events: {
+                mounted: function(chartCtx) {
+                    pushRadarLabels(chartCtx.el);
+                },
+                updated: function(chartCtx) {
+                    pushRadarLabels(chartCtx.el);
+                }
+            }
         },
         title: {
             text: title,
@@ -38,7 +103,7 @@ function RadarChart({title, seriesLabel, seriesData, categories, competencyKeys,
                 style: { 
                     fontSize: '12px',
                     fontWeight: 500,
-                    colors: '#333'
+                    colors: '#111111'
                 }
             }
         },
@@ -55,7 +120,11 @@ function RadarChart({title, seriesLabel, seriesData, categories, competencyKeys,
         },
         plotOptions: {
             radar: {
-                size: categories.length > 8 ? 100 : 140,
+                size: (() => {
+                    if (categories.length > 8) return 130;
+                    const hasLongLabels = categories.some(c => c.length > 10);
+                    return hasLongLabels ? 130 : 140;
+                })(),
                 polygons: {
                     connectorColors: '#BDBDBD',
                     fill: { colors: ['#A5D6A7', '#C8E6C9', '#FFF9C4'] }

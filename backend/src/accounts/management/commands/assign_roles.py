@@ -8,19 +8,18 @@ class Command(BaseCommand):
     help = 'Assign roles to users'
 
     def handle(self, *args, **options):
-        # Назначаем суперадмина
-        admin_user = User.objects.filter(username='admin').first()
-        if admin_user:
-            profile, created = UserProfile.objects.get_or_create(user=admin_user)
+        # Назначаем superadmin всем is_superuser
+        for user in User.objects.filter(is_superuser=True):
+            profile, created = UserProfile.objects.get_or_create(user=user)
             profile.role = 'superadmin'
             profile.save()
-            self.stdout.write(self.style.SUCCESS(f'Set superadmin role for {admin_user.username}'))
-        
-        # Можно также назначить админов
-        # admin_users = User.objects.filter(is_staff=True)
-        # for user in admin_users:
-        #     profile, created = UserProfile.objects.get_or_create(user=user)
-        #     profile.role = 'admin'
-        #     profile.save()
-        
+            self.stdout.write(self.style.SUCCESS(f'Set superadmin role for {user.username}'))
+
+        # Назначаем admin всем is_staff (но не superuser)
+        for user in User.objects.filter(is_staff=True, is_superuser=False):
+            profile, created = UserProfile.objects.get_or_create(user=user)
+            profile.role = 'admin'
+            profile.save()
+            self.stdout.write(self.style.SUCCESS(f'Set admin role for {user.username}'))
+
         self.stdout.write(self.style.SUCCESS('Roles assigned successfully'))
