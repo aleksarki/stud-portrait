@@ -17,7 +17,6 @@ import AdminCoursesView from "./views/admin/AdminCoursesView";
 import AdminGeographyView from "./views/admin/AdminGeographyView";
 import AdminGroupingView from "./views/admin/AdminGroupingView";
 import AdminHelpView from "./views/admin/AdminHelpView";
-import AdminMainView from "./views/admin/AdminMainView";
 import AdminMotivatorsView from "./views/admin/AdminMotivatorsView";
 import AdminResultsView from "./views/admin/AdminResultsView";
 import AdminStatsView from "./views/admin/AdminStatsView";

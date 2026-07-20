@@ -7,12 +7,14 @@ import {
 
 import MotivatorStatistics from "../../components/MotivatorStatistics.jsx";
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
+import { FilterHeader } from "../../components/FilterHeader";
 
-import { getFilterDash, getMotivationCounts } from "../../api.js";
+import { getMotivationCounts } from "../../api.js";
 import { COMPETENCIES_NAMES, COURSES_NAMES, LINK_TREE, MOTIVATORS_NAMES } from "../../utilities.js";
 import * as XLSX from 'xlsx';
 
 import "./AdminMotivatorsView.scss";
+import LoadingSpinner from "../../components/ui/LoadingSpinner";
 
 const competencyLabels = {
     ...COMPETENCIES_NAMES,
@@ -257,161 +259,6 @@ function MotTable({ data, currentFilters }) {
 
 //до 400 - демотиватор, 600+ мотиватор
 
-function MotivatorStackedChart({ chart_data, currentFilters }) {
-    const allCourses = [1, 2, 3, 4];
-    const [selectedCourses, setSelectedCourses] = useState(allCourses);
-  
-    const toggleCourse = (course) => {
-        setSelectedCourses(prev =>{
-            const next = prev.includes(course) ? prev.filter(c => c !== course) : [...prev, course]
-            return next.sort((a, b) => a - b);}
-        );
-    };
-
-    const containerRef = useRef(null);
-    const [chartHeight, setChartHeight] = useState(0);
-
-    useEffect(() => {
-        if (!containerRef.current) return;
-        const el = containerRef.current;
-        const getSvgHeight = () => {
-          const svg = el.querySelector("svg");
-          return svg ? svg.clientHeight : 0;
-        };
-        setChartHeight(getSvgHeight());
-      
-        const ro = new ResizeObserver(() => setChartHeight(getSvgHeight()));
-        ro.observe(el);
-        return () => ro.disconnect();
-    }, [chart_data]);
-      
-
-    const colors = {
-        1: { high: " #A2CB8B", low: " #f5cd70" }, 
-        2: { high: " #81ae71", low: " #eaa157" },
-        3: { high: " #619257", low: " #da744a" },
-        4: { high: " #42763f", low: " #C44545" },
-    };
-  
-    const processedData = useMemo(() => {
-        if (!chart_data) return [];
-        return chart_data.map(item => {
-            const newItem = { ...item };
-            
-            //сортировка
-            const posValues = selectedCourses
-            .map(c => ({ course: c, val: item[`course_${c}_high`] || 0 }))
-            .sort((a, b) => a.val - b.val); 
-
-            posValues.forEach((obj, index) => {
-            newItem[`pos_seg_${index}`] = obj.val;
-            newItem[`pos_seg_${index}_course`] = obj.course;
-            newItem[`pos_seg_${index}_color`] = colors[obj.course].high;
-            });
-
-            const negValues = selectedCourses
-            .map(c => ({ course: c, val: item[`course_${c}_low`] || 0 }))
-            .sort((a, b) => a.val - b.val); 
-
-            negValues.forEach((obj, index) => {
-            newItem[`neg_seg_${index}`] = -obj.val; // делаем отрицательным для графика
-            newItem[`neg_seg_${index}_course`] = obj.course;
-            newItem[`neg_seg_${index}_color`] = colors[obj.course].low;
-            });
-
-            return newItem;
-        });
-    }, [chart_data, selectedCourses]);
-  
-    if (!chart_data || chart_data.length === 0) {
-        console.log('MotivatorChart: нет данных');
-        return <div className="p-4 text-gray-500 text-center">Нет данных для отображения</div>;
-    }
-
-    return (
-    <div className="motBarContainer w-full p-4 bg-white">
-        <div className="course-filters">
-            {[1, 2, 3, 4].map(course => (
-                <label key={course} className="filter-item">
-                <input
-                    type="checkbox"
-                    checked={selectedCourses.includes(course)}
-                    onChange={() => toggleCourse(course)}
-                />
-                <span>{course} Курс</span>
-                </label>
-            ))}
-        </div>
-        <Legendy selectedCourses={selectedCourses} colors={colors}/>
-        
-        <div ref={containerRef} className="chart-container h-[500px]">
-            <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                    data={processedData}
-                    barGap={-30}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-                >
-                        
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
-                <XAxis
-                    dataKey="name"
-                    tickFormatter={getLabel}
-                    angle={-45}
-                    tickMargin={20}
-                    textAnchor={"end"}
-                    interval={0}
-                    height={80}
-                    stroke="#666"
-                />
-                <YAxis 
-                    tickFormatter={formatValue} 
-                    stroke="#666"
-                    label={{ value: 'Количество студентов', angle: -90, position: 'insideLeft', fontSize: 11, fill: '#94a3b8' }}
-                
-                />
-                <Tooltip content={(props) => <Tooltippy {...props} chartHeight={chartHeight}
-                wrapperStyle={{ overflow: "visible", pointerEvents: "none", zIndex: 9999 }} />} />
-                
-                <ReferenceLine y={0} stroke="#333" strokeWidth={1.5} />
-
-                {selectedCourses.map((_, index) => (
-                <Bar 
-                    key={`pos_${index}`} 
-                    dataKey={`pos_seg_${index}`} 
-                    stackId="positive" 
-                    barSize={30}
-                    barGap={5}
-                    strokeWidth={1.5}
-                >
-                    {processedData.map((entry, i) => (
-                    <Cell key={i} fill={entry[`pos_seg_${index}_color`]} />
-                    ))}
-                </Bar>
-                ))}
-
-                {selectedCourses.map((_, index) => (
-                    <Bar 
-                        key={`neg_${index}`} 
-                        dataKey={`neg_seg_${index}`} 
-                        stackId="negative" 
-                        barSize={30}
-                        strokeWidth={1.5}
-                    >
-                        {processedData.map((entry, i) => (
-                        <Cell key={i} fill={entry[`neg_seg_${index}_color`]} />
-                        ))}
-                    </Bar>
-                ))}
-                </BarChart>
-            </ResponsiveContainer>
-            
-        </div>
-        <div style={{margin:20, marginTop:5}}>
-        <MotTable data={chart_data} currentFilters={currentFilters}/></div>
-      </div>
-    );
-}
-
 function MotivatorCharts({ chart_data, currentFilters }) {
     const allCourses = [1, 2, 3, 4];
     const [selectedCourses, setSelectedCourses] = useState(allCourses);
@@ -429,7 +276,6 @@ function MotivatorCharts({ chart_data, currentFilters }) {
         3: { high: " #619257", low: " #da744a" },
         4: { high: " #42763f", low: " #C44545" },
     };
-    console.log(chart_data);
     const processedData_pos = useMemo(() => {
         if (!chart_data) return [];
         return chart_data.map(item => {
@@ -593,107 +439,6 @@ function MotivatorCharts({ chart_data, currentFilters }) {
     );
 }
 
-//верх фильтры
-const FilterHeader = ({ filters, onFilterChange }) => {
-    const [options, setOptions] = useState({ institutes: [], specialties: [], years: [] });
-    const [loading, setLoading] = useState(true);
-    const reqRef = useRef(0);
-
-    //загрузка вариантов
-    useEffect(() => {
-        getFilterDash()
-            .onSuccess(async response => {
-                const data = await response.json();
-                setOptions(data.data); 
-                setLoading(false);
-            })
-            .onError(err => console.error("Ошибка загрузки опций", err));
-    }, []);
-    
-
-    useEffect(() => {
-        const institute = filters?.institute;
-        if (!institute) {
-            getFilterDash()
-            .onSuccess(async response => {
-                const data = await response.json();
-                setOptions(data.data); 
-            })
-            .onError(err => console.error("Ошибка загрузки опций", err));
-            return;
-        }
-        const id = ++reqRef.current;
-        getFilterDash(institute)
-            .onSuccess(async res => {
-                if (id !== reqRef.current) return;
-                const data = await res.json();
-                const newSpecs = data.data.specialties || [];
-                setOptions(prev => ({ ...prev, specialties: newSpecs }));
-        
-                // если выбранная спец не в новом списке - сброс
-                if (filters?.specialty && !newSpecs.some(s => s.value === filters.specialty)) {
-                onFilterChange('specialty', '');
-                }
-            })
-            .onError(() => { if (id === reqRef.current) setLoading(false); });
-      }, [filters?.institute]);
-    
-    const handleChange = (opt, name) => {
-        onFilterChange(name, opt ? opt.value : '');
-    };
-    const customStyles = {
-        container: (base) => ({ ...base, flex: 1, minWidth: '200px' }),
-        control: (base) => ({ ...base, borderRadius: '8px', borderColor: '#ddd' })
-    };
-    const findOption = (opts, value) => {
-        if (!value) return null; 
-        return opts?.find(o => o.value === value) || null;
-    };
-    const sorted = (opts) =>
-        (opts || []).slice().sort((a, b) =>
-          a.label.localeCompare(b.label, 'ru', {numeric: true, sensitivity: 'base' })
-        );
-
-    if (loading) return <div>Загрузка фильтров...</div>;
-    
-    return (
-        <div className="filter-row">
-            <Select
-            name="institute"
-            placeholder="Институт..."
-            isClearable
-            isSearchable
-            options={sorted(options?.institutes) || []}
-            onChange={opt => handleChange(opt, 'institute')}
-            styles={customStyles}
-            />
-            
-            <Select
-            name="specialty"
-            placeholder="Направление..."
-            isClearable
-            isSearchable
-            options={sorted(options?.specialties) || []}
-            value={findOption(options?.specialties, filters?.specialty)}
-            onChange={opt => handleChange(opt, 'specialty')}
-            styles={customStyles}
-            />
-    
-            <Select
-            name="year"
-            placeholder="Год..."
-            isClearable
-            isSearchable
-            options={sorted(options?.years) || []}
-            onChange={opt => handleChange(opt, 'year')}
-            styles={customStyles}
-            />
-        </div>
-    );
-};
-  
-
-
 function AdminMotivatorsView(){
     const [MotivationData, setMotivationData] = useState(null);
     const [loadingMotDash, setLoadingMotDash] = useState(false);
@@ -744,8 +489,11 @@ function AdminMotivatorsView(){
                         /></div>
                         {
                             isError ? <div className="p-10 text-center"> Ошибка при загрузке данных </div> :
-                            loadingMotDash ? <div className="p-10 text-center">Загрузка данных...</div> :
-                            <>
+                            loadingMotDash ?
+                                <div className="loading-content">
+                                        <LoadingSpinner text="Загрузка диаграммы..." />
+                                </div>
+                            :<>
                                 <MotivatorCharts chart_data={MotivationData?.data} currentFilters={filters}/>
                                 <MotivatorStatistics filters={filters} />
                             </>

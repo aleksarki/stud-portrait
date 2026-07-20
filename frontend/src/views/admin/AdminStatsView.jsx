@@ -14,8 +14,6 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner.jsx';
 import { ADMIN_PALETTE } from '../../components/ui/palette.js';
 
 import {
-    getDashboardStats,
-    getFilterDash,
     postPortraitDataseshNew,
     postPortraitDataseshCountStats,
     postPortraitDataseshUpdateFilters
@@ -23,6 +21,7 @@ import {
 import { COMPETENCIES_NAMES, FIELD_NAMES, LINK_TREE, MOTIVATORS_NAMES } from "../../utilities.js";
 
 import "./AdminStatsView.scss";
+import TabButton from "../../components/ui/TabButton";
 
 const competencyLabels = {
     ...COMPETENCIES_NAMES,
@@ -408,25 +407,25 @@ function AdminStatsView() {
 
                         {/* Навигация по разделам */}
                         <FlexRow margin="0 0 30 0" wrap={WRAP.DO}>
-                            <Button
+                            <TabButton
                                 text="Обзор"
                                 onClick={() => setActiveTab('overview')}
-                                palette={activeTab === 'overview' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
+                                isActive={activeTab === 'overview' }
                             />
-                            <Button
+                            <TabButton
                                 text="Компетенции"
                                 onClick={() => setActiveTab('competences')}
-                                palette={activeTab === 'competences' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
+                                isActive={activeTab === 'competences'}
                             />
-                            <Button
+                            <TabButton
                                 text="Мотиваторы"
                                 onClick={() => setActiveTab('motivators')}
-                                palette={activeTab === 'motivators' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
+                                isActive={activeTab === 'motivators'}
                             />
-                            <Button
+                            <TabButton
                                 text="Ценности"
                                 onClick={() => setActiveTab('values')}
-                                palette={activeTab === 'values' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
+                                isActive={activeTab === 'values'}
                             />
                         </FlexRow>
 

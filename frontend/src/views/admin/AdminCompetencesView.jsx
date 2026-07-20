@@ -9,9 +9,6 @@ import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import * as XLSX from 'xlsx';
 
-import CorrelationHeatmap from './CorrelationHeatmap';
-import CorrelationScatter from './CorrelationScatter';
-import TopCorrelationsTable from './TopCorrelationsTable';
 import CompetencySegmentation from './CompetencySegmentation';
 
 import FlexRow, { ALIGN, JUSTIFY, WRAP } from '../../components/FlexRow.jsx';
@@ -19,128 +16,29 @@ import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../com
 
 import ReactApexChart from 'react-apexcharts';
 
-import Button from '../../components/ui/Button.jsx';
 import LoadingSpinner from '../../components/ui/LoadingSpinner.jsx';
 import { ADMIN_PALETTE } from '../../components/ui/palette.js';
+import { FilterHeader } from "../../components/FilterHeader";
 
 import {
     getDashboardStats,
-    getFilterDash,
-    getDataBoxplot,
     getCompetencyTrendByYear,
-    getGradesCompetencyCorrelation,
 } from '../../api.js';
 import { COMPETENCIES_NAMES, FIELD_NAMES, LINK_TREE, MOTIVATORS_NAMES } from "../../utilities.js";
 
 import "./AdminCompetencesView.scss";
+import TabButton from "../../components/ui/TabButton";
 
 const competencyLabels = {
     ...COMPETENCIES_NAMES,
     ...MOTIVATORS_NAMES
 };
-
+function toFixed (number, to = 1){
+    return Math.round(number * 10**to) / 10**to;
+}
 
 const getLabel = (key) => competencyLabels[key] || competencyLabels[key.replace('res_comp_', '').replace('_', ' ')] || key.replace('res_comp_', '').replace('_', ' ');
 // для сравнения
-
-const FilterHeader = ({ filters, onFilterChange }) => {
-    const [options, setOptions] = useState({ institutes: [], specialties: [], years: [] });
-    const [loading, setLoading] = useState(true);
-    const reqRef = useRef(0);
-
-    //загрузка вариантов
-    useEffect(() => {
-        getFilterDash()
-            .onSuccess(async response => {
-                const data = await response.json();
-                setOptions(data.data);
-                setLoading(false);
-            })
-            .onError(err => console.error("Ошибка загрузки опций", err));
-    }, []);
-
-
-    useEffect(() => {
-        const institute = filters?.institute;
-        if (!institute) {
-            getFilterDash()
-                .onSuccess(async response => {
-                    const data = await response.json();
-                    setOptions(data.data);
-                })
-                .onError(err => console.error("Ошибка загрузки опций", err));
-            return;
-        }
-        const id = ++reqRef.current;
-        getFilterDash(institute)
-            .onSuccess(async res => {
-                if (id !== reqRef.current) return;
-                const data = await res.json();
-                const newSpecs = data.data.specialties || [];
-                setOptions(prev => ({ ...prev, specialties: newSpecs }));
-
-                // если выбранная спец не в новом списке - сброс
-                if (filters?.specialty && !newSpecs.some(s => s.value === filters.specialty)) {
-                    onFilterChange('specialty', '');
-                }
-            })
-            .onError(() => { if (id === reqRef.current) setLoading(false); });
-    }, [filters?.institute]);
-
-    const handleChange = (opt, name) => {
-        onFilterChange(name, opt ? opt.value : '');
-    };
-    const customStyles = {
-        container: (base) => ({ ...base, flex: 1, minWidth: '200px' }),
-        control: (base) => ({ ...base, borderRadius: '8px', borderColor: '#ddd' })
-    };
-    const findOption = (opts, value) => {
-        if (!value) return null;
-        return opts?.find(o => o.value === value) || null;
-    };
-
-    const sorted = (opts) =>
-        (opts || []).slice().sort((a, b) =>
-            a.label.localeCompare(b.label, 'ru', { numeric: true, sensitivity: 'base' })
-        );
-
-    if (loading) return <div>Загрузка фильтров...</div>;
-
-    return (
-        <div className="filter-row">
-            <Select
-                name="institute"
-                placeholder="Институт..."
-                isClearable
-                isSearchable
-                options={sorted(options?.institutes) || []}
-                onChange={opt => handleChange(opt, 'institute')}
-                styles={customStyles}
-            />
-
-            <Select
-                name="specialty"
-                placeholder="Направление..."
-                isClearable
-                isSearchable
-                options={sorted(options?.specialties) || []}
-                value={findOption(options?.specialties, filters?.specialty)}
-                onChange={opt => handleChange(opt, 'specialty')}
-                styles={customStyles}
-            />
-
-            <Select
-                name="year"
-                placeholder="Год..."
-                isClearable
-                isSearchable
-                options={sorted(options?.years) || []}
-                onChange={opt => handleChange(opt, 'year')}
-                styles={customStyles}
-            />
-        </div>
-    );
-};
 
 const Stat = ({ label, value, prev = 0, suffix = "", isGrowth = false, isText = false, note = undefined }) => {
     if (prev == 0) {
@@ -195,11 +93,11 @@ function CompetencyTable({ data, filters, year }) {
                 const hasCurrent = row.score !== 0 && row.score;
 
                 const delta = hasPrev && hasCurrent
-                    ? Math.round(row.score) - Math.round(row.prev_score)
+                    ? toFixed(row.score, 1) - toFixed(row.prev_score, 1)
                     : null;
 
                 const procent = delta !== null && hasPrev
-                    ? Math.round((delta * 100) / Math.round(row.prev_score))
+                    ? toFixed((delta * 100) / toFixed(row.prev_score, 1), 2)
                     : null;
 
                 const formatValue = (val) => val === 0 ? 0 : (val || '—');
@@ -262,17 +160,17 @@ function CompetencyTable({ data, filters, year }) {
                         </thead>
                         <tbody>
                             {data.map(row => {
-                                const delta = row.score != 0 && row.prev_score != 0
-                                    ? Math.round(row.score) - Math.round(row.prev_score)
+                                const delta = row.score !== 0 && row.prev_score !== 0
+                                    ? toFixed(row.score, 1) - toFixed(row.prev_score, 1)
                                     : null;
                                 const procent = delta != null
-                                    ? Math.round(delta * 100 / Math.round(row.prev_score), 2)
+                                    ? toFixed(delta * 100 / toFixed(row.prev_score, 1), 2)
                                     : null;
                                 return (
                                     <tr key={row.displayName}>
                                         <td className="ct-name">{row.displayName}</td>
-                                        <td>{row.prev_score != 0 ? Math.round(row.prev_score) : '—'}</td>
-                                        <td>{row.score != 0 ? Math.round(row.score) : '—'}</td>
+                                        <td>{row.prev_score !== 0 ? toFixed(row.prev_score, 1) : '—'}</td>
+                                        <td>{row.score !== 0 ? toFixed(row.score, 1) : '—'}</td>
                                         <td>
                                             {delta === null ? '—' : (
                                                 <span className={delta > 0 ? 'ct-pos' : delta < 0 ? 'ct-neg' : 'ct-zero'}>
@@ -719,210 +617,6 @@ function Dashboard({ data, filters }) {
     );
 }
 
-//
-function BoxPlots({ data }) {
-    const [selected, setSelected] = useState(null);
-    const chartRef = useRef(null);
-
-    if (!data) {
-        return <div> Boxplot: Нет данных для отображения</div>
-    }
-
-    const series = [
-        {
-            name: 'boxplot',
-            type: 'boxPlot',
-            data: data.map(item => ({
-                x: COMPETENCIES_NAMES[item.comp],
-                y: item.box,  // [min_fence, q1, median, q3, max_fence]
-            })),
-        },
-        {
-            name: 'outliers',
-            type: 'scatter',
-            data: data.flatMap(item =>
-                item.out.map(o => ({
-                    x: COMPETENCIES_NAMES[item.comp],
-                    y: o.y,
-                    id: o.id,
-                    comp: item.comp,
-                }))
-            ),
-        },
-    ];
-
-    const options = {
-        chart: {
-            type: 'boxPlot',
-            toolbar: { show: false },
-            events: {
-                dataPointSelection: (event, chartContext, config) => {
-                    // Предотвращаем всплытие события
-                    event?.stopPropagation();
-
-                    // Проверяем, что клик именно по выбросам
-                    if (config.seriesIndex !== 1) return;
-
-                    // Получаем точку из данных
-                    const point = series[1].data[config.dataPointIndex];
-                    if (point) {
-                        setSelected(point);
-                    }
-                },
-            },
-        },
-        colors: ['rgb(101,142,208)', '#e24b4a'],
-        markers: { size: [0, 4] },
-        plotOptions: {
-            boxPlot: {
-                colors: {
-                    upper: 'rgba(101,142,208,0.35)',
-                    lower: 'rgba(101,142,208,0.15)',
-                },
-            },
-        },
-        tooltip: {
-            shared: false,
-            intersect: true,
-            custom: ({ seriesIndex, dataPointIndex, w }) => {
-                if (seriesIndex === 0) {
-                    // тултип для ящика
-                    const d = w.config.series[0].data[dataPointIndex];
-                    if (!d || !d.y) return '<div></div>';
-
-                    const [min, q1, med, q3, max] = d.y;
-                    return `
-                <div style="padding:12px 16px;font-size:12px;line-height:1.8">
-                  <b style="color:#334155">${d.x || ''}</b><br/>
-                  <span style="color:#94a3b8">Макс (ус):</span> <b>${max}</b><br/>
-                  <span style="color:#94a3b8">Q3:</span> <b>${q3}</b><br/>
-                  <span style="color:#94a3b8">Медиана:</span> <b>${med}</b><br/>
-                  <span style="color:#94a3b8">Q1:</span> <b>${q1}</b><br/>
-                  <span style="color:#94a3b8">Мин (ус):</span> <b>${min}</b>
-                </div>`;
-                }
-                if (seriesIndex === 1) {
-                    const d = series[1].data[dataPointIndex];
-                    if (!d) return '<div></div>';
-
-                    return `
-                <div style="padding:12px 16px;font-size:12px;line-height:1.8">
-                  <b style="color:#e24b4a">Выброс</b><br/>
-                  <span style="color:#94a3b8">ID:</span> <b>${d.id}</b><br/>
-                  <span style="color:#94a3b8">Балл:</span> <b>${d.y}</b>
-                </div>`;
-                }
-                return '<div></div>';
-            },
-        },
-        yaxis: {
-            min: 150,
-            max: 850,
-            labels: { style: { fontSize: '11px' } }
-        },
-        xaxis: {
-            labels: {
-                style: { fontSize: '11px', colors: '#64748b' },
-                rotate: -20,
-                trim: true,
-            }
-        },
-        grid: { borderColor: '#f1f5f9', xaxis: { lines: { show: false } } },
-        legend: { show: false },
-    };
-
-    // Обработчик закрытия модального окна
-    const handleCloseModal = () => {
-        setSelected(null);
-    };
-
-    // Обработчик клика по оверлею
-    const handleOverlayClick = (e) => {
-        if (e.target === e.currentTarget) {
-            setSelected(null);
-        }
-    };
-
-    return (
-        <div className="ds-card">
-            <h4 className="ds-title">Распределение по компетенциям</h4>
-            <ReactApexChart
-                type="boxPlot"
-                series={series}
-                options={options}
-                height={420}
-            />
-
-            {selected && (
-                <div
-                    className="bp-modal-overlay"
-                    onClick={handleOverlayClick}
-                    style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        zIndex: 1000,
-                    }}
-                >
-                    <div
-                        className="bp-modal"
-                        onClick={(e) => e.stopPropagation()}
-                        style={{
-                            backgroundColor: 'white',
-                            borderRadius: '8px',
-                            padding: '20px',
-                            minWidth: '300px',
-                            maxWidth: '400px',
-                            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                            position: 'relative',
-                        }}
-                    >
-                        <button
-                            className="bp-modal__close"
-                            onClick={handleCloseModal}
-                            style={{
-                                position: 'absolute',
-                                top: '10px',
-                                right: '10px',
-                                background: 'none',
-                                border: 'none',
-                                fontSize: '20px',
-                                cursor: 'pointer',
-                                color: '#666',
-                            }}
-                        >
-                            ✕
-                        </button>
-                        <p className="bp-modal__title" style={{
-                            fontSize: '18px',
-                            fontWeight: 'bold',
-                            marginBottom: '15px',
-                            color: '#e24b4a'
-                        }}>
-                            Выброс
-                        </p>
-                        <p style={{ marginBottom: '10px' }}>
-                            ID участника: <b>{selected.id}</b>
-                        </p>
-                        <p style={{ marginBottom: '10px' }}>
-                            Компетенция: <b>{COMPETENCIES_NAMES[selected.comp] || selected.comp}</b>
-                        </p>
-                        <p style={{ marginBottom: '0' }}>
-                            Балл: <b>{selected.y}</b>
-                        </p>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-}
-
 
 const TREND_COLORS = [
     '#1f66b6', '#e74c3c', '#27ae60', '#f39c12', '#9b59b6', '#16a085',
@@ -1123,19 +817,14 @@ function CompetencyTrendLine({ data, loading }) {
 }
 
 function AdminCompetencesView() {
-    const [loading, setLoading] = useState(false);
     const [dashboardData, setDashboardData] = useState(null);
     const [loadingDash, setLoadingDash] = useState(false);
     const [filters_, setFilters_] = useState({ institute: '', specialty: '', year: '' });
 
-    const [BoxplotData, setBoxplotData] = useState(null);
-
     const [trendData, setTrendData] = useState(null);
     const [loadingTrend, setLoadingTrend] = useState(false);
 
-    const [correlationData, setCorrelationData] = useState(null);
-    const [loadingCorr, setLoadingCorr] = useState(false);
-
+    const [activeTab, setActiveTab] = useState('dashboard');
     const loadDashboardStats = async currentFilters => {
         setLoadingDash(true)
         getDashboardStats(currentFilters.institute, currentFilters.specialty, currentFilters.year)
@@ -1157,22 +846,6 @@ function AdminCompetencesView() {
         });
     };
 
-    const loadBoxPlot = async (currentFilters) => {
-        setLoading(true);
-        getDataBoxplot(currentFilters.institute, currentFilters.specialty, currentFilters.year)
-            .onSuccess(async response => {
-                const data = await response.json();
-                setBoxplotData(data);
-            })
-            .onError(err => {
-                console.error("Ошибка при загрузке данных:", err);
-            })
-            .finally(() => setLoading(false));
-    };
-    useEffect(() => {
-        loadBoxPlot(filters_);
-    }, [filters_]);
-
     const loadCompetencyTrend = async (currentFilters) => {
         setLoadingTrend(true);
         getCompetencyTrendByYear(currentFilters.institute, currentFilters.specialty)
@@ -1187,19 +860,6 @@ function AdminCompetencesView() {
         loadCompetencyTrend(filters_);
     }, [filters_]);
 
-    const loadCorrelation = async (currentFilters) => {
-        setLoadingCorr(true);
-        getGradesCompetencyCorrelation(currentFilters.institute, currentFilters.specialty, currentFilters.year)
-            .onSuccess(async response => {
-                const data = await response.json();
-                setCorrelationData(data);
-            })
-            .onError(err => console.error("Ошибка при загрузке корреляции:", err))
-            .finally(() => setLoadingCorr(false));
-    };
-    useEffect(() => {
-        loadCorrelation(filters_);
-    }, [filters_]);
 
     if (loadingDash) {
         return (
@@ -1226,18 +886,39 @@ function AdminCompetencesView() {
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <div className="filters-cont">
-                        <FilterHeader onFilterChange={updateFilter} filters={filters_} /></div>
-                    <span><>
-                        <Dashboard data={dashboardData} filters={filters_} />
-                    </></span>
-                    {loading ? <div>Загрузка диаграммы..</div> :
-                        <>{/*<BoxPlots data={BoxplotData?.data} />*/}
-                            <CorrelationHeatmap data={correlationData} loading={loadingCorr} />
-                            <CorrelationScatter correlationData={correlationData} loading={loadingCorr} filters={filters_} />
+                        <FilterHeader onFilterChange={updateFilter} filters={filters_} />
+                    </div>
+
+                    <FlexRow margin="0 0 30 0" wrap={WRAP.DO}>
+                        <TabButton
+                            text={"Дашборд"}
+                            onClick={setActiveTab('dashboard')}
+                            isActive={activeTab === 'dashboard'}
+                        />
+                        <TabButton
+                            text={"Динамика"}
+                            onClick={setActiveTab('graphics')}
+                            isActive={activeTab === 'graphics'}
+                        />
+                        <TabButton
+                            text={"Сегментация"}
+                            onClick={setActiveTab('segmentation')}
+                            isActive={activeTab === 'segmentation'}
+                        />
+                    </FlexRow>
+
+                    {activeTab === 'dashboard' && (
+                        <Dashboard data={dashboardData} filters={filters_} />)
+                    }
+                    {activeTab === 'graphics' && (
+                        <>{loadingTrend ? <div>Загрузка диаграммы..</div> :
                             <CompetencyTrendLine data={trendData} loading={loadingTrend} />
-                            <TopCorrelationsTable filters={filters_} />
-                            <CompetencySegmentation filters={filters_} />
-                        </>}
+                        }</>)
+                    }
+                    {activeTab === 'segmentation' && (
+                        <CompetencySegmentation filters={filters_} />
+                        )
+                    }
                 </Content>
             </SidebarLayout>
         </div>);
