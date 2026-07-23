@@ -45,38 +45,62 @@ export function Header({ title, name }) {
 
 
 export function Sidebar({ links, linkTree }) {
-    if (linkTree) {
+    const [isOpen, setIsOpen] = React.useState(true);
+    const [currentPage, setCurrentPage] = React.useState(0);
+    if (isOpen) {
+        if (linkTree) {
+            return (
+                <div className="Sidebar-container">
+                <nav className="Sidebar">
+                    <ul>
+                        {linkTree.map((category, index) => (
+                            <li key={index}>
+                                {category.category && <span>{category.category}</span>}
+                                <ul>
+                                    {category.links.map((link, index1) => (
+                                        <li key={index} className={currentPage === index1 ? "Sidebar-item-active" : "Sidebar-item"}>
+                                            <a href={link.to} onClick={(index1) => setCurrentPage(index1)}>{link.title}</a>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </li>
+                        ))}
+                    </ul>
+                </nav>
+                    <div className="SideBar-btn-container">
+                        <button onClick={() => setIsOpen(false)}>{"<"}</button>
+                    </div>
+                </div>
+            );
+        }
+
         return (
+            <div className="Sidebar-container">
             <nav className="Sidebar">
                 <ul>
-                    {linkTree.map((category, index) => (
-                        <li key={index}>
-                            {category.category && <span>{category.category}</span>}
-                            <ul>
-                                {category.links.map((link, index1) => (
-                                    <li key={index1}>
-                                        <a href={link.to}>{link.title}</a>
-                                    </li>
-                                ))}
-                            </ul>
+                    {links?.map?.((link, index) => (
+                        <li key={index} className={currentPage === index ? "Sidebar-item-active" : "Sidebar-item"}>
+                            <a href={link.to} onClick={(index) => setCurrentPage(index)}>{link.title}</a>
                         </li>
                     ))}
                 </ul>
             </nav>
+                <div className="SideBar-btn-container">
+                    <button onClick={() => setIsOpen(false)} >{"<"}</button>
+                </div>
+            </div>
         );
     }
-
-    return (
-        <nav className="Sidebar">
-            <ul>
-                {links?.map?.((link, index) => (
-                    <li key={index}>
-                        <a href={link.to}>{link.title}</a>
-                    </li>
-                ))}
-            </ul>
-        </nav>
-    );
+    else {
+        return (
+            <div className="Sidebar-container">
+                <nav className="Sidebar-closed"></nav>
+                <div className="SideBar-btn-container">
+                    <button onClick={() => setIsOpen(true)}>{">"}</button>
+                </div>
+            </div>
+        );
+    }
 }
 
 export function Content({ children }) {

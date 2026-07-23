@@ -41,7 +41,7 @@ const getLabel = (key) => competencyLabels[key] || competencyLabels[key.replace(
 // для сравнения
 
 const Stat = ({ label, value, prev = 0, suffix = "", isGrowth = false, isText = false, note = undefined }) => {
-    if (prev == 0) {
+    if (prev === 0) {
         return (<div className="stat-block">
             <div className="value">{value}{suffix}</div>
             <div className="label">{label}</div>
@@ -54,7 +54,7 @@ const Stat = ({ label, value, prev = 0, suffix = "", isGrowth = false, isText = 
                 <div className="value">{value}{suffix}</div>
                 <div className="prev-year">прошлый год: {prev}{suffix}</div>
                 <div className="label">{label}</div>
-                {note != undefined ? <div className="note">{note}</div> : ''}
+                {note !== undefined ? <div className="note">{note}</div> : ''}
             </div>
         );
     }
@@ -356,7 +356,7 @@ function CompetencyTable_course({ data, filters }) {
         </div>);
 }
 
-//паутинка пред
+//паутинка
 function CompRadar({ data }) {
 
     const [hoveredCourse, setHoveredCourse] = useState(null);
@@ -454,6 +454,73 @@ function CompRadar({ data }) {
     );
 }
 
+function BarChartByYears({ data }){
+
+    return(
+        <><h4 className="section-label">Распределение по компетенциям (средний балл)</h4>
+        <div style={{ width: '100%', height: 400 }}>
+            <ResponsiveContainer>
+                <BarChart data={data} barGap={5} barCategoryGap="25%"
+                          margin={{ top: 20, right: 30, left: 10, bottom: 70 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+
+                    <ReferenceLine y={0} stroke="#333" strokeWidth={1.5} />
+                    <XAxis
+                        dataKey="displayName"
+                        interval={0}
+                        angle={-20}
+                        tick={{
+                            fontSize: 11,
+                            fill: ' #64748b',
+                            dy: 11
+                        }}
+                        tickMargin={12}
+                        tickLine={false}
+                        dx={-50}
+                        height={45}
+                        textAnchor="end"
+                    />
+                    <YAxis
+                        domain={[0, 850]}
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                        tick={{ fill: ' #94a3b8' }}
+                        label={{ value: 'Средний балл', angle: -90, position: 'insideLeft', fontSize: 11, fill: 'rgb(122, 136, 156)' }}
+                    />
+                    <Tooltip
+                        cursor={{ fill: '#f8fafc' }}
+                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                        labelFormatter={(label) => `Компетенция: ${label}`}
+                        formatter={(value) => [value, 'баллы ']}
+
+                    />
+
+                    <Bar name={year} dataKey="score" fill="rgb(101, 142, 208)" radius={[6, 6, 0, 0]} barSize={22} >
+                        <LabelList
+                            formatter={(value) => Math.round(value)}
+                            position="top"
+                            offset={5}
+                            fontSize={12}
+                            fill="rgb(81, 87, 110)"
+                        /></Bar>
+                    <Bar name={year - 1} dataKey="prev_score" fill=" #904acc" radius={[6, 6, 0, 0]} barSize={22} >
+                        <LabelList
+                            formatter={(value) => Math.round(value)}
+                            position="top"
+                            offset={5}
+                            fontSize={11}
+                            fill="rgb(139, 148, 174)"
+                        /></Bar>
+                    <Legend verticalAlign="top" align="right" fontSize={8}
+                            formatter={(label) => `${label - 1}/${label}`}>
+                    </Legend>
+                </BarChart>
+            </ResponsiveContainer>
+        </div></>
+    );
+}
+
 function Dashboard({ data, filters }) {
     if (!data || !data.chart) return null;
     const year = data.year;
@@ -472,13 +539,13 @@ function Dashboard({ data, filters }) {
     //col2 uni
     const col2_data = { 'header': "Лидирующий ВУЗ", 'name': data.col2.uni_name, 'score': data.col2.uni_score };
     console.log(data.col2.uni_place);
-    if (data.col2.uni_place == -1) {
+    if (data.col2.uni_place === -1) {
         col2_data['header'] = "Нет данных за этот год";
         col2_data['name'] = "Рейтинг";
     }
-    else if (data.col2.uni_place != 0) {
+    else if (data.col2.uni_place !== 0) {
         col2_data['header'] = "Рейтинг ВУЗа";
-        col2_data['name'] = "Топ " + (Math.round(data.col2.uni_place, 1)).toString() + "%";
+        col2_data['name'] = "Топ " + (toFixed(data.col2.uni_place, 1)).toString() + "%";
     }
     return (
         <div>
@@ -491,19 +558,19 @@ function Dashboard({ data, filters }) {
                     <div className="col-left">
                         <Stat label="студентов прошли курсы" value={data.col1.courses.val} prev={data.col1.courses.prev} suffix="%" />
                         <Stat label="средний уровень компетенций" value={data.col1.avg_lvl.val} prev={data.col1.avg_lvl.prev} />
-                        <Stat label={data.col1.motiv.count.curr != 0 ? `Наибольший мотиватор (${data.col1.motiv.count.curr}%)*` : "Нет данных за этот год"} value={getLabel(data.col1.motiv.name.curr)} prev={data.col1.motiv.count.prev != 0 ? getLabel(data.col1.motiv.name.prev) + ` (${data.col1.motiv.count.prev}%)` : 0} isText={true} note={"*По доли среди студентов"} />
-                        <Stat label={data.col1.demotiv.count.curr != 0 ? `Наибольший демотиватор (${data.col1.demotiv.count.curr}%)*` : "Нет данных за этот год"} value={getLabel(data.col1.demotiv.name.curr)} prev={data.col1.demotiv.count.prev != 0 ? getLabel(data.col1.demotiv.name.prev) + ` (${data.col1.demotiv.count.prev}%)` : 0} isText={true} note={"*По доли среди студентов"} />
+                        <Stat label={data.col1.motiv.count.curr !== 0 ? `Наибольший мотиватор (${data.col1.motiv.count.curr}%)*` : "Нет данных за этот год"} value={getLabel(data.col1.motiv.name.curr)} prev={data.col1.motiv.count.prev != 0 ? getLabel(data.col1.motiv.name.prev) + ` (${data.col1.motiv.count.prev}%)` : 0} isText={true} note={"*По доли среди студентов"} />
+                        <Stat label={data.col1.demotiv.count.curr !== 0 ? `Наибольший демотиватор (${data.col1.demotiv.count.curr}%)*` : "Нет данных за этот год"} value={getLabel(data.col1.demotiv.name.curr)} prev={data.col1.demotiv.count.prev != 0 ? getLabel(data.col1.demotiv.name.prev) + ` (${data.col1.demotiv.count.prev}%)` : 0} isText={true} note={"*По доли среди студентов"} />
                     </div>
 
                     {/* Центральная колонка */}
                     <div className="col-center">
-                        {data.col2.uni_place != 0 ? <Stat label={col2_data['header']} value={col2_data['name']} /> :
+                        {data.col2.uni_place !== 0 ? <Stat label={col2_data['header']} value={col2_data['name']} /> :
                             (<div className="uni-info mb-6">
                                 <h4 className="text-xs uppercase text-gray-400 font-bold">{col2_data['header']}</h4>
                                 <div className="text-xl font-bold text-blue-600">{col2_data['name']}</div>
-                                <div className="text-sm text-gray-500">{Math.round(col2_data['score'], 1)} баллов (среднее)</div>
+                                <div className="text-sm text-gray-500">{toFixed(col2_data['score'], 1)} баллов (среднее)</div>
                             </div>)}
-                        <div class="chart-wrapper">
+                        <div className="chart-wrapper">
                             <ResponsiveContainer width="100%" height="300">
                                 <PieChart>
                                     <Pie
@@ -520,8 +587,8 @@ function Dashboard({ data, filters }) {
                             </ResponsiveContainer>
 
                             <div className="absolute-center">
-                                {data.col2.participated.students_all == 0 ? <p> Нет данных </p> :
-                                    (<><h2>{Math.round(data.col2.participated?.amount_in / data.col2.participated?.students_all * 100, 1)}%</h2>
+                                {data.col2.participated.students_all === 0 ? <p> Нет данных </p> :
+                                    (<><h2>{toFixed(data.col2.participated?.amount_in / data.col2.participated?.students_all * 100, 1)}%</h2>
                                         <p>Студентов прошли тестирование</p></>)}
                             </div>
                         </div>
@@ -546,72 +613,13 @@ function Dashboard({ data, filters }) {
             </div>
             <div className="dashboard-chart-row">
                 <div className="chart-container">
-                    <h4 className="section-label">Распределение по компетенциям (средний балл)</h4>
-                    <div style={{ width: '100%', height: 400 }}>
-                        <ResponsiveContainer>
-                            <BarChart data={chartData} barGap={5} barCategoryGap="25%"
-                                margin={{ top: 20, right: 30, left: 10, bottom: 70 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-
-                                <ReferenceLine y={0} stroke="#333" strokeWidth={1.5} />
-                                <XAxis
-                                    dataKey="displayName"
-                                    interval={0}
-                                    angle={-20}
-                                    tick={{
-                                        fontSize: 11,
-                                        fill: ' #64748b',
-                                        dy: 11
-                                    }}
-                                    tickMargin={12}
-                                    tickLine={false}
-                                    dx={-50}
-                                    height={45}
-                                    textAnchor="end"
-                                />
-                                <YAxis
-                                    domain={[0, 850]}
-                                    fontSize={12}
-                                    tickLine={false}
-                                    axisLine={false}
-                                    tick={{ fill: ' #94a3b8' }}
-                                    label={{ value: 'Средний балл', angle: -90, position: 'insideLeft', fontSize: 11, fill: 'rgb(122, 136, 156)' }}
-                                />
-                                <Tooltip
-                                    cursor={{ fill: '#f8fafc' }}
-                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
-                                    labelFormatter={(label) => `Компетенция: ${label}`}
-                                    formatter={(value) => [value, 'баллы ']}
-
-                                />
-
-                                <Bar name={year} dataKey="score" fill="rgb(101, 142, 208)" radius={[6, 6, 0, 0]} barSize={22} >
-                                    <LabelList
-                                        formatter={(value) => Math.round(value)}
-                                        position="top"
-                                        offset={5}
-                                        fontSize={12}
-                                        fill="rgb(81, 87, 110)"
-                                    /></Bar>
-                                <Bar name={year - 1} dataKey="prev_score" fill=" #904acc" radius={[6, 6, 0, 0]} barSize={22} >
-                                    <LabelList
-                                        formatter={(value) => Math.round(value)}
-                                        position="top"
-                                        offset={5}
-                                        fontSize={11}
-                                        fill="rgb(139, 148, 174)"
-                                    /></Bar>
-                                <Legend verticalAlign="top" align="right" fontSize={8}
-                                    formatter={(label) => `${label - 1}/${label}`}>
-                                </Legend>
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
+                    <BarChartByYears data={chartData} />
                     <CompetencyTable data={chartData} filters={filters} year={year} />
                 </div>
                 <CompRadar data={data.radar} />
                 <div style={{ padding: 5, margin: 20 }}>
-                    <CompetencyTable_course data={data.radar} filters={filters} /></div>
+                    <CompetencyTable_course data={data.radar} filters={filters} />
+                </div>
             </div>
         </div>
     );

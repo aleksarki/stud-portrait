@@ -21,6 +21,10 @@
         position: sticky;
         top: 0;
         overflow-y: auto;
+        .Sidebar-item-active {
+            border-left: 4px solid #1a365d;
+            margin-left: 4px;
+        }
     }
 
     .Content {
@@ -93,10 +97,11 @@
     .Sidebar {
         max-width: 260px;
         min-width: 200px;
-        background-color: #238BC8;
+        background-color: #ffffff;
         color: #fff;
         font-size: 13px;
         line-height: 1.5384616;
+        border-right: 2px solid #6e7181;
 
         ul {
             margin: 0;
@@ -130,8 +135,7 @@
                     cursor: pointer;
 
                     &:hover {
-                        background-color: #f98941;
-                        color: #fff;
+                        color: #238BC8;
                     }
                 }
             }            
@@ -341,5 +345,16 @@
 
     .Content {
         padding: 1rem;
+    }
+}
+//закрытый
+.Sidebar-closed{
+    max-width: 0 !important;
+}
+.SideBar-btn-container{
+    display: flex;
+    align-items: start;
+    button {
+        color: #fff;
     }
 }
