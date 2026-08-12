@@ -28,6 +28,7 @@ import { COMPETENCIES_NAMES, FIELD_NAMES, LINK_TREE, MOTIVATORS_NAMES } from "..
 
 import "./AdminCompetencesView.scss";
 import TabButton from "../../components/ui/TabButton";
+import {usePagesData} from "../../Context";
 
 const competencyLabels = {
     ...COMPETENCIES_NAMES,
@@ -825,6 +826,8 @@ function CompetencyTrendLine({ data, loading }) {
 }
 
 function AdminCompetencesView() {
+    const {savedFilters, saveFilters} = usePagesData(); // данные хранилища TODO: добавить всем
+
     const [dashboardData, setDashboardData] = useState(null);
     const [loadingDash, setLoadingDash] = useState(false);
     const [filters_, setFilters_] = useState({ institute: '', specialty: '', year: '' });
@@ -849,9 +852,15 @@ function AdminCompetencesView() {
     const updateFilter = (name, value) => {
         setFilters_(prev => {
             const updated = { ...prev, [name]: value };
-            if (name == 'institute') updated.specialty = '';
+            if (name === 'institute') updated.specialty = '';
             return updated;
         });
+        saveFilters('AdminCompetences', filters_);
+    };
+
+    const resetFilters = () => {
+        setFilters_({ institute: '', specialty: '', year: '' });
+        saveFilters('AdminCompetences', filters_);
     };
 
     const loadCompetencyTrend = async (currentFilters) => {
@@ -868,6 +877,12 @@ function AdminCompetencesView() {
         loadCompetencyTrend(filters_);
     }, [filters_]);
 
+    /* подгрузка старых фильтров при маунте компонента */
+    useEffect(() => {
+        if (savedFilters?.AdminCompetences) {
+            setFilters_(savedFilters.AdminCompetences);
+        }
+    }, []);
 
     if (loadingDash) {
         return (
@@ -877,7 +892,7 @@ function AdminCompetencesView() {
                     <Sidebar linkTree={LINK_TREE} />
                     <Content>
                         <div className="filters-cont">
-                            <FilterHeader onFilterChange={updateFilter} filters={filters_} /></div>
+                            <FilterHeader onFilterChange={updateFilter} filters={filters_} resetFilters={resetFilters} /></div>
                         <div className="loading-content">
                             <LoadingSpinner text="Загрузка статистики..." />
                         </div>

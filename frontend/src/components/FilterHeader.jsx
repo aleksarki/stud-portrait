@@ -50,6 +50,7 @@ const FilterHeader = ({ filters, onFilterChange }) => {
     const handleChange = (opt, name) => {
         onFilterChange(name, opt ? opt.value : '');
     };
+
     const customStyles = {
         container: (base) => ({ ...base, flex: 1, minWidth: '200px' }),
         control: (base) => ({ ...base, borderRadius: '8px', borderColor: '#ddd' })
@@ -97,6 +98,8 @@ const FilterHeader = ({ filters, onFilterChange }) => {
                 onChange={opt => handleChange(opt, 'year')}
                 styles={customStyles}
             />
+
+            <button onClick={resetFilters}> Сбросить </button>
         </div>
     );
 };
