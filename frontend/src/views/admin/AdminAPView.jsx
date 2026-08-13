@@ -18,6 +18,7 @@ import CorrelationHeatmap from './CorrelationHeatmap';
 import CorrelationScatter from './CorrelationScatter';
 import TopCorrelationsTable from './TopCorrelationsTable';
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import {usePagesData} from "../../Context";
 
 const scores={
     2:'неудовл.',
@@ -125,6 +126,7 @@ function AdminAPView() {
     const [correlationData, setCorrelationData] = useState(null);
     const [loadingCorr, setLoadingCorr] = useState(false);
 
+    const {savedFilters, saveFilters} = usePagesData();
 
     const loadScoresResult = async (currentFilters) => {
         setLoading(true);
@@ -133,7 +135,7 @@ function AdminAPView() {
             .onSuccess(async response => {
                 const data = await response.json();
                 setScatterData(data);
-                if (data.data==[] || data.names.length<4){
+                if (data.data === [] || data.names.length<4){
                     console.error("Ошибка при загрузке данных: данные пусты");
                     setErrorStatus(true);
                 }
@@ -151,11 +153,21 @@ function AdminAPView() {
     const updateFilter = (name, value) => {
         setFilters(prev => {
           const updated = { ...prev, [name]: value };
-          if (name == 'institute') updated.specialty = '';
+          if (name === 'institute') updated.specialty = '';
           return updated;
         });
+        saveFilters('Admin', filters);
     };
-    
+    const resetFilters = () => {
+        setFilters({ institute: '', specialty: '', year: '' });
+        saveFilters('Admin', filters);
+    };
+    useEffect(() => {
+        if (savedFilters?.AdminCompetences) {
+            setFilters(savedFilters.Admin);
+        }
+    }, []);
+
     const loadCorrelation = async (currentFilters) => {
         setLoadingCorr(true);
         getGradesCompetencyCorrelation(currentFilters.institute, currentFilters.specialty, currentFilters.year)
@@ -178,7 +190,7 @@ function AdminAPView() {
                 <Content>
                 <div className="filters-cont">
                     <FilterHeader onFilterChange={updateFilter} 
-                            filters={filters}/></div>
+                            filters={filters} resetFilters={resetFilters}/></div>
                 {isError ? (<div className="p-10 text-center"> Ошибка при загрузке данных </div>) :
                     (<>{LoadingData ? (
                             <div className="loading-content">

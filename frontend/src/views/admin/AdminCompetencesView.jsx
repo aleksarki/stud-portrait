@@ -826,7 +826,7 @@ function CompetencyTrendLine({ data, loading }) {
 }
 
 function AdminCompetencesView() {
-    const {savedFilters, saveFilters} = usePagesData(); // данные хранилища TODO: добавить всем
+    const {savedFilters, saveFilters} = usePagesData(); // данные хранилища
 
     const [dashboardData, setDashboardData] = useState(null);
     const [loadingDash, setLoadingDash] = useState(false);
@@ -855,12 +855,12 @@ function AdminCompetencesView() {
             if (name === 'institute') updated.specialty = '';
             return updated;
         });
-        saveFilters('AdminCompetences', filters_);
+        saveFilters('Admin', filters_);
     };
 
     const resetFilters = () => {
         setFilters_({ institute: '', specialty: '', year: '' });
-        saveFilters('AdminCompetences', filters_);
+        saveFilters('Admin', filters_);
     };
 
     const loadCompetencyTrend = async (currentFilters) => {
@@ -880,7 +880,7 @@ function AdminCompetencesView() {
     /* подгрузка старых фильтров при маунте компонента */
     useEffect(() => {
         if (savedFilters?.AdminCompetences) {
-            setFilters_(savedFilters.AdminCompetences);
+            setFilters_(savedFilters.Admin);
         }
     }, []);
 

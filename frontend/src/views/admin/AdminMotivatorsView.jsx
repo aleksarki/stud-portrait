@@ -15,6 +15,7 @@ import * as XLSX from 'xlsx';
 
 import "./AdminMotivatorsView.scss";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import {usePagesData} from "../../Context";
 
 const competencyLabels = {
     ...COMPETENCIES_NAMES,
@@ -100,8 +101,8 @@ function MotTable({ data, currentFilters }) {
     const mot_demot = ['М', 'Д', 'Н'];
     const toggleChoice = (mot_demot) => {
         setSelected(prev =>{
-            const next = prev.includes(mot_demot) ? prev.filter(c => c !== mot_demot) : [...prev, mot_demot]
-            return next;}
+            return prev.includes(mot_demot) ? prev.filter(c => c !== mot_demot) : [...prev, mot_demot];
+            }
         );
     };
     const exportToExcel = () => {
@@ -446,6 +447,8 @@ function AdminMotivatorsView(){
     const [filters, setFilters] = useState({ institute: '', specialty: '', year: '' });
     const savedY = useRef(0);
 
+    const {savedFilters, saveFilters} = usePagesData();
+
     const loadMotivationCounts = async currentFilters => {
         setLoadingMotDash(true)
         setErrorStatus(false)
@@ -467,11 +470,22 @@ function AdminMotivatorsView(){
     const updateFilter = (name, value) => {
         setFilters(prev => {
           const updated = { ...prev, [name]: value };
-          if (name == 'institute') updated.specialty = '';
+          if (name === 'institute') updated.specialty = '';
           return updated;
         });
+        saveFilters('Admin', filters);
         savedY.current = window.scrollY;
     };
+    const resetFilters = () => {
+        setFilters({ institute: '', specialty: '', year: '' });
+        saveFilters('Admin', filters);
+    };
+    useEffect(() => {
+        if (savedFilters?.AdminCompetences) {
+            setFilters(savedFilters.Admin);
+        }
+    }, []);
+
     useEffect(() => {
         requestAnimationFrame(() => window.scrollTo(0, savedY.current));
       }, [filters]);
@@ -486,6 +500,7 @@ function AdminMotivatorsView(){
                         <FilterHeader
                             onFilterChange={updateFilter} 
                             filters={filters}
+                            resetFilters={resetFilters}
                         /></div>
                         {
                             isError ? <div className="p-10 text-center"> Ошибка при загрузке данных </div> :

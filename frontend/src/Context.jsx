@@ -20,7 +20,7 @@ export function UserProvider({ children }) {
 export const useUser = () => useContext(UserContext);
 
 export function PagesDataProvider({children}) {
-    const [savedFilters, setFilters] = useState({});
+    const [savedFilters, setFilters] = useState({ 'Admin': {}});
     const saveFilters = (page, data) => setFilters({...savedFilters, page: data});
     return <PagesDataContext.Provider value={{savedFilters, saveFilters}}>
         {children}
