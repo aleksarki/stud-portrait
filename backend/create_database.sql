@@ -195,3 +195,17 @@ CREATE TABLE AcademicPerformances
 );
 
 CREATE INDEX idx_academic_performances_participant ON AcademicPerformances(perf_participant);
+
+CREATE TABLE students_amounts (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    inst_id INTEGER NOT NULL,
+    year INTEGER NOT NULL,
+    amount_of_students INTEGER NOT NULL,
+
+    CONSTRAINT fk_students_amounts_institution
+        FOREIGN KEY (inst_id)
+        REFERENCES institutions (inst_id),
+
+    CONSTRAINT unique_institution_year
+        UNIQUE (inst_id, year)
+);

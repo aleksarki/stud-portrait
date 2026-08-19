@@ -3,7 +3,7 @@ import {getFilterDash} from "../api";
 import Select from 'react-select';
 import "./FilterHeader.scss"
 
-const FilterHeader = ({ filters, onFilterChange }) => {
+export const FilterHeader = ({ filters, onFilterChange, resetFilters }) => {
     const [options, setOptions] = useState({ institutes: [], specialties: [], years: [] });
     const [loading, setLoading] = useState(true);
     const reqRef = useRef(0);
@@ -103,5 +103,3 @@ const FilterHeader = ({ filters, onFilterChange }) => {
         </div>
     );
 };
-
-export default FilterHeader;

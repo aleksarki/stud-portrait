@@ -188,3 +188,26 @@ class Studyforms(models.Model):
     class Meta:
         managed = False
         db_table = 'studyforms'
+
+class StudentsAmount(models.Model):
+    id = models.AutoField(primary_key=True)
+
+    institution = models.ForeignKey(
+        "Institutions",
+        on_delete=models.CASCADE,
+        db_column="inst_id",
+        related_name="student_amounts",
+    )
+
+    year = models.IntegerField()
+    amount_of_students = models.IntegerField()
+
+    class Meta:
+        managed = False
+        db_table = "StudentsAmounts"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["institution", "year"],
+                name="unique_institution_year",
+            )
+        ]

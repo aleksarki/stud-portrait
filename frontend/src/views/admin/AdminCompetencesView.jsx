@@ -27,7 +27,7 @@ import {
 import { COMPETENCIES_NAMES, FIELD_NAMES, LINK_TREE, MOTIVATORS_NAMES } from "../../utilities.js";
 
 import "./AdminCompetencesView.scss";
-import TabButton from "../../components/ui/TabButton";
+import { TabButton } from "../../components/ui/TabButton";
 import {usePagesData} from "../../Context";
 
 const competencyLabels = {
