@@ -8,8 +8,8 @@ import { getScoresResult,
 
 import { COMPETENCIES_NAMES, COURSES_NAMES, LINK_TREE } from "../../utilities.js";
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
-import { FilterHeader } from "../../components/FilterHeader";
-import { TabButton } from "../../components/ui/TabButton";
+import  FilterHeader from "../../components/FilterHeader";
+import  TabButton  from "../../components/ui/TabButton";
 
 import FlexRow, { WRAP } from '../../components/FlexRow.jsx';
 

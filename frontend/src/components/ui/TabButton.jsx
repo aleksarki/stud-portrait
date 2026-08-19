@@ -1,5 +1,5 @@
 import "./TabButton.scss";
-export const TabButton = (text, onClick, isActive ) => {
+export default function TabButton(text, onClick, isActive ) {
     return (
         <button
             onClick={() => onClick}

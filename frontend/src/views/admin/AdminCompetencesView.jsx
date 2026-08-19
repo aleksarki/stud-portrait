@@ -18,7 +18,7 @@ import ReactApexChart from 'react-apexcharts';
 
 import LoadingSpinner from '../../components/ui/LoadingSpinner.jsx';
 import { ADMIN_PALETTE } from '../../components/ui/palette.js';
-import { FilterHeader } from "../../components/FilterHeader";
+import  FilterHeader  from "../../components/FilterHeader";
 
 import {
     getDashboardStats,
@@ -27,7 +27,7 @@ import {
 import { COMPETENCIES_NAMES, FIELD_NAMES, LINK_TREE, MOTIVATORS_NAMES } from "../../utilities.js";
 
 import "./AdminCompetencesView.scss";
-import { TabButton } from "../../components/ui/TabButton";
+import  TabButton  from "../../components/ui/TabButton";
 import {usePagesData} from "../../Context";
 
 const competencyLabels = {
@@ -455,7 +455,7 @@ function CompRadar({ data }) {
     );
 }
 
-function BarChartByYears({ data }){
+function BarChartByYears({ data, year }){
 
     return(
         <><h4 className="section-label">Распределение по компетенциям (средний балл)</h4>
@@ -614,7 +614,7 @@ function Dashboard({ data, filters }) {
             </div>
             <div className="dashboard-chart-row">
                 <div className="chart-container">
-                    <BarChartByYears data={chartData} />
+                    <BarChartByYears data={chartData} year={year}/>
                     <CompetencyTable data={chartData} filters={filters} year={year} />
                 </div>
                 <CompRadar data={data.radar} />

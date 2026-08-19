@@ -116,7 +116,7 @@
                 span, a {
                     font-weight: 500;
                     font-size: 14px;
-                    color: white;                    
+                    color: #1a365d;                 
                 }
 
                 $link-ident--modeus: 40px;
@@ -133,6 +133,7 @@
                     display: block;
                     transition: background 0.15s linear, color 0.15s linear;
                     cursor: pointer;
+                    color:#1a365d;
 
                     &:hover {
                         color: #238BC8;

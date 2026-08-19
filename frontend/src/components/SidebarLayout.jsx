@@ -58,8 +58,8 @@ export function Sidebar({ links, linkTree }) {
                                 {category.category && <span>{category.category}</span>}
                                 <ul>
                                     {category.links.map((link, index1) => (
-                                        <li key={index} className={currentPage === index1 ? "Sidebar-item-active" : "Sidebar-item"}>
-                                            <a href={link.to} onClick={(index1) => setCurrentPage(index1)}>{link.title}</a>
+                                        <li key={index}>
+                                            <a href={link.to} className={currentPage === index1 ? "Sidebar-item-active" : "Sidebar-item"} onClick={(index1) => setCurrentPage(index1)}>{link.title}</a>
                                         </li>
                                     ))}
                                 </ul>
@@ -79,8 +79,8 @@ export function Sidebar({ links, linkTree }) {
             <nav className="Sidebar">
                 <ul>
                     {links?.map?.((link, index) => (
-                        <li key={index} className={currentPage === index ? "Sidebar-item-active" : "Sidebar-item"}>
-                            <a href={link.to} onClick={(index) => setCurrentPage(index)}>{link.title}</a>
+                        <li key={index} >
+                            <a href={link.to} className={currentPage === index ? "Sidebar-item-active" : "Sidebar-item"} onClick={(index) => setCurrentPage(index)}>{link.title}</a>
                         </li>
                     ))}
                 </ul>

@@ -55,10 +55,10 @@ const router = createBrowserRouter([
 
   /* ADMIN VIEWS */
 
-  {
+  /*{
     path: "/admin/",
     element: <AdminMainView />
-  },
+  },*/
   {
     path: "/admin/geography",
     element: <AdminGeographyView />

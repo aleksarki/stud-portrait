@@ -7,7 +7,7 @@ import {
 
 import MotivatorStatistics from "../../components/MotivatorStatistics.jsx";
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
-import { FilterHeader } from "../../components/FilterHeader";
+import  FilterHeader  from "../../components/FilterHeader";
 
 import { getMotivationCounts } from "../../api.js";
 import { COMPETENCIES_NAMES, COURSES_NAMES, LINK_TREE, MOTIVATORS_NAMES } from "../../utilities.js";
