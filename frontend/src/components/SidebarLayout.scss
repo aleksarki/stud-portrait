@@ -101,7 +101,6 @@
         color: #fff;
         font-size: 13px;
         line-height: 1.5384616;
-        border-right: 2px solid #6e7181;
 
         ul {
             margin: 0;
@@ -137,6 +136,7 @@
 
                     &:hover {
                         color: #238BC8;
+                        background-color: #eaeaea9d;
                     }
                 }
             }            
@@ -145,6 +145,7 @@
 
     .Content {
         padding: 1rem;
+        width: 100%;
     }
 }
 
@@ -221,6 +222,7 @@
 
                     &:hover {
                         color: #00aeef;
+                        background-color: #14394f;
                     }
                 }
             }
@@ -352,10 +354,21 @@
 .Sidebar-closed{
     max-width: 0 !important;
 }
-.SideBar-btn-container{
+.Sidebar-container {
+    border-right: 2px solid #6e7181;
     display: flex;
-    align-items: start;
-    button {
-        color: #fff;
+    .SideBar-btn-container{
+        height: 100%;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        button {
+            color: #5f1212;
+            background-color:white;
+            font-size: 20px;
+            font-weight: 500;
+            border: none;
+        }
     }
 }

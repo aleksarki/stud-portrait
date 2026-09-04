@@ -33,7 +33,6 @@ import SuperUploadView from "./views/super/SuperUploadView";
 
 import reportWebVitals from "./reportWebVitals";
 import "./index.css";
-import {PagesDataProvider} from "./Context";
 
 const router = createBrowserRouter([
   {
@@ -147,9 +146,7 @@ const router = createBrowserRouter([
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <PagesDataProvider>
-      <RouterProvider router={router} />
-    </PagesDataProvider>
+    <RouterProvider router={router} />
   </React.StrictMode>
 );
 

@@ -5,6 +5,8 @@ import logo from "../static/logo_white.png";
 
 import "./SidebarLayout.scss";
 
+import { useLocation } from "react-router-dom";
+
 export const LAYOUT_STYLE = {
     ADMIN:  "admin",
     MODEUS: "modeus",
@@ -46,7 +48,7 @@ export function Header({ title, name }) {
 
 export function Sidebar({ links, linkTree }) {
     const [isOpen, setIsOpen] = React.useState(true);
-    const [currentPage, setCurrentPage] = React.useState(0);
+    const location = useLocation();
     if (isOpen) {
         if (linkTree) {
             return (
@@ -57,9 +59,9 @@ export function Sidebar({ links, linkTree }) {
                             <li key={index}>
                                 {category.category && <span>{category.category}</span>}
                                 <ul>
-                                    {category.links.map((link, index1) => (
+                                    {category.links.map((link, index) => (
                                         <li key={index}>
-                                            <a href={link.to} className={currentPage === index1 ? "Sidebar-item-active" : "Sidebar-item"} onClick={(index1) => setCurrentPage(index1)}>{link.title}</a>
+                                            <a href={link.to} className={link.to === location.pathname ? "Sidebar-item-active" : "Sidebar-item"} >{link.title}</a>
                                         </li>
                                     ))}
                                 </ul>
@@ -80,7 +82,7 @@ export function Sidebar({ links, linkTree }) {
                 <ul>
                     {links?.map?.((link, index) => (
                         <li key={index} >
-                            <a href={link.to} className={currentPage === index ? "Sidebar-item-active" : "Sidebar-item"} onClick={(index) => setCurrentPage(index)}>{link.title}</a>
+                            <a href={link.to} className={link.to === location.pathname ? "Sidebar-item-active" : "Sidebar-item"}>{link.title}</a>
                         </li>
                     ))}
                 </ul>
@@ -93,7 +95,7 @@ export function Sidebar({ links, linkTree }) {
     }
     else {
         return (
-            <div className="Sidebar-container">
+            <div className="Sidebar-container" style={{width: '25px' }}>
                 <nav className="Sidebar-closed"></nav>
                 <div className="SideBar-btn-container">
                     <button onClick={() => setIsOpen(true)}>{">"}</button>

@@ -28,7 +28,8 @@ import { COMPETENCIES_NAMES, FIELD_NAMES, LINK_TREE, MOTIVATORS_NAMES } from "..
 
 import "./AdminCompetencesView.scss";
 import  TabButton  from "../../components/ui/TabButton";
-import {usePagesData} from "../../Context";
+
+import { useAdminStore } from "../../store";
 
 const competencyLabels = {
     ...COMPETENCIES_NAMES,
@@ -826,7 +827,8 @@ function CompetencyTrendLine({ data, loading }) {
 }
 
 function AdminCompetencesView() {
-    const {savedFilters, saveFilters} = usePagesData(); // данные хранилища
+    const savedFilters = useAdminStore((state) => state.savedFilters);
+    const saveFilters = useAdminStore((state) => state.saveFilters); // данные хранилища
 
     const [dashboardData, setDashboardData] = useState(null);
     const [loadingDash, setLoadingDash] = useState(false);
@@ -915,17 +917,17 @@ function AdminCompetencesView() {
                     <FlexRow margin="0 0 30 0" wrap={WRAP.DO}>
                         <TabButton
                             text={"Дашборд"}
-                            onClick={setActiveTab('dashboard')}
+                            onClick={() => setActiveTab('dashboard')}
                             isActive={activeTab === 'dashboard'}
                         />
                         <TabButton
                             text={"Динамика"}
-                            onClick={setActiveTab('graphics')}
+                            onClick={() => setActiveTab('graphics')}
                             isActive={activeTab === 'graphics'}
                         />
                         <TabButton
                             text={"Сегментация"}
-                            onClick={setActiveTab('segmentation')}
+                            onClick={() => setActiveTab('segmentation')}
                             isActive={activeTab === 'segmentation'}
                         />
                     </FlexRow>

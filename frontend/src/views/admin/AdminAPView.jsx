@@ -18,7 +18,8 @@ import CorrelationHeatmap from './CorrelationHeatmap';
 import CorrelationScatter from './CorrelationScatter';
 import TopCorrelationsTable from './TopCorrelationsTable';
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
-import {usePagesData} from "../../Context";
+
+import { useAdminStore } from "../../store";
 
 const scores={
     2:'неудовл.',
@@ -102,7 +103,7 @@ function DisciplineScatter({ discipline, participants }) {
 function DisciplineScatterGrid({ data, discipline }) {
     if (data == [] || !discipline)
         return <div> Нет данных для отображения по текущим параметрам </div>;
-    console.log(data, discipline);
+    
     if (!(data.find(d => d.discipline === discipline))) return <div>Ошибка при загрузке дисциплин</div>;
     const filtered = data.find(d => d.discipline === discipline);   
     return (
@@ -126,7 +127,8 @@ function AdminAPView() {
     const [correlationData, setCorrelationData] = useState(null);
     const [loadingCorr, setLoadingCorr] = useState(false);
 
-    const {savedFilters, saveFilters} = usePagesData();
+    const savedFilters = useAdminStore((state) => state.savedFilters);
+    const saveFilters = useAdminStore((state) => state.saveFilters);
 
     const loadScoresResult = async (currentFilters) => {
         setLoading(true);
@@ -135,7 +137,7 @@ function AdminAPView() {
             .onSuccess(async response => {
                 const data = await response.json();
                 setScatterData(data);
-                if (data.data === [] || data.names.length<4){
+                if (data?.data.length === 0 || data?.names.length<4){
                     console.error("Ошибка при загрузке данных: данные пусты");
                     setErrorStatus(true);
                 }
@@ -200,22 +202,22 @@ function AdminAPView() {
                 <FlexRow margin="0 0 30 0" wrap={WRAP.DO}>
                         <TabButton
                             text={"ПИР"}
-                            onClick={setActiveTab('pir')}
+                            onClick={() => setActiveTab('pir')}
                             isActive={activeTab === 'pir'}
                         />
                         <TabButton
                             text={"УП"}
-                            onClick={setActiveTab('yp')}
+                            onClick={() => setActiveTab('yp')}
                             isActive={activeTab === 'yp'}
                         />
                         <TabButton
                             text={"Экспл. практика"}
-                            onClick={setActiveTab('pract3')}
+                            onClick={() => setActiveTab('pract3')}
                             isActive={activeTab === 'pract3'}
                         />
                         <TabButton
                             text={"Преддипл. практика"}
-                            onClick={setActiveTab('pract4')}
+                            onClick={() => setActiveTab('pract4')}
                             isActive={activeTab === 'pract4'}
                         />
                     </FlexRow>

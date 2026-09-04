@@ -7,7 +7,7 @@ function App() {
       <SidebarLayout>
         <Header />
         <Content>
-          <span>First steps</span>
+          <span>начальная страница</span>
         </Content>
       </SidebarLayout>
     </div>

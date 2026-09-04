@@ -15,7 +15,8 @@ import * as XLSX from 'xlsx';
 
 import "./AdminMotivatorsView.scss";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
-import {usePagesData} from "../../Context";
+
+import { useAdminStore } from "../../store";
 
 const competencyLabels = {
     ...COMPETENCIES_NAMES,
@@ -447,7 +448,8 @@ function AdminMotivatorsView(){
     const [filters, setFilters] = useState({ institute: '', specialty: '', year: '' });
     const savedY = useRef(0);
 
-    const {savedFilters, saveFilters} = usePagesData();
+    const savedFilters = useAdminStore((state) => state.savedFilters);
+    const saveFilters = useAdminStore((state) => state.saveFilters);
 
     const loadMotivationCounts = async currentFilters => {
         setLoadingMotDash(true)
