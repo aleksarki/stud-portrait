@@ -3,6 +3,8 @@ import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Responsive
 
 import ReactApexChart from 'react-apexcharts';
 
+import { ToastContainer, toast } from 'react-toastify';
+
 import { getScoresResult,
     getGradesCompetencyCorrelation } from '../../api.js';
 
@@ -102,7 +104,7 @@ function DisciplineScatter({ discipline, participants }) {
           
 function DisciplineScatterGrid({ data, discipline }) {
     if (data == [] || !discipline)
-        return <div> Нет данных для отображения по текущим параметрам </div>;
+        return <div style={{ padding: 20, textAlign: 'center', color: '#888' }}> Нет данных для отображения по текущим параметрам </div>;
     
     if (!(data.find(d => d.discipline === discipline))) return <div>Ошибка при загрузке дисциплин</div>;
     const filtered = data.find(d => d.discipline === discipline);   
@@ -139,11 +141,13 @@ function AdminAPView() {
                 setScatterData(data);
                 if (data?.data.length === 0 || data?.names.length<4){
                     console.error("Ошибка при загрузке данных: данные пусты");
+                    toast.error("Ошибка при загрузке данных");
                     setErrorStatus(true);
                 }
             })
             .onError(err => {
                 console.error("Ошибка при загрузке данных:", err);
+                toast.error("Ошибка при загрузке данных");
                 setErrorStatus(true);
             })
             .finally(() => setLoading(false));
@@ -154,9 +158,9 @@ function AdminAPView() {
     
     const updateFilter = (name, value) => {
         setFilters(prev => {
-          const updated = { ...prev, [name]: value };
-          if (name === 'institute') updated.specialty = '';
-          return updated;
+            const updated = { ...prev, [name]: value };
+            if (name === 'institute') updated.specialty = '';
+            return updated;
         });
         saveFilters('Admin', filters);
     };
@@ -177,7 +181,11 @@ function AdminAPView() {
                 const data = await response.json();
                 setCorrelationData(data);
             })
-            .onError(err => console.error("Ошибка при загрузке корреляции:", err))
+            .onError(err => { 
+                console.error("Ошибка при загрузке корреляции:", err);
+                toast.error("Ошибка при загрузке данных корреляции");
+                setErrorStatus(true);
+            })
             .finally(() => setLoadingCorr(false));
     };
     useEffect(() => {
@@ -193,13 +201,12 @@ function AdminAPView() {
                 <div className="filters-cont">
                     <FilterHeader onFilterChange={updateFilter} 
                             filters={filters} resetFilters={resetFilters}/></div>
-                {isError ? (<div className="p-10 text-center"> Ошибка при загрузке данных </div>) :
-                    (<>{LoadingData ? (
-                            <div className="loading-content">
-                                <LoadingSpinner text="Загрузка..." />
-                            </div>)
+                <>{LoadingData ? (
+                        <div className="loading-content">
+                            <LoadingSpinner text="Загрузка..." />
+                        </div>)
                     : <>
-                <FlexRow margin="0 0 30 0" wrap={WRAP.DO}>
+                    <FlexRow margin="0 0 30 0" wrap={WRAP.DO}>
                         <TabButton
                             text={"ПИР"}
                             onClick={() => setActiveTab('pir')}
@@ -226,12 +233,19 @@ function AdminAPView() {
                     {activeTab === 'pract3' && (<DisciplineScatterGrid data={ScatterData?.data} discipline={ScatterData?.names[2] || ''}/>)}
                     {activeTab === 'pract4' && (<DisciplineScatterGrid data={ScatterData?.data} discipline={ScatterData?.names[3] || ''}/>)}
         
-                    </>}</>)}
+                    </>}</>
                     <CorrelationHeatmap data={correlationData} loading={loadingCorr} />
                     <CorrelationScatter correlationData={correlationData} loading={loadingCorr} filters={filters} />
                     <TopCorrelationsTable filters={filters} />
                 </Content>
             </SidebarLayout>
+            <ToastContainer position="bottom-right"
+                autoClose={2000}
+                hideProgressBar={true}
+                newestOnTop={false}
+                closeOnClick={true}
+                rtl={false}
+                theme="light" />
         </div>
     )}
 

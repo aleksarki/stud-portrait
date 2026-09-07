@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Chart from 'react-apexcharts';
 
+import { ToastContainer, toast } from 'react-toastify';
 import { FIELD_NAMES, LINK_TREE } from "../../utilities.js";
 import { postPortraitDataseshGroupSelected } from '../../api.js';
 
@@ -18,7 +19,7 @@ import Select, { Option } from '../../components/ui/Select.jsx';
 import "./AdminGroupingView.scss";
 
 function AdminGroupingView() {
-    const location = useLocation(); // Теперь это работает правильно
+    const location = useLocation();
     const navigate = useNavigate();
     const [groupingData, setGroupingData] = useState(null);
     const [chartData, setChartData] = useState(null);
@@ -233,6 +234,14 @@ function AdminGroupingView() {
                     </div>
                 </Content>
             </SidebarLayout>
+            <ToastContainer 
+                position="bottom-right"
+                autoClose={2000}
+                hideProgressBar={true}
+                newestOnTop={false}
+                closeOnClick={true}
+                rtl={false}
+                theme="light" />
         </div>
     );
 }

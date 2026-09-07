@@ -6,6 +6,8 @@ import logo from "../static/logo_white.png";
 import "./SidebarLayout.scss";
 
 import { useLocation } from "react-router-dom";
+import ToggleLeft from "@icons/toggle_left.png";
+import ToggleRight from "@icons/toggle_right.png";
 
 export const LAYOUT_STYLE = {
     ADMIN:  "admin",
@@ -70,7 +72,7 @@ export function Sidebar({ links, linkTree }) {
                     </ul>
                 </nav>
                     <div className="SideBar-btn-container">
-                        <button onClick={() => setIsOpen(false)}>{"<"}</button>
+                        <img src={ToggleLeft} onClick={() => setIsOpen(false)} />
                     </div>
                 </div>
             );
@@ -88,17 +90,17 @@ export function Sidebar({ links, linkTree }) {
                 </ul>
             </nav>
                 <div className="SideBar-btn-container">
-                    <button onClick={() => setIsOpen(false)} >{"<"}</button>
+                    <img src={ToggleLeft} onClick={() => setIsOpen(false)} />
                 </div>
             </div>
         );
     }
     else {
         return (
-            <div className="Sidebar-container" style={{width: '25px' }}>
+            <div className="Sidebar-container" style={{width: '30px' }}>
                 <nav className="Sidebar-closed"></nav>
                 <div className="SideBar-btn-container">
-                    <button onClick={() => setIsOpen(true)}>{">"}</button>
+                    <img src={ToggleRight} onClick={() => setIsOpen(true)} />
                 </div>
             </div>
         );

@@ -1,4 +1,6 @@
 /* Common style */
+$modeus-color: #238BC8;
+
 .SidebarLayout {
     display: grid;
     min-height: 100vh;
@@ -17,12 +19,13 @@
     }
 
     .Sidebar {
+        background-color: #f8f9fa;
         grid-area: sidebar;
         position: sticky;
         top: 0;
         overflow-y: auto;
         .Sidebar-item-active {
-            border-left: 4px solid #1a365d;
+            border-left: 6px solid #3e76c3;
             margin-left: 4px;
         }
     }
@@ -97,7 +100,6 @@
     .Sidebar {
         max-width: 260px;
         min-width: 200px;
-        background-color: #ffffff;
         color: #fff;
         font-size: 13px;
         line-height: 1.5384616;
@@ -355,20 +357,22 @@
     max-width: 0 !important;
 }
 .Sidebar-container {
-    border-right: 2px solid #6e7181;
+    background-color: #f8f9fa;
+    border-right: 2px solid #c6cad9;
+    box-shadow: #c2c3ca 0px 0px 10px 0;
     display: flex;
+
     .SideBar-btn-container{
         height: 100%;
         width: 100%;
         display: flex;
         justify-content: center;
-        align-items: center;
-        button {
-            color: #5f1212;
-            background-color:white;
-            font-size: 20px;
-            font-weight: 500;
-            border: none;
+        align-items: top;
+        padding-top: 10px;
+        padding-right: 4px;
+        img {
+            height: 20px;
+            width: 20px;
         }
     }
 }

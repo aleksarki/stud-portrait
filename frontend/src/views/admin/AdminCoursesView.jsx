@@ -8,6 +8,7 @@ import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../com
 
 import ValueCard from '../../components/cards/ValueCard.jsx';
 
+import { ToastContainer, toast } from 'react-toastify';
 import Table, { TableHeader, TableItem, TableRow } from '../../components/tables/Table.jsx';
 
 import Button from '../../components/ui/Button.jsx';
@@ -290,6 +291,14 @@ function AdminCoursesView() {
                     </div>
                 </Content>
             </SidebarLayout>
+            <ToastContainer 
+                position="bottom-right"
+                autoClose={2000}
+                hideProgressBar={true}
+                newestOnTop={false}
+                closeOnClick={true}
+                rtl={false}
+                theme="light" />
         </div>
     );
 }

@@ -13,6 +13,7 @@ import Button from '../../components/ui/Button.jsx';
 import LoadingSpinner from '../../components/ui/LoadingSpinner.jsx';
 import { ADMIN_PALETTE } from '../../components/ui/palette.js';
 
+import { ToastContainer, toast } from 'react-toastify';
 import {
     postPortraitDataseshNew,
     postPortraitDataseshCountStats,
@@ -705,6 +706,14 @@ function AdminStatsView() {
                     </div>
                 </Content>
             </SidebarLayout>
+            <ToastContainer 
+                position="bottom-right"
+                autoClose={2000}
+                hideProgressBar={true}
+                newestOnTop={false}
+                closeOnClick={true}
+                rtl={false}
+                theme="light" />
         </div>
     );
 }

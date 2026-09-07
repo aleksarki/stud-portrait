@@ -9,6 +9,7 @@ import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import * as XLSX from 'xlsx';
 
+import { ToastContainer, toast } from 'react-toastify';
 import CompetencySegmentation from './CompetencySegmentation';
 
 import FlexRow, { ALIGN, JUSTIFY, WRAP } from '../../components/FlexRow.jsx';
@@ -635,10 +636,7 @@ const TREND_COLORS = [
 
 function CompetencyTrendLine({ data, loading }) {
     const [hiddenLines, setHiddenLines] = useState({});
-    // По умолчанию линии НЕ соединяем — показываем только точки, как просили проверяющие.
-    // Это связано с тем, что курс — категориальная (порядковая) переменная,
-    // и соединять её плавной кривой статистически некорректно.
-    const [connectDots, setConnectDots] = useState(false);
+    const [connectDots, setConnectDots] = useState(true);
 
     if (loading) return <div style={{ padding: 20 }}>Загрузка графика динамики...</div>;
     if (!data || !data.trends || data.trends.length === 0) {
@@ -696,7 +694,7 @@ function CompetencyTrendLine({ data, loading }) {
                             fontSize: 13,
                             userSelect: 'none',
                         }}
-                        title="Соединить точки прямыми отрезками (без плавной кривой)"
+                        title="Соединить точки прямыми отрезками"
                     >
                         <input
                             type="checkbox"
@@ -845,7 +843,10 @@ function AdminCompetencesView() {
                 const data = await response.json();
                 setDashboardData(data);
             })
-            .onError(err => console.error("Ошибка при загрузке дашборда:", err))
+            .onError(err => { 
+                console.error("Ошибка при загрузке дашборда:", err);
+                toast.error("Ошибка при загрузке дашборда");
+            })
             .finally(() => setLoadingDash(false));
     };
     useEffect(() => {
@@ -872,7 +873,10 @@ function AdminCompetencesView() {
                 const data = await response.json();
                 setTrendData(data);
             })
-            .onError(err => console.error("Ошибка при загрузке динамики:", err))
+            .onError(err => { 
+                console.error("Ошибка при загрузке динамики:", err)
+                toast.error("Ошибка при получении данных");
+            })
             .finally(() => setLoadingTrend(false));
     };
     useEffect(() => {
@@ -936,16 +940,26 @@ function AdminCompetencesView() {
                         <Dashboard data={dashboardData} filters={filters_} />)
                     }
                     {activeTab === 'graphics' && (
-                        <>{loadingTrend ? <div>Загрузка диаграммы..</div> :
+                        <>{loadingTrend ? 
+                            <LoadingSpinner text="Загрузка диаграммы..." /> :
                             <CompetencyTrendLine data={trendData} loading={loadingTrend} />
                         }</>)
                     }
                     {activeTab === 'segmentation' && (
-                        <CompetencySegmentation filters={filters_} />
-                        )
+                        <>{loadingTrend ? 
+                            <LoadingSpinner text="Загрузка диаграммы..." /> :
+                            <CompetencySegmentation filters={filters_} />
+                        }</>)
                     }
                 </Content>
             </SidebarLayout>
+            <ToastContainer position="bottom-right"
+                autoClose={2000}
+                hideProgressBar={true}
+                newestOnTop={false}
+                closeOnClick={true}
+                rtl={false}
+                theme="light" />
         </div>);
 }
 export default AdminCompetencesView;

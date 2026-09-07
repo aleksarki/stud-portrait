@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getPortraitCentersByRegion, getGeographyReport } from "../../api";
 import { LINK_TREE } from "../../utilities";
 
+import { ToastContainer, toast } from 'react-toastify';
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 import FlexRow from "../../components/FlexRow";
 
@@ -43,11 +44,13 @@ function AdminGeographyView() {
                     console.log(`Данные за ${data.year}:`, data.data);
                 } else {
                     console.error("Ошибка загрузки данных:", data.message);
+                    toast.error(`Ошибка загрузки данных: ${data.message}`)
                     setRegionData([]);
                 }
             })
             .onError(error => {
                 console.error("Ошибка API:", error);
+                toast.error('Ошибка при загрузке данных');
                 setRegionData([]);
             })
             .finally(() => setLoading(false));
@@ -63,7 +66,7 @@ function AdminGeographyView() {
     // Обработчик клика по региону
     const handleRegionClick = region => {
         setSelectedRegion(region);
-        console.log("Выбран регион:", region);
+        toast.success("Выбран регион:", region);
     };
 
     // Генерация отчёта
@@ -82,10 +85,11 @@ function AdminGeographyView() {
                 link.click();
                 document.body.removeChild(link);
                 window.URL.revokeObjectURL(url);
+                toast.success('Отчет создан');
             })
             .onError(error => {
                 console.error("Ошибка генерации отчёта:", error);
-                alert('Ошибка при генерации отчёта');
+                toast.error('Ошибка при генерации отчёта');
             })
             .finally(() => setReportLoading(false));
     };
@@ -137,6 +141,14 @@ function AdminGeographyView() {
                     </TitledCard>
                 </Content>
             </SidebarLayout>
+            <ToastContainer 
+                position="bottom-right"
+                autoClose={2000}
+                hideProgressBar={true}
+                newestOnTop={false}
+                closeOnClick={true}
+                rtl={false}
+                theme="light" />
         </div>
     );
 }

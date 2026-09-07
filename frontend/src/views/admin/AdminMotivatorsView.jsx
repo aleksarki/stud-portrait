@@ -5,6 +5,8 @@ import {
     BarChart, Bar, CartesianGrid, ReferenceLine,
 } from "recharts";
 
+import { ToastContainer, toast } from 'react-toastify';
+
 import MotivatorStatistics from "../../components/MotivatorStatistics.jsx";
 import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
 import  FilterHeader  from "../../components/FilterHeader";
@@ -326,7 +328,7 @@ function MotivatorCharts({ chart_data, currentFilters }) {
 
     if (!chart_data || chart_data.length === 0) {
         console.log('MotivatorChart: нет данных');
-        return <div className="p-4 text-gray-500 text-center">Нет данных для отображения</div>;
+        return <div style={{ padding: 20, textAlign: 'center', color: '#888' }}>Нет данных для отображения</div>;
     }
 
     return (
@@ -461,7 +463,7 @@ function AdminMotivatorsView(){
             })
             .onError(err => {
                 console.error("Ошибка при загрузке мотиваторов:", err);
-                setErrorStatus(true);
+                toast.error("Ошибка при загрузке мотиваторов");
             })
             .finally(() => setLoadingMotDash(false));
     };
@@ -499,13 +501,13 @@ function AdminMotivatorsView(){
                     <Sidebar linkTree={LINK_TREE} />
                     <Content>
                         <div className="filters-cont">
-                        <FilterHeader
-                            onFilterChange={updateFilter} 
-                            filters={filters}
-                            resetFilters={resetFilters}
-                        /></div>
+                            <FilterHeader
+                                onFilterChange={updateFilter} 
+                                filters={filters}
+                                resetFilters={resetFilters}
+                            />
+                        </div>
                         {
-                            isError ? <div className="p-10 text-center"> Ошибка при загрузке данных </div> :
                             loadingMotDash ?
                                 <div className="loading-content">
                                         <LoadingSpinner text="Загрузка диаграммы..." />
@@ -515,9 +517,15 @@ function AdminMotivatorsView(){
                                 <MotivatorStatistics filters={filters} />
                             </>
                         }
-                        
                     </Content>
                 </SidebarLayout>
+                <ToastContainer position="bottom-right"
+                    autoClose={2000}
+                    hideProgressBar={true}
+                    newestOnTop={false}
+                    closeOnClick={true}
+                    rtl={false}
+                    theme="light" />
             </div>
         );
 }

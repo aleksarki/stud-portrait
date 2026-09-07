@@ -65,7 +65,8 @@ export default function TopCorrelationsTable({ filters }) {
   }, [topN, sortBy, minN, filters?.institute, filters?.specialty, filters?.year]);
 
   const rows = data?.top || [];
-
+  if (error) return <div style={{ padding: 20, textAlign: 'center', color: '#888' }}>Не удалось загрузить рейтинг</div>;
+  
   return (
     <div style={{
       background: '#fff',

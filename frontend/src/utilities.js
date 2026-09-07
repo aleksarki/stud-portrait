@@ -9,7 +9,6 @@ export const LINK_TREE = [
         links: [
             {title: "Статистика тестирования", to: '/admin/stats'},
             {title: "География тестирования", to: '/admin/geography'},
-            {title: "Дисциплины и компетенции", to: '/admin/AP'}
         ]
     },
     {
@@ -26,6 +25,7 @@ export const LINK_TREE = [
         category: "Анализ данных",
         links: [
             {title: "Анализ дисциплин", to: '/admin/analysis/disciplines'},
+            {title: "Дисциплины и компетенции", to: '/admin/AP'},
             {title: "Визуализации", to: '/admin/analysis/advanced'},
             {title: "ИИ-аналитика", to: '/admin/analysis/ai-analytics'},
             {title: "Области образования", to: '/admin/analysis/edu-profiles'},

@@ -241,6 +241,8 @@ export default function CompetencySegmentation({ filters }) {
       .finally(() => setLoading(false));
   }, [competency, filters?.institute, filters?.specialty, filters?.year]);
 
+  if (error) return <div style={{ padding: 20, textAlign: 'center', color: '#888' }}>Нет данных для сегментации</div>
+
   return (
     <div style={{
       background: '#fff',

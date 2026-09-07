@@ -14,6 +14,7 @@ import {
     MOTIVATORS_NAMES, VALUES_NAMES
 } from "../../utilities.js";
 
+import { ToastContainer, toast } from 'react-toastify';
 import FlexColumn from '../../components/FlexColumn.jsx';
 import FlexRow, { WRAP } from '../../components/FlexRow.jsx';
 import LabelledBox from '../../components/LabelledBox.jsx';
@@ -881,6 +882,14 @@ function AdminResultsView() {
                     />
                 </ModalFooter>
             </GrouppingModalWindow>
+            <ToastContainer 
+                position="bottom-right"
+                autoClose={2000}
+                hideProgressBar={true}
+                newestOnTop={false}
+                closeOnClick={true}
+                rtl={false}
+                theme="light" />
         </div>
     );
 }

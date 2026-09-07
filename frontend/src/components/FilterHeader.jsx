@@ -19,7 +19,6 @@ export default function FilterHeader({ filters, onFilterChange, resetFilters }) 
             .onError(err => console.error("Ошибка загрузки опций", err));
     }, []);
 
-
     useEffect(() => {
         const institute = filters?.institute;
         if (!institute) {
@@ -64,8 +63,6 @@ export default function FilterHeader({ filters, onFilterChange, resetFilters }) 
             a.label.localeCompare(b.label, 'ru', {numeric: true, sensitivity: 'base' })
         );
 
-    if (loading) return <div>Загрузка фильтров...</div>;
-
     return (
         <div className="filter-row">
             <Select
@@ -76,6 +73,7 @@ export default function FilterHeader({ filters, onFilterChange, resetFilters }) 
                 options={sorted(options?.institutes) || []}
                 onChange={opt => handleChange(opt, 'institute')}
                 styles={customStyles}
+                isLoading={loading}
             />
 
             <Select
@@ -87,6 +85,7 @@ export default function FilterHeader({ filters, onFilterChange, resetFilters }) 
                 value={findOption(options?.specialties, filters?.specialty)}
                 onChange={opt => handleChange(opt, 'specialty')}
                 styles={customStyles}
+                isLoading={loading}
             />
 
             <Select
@@ -97,6 +96,7 @@ export default function FilterHeader({ filters, onFilterChange, resetFilters }) 
                 options={sorted(options?.years) || []}
                 onChange={opt => handleChange(opt, 'year')}
                 styles={customStyles}
+                isLoading={loading}
             />
 
             <button onClick={resetFilters}> Сбросить </button>
