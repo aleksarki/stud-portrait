@@ -126,16 +126,16 @@ const StudentInfoCard = ({ student }) => {
 };
 
 // Компонент результатов тестирования
-const TestResultsCard = ({ testResults }) => {
+const TestResultsCard = ({ Results }) => {
     const [selectedYear, setSelectedYear] = useState(null);
     
     useEffect(() => {
-        if (!selectedYear && testResults && testResults.length > 0 && testResults[0]?.year) {
-            setSelectedYear(testResults[0].year);
+        if (!selectedYear && Results && Results.length > 0 && Results[0]?.year) {
+            setSelectedYear(Results[0].year);
         }
-    }, [testResults, selectedYear]);
+    }, [Results, selectedYear]);
     
-    if (!testResults || testResults.length === 0) {
+    if (!Results || Results.length === 0) {
         return (
             <LabelledBox label="📊 Результаты тестирования">
                 <div className="no-data">Нет данных о тестировании</div>
@@ -143,7 +143,7 @@ const TestResultsCard = ({ testResults }) => {
         );
     }
     
-    const currentResult = testResults.find(r => r.year === selectedYear);
+    const currentResult = Results.find(r => r.year === selectedYear);
     
     // Определение уровня для компетенций
     const getScoreLevel = (score) => {
@@ -164,7 +164,7 @@ const TestResultsCard = ({ testResults }) => {
     return (
         <LabelledBox label="📊 Результаты тестирования">
             <div className="test-years">
-                {testResults.map(result => (
+                {Results.map(result => (
                     <button
                         key={result.year}
                         className={`year-btn ${selectedYear === result.year ? 'active' : ''}`}
@@ -392,7 +392,7 @@ function AdminStudentView() {
                     {!loading && studentPortrait && (
                         <FlexColumn gap="24">
                             <StudentInfoCard student={studentPortrait.student_info} />
-                            <TestResultsCard testResults={studentPortrait.test_results} />
+                            <TestResultsCard Results={studentPortrait.test_results} />
                             <AcademicPerformanceCard grades={studentPortrait.academic_performance} />
                             <CoursesCard courses={studentPortrait.courses} />
                         </FlexColumn>

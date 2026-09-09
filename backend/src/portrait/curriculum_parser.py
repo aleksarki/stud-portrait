@@ -80,7 +80,7 @@ STANDARD_COMPETENCIES: dict[str, str] = {
     "ПК-3":  "Способен проектировать и конструировать программные средства, а также архитектуры программных средств",
 }
 
-# РСВ-компетенции: отображаемое название → ключ res_comp_* из Testresults
+# РСВ-компетенции: отображаемое название → ключ res_comp_* из Results
 RSV_DISPLAY_TO_KEY: dict[str, str] = {
     "Анализ информации":                "res_comp_info_analysis",
     "Ориентация на результат":          "res_comp_result_orientation",

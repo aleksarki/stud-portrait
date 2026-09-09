@@ -25,7 +25,7 @@ CREATE_TABLES_SQL = """
 DROP TABLE IF EXISTS DataUploadTemplate   CASCADE;
 DROP TABLE IF EXISTS AcademicPerformances CASCADE;
 DROP TABLE IF EXISTS CourseResults        CASCADE;
-DROP TABLE IF EXISTS TestResults          CASCADE;
+DROP TABLE IF EXISTS Results          CASCADE;
 DROP TABLE IF EXISTS Participants         CASCADE;
 DROP TABLE IF EXISTS StudentMapping       CASCADE;
 DROP TABLE IF EXISTS EducationDisciplines CASCADE;
@@ -117,13 +117,13 @@ CREATE TABLE StudentMapping (
 CREATE TABLE Participants
 (
     part_id          INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    part_rsv         VARCHAR(512)  UNIQUE NOT NULL,
+    part_rsv_id         VARCHAR(512)  UNIQUE NOT NULL,
     part_course_num  INTEGER,
     part_gender      INT
 );
 
 -- Результат прохождения тестирования РСВ
-CREATE TABLE TestResults
+CREATE TABLE Results
 (
     res_id             INTEGER      PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     res_participant    INT          NOT NULL REFERENCES Participants(part_id)         ON DELETE CASCADE  ON UPDATE CASCADE,
@@ -176,7 +176,7 @@ CREATE TABLE TestResults
     res_val_environment      INT  CHECK (res_val_environment     BETWEEN 200 AND 800)
 );
 
-CREATE INDEX idx_test_results_participant ON TestResults(res_participant);
+CREATE INDEX idx_test_results_participant ON Results(res_participant);
 
 -- Результат прохождения курсов РСВ
 CREATE TABLE CourseResults
@@ -497,7 +497,7 @@ class TestFilterOptions(BaseTestCase):
     def test_student_portrait(self):
         # Сначала создаём студента
         participant = Participants.objects.create(
-            part_rsv="TEST001",
+            part_rsv_id="TEST001",
             part_course_num=3,
             part_gender=1
         )
@@ -541,12 +541,12 @@ class TestDuplicateAccounts(BaseTestCase):
 
         # Создаём данные
         self.participant1 = Participants.objects.create(
-            part_rsv="TEST001",
+            part_rsv_id="TEST001",
             part_course_num=3,
             part_gender=1
         )
         self.participant2 = Participants.objects.create(
-            part_rsv="TEST002",
+            part_rsv_id="TEST002",
             part_course_num=3,
             part_gender=1
         )
