@@ -18,7 +18,7 @@ npm i
 
 ```cmd
 cd frontend
-npm run start
+npm run dev
 ```
 
 
@@ -32,7 +32,9 @@ npm run start
 cd backend
 python -m venv .venv
 .venv\Scripts\activate
-pip install -r requirements.txt
+pip install --ignore-requires-python -r requirements.txt
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126
+
 ```
 
 **Launch**
