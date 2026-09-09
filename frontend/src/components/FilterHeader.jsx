@@ -34,14 +34,16 @@ export default function FilterHeader({ filters, onFilterChange, resetFilters }) 
         getFilterOptions(institute)
             .onSuccess(async res => {
                 if (id !== reqRef.current) return;
-                const data = await res.json();
-                const newSpecs = data.data.specialties || [];
-                setOptions(prev => ({ ...prev, specialties: newSpecs }));
+                try { 
+                    const data = await res.json();
 
-                // если выбранная спец не в новом списке - сброс
-                if (filters?.specialty && !newSpecs.some(s => s.value === filters.specialty)) {
-                    onFilterChange('specialty', '');
-                }
+                    // если выбранная спец не в новом списке - сброс
+                    if (filters?.specialty && !newSpecs.some(s => s.value === filters.specialty)) {
+                        onFilterChange('specialty', '');
+                    }
+                    const newSpecs = data.data.specialties || [];
+                    setOptions(prev => ({ ...prev, specialties: newSpecs }));
+                } catch (e) { console.error('Ошибка загрузки опций', e) };
             })
             .onError(() => {
                 if (id === reqRef.current) setLoading(false);

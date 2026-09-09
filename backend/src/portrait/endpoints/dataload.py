@@ -304,7 +304,7 @@ def import_excel(request):
                         debugPrint(f"[xls load] (!): участник RSV {rsv} не найден")
                         continue
 
-                    # ИЗМЕНЕНО: курс теперь CourseResults, не связан с year
+                    # ИЗМЕНЕНО: курс теперь Courseresults, не связан с year
                     # Используем update_or_create
                     course_defaults = {}
                     for cur in CUR.list:
@@ -313,7 +313,7 @@ def import_excel(request):
                             course_defaults[cur] = value
                     
                     if course_defaults:
-                        course_result, created_res = CourseResults.objects.update_or_create(
+                        course_result, created_res = Courseresults.objects.update_or_create(
                             course_participant=participant,  # ИЗМЕНЕНО: participant, а не participant.part_id
                             defaults=course_defaults
                         )

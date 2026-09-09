@@ -64,7 +64,7 @@ class Courseresults(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'courseresults'
+        db_table = 'Courseresults'
 
 
 class Datauploadtemplate(models.Model):

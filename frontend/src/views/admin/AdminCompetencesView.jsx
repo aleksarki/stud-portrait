@@ -1025,6 +1025,7 @@ function AdminCompetencesView() {
         getDashboardStats(currentFilters.institute, currentFilters.specialty, currentFilters.year)
             .onSuccess(async response => {
                 const data = await response.json();
+                if (data.status !== "success") { throw new Error(data?.message);}
                 setDashboardData(data);
             })
             .onError(err => {

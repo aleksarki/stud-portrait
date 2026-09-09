@@ -21,7 +21,7 @@ from ..constants import (
     CENTERS_REGIONS
 )
 from ..models import (
-    Academicperformances as AcademicPerformances, Competencecenters as CompetenceCenters, Courseresults as CourseResults,
+    Academicperformances as AcademicPerformances, Competencecenters as CompetenceCenters, Courseresults as Courseresults,
     Datauploadtemplate as DataUploadTemplate, Educationdisciplines as EducationDisciplines, Educationforms as EducationForms,
     Educationlevels as EducationLevels, Educationspecialties as EducationSpecialties, Institutions, Participants,
     Studentmapping as StudentMapping, Results as Results

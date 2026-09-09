@@ -77,7 +77,7 @@ urlpatterns = [
 
     path('dashboard-stats/',   stat.get_dashboard_stats,   name='dashboard_stats'),
     path('motivation-counts/', stat.get_motivation_counts, name='motivation_counts'),
-    path('Filter-options/',       stat.filter_dash,           name='filter_dash'),
+    path('Filter-options/',       stat.filter_options,           name='filter_options'),
     path('overall-stats/',     stat.overall_stats,         name='overall_stats'),
     path('scores-result/',     stat.get_scores_result,     name='scores_result'),
     path('comp-boxplot/',      stat.get_data_boxplot, name='comp_boxplot'),

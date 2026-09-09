@@ -24,7 +24,7 @@ from ..endpoints.datanal import ValueAddedModel, LatentGrowthModel, DisciplineIm
 CREATE_TABLES_SQL = """
 DROP TABLE IF EXISTS DataUploadTemplate   CASCADE;
 DROP TABLE IF EXISTS AcademicPerformances CASCADE;
-DROP TABLE IF EXISTS CourseResults        CASCADE;
+DROP TABLE IF EXISTS Courseresults        CASCADE;
 DROP TABLE IF EXISTS Results          CASCADE;
 DROP TABLE IF EXISTS Participants         CASCADE;
 DROP TABLE IF EXISTS StudentMapping       CASCADE;
@@ -179,7 +179,7 @@ CREATE TABLE Results
 CREATE INDEX idx_test_results_participant ON Results(res_participant);
 
 -- Результат прохождения курсов РСВ
-CREATE TABLE CourseResults
+CREATE TABLE Courseresults
 (
     course_id           INTEGER  PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     course_participant  INT      NOT NULL REFERENCES Participants(part_id) ON DELETE CASCADE ON UPDATE CASCADE,
@@ -207,7 +207,7 @@ CREATE TABLE CourseResults
     course_mentoring               DECIMAL(5,2)  CHECK (course_mentoring              BETWEEN 0 AND 1) 
 );
 
-CREATE INDEX idx_course_results_participant ON CourseResults(course_participant);
+CREATE INDEX idx_course_results_participant ON Courseresults(course_participant);
 
 -- Академическая успеваемость
 CREATE TABLE AcademicPerformances

@@ -32,7 +32,7 @@ def courses(request):
         selected_directions = []
 
     # Базовый запрос
-    courses_qs = CourseResults.objects.all().select_related('course_participant')
+    courses_qs = Courseresults.objects.all().select_related('course_participant')
     
     # Применяем фильтры, если они переданы
     if selected_institution_ids:
@@ -837,7 +837,7 @@ def get_student_portrait(request):
             })
         
         # Получаем пройденные курсы
-        courses = CourseResults.objects.filter(course_participant=student)
+        courses = Courseresults.objects.filter(course_participant=student)
         
         courses_data = []
         for course in courses:

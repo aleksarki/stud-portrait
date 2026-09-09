@@ -236,7 +236,7 @@ class TableTestResults:
 
 
 class TableCourseResult:
-    """ Columns of CourseResults database table.
+    """ Columns of Courseresults database table.
     """
     ID =          'course_id'
     PARTICIPANT = 'course_participant'
