@@ -37740,7 +37740,7 @@ function Mge(t, e) {
 function kR(t) {
     const e = new URLSearchParams();
     t && e.append('institute', t);
-    const r = fetch(`${Dt}://${Pt}/portrait/filter-dash/?${e}`);
+    const r = fetch(`${Dt}://${Pt}/portrait/Filter-options/?${e}`);
     return new Rt(r);
 }
 function SUe(t, e, r) {

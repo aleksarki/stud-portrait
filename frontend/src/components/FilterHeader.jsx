@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { getFilterDash } from '../api';
+import { getFilterOptions } from '../api';
 import Select from 'react-select';
 import './FilterHeader.scss';
 
@@ -10,7 +10,7 @@ export default function FilterHeader({ filters, onFilterChange, resetFilters }) 
 
     //загрузка вариантов
     useEffect(() => {
-        getFilterDash()
+        getFilterOptions()
             .onSuccess(async response => {
                 const data = await response.json();
                 setOptions(data.data);
@@ -22,7 +22,7 @@ export default function FilterHeader({ filters, onFilterChange, resetFilters }) 
     useEffect(() => {
         const institute = filters?.institute;
         if (!institute) {
-            getFilterDash()
+            getFilterOptions()
                 .onSuccess(async response => {
                     const data = await response.json();
                     setOptions(data.data);
@@ -31,7 +31,7 @@ export default function FilterHeader({ filters, onFilterChange, resetFilters }) 
             return;
         }
         const id = ++reqRef.current;
-        getFilterDash(institute)
+        getFilterOptions(institute)
             .onSuccess(async res => {
                 if (id !== reqRef.current) return;
                 const data = await res.json();
