@@ -1,21 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
-import { getDuplicateAccounts, getPossibleDuplicateAccounts } from "../../../api";
-import { LINK_TREE } from "../../../utilities";
+import { getDuplicateAccounts, getPossibleDuplicateAccounts } from '../../../api';
+import { LINK_TREE } from '../../../utilities';
 
-import FlexRow, { WRAP } from "../../../components/FlexRow";
-import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
+import FlexRow, { WRAP } from '../../../components/FlexRow';
+import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from '../../../components/SidebarLayout';
 
-import ValueCard from "../../../components/cards/ValueCard";
+import ValueCard from '../../../components/cards/ValueCard';
 
-import Button from "../../../components/ui/Button";
-import LoadingSpinner from "../../../components/ui/LoadingSpinner";
-import NoData from "../../../components/ui/NoData";
-import { ADMIN_PALETTE } from "../../../components/ui/palette";
+import Button from '../../../components/ui/Button';
+import LoadingSpinner from '../../../components/ui/LoadingSpinner';
+import NoData from '../../../components/ui/NoData';
+import { ADMIN_PALETTE } from '../../../components/ui/palette';
 
-import Table, { TableHeader, TableItem, TableRow } from "../../../components/tables/Table";
+import Table, { TableHeader, TableItem, TableRow } from '../../../components/tables/Table';
 
-import "./AdminDuplicateAccountsChecker.scss";
+import './AdminDuplicateAccountsChecker.scss';
 
 // ─── Переиспользуемый блок карточки студента ──────────────────
 const StudentCard = ({ student, emailKey, expandedStudent, toggleStudent }) => {
@@ -23,12 +23,13 @@ const StudentCard = ({ student, emailKey, expandedStudent, toggleStudent }) => {
     const isOpen = expandedStudent === key;
     return (
         <div className="student-card">
-            <div className="student-card-header" onClick={() => toggleStudent(key)}>
+            <div
+                className="student-card-header"
+                onClick={() => toggleStudent(key)}
+            >
                 <div className="student-info">
                     <span className="student-name">{student.student_name}</span>
-                    {emailKey && (
-                        <span className="student-email">{emailKey}</span>
-                    )}
+                    {emailKey && <span className="student-email">{emailKey}</span>}
                 </div>
                 <div className="student-badge">
                     <span className="accounts-count">Аккаунтов: {student.accounts_count}</span>
@@ -38,11 +39,14 @@ const StudentCard = ({ student, emailKey, expandedStudent, toggleStudent }) => {
             {isOpen && (
                 <div className="student-card-body">
                     {student.accounts.map((account, idx) => (
-                        <div key={account.rsv_id} className="account-block">
-                            <h4>Аккаунт #{idx + 1}: {account.rsv_id}</h4>
-                            {account.email && (
-                                <div className="account-email">📧 {account.email}</div>
-                            )}
+                        <div
+                            key={account.rsv_id}
+                            className="account-block"
+                        >
+                            <h4>
+                                Аккаунт #{idx + 1}: {account.rsv_id}
+                            </h4>
+                            {account.email && <div className="account-email">📧 {account.email}</div>}
                             {!account.exists_in_participants ? (
                                 <div className="no-participant-warning">
                                     ⚠️ Этот RSV ID не найден в таблице участников (нет результатов)
@@ -50,10 +54,9 @@ const StudentCard = ({ student, emailKey, expandedStudent, toggleStudent }) => {
                             ) : (
                                 <>
                                     <div className="account-meta">
-                                        <span>Пол: {
-                                            account.gender === 'М' ? 'Мужской' :
-                                            account.gender === 'Ж' ? 'Женский' : 'Не указан'
-                                        }</span>
+                                        <span>
+                                            Пол: {account.gender === 'М' ? 'Мужской' : account.gender === 'Ж' ? 'Женский' : 'Не указан'}
+                                        </span>
                                         <span>ID участника: {account.participant_id}</span>
                                     </div>
                                     {account.results.length === 0 ? (
@@ -99,8 +102,8 @@ const AdminDuplicateAccountsChecker = () => {
         setLoading(true);
         try {
             const [r1, r2] = await Promise.all([
-                fetch("http://localhost:8000/portrait/duplicate-accounts/"),
-                fetch("http://localhost:8000/portrait/possible-duplicate-accounts/")
+                fetch('http://localhost:8000/portrait/duplicate-accounts/'),
+                fetch('http://localhost:8000/portrait/possible-duplicate-accounts/')
             ]);
             const [res1, res2] = await Promise.all([r1.json(), r2.json()]);
 
@@ -116,26 +119,38 @@ const AdminDuplicateAccountsChecker = () => {
         }
     };
 
-    useEffect(() => { fetchData(); }, []);
+    useEffect(() => {
+        fetchData();
+    }, []);
 
-    const toggleStudent = (key) => {
+    const toggleStudent = key => {
         setExpandedStudent(expandedStudent === key ? null : key);
     };
 
-    const totalExactExtra  = data?.reduce((sum, s) => sum + (s.accounts_count - 1), 0) || 0;
-    const totalPossible    = possibleData?.length || 0;
+    const totalExactExtra = data?.reduce((sum, s) => sum + (s.accounts_count - 1), 0) || 0;
+    const totalPossible = possibleData?.length || 0;
 
     return (
         <div className="AdminDuplicateAccountsChecker">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                <Header title="Админ: Проверка дублирующихся аккаунтов" name="Администратор" />
+                <Header
+                    title="Админ: Проверка дублирующихся аккаунтов"
+                    name="Администратор"
+                />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
-                    <LoadingSpinner loading={loading} text="Поиск дублирующихся аккаунтов..." />
+                    <LoadingSpinner
+                        loading={loading}
+                        text="Поиск дублирующихся аккаунтов..."
+                    />
 
                     {!loading && (
                         <>
-                            <FlexRow wrap={WRAP.DO} gap="12" margin="16 0">
+                            <FlexRow
+                                wrap={WRAP.DO}
+                                gap="12"
+                                margin="16 0"
+                            >
                                 <ValueCard
                                     title="Точных дублей (по email)"
                                     value={data?.length || 0}
@@ -155,12 +170,8 @@ const AdminDuplicateAccountsChecker = () => {
 
                             {/* ── Точные дубли ── */}
                             <h2>Точные дубли (один email → несколько аккаунтов)</h2>
-                            <p className="page-description">
-                                Один и тот же email привязан к разным rsv_id.
-                            </p>
-                            {data && data.length === 0 && (
-                                <NoData text="✅ Точных дублей не найдено." />
-                            )}
+                            <p className="page-description">Один и тот же email привязан к разным rsv_id.</p>
+                            {data && data.length === 0 && <NoData text="✅ Точных дублей не найдено." />}
                             <div className="duplicate-students-list">
                                 {data?.map(student => (
                                     <StudentCard
@@ -174,16 +185,12 @@ const AdminDuplicateAccountsChecker = () => {
                             </div>
 
                             {/* ── Возможные дубли ── */}
-                            <h2 className="section-title-possible">
-                                ⚠️ Возможные дубли (совпадение ФИО + пол, разные email)
-                            </h2>
+                            <h2 className="section-title-possible">⚠️ Возможные дубли (совпадение ФИО + пол, разные email)</h2>
                             <p className="page-description">
-                                Эти студенты имеют одинаковое ФИО и пол, но разные email или аккаунты.
-                                Возможно, один человек — но могут быть и полные однофамильцы.
+                                Эти студенты имеют одинаковое ФИО и пол, но разные email или аккаунты. Возможно, один человек — но могут
+                                быть и полные однофамильцы.
                             </p>
-                            {possibleData && possibleData.length === 0 && (
-                                <NoData text="✅ Возможных дублей не найдено." />
-                            )}
+                            {possibleData && possibleData.length === 0 && <NoData text="✅ Возможных дублей не найдено." />}
                             <div className="duplicate-students-list">
                                 {possibleData?.map(student => (
                                     <StudentCard

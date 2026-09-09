@@ -1,193 +1,191 @@
 @use 'palette';
 
 .MultiSelect {
-  position: relative;
-  width: 100%;
-  min-width: 175px;
-  max-width: 400px;
+    position: relative;
+    width: 100%;
+    min-width: 175px;
+    max-width: 400px;
 
-  font-size: 14px !important;
+    font-size: 14px !important;
 
-  .label {
-    display: block;
-    margin-bottom: 5px;
-    font-size: 14px;
-    font-weight: 500;
-    color: #333;
-  }
-
-  $count-color: #1976d2;
-
-  .field {
-    padding: 8px 16px !important;
-    border-radius: 4px;
-    white-space: nowrap;
-    user-select: none;
-    cursor: pointer;
-
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-
-    @include palette.paletted-activable();
-
-    .multiselect-text {
-      flex: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-
-      .count {
-        color: $count-color;
-        font-weight: 600;
-        margin-left: 5px;
-      }
-    }
-  }
-
-  .dropdown {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    right: 0;
-    z-index: 1000;
-    overflow: hidden;
-
-    display: flex;
-    flex-direction: column;
-
-    padding: 8px 8px !important;
-    border-radius: 4px;
-
-    @include palette.paletted();
-
-    animation: slideDown 0.2s ease-out;
-
-    @keyframes slideDown {
-      from {
-        opacity: 0;
-        transform: translateY(-10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+    .label {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #333;
     }
 
-    &:not(.open) {
-      display: none;
-    }
+    $count-color: #1976d2;
 
-    .FlexRow {
-      margin-bottom: 8px;
-
-      .search-area {
-        flex-grow: 1;
-        display: flex;
-        min-width: 0;
-
-        input.search {
-          flex: 1;
-          width: 100%;
-          min-width: 0;
-          
-          padding: 4px 8px !important;
-          border-radius: 4px;
-          font-size: inherit;
-
-          color: var(--fg);
-          border: var(--border);
-          text-shadow: var(--textShadow);
-          box-shadow: var(--boxShadow);
-        }
-      }
-
-      button.select-all {
+    .field {
+        padding: 8px 16px !important;
         border-radius: 4px;
-        font-size: inherit;
+        white-space: nowrap;
+        user-select: none;
         cursor: pointer;
 
-        flex-shrink: 0;
-
-        color: var(--fg);
-        background: var(--bg);
-        border: var(--border);
-        text-shadow: var(--textShadow);
-        box-shadow: var(--boxShadow);
-
-        transition: all 0.2s ease;
-
-        &:hover {
-          color: var(--hoverFg);
-          background: var(--hoverBg);
-          border: var(--hoverBorder);
-          text-shadow: var(--hoverTextShadow);
-          box-shadow: var(--hoverBoxShadow);
-          transform: var(--hoverTransform);
-        }
-
-        &:active {
-          color: var(--activeFg);
-          background: var(--activeBg);
-          border: var(--activeBorder);
-          text-shadow: var(--activeTextShadow);
-          box-shadow: var(--activeBoxShadow);
-          transform: var(--activeTransform);
-        }
-      }
-    }
-
-    .options {
-      max-height: 250px;
-      overflow-y: auto;
-
-      .no-results {
-        padding: 20px;
-        text-align: center;
-      }
-
-      .option {
-        user-select: none;
-
         display: flex;
+        justify-content: space-between;
         align-items: center;
 
-        input[type="checkbox"] {
-          flex-shrink: 0;
-          margin-right: 8px;
-          cursor: pointer;
+        @include palette.paletted-activable();
+
+        .multiselect-text {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+
+            .count {
+                color: $count-color;
+                font-weight: 600;
+                margin-left: 5px;
+            }
         }
-
-        .option-text {
-          border-radius: 4px;
-          margin: 1px;
-          padding: 2px 8px 2px 4px;
-          flex-grow: 1;
-          cursor: pointer;
-
-          display: flex;
-          flex-wrap: wrap;
-          gap: 0 5px;
-
-          .option-count {
-            color: $count-color;
-            font-weight: 600;
-          }
-        }
-
-        &:hover .option-text {
-          padding: 1px 7px 1px 3px;
-
-          color: var(--hoverFg);
-          background: var(--hoverBg);
-          border: var(--hoverBorder);
-          text-shadow: var(--hoverTextShadow);
-          box-shadow: var(--hoverBoxShadow);
-          transform: var(--hoverTransform);
-        }
-      }
     }
-  }
+
+    .dropdown {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        overflow: hidden;
+
+        display: flex;
+        flex-direction: column;
+
+        padding: 8px 8px !important;
+        border-radius: 4px;
+
+        @include palette.paletted();
+
+        animation: slideDown 0.2s ease-out;
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        &:not(.open) {
+            display: none;
+        }
+
+        .FlexRow {
+            margin-bottom: 8px;
+
+            .search-area {
+                flex-grow: 1;
+                display: flex;
+                min-width: 0;
+
+                input.search {
+                    flex: 1;
+                    width: 100%;
+                    min-width: 0;
+
+                    padding: 4px 8px !important;
+                    border-radius: 4px;
+                    font-size: inherit;
+
+                    color: var(--fg);
+                    border: var(--border);
+                    text-shadow: var(--textShadow);
+                    box-shadow: var(--boxShadow);
+                }
+            }
+
+            button.select-all {
+                border-radius: 4px;
+                font-size: inherit;
+                cursor: pointer;
+
+                flex-shrink: 0;
+
+                color: var(--fg);
+                background: var(--bg);
+                border: var(--border);
+                text-shadow: var(--textShadow);
+                box-shadow: var(--boxShadow);
+
+                transition: all 0.2s ease;
+
+                &:hover {
+                    color: var(--hoverFg);
+                    background: var(--hoverBg);
+                    border: var(--hoverBorder);
+                    text-shadow: var(--hoverTextShadow);
+                    box-shadow: var(--hoverBoxShadow);
+                    transform: var(--hoverTransform);
+                }
+
+                &:active {
+                    color: var(--activeFg);
+                    background: var(--activeBg);
+                    border: var(--activeBorder);
+                    text-shadow: var(--activeTextShadow);
+                    box-shadow: var(--activeBoxShadow);
+                    transform: var(--activeTransform);
+                }
+            }
+        }
+
+        .options {
+            max-height: 250px;
+            overflow-y: auto;
+
+            .no-results {
+                padding: 20px;
+                text-align: center;
+            }
+
+            .option {
+                user-select: none;
+
+                display: flex;
+                align-items: center;
+
+                input[type='checkbox'] {
+                    flex-shrink: 0;
+                    margin-right: 8px;
+                    cursor: pointer;
+                }
+
+                .option-text {
+                    border-radius: 4px;
+                    margin: 1px;
+                    padding: 2px 8px 2px 4px;
+                    flex-grow: 1;
+                    cursor: pointer;
+
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 0 5px;
+
+                    .option-count {
+                        color: $count-color;
+                        font-weight: 600;
+                    }
+                }
+
+                &:hover .option-text {
+                    padding: 1px 7px 1px 3px;
+
+                    color: var(--hoverFg);
+                    background: var(--hoverBg);
+                    border: var(--hoverBorder);
+                    text-shadow: var(--hoverTextShadow);
+                    box-shadow: var(--hoverBoxShadow);
+                    transform: var(--hoverTransform);
+                }
+            }
+        }
+    }
 }
-
-

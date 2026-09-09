@@ -199,7 +199,7 @@ class Results(models.Model):
     class Meta:
         managed = False
         db_table = 'results'
-        unique_together = (('res_participant', 'res_year', 'res_course_num'),)
+        unique_together = (('res_participant', 'res_year',))
 
 
 class Specialties(models.Model):

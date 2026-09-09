@@ -1,5 +1,5 @@
 /* Common style */
-$modeus-color: #238BC8;
+$modeus-color: #238bc8;
 
 .SidebarLayout {
     display: grid;
@@ -9,12 +9,12 @@ $modeus-color: #238BC8;
     overflow: hidden;
 
     grid-template-areas:
-        "header header"
-        "sidebar content";
+        'header header'
+        'sidebar content';
 
     grid-template-columns: auto minmax(0, 1fr);
 
-    transition: grid-template-columns .2s ease;
+    transition: grid-template-columns 0.2s ease;
 
     .Header {
         grid-area: header;
@@ -46,7 +46,7 @@ $modeus-color: #238BC8;
     .Header {
         color: #fff;
         padding: 10px 20px;
-        background-color: #238BC8;
+        background-color: #238bc8;
         font-size: 13px;
         line-height: 1.5384616;
         font-family: sans-serif;
@@ -77,8 +77,8 @@ $modeus-color: #238BC8;
                 }
 
                 .logo-title {
-                    font-size: 20px;  //16
-                    font-weight: 500;  //500
+                    font-size: 20px; //16
+                    font-weight: 500; //500
                 }
             }
 
@@ -118,10 +118,11 @@ $modeus-color: #238BC8;
                 position: relative;
                 display: list-item;
 
-                span, a {
+                span,
+                a {
                     font-weight: 500;
                     font-size: 14px;
-                    color: #1a365d;                 
+                    color: #1a365d;
                 }
 
                 $link-ident--modeus: 40px;
@@ -131,21 +132,23 @@ $modeus-color: #238BC8;
                     padding: 12px 10px 12px $cat-ident--modeus;
                     font-variant: small-caps;
                 }
-                
+
                 a {
                     padding: 12px 10px 12px $link-ident--modeus;
                     text-decoration: none;
                     display: block;
-                    transition: background 0.15s linear, color 0.15s linear;
+                    transition:
+                        background 0.15s linear,
+                        color 0.15s linear;
                     cursor: pointer;
-                    color:#1a365d;
+                    color: #1a365d;
 
                     &:hover {
-                        color: #238BC8;
+                        color: #238bc8;
                         background-color: #eaeaea9d;
                     }
                 }
-            }            
+            }
         }
     }
 
@@ -183,8 +186,8 @@ $modeus-color: #238BC8;
                 gap: 5px;
 
                 .logo-title {
-                    font-size: 22px;  //16
-                    font-weight: 500;  //500
+                    font-size: 22px; //16
+                    font-weight: 500; //500
                 }
             }
 
@@ -223,7 +226,7 @@ $modeus-color: #238BC8;
                     text-transform: uppercase;
                     color: #14394f;
                     text-decoration: none;
-                    transition: all .3s ease;
+                    transition: all 0.3s ease;
 
                     &:hover {
                         color: #00aeef;
@@ -280,8 +283,8 @@ $modeus-color: #238BC8;
 
                 .logo-title {
                     color: #fff;
-                    font-size: 20px;  //16
-                    font-weight: 500;  //500
+                    font-size: 20px; //16
+                    font-weight: 500; //500
                 }
             }
 
@@ -311,7 +314,7 @@ $modeus-color: #238BC8;
         color: #fff;
         font-size: 13px;
         line-height: 1.5384616;
-        
+
         ul {
             margin: 0;
             padding: 10px 0;
@@ -321,7 +324,8 @@ $modeus-color: #238BC8;
                 margin-top: 1px;
                 display: list-item;
 
-                span, a {
+                span,
+                a {
                     color: rgba(255, 255, 255, 0.75);
                     font-weight: 400;
                     font-size: 14px;
@@ -334,12 +338,14 @@ $modeus-color: #238BC8;
                     padding: 12px 10px 12px $cat-ident--admin;
                     font-variant: small-caps;
                 }
-                
+
                 a {
                     padding: 12px 10px 12px $link-ident--admin;
                     text-decoration: none;
                     display: block;
-                    transition: background 0.15s linear, color 0.15s linear;
+                    transition:
+                        background 0.15s linear,
+                        color 0.15s linear;
                     cursor: pointer;
 
                     &:hover {
@@ -347,7 +353,7 @@ $modeus-color: #238BC8;
                         color: #fff;
                     }
                 }
-            }            
+            }
         }
     }
 
@@ -356,7 +362,7 @@ $modeus-color: #238BC8;
     }
 }
 //закрытый
-.Sidebar-closed{
+.Sidebar-closed {
     max-width: 0 !important;
 }
 .Sidebar-container {
@@ -365,7 +371,7 @@ $modeus-color: #238BC8;
     box-shadow: #c2c3ca 0px 0px 10px 0;
     display: flex;
 
-    .SideBar-btn-container{
+    .SideBar-btn-container {
         height: 100%;
         width: 100%;
         display: flex;

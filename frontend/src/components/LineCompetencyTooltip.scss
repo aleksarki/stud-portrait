@@ -1,5 +1,5 @@
 .LineCompetencyTooltip {
-        .development-chart {
+    .development-chart {
         border-top: 1px solid #f0f0f0;
         padding-top: 12px;
         max-height: 200px;
@@ -10,17 +10,17 @@
         padding: 16px;
         background: #f8f9fa;
         border-radius: 6px;
-        
+
         .value-display {
             font-size: 14px;
             margin-bottom: 8px;
-            
+
             strong {
                 font-size: 18px;
                 color: #1976d2;
             }
         }
-        
+
         .value-category {
             font-size: 13px;
             color: #666;
@@ -36,10 +36,10 @@
     border-radius: 4px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     font-size: 12px;
-    
+
     div {
         margin-bottom: 4px;
-        
+
         &:last-child {
             margin-bottom: 0;
         }

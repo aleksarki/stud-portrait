@@ -8,13 +8,14 @@
 
     .category-table-section {
         margin-bottom: 10px;
-        
+
         &:last-child {
             margin-bottom: 0;
         }
     }
 
-    .loading, .no-data {
+    .loading,
+    .no-data {
         text-align: center;
         padding: 40px;
         color: #666;

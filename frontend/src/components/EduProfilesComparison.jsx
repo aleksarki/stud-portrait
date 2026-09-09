@@ -1,12 +1,23 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-    ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis,
-    PolarRadiusAxis, Radar, ReferenceLine
-} from "recharts";
-import Select from "react-select";
-import { getEducationProfilesComparison } from "../api";
-import "./EduProfilesComparison.scss";
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    Legend,
+    ResponsiveContainer,
+    RadarChart,
+    PolarGrid,
+    PolarAngleAxis,
+    PolarRadiusAxis,
+    Radar,
+    ReferenceLine
+} from 'recharts';
+import Select from 'react-select';
+import { getEducationProfilesComparison } from '../api';
+import './EduProfilesComparison.scss';
 
 const EduProfilesComparison = () => {
     const [data, setData] = useState(null);
@@ -19,7 +30,7 @@ const EduProfilesComparison = () => {
     const [selectedPair, setSelectedPair] = useState(null);
     const [includeMotivators, setIncludeMotivators] = useState(true);
     const [includeValues, setIncludeValues] = useState(true);
-    
+
     const [isInitialLoad, setIsInitialLoad] = useState(true);
 
     // Загрузка доступных направлений при монтировании
@@ -45,36 +56,39 @@ const EduProfilesComparison = () => {
                 include_motivators: true,
                 include_values: true
             });
-            
-            response.onSuccess(async (res) => {
-                const result = await res.json();
-                if (result.status === 'success') {
-                    const specialties = result.data.specialties.map(s => ({
-                        value: s.id,
-                        label: s.name,
-                        students: s.total_students
-                    }));
-                    setAvailableSpecialties(specialties);
-                    setData(result.data);
-                    
-                    // Извлекаем доступные годы из данных (если есть)
-                    // Или задаем фиксированные
-                    setAvailableYears([
-                        { value: '2023/2024', label: '2023/2024' },
-                        { value: '2024/2025', label: '2024/2025' },
-                        { value: '2025/2026', label: '2025/2026' }
-                    ]);
-                } else {
-                    console.error("Ошибка загрузки направлений:", result.message);
-                }
-            }).onError((error) => {
-                console.error("Ошибка загрузки направлений:", error);
-            }).finally(() => {
-                setLoading(false);
-                setIsInitialLoad(false);
-            });
+
+            response
+                .onSuccess(async res => {
+                    const result = await res.json();
+                    if (result.status === 'success') {
+                        const specialties = result.data.specialties.map(s => ({
+                            value: s.id,
+                            label: s.name,
+                            students: s.total_students
+                        }));
+                        setAvailableSpecialties(specialties);
+                        setData(result.data);
+
+                        // Извлекаем доступные годы из данных (если есть)
+                        // Или задаем фиксированные
+                        setAvailableYears([
+                            { value: '2023/2024', label: '2023/2024' },
+                            { value: '2024/2025', label: '2024/2025' },
+                            { value: '2025/2026', label: '2025/2026' }
+                        ]);
+                    } else {
+                        console.error('Ошибка загрузки направлений:', result.message);
+                    }
+                })
+                .onError(error => {
+                    console.error('Ошибка загрузки направлений:', error);
+                })
+                .finally(() => {
+                    setLoading(false);
+                    setIsInitialLoad(false);
+                });
         } catch (error) {
-            console.error("Ошибка загрузки направлений:", error);
+            console.error('Ошибка загрузки направлений:', error);
             setLoading(false);
             setIsInitialLoad(false);
         }
@@ -83,7 +97,7 @@ const EduProfilesComparison = () => {
     // Загрузка данных с текущими фильтрами
     const loadData = async () => {
         if (selectedSpecialties.length === 0) return;
-        
+
         setLoading(true);
         const filters = {
             specialties: selectedSpecialties.map(s => s.value),
@@ -91,38 +105,41 @@ const EduProfilesComparison = () => {
             include_motivators: includeMotivators,
             include_values: includeValues
         };
-        
+
         try {
             const response = getEducationProfilesComparison(filters);
-            response.onSuccess(async (res) => {
-                const result = await res.json();
-                if (result.status === 'success') {
-                    setData(result.data);
-                } else {
-                    console.error("Ошибка загрузки данных:", result.message);
-                }
-            }).onError((error) => {
-                console.error("Ошибка загрузки данных:", error);
-            }).finally(() => {
-                setLoading(false);
-            });
+            response
+                .onSuccess(async res => {
+                    const result = await res.json();
+                    if (result.status === 'success') {
+                        setData(result.data);
+                    } else {
+                        console.error('Ошибка загрузки данных:', result.message);
+                    }
+                })
+                .onError(error => {
+                    console.error('Ошибка загрузки данных:', error);
+                })
+                .finally(() => {
+                    setLoading(false);
+                });
         } catch (error) {
-            console.error("Ошибка загрузки данных:", error);
+            console.error('Ошибка загрузки данных:', error);
             setLoading(false);
         }
     };
 
     // Обработчик изменения выбранных направлений
-    const handleSpecialtyChange = (selected) => {
+    const handleSpecialtyChange = selected => {
         setSelectedSpecialties(selected || []);
     };
 
     // Подготовка данных для радиолокационной диаграммы
     const radarData = useMemo(() => {
         if (!data || selectedSpecialties.length === 0) return [];
-        
+
         const fields = [];
-        
+
         if (includeMotivators && data.fields?.motivators) {
             Object.entries(data.fields.motivators).forEach(([key, name]) => {
                 const item = { field: name };
@@ -135,7 +152,7 @@ const EduProfilesComparison = () => {
                 fields.push(item);
             });
         }
-        
+
         if (includeValues && data.fields?.values) {
             Object.entries(data.fields.values).forEach(([key, name]) => {
                 const item = { field: name };
@@ -148,29 +165,29 @@ const EduProfilesComparison = () => {
                 fields.push(item);
             });
         }
-        
+
         return fields;
     }, [data, selectedSpecialties, includeMotivators, includeValues]);
 
     // Подготовка данных для bar chart
     const barData = useMemo(() => {
         if (!data || selectedSpecialties.length === 0) return [];
-        
+
         const allData = [];
         const fields = [];
-        
+
         if (includeMotivators && data.fields?.motivators) {
             Object.entries(data.fields.motivators).forEach(([key, name]) => {
                 fields.push({ key, name, type: 'motivator' });
             });
         }
-        
+
         if (includeValues && data.fields?.values) {
             Object.entries(data.fields.values).forEach(([key, name]) => {
                 fields.push({ key, name, type: 'value' });
             });
         }
-        
+
         fields.forEach(field => {
             const row = { name: field.name };
             selectedSpecialties.forEach(spec => {
@@ -181,18 +198,18 @@ const EduProfilesComparison = () => {
             });
             allData.push(row);
         });
-        
+
         return allData;
     }, [data, selectedSpecialties, includeMotivators, includeValues]);
 
     // Подготовка данных для дельты
     const deltaData = useMemo(() => {
         if (!data || !selectedPair || !data.deltas?.[selectedPair]) return null;
-        
+
         const delta = data.deltas[selectedPair];
         const motivatorsDelta = Object.values(delta.motivators_delta || {});
         const valuesDelta = Object.values(delta.values_delta || {});
-        
+
         return {
             specialty1: delta.specialty1,
             specialty2: delta.specialty2,
@@ -220,7 +237,7 @@ const EduProfilesComparison = () => {
                         isLoading={loading}
                     />
                 </div>
-                
+
                 <div className="filter-group">
                     <label>Год:</label>
                     <Select
@@ -232,13 +249,13 @@ const EduProfilesComparison = () => {
                         className="select"
                     />
                 </div>
-                
+
                 <div className="filter-group checkbox-group">
                     <label>
                         <input
                             type="checkbox"
                             checked={includeMotivators}
-                            onChange={(e) => setIncludeMotivators(e.target.checked)}
+                            onChange={e => setIncludeMotivators(e.target.checked)}
                         />
                         Включить мотиваторы
                     </label>
@@ -246,7 +263,7 @@ const EduProfilesComparison = () => {
                         <input
                             type="checkbox"
                             checked={includeValues}
-                            onChange={(e) => setIncludeValues(e.target.checked)}
+                            onChange={e => setIncludeValues(e.target.checked)}
                         />
                         Включить ценности
                     </label>
@@ -288,10 +305,16 @@ const EduProfilesComparison = () => {
                     {compareMode === 'radar' && radarData.length > 0 && (
                         <div className="radar-chart">
                             <h3>Сравнение профилей</h3>
-                            <ResponsiveContainer width="100%" height={500}>
+                            <ResponsiveContainer
+                                width="100%"
+                                height={500}
+                            >
                                 <RadarChart data={radarData}>
                                     <PolarGrid />
-                                    <PolarAngleAxis dataKey="field" tick={{ fontSize: 11 }} />
+                                    <PolarAngleAxis
+                                        dataKey="field"
+                                        tick={{ fontSize: 11 }}
+                                    />
                                     <PolarRadiusAxis domain={[0, 800]} />
                                     {selectedSpecialties.map((spec, idx) => (
                                         <Radar
@@ -313,15 +336,25 @@ const EduProfilesComparison = () => {
                     {compareMode === 'bar' && barData.length > 0 && (
                         <div className="bar-chart">
                             <h3>Сравнение по показателям</h3>
-                            <ResponsiveContainer width="100%" height={600}>
+                            <ResponsiveContainer
+                                width="100%"
+                                height={600}
+                            >
                                 <BarChart
                                     data={barData}
                                     layout="vertical"
                                     margin={{ top: 20, right: 30, left: 100, bottom: 20 }}
                                 >
                                     <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis type="number" domain={[0, 800]} />
-                                    <YAxis type="category" dataKey="name" width={120} />
+                                    <XAxis
+                                        type="number"
+                                        domain={[0, 800]}
+                                    />
+                                    <YAxis
+                                        type="category"
+                                        dataKey="name"
+                                        width={120}
+                                    />
                                     <Tooltip />
                                     <Legend />
                                     {selectedSpecialties.map((spec, idx) => (
@@ -342,12 +375,15 @@ const EduProfilesComparison = () => {
                             <h3>
                                 Анализ различий: {deltaData.specialty1} → {deltaData.specialty2}
                             </h3>
-                            
+
                             {deltaData.motivators.length > 0 && (
                                 <div className="delta-section">
                                     <h4>📊 Различия в мотиваторах</h4>
                                     <div className="delta-chart">
-                                        <ResponsiveContainer width="100%" height={400}>
+                                        <ResponsiveContainer
+                                            width="100%"
+                                            height={400}
+                                        >
                                             <BarChart
                                                 data={deltaData.motivators}
                                                 layout="vertical"
@@ -355,9 +391,9 @@ const EduProfilesComparison = () => {
                                             >
                                                 <CartesianGrid strokeDasharray="3 3" />
                                                 <XAxis type="number" />
-                                                <YAxis 
-                                                    type="category" 
-                                                    dataKey="name" 
+                                                <YAxis
+                                                    type="category"
+                                                    dataKey="name"
                                                     width={140}
                                                     tick={{ fontSize: 12 }}
                                                 />
@@ -370,12 +406,18 @@ const EduProfilesComparison = () => {
                                                         ];
                                                     }}
                                                 />
-                                                <ReferenceLine x={0} stroke="#666" />
-                                                <Bar dataKey="delta" name="Разница">
+                                                <ReferenceLine
+                                                    x={0}
+                                                    stroke="#666"
+                                                />
+                                                <Bar
+                                                    dataKey="delta"
+                                                    name="Разница"
+                                                >
                                                     {deltaData.motivators.map((entry, idx) => (
-                                                        <Bar 
+                                                        <Bar
                                                             key={idx}
-                                                            dataKey="delta" 
+                                                            dataKey="delta"
                                                             fill={entry.delta > 0 ? '#4caf50' : '#f44336'}
                                                         />
                                                     ))}
@@ -385,12 +427,15 @@ const EduProfilesComparison = () => {
                                     </div>
                                 </div>
                             )}
-                            
+
                             {deltaData.values.length > 0 && (
                                 <div className="delta-section">
                                     <h4>💎 Различия в ценностях</h4>
                                     <div className="delta-chart">
-                                        <ResponsiveContainer width="100%" height={300}>
+                                        <ResponsiveContainer
+                                            width="100%"
+                                            height={300}
+                                        >
                                             <BarChart
                                                 data={deltaData.values}
                                                 layout="vertical"
@@ -398,24 +443,30 @@ const EduProfilesComparison = () => {
                                             >
                                                 <CartesianGrid strokeDasharray="3 3" />
                                                 <XAxis type="number" />
-                                                <YAxis 
-                                                    type="category" 
-                                                    dataKey="name" 
+                                                <YAxis
+                                                    type="category"
+                                                    dataKey="name"
                                                     width={140}
                                                     tick={{ fontSize: 12 }}
                                                 />
                                                 <Tooltip
-                                                    formatter={(value) => [
+                                                    formatter={value => [
                                                         `${value > 0 ? '+' : ''}${value} баллов`,
                                                         `Разница (${deltaData.specialty2} - ${deltaData.specialty1})`
                                                     ]}
                                                 />
-                                                <ReferenceLine x={0} stroke="#666" />
-                                                <Bar dataKey="delta" name="Разница">
+                                                <ReferenceLine
+                                                    x={0}
+                                                    stroke="#666"
+                                                />
+                                                <Bar
+                                                    dataKey="delta"
+                                                    name="Разница"
+                                                >
                                                     {deltaData.values.map((entry, idx) => (
-                                                        <Bar 
+                                                        <Bar
                                                             key={idx}
-                                                            dataKey="delta" 
+                                                            dataKey="delta"
                                                             fill={entry.delta > 0 ? '#4caf50' : '#f44336'}
                                                         />
                                                     ))}
@@ -425,7 +476,7 @@ const EduProfilesComparison = () => {
                                     </div>
                                 </div>
                             )}
-                            
+
                             <div className="delta-summary">
                                 <h4>📈 Ключевые различия</h4>
                                 <div className="summary-grid">
@@ -433,15 +484,23 @@ const EduProfilesComparison = () => {
                                         .sort((a, b) => b.abs_delta - a.abs_delta)
                                         .slice(0, 5)
                                         .map((item, idx) => (
-                                            <div key={idx} className="summary-item">
+                                            <div
+                                                key={idx}
+                                                className="summary-item"
+                                            >
                                                 <span className="item-name">{item.name}</span>
                                                 <span className={`item-delta ${item.delta > 0 ? 'positive' : 'negative'}`}>
-                                                    {item.delta > 0 ? '+' : ''}{item.delta} баллов
+                                                    {item.delta > 0 ? '+' : ''}
+                                                    {item.delta} баллов
                                                 </span>
                                                 <div className="item-values">
-                                                    <span>{deltaData.specialty1}: {item.spec1_avg}</span>
+                                                    <span>
+                                                        {deltaData.specialty1}: {item.spec1_avg}
+                                                    </span>
                                                     <span>→</span>
-                                                    <span>{deltaData.specialty2}: {item.spec2_avg}</span>
+                                                    <span>
+                                                        {deltaData.specialty2}: {item.spec2_avg}
+                                                    </span>
                                                 </div>
                                             </div>
                                         ))}
@@ -453,16 +512,11 @@ const EduProfilesComparison = () => {
             )}
 
             {!loading && data && selectedSpecialties.length === 0 && (
-                <div className="no-data">
-                    Выберите направления подготовки для сравнения
-                </div>
+                <div className="no-data">Выберите направления подготовки для сравнения</div>
             )}
 
-            {!loading && data && selectedSpecialties.length > 0 && 
-             radarData.length === 0 && barData.length === 0 && (
-                <div className="no-data">
-                    Нет данных для выбранных направлений
-                </div>
+            {!loading && data && selectedSpecialties.length > 0 && radarData.length === 0 && barData.length === 0 && (
+                <div className="no-data">Нет данных для выбранных направлений</div>
             )}
         </div>
     );

@@ -5,19 +5,19 @@ import { ADMIN_PALETTE, unpackPaletteOptionsActivable } from './palette';
 
 import './MultiSelect.scss';
 
-function MultiSelect({ 
-    options = [],           // Массив опций [{id, name, count}] или просто [strings]
-    value = [],             // Выбранные значения
-    onChange,               // Callback при изменении
-    placeholder = "Выберите...",
-    searchPlaceholder = "Поиск...",
-    label = "",             // Метка
-    withSearch = false,     // Показывать ли поиск
-    showCounts = false,     // Показывать ли счётчики (НОВОЕ!)
+function MultiSelect({
+    options = [], // Массив опций [{id, name, count}] или просто [strings]
+    value = [], // Выбранные значения
+    onChange, // Callback при изменении
+    placeholder = 'Выберите...',
+    searchPlaceholder = 'Поиск...',
+    label = '', // Метка
+    withSearch = false, // Показывать ли поиск
+    showCounts = false, // Показывать ли счётчики (НОВОЕ!)
     palette = ADMIN_PALETTE.GRAY
 }) {
     const [open, setOpen] = useState(false);
-    const [searchQuery, setSearchQuery] = useState("");
+    const [searchQuery, setSearchQuery] = useState('');
     const dropdownRef = useRef(null);
 
     // close on click elsewhere
@@ -39,22 +39,12 @@ function MultiSelect({
         return { ...opt, count: opt.count || null };
     });
 
-    const searchedOptions = (
-        searchQuery ?
-        normalizedOptions.filter(
-            opt => opt.name
-                .toLowerCase()
-                .includes(searchQuery.toLowerCase())
-        ) :
-        normalizedOptions
-    );
+    const searchedOptions = searchQuery
+        ? normalizedOptions.filter(opt => opt.name.toLowerCase().includes(searchQuery.toLowerCase()))
+        : normalizedOptions;
 
     const handleToggle = optionId => {
-        const newValue = (
-            value.includes(optionId) ?
-            value.filter(v => v !== optionId) :
-            [...value, optionId]
-        );
+        const newValue = value.includes(optionId) ? value.filter(v => v !== optionId) : [...value, optionId];
         onChange?.(newValue);
     };
 
@@ -83,9 +73,7 @@ function MultiSelect({
     // common count of the selected
     const getTotalCount = () => {
         if (!showCounts || value.length === 0) return null;
-        const total = normalizedOptions
-            .filter(opt => value.includes(opt.id))
-            .reduce((sum, opt) => sum + (opt.count || 0), 0);
+        const total = normalizedOptions.filter(opt => value.includes(opt.id)).reduce((sum, opt) => sum + (opt.count || 0), 0);
         return total > 0 ? total : null;
     };
 
@@ -99,7 +87,7 @@ function MultiSelect({
         >
             {label && <span className="label">{label}</span>}
 
-            <div 
+            <div
                 className={`field ${open ? 'open' : ''}`}
                 onClick={() => setOpen(!open)}
             >
@@ -119,8 +107,8 @@ function MultiSelect({
                                 type="text"
                                 placeholder={searchPlaceholder}
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                onClick={(e) => e.stopPropagation()}
+                                onChange={e => setSearchQuery(e.target.value)}
+                                onClick={e => e.stopPropagation()}
                             />
                         </div>
                     )}
@@ -131,23 +119,19 @@ function MultiSelect({
                             handleToggleAll();
                         }}
                     >
-                        {value.length === searchedOptions.length && searchedOptions.length > 0
-                            ? '✓ Снять все'
-                            : '☐ Выбрать все'}
+                        {value.length === searchedOptions.length && searchedOptions.length > 0 ? '✓ Снять все' : '☐ Выбрать все'}
                     </button>
                 </FlexRow>
 
                 <div className="options">
                     {searchedOptions.length === 0 ? (
-                        <div className="no-results">
-                            {searchQuery ? 'Ничего не найдено' : 'Нет доступных опций'}
-                        </div>
+                        <div className="no-results">{searchQuery ? 'Ничего не найдено' : 'Нет доступных опций'}</div>
                     ) : (
                         searchedOptions.map(option => (
                             <label
                                 key={option.id}
                                 className="option"
-                                onClick={(e) => e.stopPropagation()}
+                                onClick={e => e.stopPropagation()}
                             >
                                 <input
                                     type="checkbox"
@@ -156,16 +140,13 @@ function MultiSelect({
                                 />
                                 <span className="option-text">
                                     <span>{option.name}</span>
-                                    {showCounts && option.count !== null && (
-                                        <span className="option-count">({option.count})</span>
-                                    )}
+                                    {showCounts && option.count !== null && <span className="option-count">({option.count})</span>}
                                 </span>
                             </label>
                         ))
                     )}
                 </div>
             </div>
-
         </div>
     );
 }

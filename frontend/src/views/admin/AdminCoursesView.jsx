@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 
 import { getPortraitCourses } from '../../api.js';
-import { COURSES_NAMES, LINK_TREE } from "../../utilities.js";
+import { COURSES_NAMES, LINK_TREE } from '../../utilities.js';
 
 import FlexRow, { WRAP } from '../../components/FlexRow.jsx';
-import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
+import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from '../../components/SidebarLayout';
 
 import ValueCard from '../../components/cards/ValueCard.jsx';
 
@@ -16,7 +16,7 @@ import ColorBox, { BOX_COLOR } from '../../components/ui/ColorBox.jsx';
 import Label from '../../components/ui/Label.jsx';
 import LoadingSpinner from '../../components/ui/LoadingSpinner.jsx';
 
-import "./AdminCoursesView.scss";
+import './AdminCoursesView.scss';
 import { ADMIN_PALETTE } from '../../components/ui/palette.js';
 
 function AdminCoursesView() {
@@ -38,17 +38,17 @@ function AdminCoursesView() {
                     setCoursesData(data.courses);
                 }
             })
-            .onError(error => console.error("Error fetching courses data:", error))
+            .onError(error => console.error('Error fetching courses data:', error))
             .finally(() => setLoading(false));
     };
 
-    const handleSort = (key) => {
+    const handleSort = key => {
         let direction = 'asc';
         if (sortConfig.key === key && sortConfig.direction === 'asc') {
             direction = 'desc';
         }
         setSortConfig({ key, direction });
-        
+
         const sortedData = [...coursesData].sort((a, b) => {
             let aValue = getFieldValue(a, key);
             let bValue = getFieldValue(b, key);
@@ -61,7 +61,7 @@ function AdminCoursesView() {
             }
             return 0;
         });
-        
+
         setCoursesData(sortedData);
     };
 
@@ -72,7 +72,7 @@ function AdminCoursesView() {
         return course[fieldKey] || 0;
     };
 
-    const handleRowSelect = (courseId) => {
+    const handleRowSelect = courseId => {
         const newSelected = new Set(selectedRows);
         if (newSelected.has(courseId)) {
             newSelected.delete(courseId);
@@ -90,18 +90,18 @@ function AdminCoursesView() {
         }
     };
 
-    const getSortIcon = (key) => {
+    const getSortIcon = key => {
         if (sortConfig.key !== key) return '↕️';
         return sortConfig.direction === 'asc' ? '↑' : '↓';
     };
 
     const renderTableCell = (course, fieldKey) => {
         const value = getFieldValue(course, fieldKey);
-        
+
         if (fieldKey === 'participant') {
             return value;
         }
-        
+
         // Для курсов отображаем проценты
         if (typeof value === 'number') {
             if (value === 0) {
@@ -109,11 +109,11 @@ function AdminCoursesView() {
             }
             return <span className="percentage">{(value * 100).toFixed(1)}%</span>;
         }
-        
+
         return value;
     };
 
-    const getProgressClass = (value) => {
+    const getProgressClass = value => {
         if (value === 0) return 'not-started';
         if (value < 0.3) return 'low';
         if (value < 0.7) return 'medium';
@@ -121,17 +121,15 @@ function AdminCoursesView() {
         return 'completed';
     };
 
-    const calculateParticipantStats = (participantId) => {
+    const calculateParticipantStats = participantId => {
         const participantCourses = coursesData.filter(c => c.participant?.part_id === participantId);
-        const completedCourses = participantCourses.filter(c => 
-            Object.keys(COURSES_NAMES).some(courseKey => c[courseKey] > 0)
-        ).length;
+        const completedCourses = participantCourses.filter(c => Object.keys(COURSES_NAMES).some(courseKey => c[courseKey] > 0)).length;
         const totalCourses = Object.keys(COURSES_NAMES).length;
-        
+
         return {
             completed: completedCourses,
             total: totalCourses,
-            percentage: totalCourses > 0 ? (completedCourses / totalCourses * 100).toFixed(1) : 0
+            percentage: totalCourses > 0 ? ((completedCourses / totalCourses) * 100).toFixed(1) : 0
         };
     };
 
@@ -149,7 +147,10 @@ function AdminCoursesView() {
         return (
             <div className="AdminCoursesView">
                 <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                    <Header title="Админ: Образовательные курсы" name="Администратор1" />
+                    <Header
+                        title="Админ: Образовательные курсы"
+                        name="Администратор1"
+                    />
                     <Sidebar linkTree={LINK_TREE} />
                     <Content>
                         <LoadingSpinner text="Загрузка данных по курсам..." />
@@ -162,7 +163,10 @@ function AdminCoursesView() {
     return (
         <div className="AdminCoursesView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                <Header title="Админ: Образовательные курсы" name="Администратор1" />
+                <Header
+                    title="Админ: Образовательные курсы"
+                    name="Администратор1"
+                />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <div className="courses-container">
@@ -170,9 +174,8 @@ function AdminCoursesView() {
                             <h2>Результаты образовательных курсов</h2>
                             <FlexRow>
                                 <Label>
-                                    Участников: {new Set(coursesData.map(c => c.participant?.part_id)).size} • 
-                                    Всего записей: {coursesData.length} • 
-                                    Выбрано: {selectedRows.size}
+                                    Участников: {new Set(coursesData.map(c => c.participant?.part_id)).size} • Всего записей:{' '}
+                                    {coursesData.length} • Выбрано: {selectedRows.size}
                                 </Label>
                                 <Button
                                     text="Обновить"
@@ -189,16 +192,20 @@ function AdminCoursesView() {
                                 value={new Set(coursesData.map(c => c.participant?.part_id)).size}
                                 text="Участников"
                             />
-                            <ValueCard value={Object.keys(COURSES_NAMES).length} text="Всего курсов" />
+                            <ValueCard
+                                value={Object.keys(COURSES_NAMES).length}
+                                text="Всего курсов"
+                            />
                         </div>
 
                         {/* Таблица с курсами */}
                         <div className="table-scroll-container">
-                            {(!loading && coursesData.length === 0) ? (
+                            {!loading && coursesData.length === 0 ? (
                                 <div className="no-data">
                                     <div className="no-data-icon">📚</div>
                                     <div className="no-data-text">
-                                        <strong>Нет данных по курсам</strong><br />
+                                        <strong>Нет данных по курсам</strong>
+                                        <br />
                                         Загрузите данные через раздел "Загрузка данных"
                                     </div>
                                 </div>
@@ -263,7 +270,10 @@ function AdminCoursesView() {
                         {/* Легенда прогресса */}
                         <FlexRow margin="15 0 0 0">
                             <Label>
-                                <FlexRow gap="20" wrap={WRAP.DO}>
+                                <FlexRow
+                                    gap="20"
+                                    wrap={WRAP.DO}
+                                >
                                     <span>↸ Легенда:</span>
                                     <FlexRow>
                                         <ColorBox color={BOX_COLOR.GRAY} />
@@ -291,14 +301,15 @@ function AdminCoursesView() {
                     </div>
                 </Content>
             </SidebarLayout>
-            <ToastContainer 
+            <ToastContainer
                 position="bottom-right"
                 autoClose={2000}
                 hideProgressBar={true}
                 newestOnTop={false}
                 closeOnClick={true}
                 rtl={false}
-                theme="light" />
+                theme="light"
+            />
         </div>
     );
 }

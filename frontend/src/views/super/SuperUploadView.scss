@@ -1,9 +1,8 @@
 .SuperUploadView {
-
     .FlexColumn.mapping-options {
         gap: 20px;
     }
- 
+
     .upload-form-title {
         font-size: 24px;
         font-weight: 600;
@@ -192,7 +191,7 @@
         }
     }
 }
- 
+
 @media (max-width: 768px) {
     .SuperUploadView {
         .upload-form-title {
@@ -215,7 +214,8 @@
     }
 }
 
-.template-actions, .import-actions {
+.template-actions,
+.import-actions {
     margin-top: 15px;
     button {
         margin-left: 10px;
@@ -223,7 +223,8 @@
     }
 }
 
-.upload-success, .upload-error {
+.upload-success,
+.upload-error {
     margin-top: 20px;
     padding: 10px;
     border-radius: 5px;

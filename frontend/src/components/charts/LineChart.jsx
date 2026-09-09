@@ -1,6 +1,6 @@
-import ReactApexChart from "react-apexcharts";
+import ReactApexChart from 'react-apexcharts';
 
-function LineChart({title, seriesLabels, chartSeries}) {
+function LineChart({ title, seriesLabels, chartSeries }) {
     const chartOptions = {
         chart: {
             type: 'line',

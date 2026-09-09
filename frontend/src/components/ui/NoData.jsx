@@ -1,9 +1,7 @@
-import "./NoData.scss";
+import './NoData.scss';
 
 function NoData({ text }) {
-    return (
-        <div className="NoData">{text}</div>
-    );
+    return <div className="NoData">{text}</div>;
 }
 
 export default NoData;

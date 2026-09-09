@@ -1,6 +1,6 @@
-import { unpackPaletteOptionsActivable } from "./palette";
+import { unpackPaletteOptionsActivable } from './palette';
 
-import "./Button.scss";
+import './Button.scss';
 
 function Button({ text, onClick, palette, disabled = false }) {
     return (

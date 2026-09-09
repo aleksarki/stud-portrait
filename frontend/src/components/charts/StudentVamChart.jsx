@@ -40,15 +40,28 @@ const StudentVamChart = ({ studentId, competency = 'res_comp_leadership' }) => {
         <div className="student-vam-chart">
             <h4>Value-Added для {data.info.name}</h4>
             <p>Средний VAM: {data.avgVam.toFixed(2)}</p>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer
+                width="100%"
+                height={300}
+            >
                 <LineChart data={data.chartData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="period" />
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Line type="monotone" dataKey="actual" stroke="#1976d2" name="Фактический прирост" />
-                    <Line type="monotone" dataKey="value_added" stroke="#ff9800" name="Value-Added" />
+                    <Line
+                        type="monotone"
+                        dataKey="actual"
+                        stroke="#1976d2"
+                        name="Фактический прирост"
+                    />
+                    <Line
+                        type="monotone"
+                        dataKey="value_added"
+                        stroke="#ff9800"
+                        name="Value-Added"
+                    />
                 </LineChart>
             </ResponsiveContainer>
         </div>

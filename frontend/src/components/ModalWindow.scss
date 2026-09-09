@@ -24,21 +24,21 @@
             align-items: center;
             padding: 10px;
             border-bottom: 1px solid #e9ecef;
-            
+
             .title {
                 margin: 0 0 0 10px;
                 color: #495057;
                 font-size: 18px;
                 font-weight: 600;
             }
-            
+
             .close-btn {
                 background: none;
                 border: none;
                 font-size: 20px;
                 cursor: pointer;
                 color: #6c757d;
-                
+
                 &:hover {
                     color: #31383f;
                     font-weight: bold;

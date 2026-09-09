@@ -1,10 +1,6 @@
 // components/charts/VamCourseScatter.jsx
 import React, { useMemo, useCallback } from 'react';
-import {
-    ComposedChart, Scatter, Line,
-    XAxis, YAxis, CartesianGrid,
-    Tooltip, ResponsiveContainer, Legend
-} from 'recharts';
+import { ComposedChart, Scatter, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 const COLORS = ['#1976d2', '#4caf50', '#f44336', '#ff9800', '#9c27b0', '#00bcd4', '#e91e63'];
 
@@ -40,9 +36,7 @@ const VamCourseScatter = ({ data }) => {
     // Домен Y — учитываем CI
     const yDomain = useMemo(() => {
         if (!data || data.length === 0) return [0, 100];
-        const vals = data
-            .flatMap(d => [d.ci_lower, d.ci_upper, d.value_added])
-            .filter(v => v != null);
+        const vals = data.flatMap(d => [d.ci_lower, d.ci_upper, d.value_added]).filter(v => v != null);
         const min = Math.min(...vals);
         const max = Math.max(...vals);
         const pad = (max - min) * 0.1 || 5;
@@ -72,9 +66,9 @@ const VamCourseScatter = ({ data }) => {
             const maxCourse = Math.max(...xs);
             const lineData = reg
                 ? [
-                    { course: minCourse, regression: reg.slope * minCourse + reg.intercept },
-                    { course: maxCourse, regression: reg.slope * maxCourse + reg.intercept }
-                ]
+                      { course: minCourse, regression: reg.slope * minCourse + reg.intercept },
+                      { course: maxCourse, regression: reg.slope * maxCourse + reg.intercept }
+                  ]
                 : [];
 
             return { name: group.name, color, points, lineData };
@@ -84,7 +78,15 @@ const VamCourseScatter = ({ data }) => {
     // Кастомная точка с CI-whiskers
     const renderCustomPoint = useCallback((props, color) => {
         const { cx, cy } = props;
-        return <circle key={`dot-${cx}-${cy}`} cx={cx} cy={cy} r={4} fill={color} />;
+        return (
+            <circle
+                key={`dot-${cx}-${cy}`}
+                cx={cx}
+                cy={cy}
+                r={4}
+                fill={color}
+            />
+        );
     }, []);
 
     const CustomTooltip = ({ active, payload }) => {
@@ -93,9 +95,13 @@ const VamCourseScatter = ({ data }) => {
             if (!point || !point.group) return null;
             return (
                 <div style={{ background: 'white', padding: 8, border: '1px solid #ccc', borderRadius: 4 }}>
-                    <p><strong>{point.group}</strong> – {point.course} курс</p>
+                    <p>
+                        <strong>{point.group}</strong> – {point.course} курс
+                    </p>
                     <p>Средний балл: {point.value_added?.toFixed(2)}</p>
-                    <p>ДИ: [{point.ci_lower?.toFixed(2) ?? '?'}; {point.ci_upper?.toFixed(2) ?? '?'}]</p>
+                    <p>
+                        ДИ: [{point.ci_lower?.toFixed(2) ?? '?'}; {point.ci_upper?.toFixed(2) ?? '?'}]
+                    </p>
                     <p>n = {point.n ?? '?'}</p>
                 </div>
             );
@@ -108,7 +114,10 @@ const VamCourseScatter = ({ data }) => {
     }
 
     return (
-        <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+        <ResponsiveContainer
+            width="100%"
+            height={CHART_HEIGHT}
+        >
             <ComposedChart margin={MARGIN}>
                 <CartesianGrid strokeDasharray="3 3" />
 
@@ -126,20 +135,20 @@ const VamCourseScatter = ({ data }) => {
                     dataKey="value_added"
                     name="Средний балл"
                     domain={yDomain}
-                    tickFormatter={(val) => val.toFixed(0)}
+                    tickFormatter={val => val.toFixed(0)}
                 />
 
                 <Tooltip content={<CustomTooltip />} />
                 <Legend />
 
-                {seriesList.map((series) => (
+                {seriesList.map(series => (
                     <React.Fragment key={series.name}>
                         {/* Scatter-точки с CI */}
                         <Scatter
                             name={series.name}
                             data={series.points}
                             fill={series.color}
-                            shape={(props) => renderCustomPoint(props, series.color)}
+                            shape={props => renderCustomPoint(props, series.color)}
                         />
 
                         {/* Линия регрессии — пунктиром, того же цвета */}

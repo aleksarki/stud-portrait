@@ -1,5 +1,4 @@
 .AdminAPView {
-
     .ds-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(720px, 1fr));
@@ -12,7 +11,7 @@
         border-radius: 16px;
         border: 1px solid #f1f5f9;
         padding: 20px 20px 12px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, .04);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     }
 
     .ds-header {
@@ -29,7 +28,6 @@
         font-weight: 600;
         color: #334155;
         margin: 0;
-
     }
 
     .ds-select {
@@ -45,7 +43,6 @@
         &:hover {
             border-color: #cbd5e1;
         }
-
     }
 
     .ds-count {

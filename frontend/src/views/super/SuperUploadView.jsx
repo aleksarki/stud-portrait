@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from 'react';
 
 import {
     getDataloadExpectedFields,
@@ -6,31 +6,31 @@ import {
     postDataloadTemplateSave,
     deleteDataloadTemplateDelete,
     postDataloadImportExcel
-} from "../../api";
-import { SUPER_LINK_TREE, xlsxReadColumns } from "../../utilities";
+} from '../../api';
+import { SUPER_LINK_TREE, xlsxReadColumns } from '../../utilities';
 
 import { ToastContainer, toast } from 'react-toastify';
-import FlexColumn from "../../components/FlexColumn";
-import FlexRow from "../../components/FlexRow";
-import LabelledBox from "../../components/LabelledBox";
-import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
+import FlexColumn from '../../components/FlexColumn';
+import FlexRow from '../../components/FlexRow';
+import LabelledBox from '../../components/LabelledBox';
+import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from '../../components/SidebarLayout';
 
-import TitledCard from "../../components/cards/TitledCard";
+import TitledCard from '../../components/cards/TitledCard';
 
-import Table, { TableHeader, TableItem, TableRow } from "../../components/tables/Table";
+import Table, { TableHeader, TableItem, TableRow } from '../../components/tables/Table';
 
-import Button from "../../components/ui/Button";
-import FileInput from "../../components/ui/FileInput";
-import LoadingSpinner from "../../components/ui/LoadingSpinner";
-import NumberField from "../../components/ui/NumberField";
-import { ADMIN_PALETTE } from "../../components/ui/palette";
-import Select, { Option } from "../../components/ui/Select";
+import Button from '../../components/ui/Button';
+import FileInput from '../../components/ui/FileInput';
+import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import NumberField from '../../components/ui/NumberField';
+import { ADMIN_PALETTE } from '../../components/ui/palette';
+import Select, { Option } from '../../components/ui/Select';
 
-import "./SuperUploadView.scss";
+import './SuperUploadView.scss';
 
 /** Конвертирует 0-based индекс колонки в Excel-нотацию: 0→A, 25→Z, 26→AA, 27→AB, ... */
 function colIndexToLetter(idx) {
-    let letter = "";
+    let letter = '';
     let n = idx + 1; // переходим к 1-based
     while (n > 0) {
         const rem = (n - 1) % 26;
@@ -51,7 +51,7 @@ function colLetterToIndex(letter) {
 }
 
 function SuperUploadView() {
-    const [step, setStep] = useState("upload");
+    const [step, setStep] = useState('upload');
     const [selectedFile, setSelectedFile] = useState(null);
     const [fileHeaders, setFileHeaders] = useState({});
     const [mappingConfig, setMappingConfig] = useState(null);
@@ -60,8 +60,8 @@ function SuperUploadView() {
     const [error, setError] = useState(null);
     const [uploading, setUploading] = useState(false);
     const [savedTemplates, setSavedTemplates] = useState([]);
-    const [selectedTemplateName, setSelectedTemplateName] = useState("");
-    const [newTemplateName, setNewTemplateName] = useState("");
+    const [selectedTemplateName, setSelectedTemplateName] = useState('');
+    const [newTemplateName, setNewTemplateName] = useState('');
     const [templatesLoading, setTemplatesLoading] = useState(false);
 
     // Ref для доступа к актуальному expectedFields внутри колбэков FileReader
@@ -83,7 +83,7 @@ function SuperUploadView() {
                     autoGenerateConfig(fileHeaders, sheets);
                 }
             })
-            .onError(err => console.error("Ошибка expected fields", err));
+            .onError(err => console.error('Ошибка expected fields', err));
 
         loadTemplatesFromServer();
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -97,11 +97,13 @@ function SuperUploadView() {
                 setSavedTemplates(data.templates || []);
             })
             .onError(err => {
-                console.error("Ошибка загрузки шаблонов", err);
+                console.error('Ошибка загрузки шаблонов', err);
                 // Fallback на localStorage если сервер недоступен
-                const stored = localStorage.getItem("upload_templates");
+                const stored = localStorage.getItem('upload_templates');
                 if (stored) {
-                    try { setSavedTemplates(JSON.parse(stored)); } catch(e) {}
+                    try {
+                        setSavedTemplates(JSON.parse(stored));
+                    } catch (e) {}
                 }
             })
             .finally(() => setTemplatesLoading(false));
@@ -115,7 +117,7 @@ function SuperUploadView() {
         setUploadResult(null);
 
         const reader = new FileReader();
-        reader.onload = (evt) => {
+        reader.onload = evt => {
             const data = new Uint8Array(evt.target.result);
             const headers = xlsxReadColumns(data);
             setFileHeaders(headers);
@@ -129,7 +131,7 @@ function SuperUploadView() {
             } else {
                 autoGenerateConfig(headers, expectedFieldsRef.current);
             }
-            setStep("mapping");
+            setStep('mapping');
         };
         reader.readAsArrayBuffer(file);
     };
@@ -156,9 +158,7 @@ function SuperUploadView() {
             const columnMapping = {};
             expectedCols.forEach(expected => {
                 // Точное совпадение (без учёта регистра)
-                let idx = availableHeaders.findIndex(
-                    h => h.toLowerCase() === expected.toLowerCase()
-                );
+                let idx = availableHeaders.findIndex(h => h.toLowerCase() === expected.toLowerCase());
                 // Нечёткое совпадение: ищем expected как подстроку заголовка и наоборот
                 if (idx === -1) {
                     idx = availableHeaders.findIndex(h => {
@@ -167,7 +167,7 @@ function SuperUploadView() {
                         return hLow.includes(eLow) || eLow.includes(hLow);
                     });
                 }
-                columnMapping[expected] = idx !== -1 ? colIndexToLetter(idx) : "";
+                columnMapping[expected] = idx !== -1 ? colIndexToLetter(idx) : '';
             });
 
             sheets.push({ name: sheetName, start_row: 2, columns: columnMapping });
@@ -189,14 +189,14 @@ function SuperUploadView() {
 
     const handleSaveTemplate = () => {
         if (!newTemplateName.trim()) {
-            setError("Введите имя шаблона");
+            setError('Введите имя шаблона');
             return;
         }
         // ФИX 6: сохраняем на сервер, не в localStorage
         postDataloadTemplateSave(newTemplateName.trim(), mappingConfig)
             .onSuccess(r => r.json())
             .onSuccess(() => {
-                setNewTemplateName("");
+                setNewTemplateName('');
                 setError(null);
                 loadTemplatesFromServer(); // перезагружаем список
             })
@@ -205,7 +205,7 @@ function SuperUploadView() {
 
     const handleDeleteTemplate = (templateId, e) => {
         e.stopPropagation();
-        if (!window.confirm("Удалить шаблон?")) return;
+        if (!window.confirm('Удалить шаблон?')) return;
         deleteDataloadTemplateDelete(templateId)
             .onSuccess(r => r.json())
             .onSuccess(() => loadTemplatesFromServer())
@@ -213,14 +213,12 @@ function SuperUploadView() {
     };
 
     const loadTemplate = () => {
-        const tmpl = savedTemplates.find(t =>
-            (t.name === selectedTemplateName) || (String(t.id) === String(selectedTemplateName))
-        );
+        const tmpl = savedTemplates.find(t => t.name === selectedTemplateName || String(t.id) === String(selectedTemplateName));
         if (!tmpl) return;
         setMappingConfig(tmpl.config);
         if (selectedFile && Object.keys(fileHeaders).length > 0) {
             // Файл уже загружен — сразу идём на маппинг
-            setStep("mapping");
+            setStep('mapping');
         } else {
             // Файл ещё не выбран — остаёмся на шаге upload,
             // шаблон будет применён автоматически при выборе файла
@@ -236,14 +234,14 @@ function SuperUploadView() {
         postDataloadImportExcel(selectedFile, mappingConfig)
             .onSuccess(r => r.json())
             .onSuccess(data => {
-                if (data.status === "success") {
+                if (data.status === 'success') {
                     setUploadResult(data);
-                    setStep("upload");
+                    setStep('upload');
                     setSelectedFile(null);
-                    const fileInput = document.getElementById("excel-file");
-                    if (fileInput) fileInput.value = "";
+                    const fileInput = document.getElementById('excel-file');
+                    if (fileInput) fileInput.value = '';
                 } else {
-                    setError(data.message || "Ошибка импорта");
+                    setError(data.message || 'Ошибка импорта');
                 }
                 setUploading(false);
             })
@@ -256,14 +254,13 @@ function SuperUploadView() {
     const renderMappingEditor = () => {
         if (!mappingConfig || !fileHeaders) return null;
 
-        const allFieldsMapped = mappingConfig.sheets.every(sheet =>
-            Object.values(sheet.columns).some(v => v !== "")
-        );
+        const allFieldsMapped = mappingConfig.sheets.every(sheet => Object.values(sheet.columns).some(v => v !== ''));
 
-        return <>
+        return (
+            <>
                 <Button
                     text="← Назад"
-                    onClick={() => setStep("upload")}
+                    onClick={() => setStep('upload')}
                     palette={ADMIN_PALETTE.CYAN}
                 />
 
@@ -287,22 +284,25 @@ function SuperUploadView() {
                             >
                                 <option value="">— автоопределение —</option>
                                 {savedTemplates.map(t => (
-                                    <option key={t.id ?? t.name} value={t.name}>{t.name}</option>
+                                    <option
+                                        key={t.id ?? t.name}
+                                        value={t.name}
+                                    >
+                                        {t.name}
+                                    </option>
                                 ))}
                             </select>
                         </div>
                     )}
 
                     {Object.keys(expectedFields).length === 0 && (
-                        <div className="warning-banner">
-                            ⚠️ Список ожидаемых полей ещё загружается. Автосопоставление будет недоступно.
-                        </div>
+                        <div className="warning-banner">⚠️ Список ожидаемых полей ещё загружается. Автосопоставление будет недоступно.</div>
                     )}
 
                     {mappingConfig.sheets.length === 0 && (
                         <div className="warning-banner">
-                            ⚠️ Ни один лист файла не совпал с ожидаемыми листами ({Object.keys(expectedFields).join(", ")}).
-                            Проверьте названия листов в Excel-файле.
+                            ⚠️ Ни один лист файла не совпал с ожидаемыми листами ({Object.keys(expectedFields).join(', ')}). Проверьте
+                            названия листов в Excel-файле.
                         </div>
                     )}
 
@@ -316,9 +316,7 @@ function SuperUploadView() {
                                 </TableHeader>
                                 {Object.entries(sheet.columns).map(([field, colLetter]) => {
                                     const colIdx = colLetter ? colLetterToIndex(colLetter) : -1;
-                                    const headerPreview = colIdx >= 0
-                                        ? fileHeaders[sheet.name]?.[colIdx] || ""
-                                        : "—";
+                                    const headerPreview = colIdx >= 0 ? fileHeaders[sheet.name]?.[colIdx] || '' : '—';
                                     const isMissing = !colLetter;
 
                                     return (
@@ -335,7 +333,8 @@ function SuperUploadView() {
                                                     {fileHeaders[sheet.name]?.map((header, colIdx) => (
                                                         <Option
                                                             key={colIdx}
-                                                            value={colIndexToLetter(colIdx)} label={`${colIndexToLetter(colIdx)}: ${header}`}   
+                                                            value={colIndexToLetter(colIdx)}
+                                                            label={`${colIndexToLetter(colIdx)}: ${header}`}
                                                         />
                                                     ))}
                                                 </Select>
@@ -360,8 +359,8 @@ function SuperUploadView() {
                             type="text"
                             placeholder="Имя шаблона"
                             value={newTemplateName}
-                            onChange={(e) => setNewTemplateName(e.target.value)}
-                            onKeyDown={(e) => e.key === "Enter" && handleSaveTemplate()}
+                            onChange={e => setNewTemplateName(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && handleSaveTemplate()}
                         />
                         <Button
                             text="Сохранить шаблон"
@@ -369,21 +368,18 @@ function SuperUploadView() {
                             palette={ADMIN_PALETTE.BLUE}
                         />
                         <Button
-                            text={uploading ? "Импорт..." : "Импортировать данные"}
+                            text={uploading ? 'Импорт...' : 'Импортировать данные'}
                             onClick={handleImport}
                             disabled={uploading || !allFieldsMapped}
                             palette={ADMIN_PALETTE.GREEN}
                         />
-                        {!allFieldsMapped && (
-                            <span className="hint">Заполните хотя бы одно поле в каждом листе</span>
-                        )}
+                        {!allFieldsMapped && <span className="hint">Заполните хотя бы одно поле в каждом листе</span>}
                     </FlexRow>
 
                     {error && <div className="error-banner">{error}</div>}
                 </FlexColumn>
-
-                
-        </>;
+            </>
+        );
     };
 
     // true если шаблон выбран и применён к mappingConfig
@@ -398,44 +394,52 @@ function SuperUploadView() {
             {/* ── Шаблоны — выбираем ДО или ВМЕСТЕ с файлом ── */}
             {templatesLoading ? (
                 <LoadingSpinner text="Загрузка шаблонов..." />
-            ) : savedTemplates.length > 0 && (
-                <div className="template-load-row">
-                    <label>Шаблон маппинга (необязательно):</label>
-                    <select
-                        value={selectedTemplateName}
-                        onChange={e => {
-                            setSelectedTemplateName(e.target.value);
-                            // Сбрасываем конфиг чтобы не осталось старого шаблона
-                            if (!e.target.value) setMappingConfig(null);
-                        }}
-                    >
-                        <option value="">— без шаблона —</option>
-                        {savedTemplates.map(t => (
-                            <option key={t.id ?? t.name} value={t.name}>{t.name}</option>
-                        ))}
-                    </select>
-                    <button onClick={loadTemplate} disabled={!selectedTemplateName}>
-                        Применить
-                    </button>
-                    {selectedTemplateName && (
-                        <button
-                            className="btn-delete"
-                            onClick={(e) => {
-                                const tmpl = savedTemplates.find(t => t.name === selectedTemplateName);
-                                if (tmpl?.id) handleDeleteTemplate(tmpl.id, e);
+            ) : (
+                savedTemplates.length > 0 && (
+                    <div className="template-load-row">
+                        <label>Шаблон маппинга (необязательно):</label>
+                        <select
+                            value={selectedTemplateName}
+                            onChange={e => {
+                                setSelectedTemplateName(e.target.value);
+                                // Сбрасываем конфиг чтобы не осталось старого шаблона
+                                if (!e.target.value) setMappingConfig(null);
                             }}
                         >
-                            🗑 Удалить
+                            <option value="">— без шаблона —</option>
+                            {savedTemplates.map(t => (
+                                <option
+                                    key={t.id ?? t.name}
+                                    value={t.name}
+                                >
+                                    {t.name}
+                                </option>
+                            ))}
+                        </select>
+                        <button
+                            onClick={loadTemplate}
+                            disabled={!selectedTemplateName}
+                        >
+                            Применить
                         </button>
-                    )}
-                </div>
+                        {selectedTemplateName && (
+                            <button
+                                className="btn-delete"
+                                onClick={e => {
+                                    const tmpl = savedTemplates.find(t => t.name === selectedTemplateName);
+                                    if (tmpl?.id) handleDeleteTemplate(tmpl.id, e);
+                                }}
+                            >
+                                🗑 Удалить
+                            </button>
+                        )}
+                    </div>
+                )
             )}
 
             {/* Подсказка: шаблон выбран, но файл ещё не загружен */}
             {isTemplateActive && !selectedFile && (
-                <div className="info-banner">
-                    ✅ Шаблон «{selectedTemplateName}» применён. Теперь выберите Excel-файл.
-                </div>
+                <div className="info-banner">✅ Шаблон «{selectedTemplateName}» применён. Теперь выберите Excel-файл.</div>
             )}
 
             {/* ── Файл ── */}
@@ -448,18 +452,14 @@ function SuperUploadView() {
                         disabled={uploading}
                         palette={ADMIN_PALETTE.GRAY}
                     />
-                    {isTemplateActive && (
-                        <span className="template-hint">
-                            Будет использован шаблон «{selectedTemplateName}»
-                        </span>
-                    )}
+                    {isTemplateActive && <span className="template-hint">Будет использован шаблон «{selectedTemplateName}»</span>}
                 </LabelledBox>
             </FlexRow>
 
             {uploadResult && (
                 <div className="success-banner">
-                    ✅ Импорт завершён: создано {uploadResult.created}, обновлено {uploadResult.updated},
-                    связей ФИО→ID: {uploadResult.mapped ?? 0}
+                    ✅ Импорт завершён: создано {uploadResult.created}, обновлено {uploadResult.updated}, связей ФИО→ID:{' '}
+                    {uploadResult.mapped ?? 0}
                 </div>
             )}
             {error && <div className="error-banner">{error}</div>}
@@ -469,12 +469,15 @@ function SuperUploadView() {
     return (
         <div className="SuperUploadView">
             <SidebarLayout style={LAYOUT_STYLE.ADMIN}>
-                <Header title="Суперадмин: Загрузка данных" name="СуперАдминистратор1" />
+                <Header
+                    title="Суперадмин: Загрузка данных"
+                    name="СуперАдминистратор1"
+                />
                 <Sidebar linkTree={SUPER_LINK_TREE} />
                 <Content>
                     <h2>Загрузка данных «Россия — страна возможностей»</h2>
-                    {step === "upload" && renderUploadStep()}
-                    {step === "mapping" && renderMappingEditor()}
+                    {step === 'upload' && renderUploadStep()}
+                    {step === 'mapping' && renderMappingEditor()}
                 </Content>
             </SidebarLayout>
         </div>

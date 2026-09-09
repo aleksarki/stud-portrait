@@ -1,21 +1,21 @@
 import React, { createContext, useState, useContext } from 'react';
-import { create } from "zustand";
+import { create } from 'zustand';
 
-const DEFAULT_PAGE = "/admin/stats";
+const DEFAULT_PAGE = '/admin/stats';
 
-export const useAdminStore = create((set) => ({
+export const useAdminStore = create(set => ({
     currentPage: DEFAULT_PAGE,
-    setCurrentPage: (page) => set({
-        currentPage: page
-    }),
+    setCurrentPage: page =>
+        set({
+            currentPage: page
+        }),
 
-    savedFilters: { 'Admin': {}},
+    savedFilters: { 'Admin': {} },
     saveFilters: (page, data) =>
-        set((state) => ({
+        set(state => ({
             savedFilters: {
                 ...state.savedFilters,
                 [page]: data
             }
         }))
-
 }));

@@ -1,7 +1,5 @@
-import { useEffect, useState } from "react";
-import {
-    ResponsiveContainer, LineChart, Legend, Line, Tooltip, XAxis, YAxis, CartesianGrid
-} from "recharts";
+import { useEffect, useState } from 'react';
+import { ResponsiveContainer, LineChart, Legend, Line, Tooltip, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 import {
     postAnalyzeCohortLgm,
@@ -13,28 +11,28 @@ import {
     postGetCompetencyLevelFlow,
     postGetVamTrendData,
     postGetCompetencyLevelFlowYearly
-} from "../../../api";
-import { COMPETENCIES, COMPETENCIES_NAMES, LINK_TREE } from "../../../utilities";
+} from '../../../api';
+import { COMPETENCIES, COMPETENCIES_NAMES, LINK_TREE } from '../../../utilities';
 
-import AiInsightPanel from "../../../components/AiInsightPanel";
-import FlexRow, { JUSTIFY, WRAP } from "../../../components/FlexRow";
-import LabelledBox from "../../../components/LabelledBox";
-import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
+import AiInsightPanel from '../../../components/AiInsightPanel';
+import FlexRow, { JUSTIFY, WRAP } from '../../../components/FlexRow';
+import LabelledBox from '../../../components/LabelledBox';
+import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from '../../../components/SidebarLayout';
 
-import TitledCard from "../../../components/cards/TitledCard";
-import ValueCard from "../../../components/cards/ValueCard";
+import TitledCard from '../../../components/cards/TitledCard';
+import ValueCard from '../../../components/cards/ValueCard';
 
-import Button from "../../../components/ui/Button";
-import NoData from "../../../components/ui/NoData";
-import LoadingSpinner from "../../../components/ui/LoadingSpinner";
+import Button from '../../../components/ui/Button';
+import NoData from '../../../components/ui/NoData';
+import LoadingSpinner from '../../../components/ui/LoadingSpinner';
 import MultiSelect from '../../../components/ui/MultiSelect';
-import { ADMIN_PALETTE } from "../../../components/ui/palette";
-import Select, { Option } from "../../../components/ui/Select";
+import { ADMIN_PALETTE } from '../../../components/ui/palette';
+import Select, { Option } from '../../../components/ui/Select';
 
 import SankeyDiagram from '../../../components/charts/SankeyDiagram';
 import VamDotPlot from '../../../components/charts/VamDotPlot';
 
-import "./AdminAnalysisAdvancedView.scss";
+import './AdminAnalysisAdvancedView.scss';
 
 function AdminAnalysisAdvancedView() {
     // -------------------- STATE --------------------
@@ -103,9 +101,15 @@ function AdminAnalysisAdvancedView() {
     // -------------------- ЗАГРУЗКА ОПЦИЙ ФИЛЬТРОВ --------------------
     const loadFilterOptions = async (sid, updateCounts = false) => {
         if (!sid) return;
-        (
-            updateCounts
-            ? getPortraitGetFilterOptionsWithCounts(sid, selectedInstitutions, selectedDirections, selectedCourses, selectedTestAttempts, selectedCompetencies)
+        (updateCounts
+            ? getPortraitGetFilterOptionsWithCounts(
+                  sid,
+                  selectedInstitutions,
+                  selectedDirections,
+                  selectedCourses,
+                  selectedTestAttempts,
+                  selectedCompetencies
+              )
             : getPortraitGetFilterOptionsWithCounts(sid)
         )
             .onSuccess(async response => {
@@ -114,11 +118,13 @@ function AdminAnalysisAdvancedView() {
                     let disciplines = [];
                     try {
                         const discRes = getPortraitGetDisciplines();
-                        const discData = await new Promise((resolve) => {
-                            discRes.onSuccess(async d => {
-                                const json = await d.json();
-                                resolve(json);
-                            }).onError(() => resolve({ disciplines: [] }));
+                        const discData = await new Promise(resolve => {
+                            discRes
+                                .onSuccess(async d => {
+                                    const json = await d.json();
+                                    resolve(json);
+                                })
+                                .onError(() => resolve({ disciplines: [] }));
                         });
                         if (discData.status === 'success') {
                             disciplines = discData.disciplines || [];
@@ -128,17 +134,21 @@ function AdminAnalysisAdvancedView() {
                     }
 
                     // Приводим ID к числам, чтобы избежать дублирования
-                    const institutions = (data.data?.institutions || []).map(i => ({
-                        id: Number(i.id),
-                        name: i.name,
-                        count: i.count
-                    })).filter(i => !isNaN(i.id));
+                    const institutions = (data.data?.institutions || [])
+                        .map(i => ({
+                            id: Number(i.id),
+                            name: i.name,
+                            count: i.count
+                        }))
+                        .filter(i => !isNaN(i.id));
 
-                    const allDirections = (data.data?.directions || []).map(d => ({
-                        id: Number(d.id),
-                        name: d.name,
-                        count: d.count
-                    })).filter(d => !isNaN(d.id));
+                    const allDirections = (data.data?.directions || [])
+                        .map(d => ({
+                            id: Number(d.id),
+                            name: d.name,
+                            count: d.count
+                        }))
+                        .filter(d => !isNaN(d.id));
 
                     setFilterOptions({
                         institutions: institutions,
@@ -146,7 +156,9 @@ function AdminAnalysisAdvancedView() {
                         allDirections: allDirections,
                         courses: data.data?.courses || [],
                         testAttempts: data.data?.test_attempts || [],
-                        competencies: data.data?.competencies || Object.keys(COMPETENCIES_NAMES).map(c => ({ id: c, name: COMPETENCIES_NAMES[c], count: 0 })),
+                        competencies:
+                            data.data?.competencies ||
+                            Object.keys(COMPETENCIES_NAMES).map(c => ({ id: c, name: COMPETENCIES_NAMES[c], count: 0 })),
                         students: data.data?.students || [],
                         disciplines: disciplines
                     });
@@ -214,7 +226,7 @@ function AdminAnalysisAdvancedView() {
     };
 
     // -------------------- LGM Growers --------------------
-    const loadLgmGrowers = (groupId) => {
+    const loadLgmGrowers = groupId => {
         if (lgmGrowersMap[groupId]?.loaded) return; // уже загружено
 
         setLgmGrowersMap(prev => ({
@@ -236,7 +248,7 @@ function AdminAnalysisAdvancedView() {
                             loaded: true,
                             fast_growers: data.fast_growers || [],
                             slow_growers: data.slow_growers || [],
-                            mean_slope: data.mean_slope || 0,
+                            mean_slope: data.mean_slope || 0
                         }
                     }));
                 } else {
@@ -256,18 +268,17 @@ function AdminAnalysisAdvancedView() {
     };
 
     // -------------------- Поток уровней --------------------
-    const loadLevelFlow = (type) => {
+    const loadLevelFlow = type => {
         const resolvedType = type ?? flowType;
         setFlowType(resolvedType);
         setFlowData(null);
         setLoading(true);
         const directionIds = selectedDirections.map(id => Number(id)).filter(v => !isNaN(v));
-        (
-            resolvedType === 'year'
-            ? postGetCompetencyLevelFlowYearly
-            : postGetCompetencyLevelFlow
+        (resolvedType === 'year' ? postGetCompetencyLevelFlowYearly : postGetCompetencyLevelFlow)(
+            flowCompetency,
+            selectedInstitutions,
+            directionIds
         )
-        (flowCompetency, selectedInstitutions, directionIds)
             .onSuccess(async response => {
                 const data = await response.json();
                 if (data.status === 'success') {
@@ -391,32 +402,55 @@ function AdminAnalysisAdvancedView() {
                     Компетенция: <strong>{COMPETENCIES_NAMES[competency] || competency}</strong>
                     {' · '}Группировка: <strong>{group_by === 'institution' ? 'по ВУЗам' : 'по направлениям'}</strong>
                     {total_qualified_students != null && (
-                        <span style={{
-                            marginLeft: 12, background: '#e8f4fd', color: '#1976d2',
-                            border: '1px solid #bbdefb', borderRadius: 10,
-                            padding: '2px 10px', fontSize: 12, fontWeight: 500
-                        }}>
+                        <span
+                            style={{
+                                marginLeft: 12,
+                                background: '#e8f4fd',
+                                color: '#1976d2',
+                                border: '1px solid #bbdefb',
+                                borderRadius: 10,
+                                padding: '2px 10px',
+                                fontSize: 12,
+                                fontWeight: 500
+                            }}
+                        >
                             👥 {total_qualified_students} уникальных студентов (≥4 тестирований)
                         </span>
                     )}
                 </p>
 
                 <div style={{ marginTop: 16, marginBottom: 16 }}>
-                    <LabelledBox label="Режим отображения:" inrow nopad>
-                        <Select initValue={lgmChartMode} onChange={setLgmChartMode}>
-                            <Option value="combined" label="Сводный график (все группы)" />
-                            <Option value="grid" label="Отдельные графики по группам" />
+                    <LabelledBox
+                        label="Режим отображения:"
+                        inrow
+                        nopad
+                    >
+                        <Select
+                            initValue={lgmChartMode}
+                            onChange={setLgmChartMode}
+                        >
+                            <Option
+                                value="combined"
+                                label="Сводный график (все группы)"
+                            />
+                            <Option
+                                value="grid"
+                                label="Отдельные графики по группам"
+                            />
                         </Select>
                     </LabelledBox>
                 </div>
 
                 {lgmChartMode === 'combined' ? (
-                    <ResponsiveContainer width="100%" height={400}>
+                    <ResponsiveContainer
+                        width="100%"
+                        height={400}
+                    >
                         <LineChart data={combinedData}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="course" />
                             <YAxis domain={[200, 800]} />
-                            <Tooltip formatter={(v) => v != null ? [Number(v).toFixed(1)] : ['-']} />
+                            <Tooltip formatter={v => (v != null ? [Number(v).toFixed(1)] : ['-'])} />
                             <Legend />
                             {groups.map((group, idx) => (
                                 <Line
@@ -436,23 +470,16 @@ function AdminAnalysisAdvancedView() {
                             const color = colors[idx % colors.length];
 
                             // Строим данные для графика: predicted + actual
-                            const actualByKey = Object.fromEntries(
-                                (group.actual_by_course || []).map(p => [p.course, p.avg_score])
-                            );
-                            const firstActualCourse = group.actual_by_course?.length
-                                ? group.actual_by_course[0].course
-                                : 1;
+                            const actualByKey = Object.fromEntries((group.actual_by_course || []).map(p => [p.course, p.avg_score]));
+                            const firstActualCourse = group.actual_by_course?.length ? group.actual_by_course[0].course : 1;
                             const chartData = [1, 2, 3, 4].map(c => ({
                                 name: COURSE_LABELS[c] ?? `${c} курс`,
                                 predicted: +(group.mean_intercept + group.mean_slope * (c - firstActualCourse)).toFixed(2),
-                                actual: actualByKey[c] ?? null,
+                                actual: actualByKey[c] ?? null
                             }));
 
                             const r2Pct = group.mean_r_squared != null ? Math.round(group.mean_r_squared * 100) : null;
-                            const r2Color = r2Pct == null ? '#aaa'
-                                : r2Pct > 80 ? '#2ecc71'
-                                : r2Pct > 50 ? '#e67e22'
-                                : '#e74c3c';
+                            const r2Color = r2Pct == null ? '#aaa' : r2Pct > 80 ? '#2ecc71' : r2Pct > 50 ? '#e67e22' : '#e74c3c';
 
                             const abs = Math.abs(group.mean_slope);
                             const neutral = abs < 1;
@@ -466,40 +493,61 @@ function AdminAnalysisAdvancedView() {
                                     className="lgm-group-card"
                                     style={{ border: '1px solid #e0e0e0', borderRadius: 8, padding: '14px 16px', background: '#fafafa' }}
                                 >
-                                    <h5 style={{ marginBottom: 6, fontSize: 13, fontWeight: 600, color: '#2c3e50' }}>
-                                        {group.group_name}
-                                    </h5>
+                                    <h5 style={{ marginBottom: 6, fontSize: 13, fontWeight: 600, color: '#2c3e50' }}>{group.group_name}</h5>
 
                                     {/* Метрики: slope, R², студенты */}
                                     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
                                         <span style={{ fontSize: 12, color: '#666' }}>
                                             Старт: <strong>{group.mean_intercept.toFixed(1)}</strong>
                                         </span>
-                                        <span style={{
-                                            display: 'inline-flex', alignItems: 'center', gap: 3,
-                                            background: `${slopeColor}18`, color: slopeColor,
-                                            border: `1px solid ${slopeColor}44`,
-                                            borderRadius: 10, padding: '2px 8px', fontSize: 11, fontWeight: 500,
-                                        }}>
-                                            {slopeArrow} {slopeLabel} ({group.mean_slope > 0 ? '+' : ''}{group.mean_slope.toFixed(2)}/курс)
+                                        <span
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: 3,
+                                                background: `${slopeColor}18`,
+                                                color: slopeColor,
+                                                border: `1px solid ${slopeColor}44`,
+                                                borderRadius: 10,
+                                                padding: '2px 8px',
+                                                fontSize: 11,
+                                                fontWeight: 500
+                                            }}
+                                        >
+                                            {slopeArrow} {slopeLabel} ({group.mean_slope > 0 ? '+' : ''}
+                                            {group.mean_slope.toFixed(2)}/курс)
                                         </span>
                                         {r2Pct != null && (
                                             <span style={{ fontSize: 12, color: '#666' }}>
                                                 R²: <strong style={{ color: r2Color }}>{r2Pct}%</strong>
                                             </span>
                                         )}
-                                        <span style={{ fontSize: 12, color: '#999' }}>
-                                            {group.n_students} студ.
-                                        </span>
+                                        <span style={{ fontSize: 12, color: '#999' }}>{group.n_students} студ.</span>
                                     </div>
 
-                                    <ResponsiveContainer width="100%" height={260}>
-                                        <LineChart data={chartData} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#ececec" />
-                                            <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                                            <YAxis tick={{ fontSize: 11 }} width={40} domain={['auto', 'auto']} />
+                                    <ResponsiveContainer
+                                        width="100%"
+                                        height={260}
+                                    >
+                                        <LineChart
+                                            data={chartData}
+                                            margin={{ top: 8, right: 16, bottom: 0, left: 0 }}
+                                        >
+                                            <CartesianGrid
+                                                strokeDasharray="3 3"
+                                                stroke="#ececec"
+                                            />
+                                            <XAxis
+                                                dataKey="name"
+                                                tick={{ fontSize: 11 }}
+                                            />
+                                            <YAxis
+                                                tick={{ fontSize: 11 }}
+                                                width={40}
+                                                domain={['auto', 'auto']}
+                                            />
                                             <Tooltip
-                                                formatter={(val, name) => val == null ? ['-', name] : [Number(val).toFixed(1), name]}
+                                                formatter={(val, name) => (val == null ? ['-', name] : [Number(val).toFixed(1), name])}
                                                 contentStyle={{ fontSize: 12 }}
                                             />
                                             <Legend wrapperStyle={{ fontSize: 11 }} />
@@ -532,115 +580,244 @@ function AdminAnalysisAdvancedView() {
                                         <details style={{ marginTop: 8 }}>
                                             <summary style={{ fontSize: 12, cursor: 'pointer', color: '#666' }}>Интерпретация</summary>
                                             <div style={{ fontSize: 12, marginTop: 4, lineHeight: 1.6 }}>
-                                                <div>Средняя скорость роста: <strong>{group.interpretation.average_growth_rate?.toFixed(3)}</strong></div>
-                                                <div>Быстрорастущие: {group.interpretation.fast_growers_count} ({group.interpretation.fast_growers_pct?.toFixed(1)}%)</div>
-                                                <div>Медленнорастущие: {group.interpretation.slow_growers_count} ({group.interpretation.slow_growers_pct?.toFixed(1)}%)</div>
+                                                <div>
+                                                    Средняя скорость роста:{' '}
+                                                    <strong>{group.interpretation.average_growth_rate?.toFixed(3)}</strong>
+                                                </div>
+                                                <div>
+                                                    Быстрорастущие: {group.interpretation.fast_growers_count} (
+                                                    {group.interpretation.fast_growers_pct?.toFixed(1)}%)
+                                                </div>
+                                                <div>
+                                                    Медленнорастущие: {group.interpretation.slow_growers_count} (
+                                                    {group.interpretation.slow_growers_pct?.toFixed(1)}%)
+                                                </div>
                                             </div>
                                         </details>
                                     )}
                                     {/* Блок детального просмотра студентов */}
-                                    {group.interpretation && (() => {
-                                        const growers = lgmGrowersMap[group.group_id];
-                                        return (
-                                            <details
-                                                style={{ marginTop: 6 }}
-                                                onToggle={(e) => {
-                                                    if (e.target.open) loadLgmGrowers(group.group_id);
-                                                }}
-                                            >
-                                                <summary style={{ fontSize: 12, cursor: 'pointer', color: '#1976d2', fontWeight: 500 }}>
-                                                    👥 Посмотреть студентов ({group.interpretation.fast_growers_count} быстрых / {group.interpretation.slow_growers_count} медленных)
-                                                </summary>
-                                                <div style={{ marginTop: 8 }}>
-                                                    {growers?.loading && (
-                                                        <div style={{ fontSize: 12, color: '#888', padding: '8px 0' }}>Загрузка...</div>
-                                                    )}
-                                                    {growers?.error && (
-                                                        <div style={{ fontSize: 12, color: '#e74c3c' }}>{growers.error}</div>
-                                                    )}
-                                                    {growers?.loaded && !growers.error && (
-                                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                                                            {/* Быстрорастущие */}
-                                                            <div>
-                                                                <div style={{ fontSize: 12, fontWeight: 600, color: '#2ecc71', marginBottom: 4 }}>
-                                                                    📈 Быстрорастущие ({growers.fast_growers.length})
-                                                                </div>
-                                                                <div style={{ maxHeight: 200, overflowY: 'auto' }}>
-                                                                    <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
-                                                                        <thead>
-                                                                            <tr style={{ background: '#f0faf4' }}>
-                                                                                <th style={{ padding: '4px 6px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Студент</th>
-                                                                                <th style={{ padding: '4px 6px', textAlign: 'right', borderBottom: '1px solid #ddd' }}>Рост/курс</th>
-                                                                            </tr>
-                                                                        </thead>
-                                                                        <tbody>
-                                                                            {growers.fast_growers.map(s => (
-                                                                                <tr key={s.student_id} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                                                                                    <td style={{ padding: '3px 6px' }}>
-                                                                                        <div>{s.name}</div>
-                                                                                        {(s.institution || s.direction) && (
-                                                                                            <div style={{ color: '#999', fontSize: 10 }}>{s.institution || s.direction}</div>
-                                                                                        )}
-                                                                                    </td>
-                                                                                    <td style={{ padding: '3px 6px', textAlign: 'right', color: '#2ecc71', fontWeight: 600 }}>
-                                                                                        +{s.slope > 0 ? s.slope.toFixed(3) : s.slope.toFixed(3)}
-                                                                                    </td>
+                                    {group.interpretation &&
+                                        (() => {
+                                            const growers = lgmGrowersMap[group.group_id];
+                                            return (
+                                                <details
+                                                    style={{ marginTop: 6 }}
+                                                    onToggle={e => {
+                                                        if (e.target.open) loadLgmGrowers(group.group_id);
+                                                    }}
+                                                >
+                                                    <summary style={{ fontSize: 12, cursor: 'pointer', color: '#1976d2', fontWeight: 500 }}>
+                                                        👥 Посмотреть студентов ({group.interpretation.fast_growers_count} быстрых /{' '}
+                                                        {group.interpretation.slow_growers_count} медленных)
+                                                    </summary>
+                                                    <div style={{ marginTop: 8 }}>
+                                                        {growers?.loading && (
+                                                            <div style={{ fontSize: 12, color: '#888', padding: '8px 0' }}>Загрузка...</div>
+                                                        )}
+                                                        {growers?.error && (
+                                                            <div style={{ fontSize: 12, color: '#e74c3c' }}>{growers.error}</div>
+                                                        )}
+                                                        {growers?.loaded && !growers.error && (
+                                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                                                                {/* Быстрорастущие */}
+                                                                <div>
+                                                                    <div
+                                                                        style={{
+                                                                            fontSize: 12,
+                                                                            fontWeight: 600,
+                                                                            color: '#2ecc71',
+                                                                            marginBottom: 4
+                                                                        }}
+                                                                    >
+                                                                        📈 Быстрорастущие ({growers.fast_growers.length})
+                                                                    </div>
+                                                                    <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                                                                        <table
+                                                                            style={{
+                                                                                width: '100%',
+                                                                                fontSize: 11,
+                                                                                borderCollapse: 'collapse'
+                                                                            }}
+                                                                        >
+                                                                            <thead>
+                                                                                <tr style={{ background: '#f0faf4' }}>
+                                                                                    <th
+                                                                                        style={{
+                                                                                            padding: '4px 6px',
+                                                                                            textAlign: 'left',
+                                                                                            borderBottom: '1px solid #ddd'
+                                                                                        }}
+                                                                                    >
+                                                                                        Студент
+                                                                                    </th>
+                                                                                    <th
+                                                                                        style={{
+                                                                                            padding: '4px 6px',
+                                                                                            textAlign: 'right',
+                                                                                            borderBottom: '1px solid #ddd'
+                                                                                        }}
+                                                                                    >
+                                                                                        Рост/курс
+                                                                                    </th>
                                                                                 </tr>
-                                                                            ))}
-                                                                            {growers.fast_growers.length === 0 && (
-                                                                                <tr><td colSpan={2} style={{ padding: '6px', color: '#aaa', textAlign: 'center' }}>Нет данных</td></tr>
-                                                                            )}
-                                                                        </tbody>
-                                                                    </table>
+                                                                            </thead>
+                                                                            <tbody>
+                                                                                {growers.fast_growers.map(s => (
+                                                                                    <tr
+                                                                                        key={s.student_id}
+                                                                                        style={{ borderBottom: '1px solid #f0f0f0' }}
+                                                                                    >
+                                                                                        <td style={{ padding: '3px 6px' }}>
+                                                                                            <div>{s.name}</div>
+                                                                                            {(s.institution || s.direction) && (
+                                                                                                <div
+                                                                                                    style={{ color: '#999', fontSize: 10 }}
+                                                                                                >
+                                                                                                    {s.institution || s.direction}
+                                                                                                </div>
+                                                                                            )}
+                                                                                        </td>
+                                                                                        <td
+                                                                                            style={{
+                                                                                                padding: '3px 6px',
+                                                                                                textAlign: 'right',
+                                                                                                color: '#2ecc71',
+                                                                                                fontWeight: 600
+                                                                                            }}
+                                                                                        >
+                                                                                            +
+                                                                                            {s.slope > 0
+                                                                                                ? s.slope.toFixed(3)
+                                                                                                : s.slope.toFixed(3)}
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                ))}
+                                                                                {growers.fast_growers.length === 0 && (
+                                                                                    <tr>
+                                                                                        <td
+                                                                                            colSpan={2}
+                                                                                            style={{
+                                                                                                padding: '6px',
+                                                                                                color: '#aaa',
+                                                                                                textAlign: 'center'
+                                                                                            }}
+                                                                                        >
+                                                                                            Нет данных
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                )}
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+                                                                </div>
+                                                                {/* Медленнорастущие */}
+                                                                <div>
+                                                                    <div
+                                                                        style={{
+                                                                            fontSize: 12,
+                                                                            fontWeight: 600,
+                                                                            color: '#e74c3c',
+                                                                            marginBottom: 4
+                                                                        }}
+                                                                    >
+                                                                        📉 Медленнорастущие ({growers.slow_growers.length})
+                                                                    </div>
+                                                                    <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                                                                        <table
+                                                                            style={{
+                                                                                width: '100%',
+                                                                                fontSize: 11,
+                                                                                borderCollapse: 'collapse'
+                                                                            }}
+                                                                        >
+                                                                            <thead>
+                                                                                <tr style={{ background: '#fff5f5' }}>
+                                                                                    <th
+                                                                                        style={{
+                                                                                            padding: '4px 6px',
+                                                                                            textAlign: 'left',
+                                                                                            borderBottom: '1px solid #ddd'
+                                                                                        }}
+                                                                                    >
+                                                                                        Студент
+                                                                                    </th>
+                                                                                    <th
+                                                                                        style={{
+                                                                                            padding: '4px 6px',
+                                                                                            textAlign: 'right',
+                                                                                            borderBottom: '1px solid #ddd'
+                                                                                        }}
+                                                                                    >
+                                                                                        Рост/курс
+                                                                                    </th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody>
+                                                                                {growers.slow_growers.map(s => (
+                                                                                    <tr
+                                                                                        key={s.student_id}
+                                                                                        style={{ borderBottom: '1px solid #f0f0f0' }}
+                                                                                    >
+                                                                                        <td style={{ padding: '3px 6px' }}>
+                                                                                            <div>{s.name}</div>
+                                                                                            {(s.institution || s.direction) && (
+                                                                                                <div
+                                                                                                    style={{ color: '#999', fontSize: 10 }}
+                                                                                                >
+                                                                                                    {s.institution || s.direction}
+                                                                                                </div>
+                                                                                            )}
+                                                                                        </td>
+                                                                                        <td
+                                                                                            style={{
+                                                                                                padding: '3px 6px',
+                                                                                                textAlign: 'right',
+                                                                                                color: '#e74c3c',
+                                                                                                fontWeight: 600
+                                                                                            }}
+                                                                                        >
+                                                                                            {s.slope.toFixed(3)}
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                ))}
+                                                                                {growers.slow_growers.length === 0 && (
+                                                                                    <tr>
+                                                                                        <td
+                                                                                            colSpan={2}
+                                                                                            style={{
+                                                                                                padding: '6px',
+                                                                                                color: '#aaa',
+                                                                                                textAlign: 'center'
+                                                                                            }}
+                                                                                        >
+                                                                                            Нет данных
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                )}
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                            {/* Медленнорастущие */}
-                                                            <div>
-                                                                <div style={{ fontSize: 12, fontWeight: 600, color: '#e74c3c', marginBottom: 4 }}>
-                                                                    📉 Медленнорастущие ({growers.slow_growers.length})
-                                                                </div>
-                                                                <div style={{ maxHeight: 200, overflowY: 'auto' }}>
-                                                                    <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
-                                                                        <thead>
-                                                                            <tr style={{ background: '#fff5f5' }}>
-                                                                                <th style={{ padding: '4px 6px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Студент</th>
-                                                                                <th style={{ padding: '4px 6px', textAlign: 'right', borderBottom: '1px solid #ddd' }}>Рост/курс</th>
-                                                                            </tr>
-                                                                        </thead>
-                                                                        <tbody>
-                                                                            {growers.slow_growers.map(s => (
-                                                                                <tr key={s.student_id} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                                                                                    <td style={{ padding: '3px 6px' }}>
-                                                                                        <div>{s.name}</div>
-                                                                                        {(s.institution || s.direction) && (
-                                                                                            <div style={{ color: '#999', fontSize: 10 }}>{s.institution || s.direction}</div>
-                                                                                        )}
-                                                                                    </td>
-                                                                                    <td style={{ padding: '3px 6px', textAlign: 'right', color: '#e74c3c', fontWeight: 600 }}>
-                                                                                        {s.slope.toFixed(3)}
-                                                                                    </td>
-                                                                                </tr>
-                                                                            ))}
-                                                                            {growers.slow_growers.length === 0 && (
-                                                                                <tr><td colSpan={2} style={{ padding: '6px', color: '#aaa', textAlign: 'center' }}>Нет данных</td></tr>
-                                                                            )}
-                                                                        </tbody>
-                                                                    </table>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </details>
-                                        );
-                                    })()}
+                                                        )}
+                                                    </div>
+                                                </details>
+                                            );
+                                        })()}
 
-                                    <div style={{
-                                        marginTop: 10, fontSize: 11, color: '#999', lineHeight: 1.5,
-                                        background: '#f8f9fa', borderRadius: 6, padding: '6px 10px',
-                                    }}>
-                                        Синяя — фактический средний балл. Оранжевая пунктир — LGM-траектория.
-                                        R² = качество подгонки (выше = лучше).
+                                    <div
+                                        style={{
+                                            marginTop: 10,
+                                            fontSize: 11,
+                                            color: '#999',
+                                            lineHeight: 1.5,
+                                            background: '#f8f9fa',
+                                            borderRadius: 6,
+                                            padding: '6px 10px'
+                                        }}
+                                    >
+                                        Синяя — фактический средний балл. Оранжевая пунктир — LGM-траектория. R² = качество подгонки (выше =
+                                        лучше).
                                     </div>
                                 </div>
                             );
@@ -661,13 +838,24 @@ function AdminAnalysisAdvancedView() {
                     title={`Переходы между уровнями компетенции «${COMPETENCIES_NAMES[flowCompetency] || flowCompetency}» по курсам`}
                     valueLabel="Количество студентов"
                 />
-                <details style={{ marginTop: 16, background: '#f8f9fa', borderRadius: 6, padding: '10px 14px', border: '1px solid #e9ecef' }}>
+                <details
+                    style={{ marginTop: 16, background: '#f8f9fa', borderRadius: 6, padding: '10px 14px', border: '1px solid #e9ecef' }}
+                >
                     <summary style={{ cursor: 'pointer', fontWeight: 500, color: '#2c3e50' }}>📖 Что показывает эта диаграмма?</summary>
                     <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.5 }}>
-                        <p><strong>Диаграмма Санки</strong> показывает, как студенты переходят между уровнями компетенции при переходе с курса на курс.</p>
-                        <p>🎓 <strong>Узлы</strong> представляют собой комбинацию курса и уровня компетенции (Начальный/Средний/Высокий).</p>
-                        <p>📊 <strong>Толщина потока</strong> пропорциональна количеству студентов, переходящих из одного уровня в другой.</p>
-                        <p>💡 <strong>Совет:</strong> Наведите курсор на поток, чтобы увидеть точное количество студентов.</p>
+                        <p>
+                            <strong>Диаграмма Санки</strong> показывает, как студенты переходят между уровнями компетенции при переходе с
+                            курса на курс.
+                        </p>
+                        <p>
+                            🎓 <strong>Узлы</strong> представляют собой комбинацию курса и уровня компетенции (Начальный/Средний/Высокий).
+                        </p>
+                        <p>
+                            📊 <strong>Толщина потока</strong> пропорциональна количеству студентов, переходящих из одного уровня в другой.
+                        </p>
+                        <p>
+                            💡 <strong>Совет:</strong> Наведите курсор на поток, чтобы увидеть точное количество студентов.
+                        </p>
                     </div>
                 </details>
             </div>
@@ -691,32 +879,70 @@ function AdminAnalysisAdvancedView() {
             <div className="vam-container">
                 <h4>VAM – Динамика развития компетенции по курсам</h4>
                 <FlexRow justify={JUSTIFY.CENTER}>
-                    <ValueCard value={vamStats?.groupCount || 0} text="Групп (вузов/направлений)" />
-                    <ValueCard value={vamStats?.avgFirstCourse?.toFixed(1) || '0'} text="Средний балл на 1 курсе" />
-                    <ValueCard value={vamStats?.avgLastCourse?.toFixed(1) || '0'} text="Средний балл на 4 курсе" />
-                    <ValueCard value={vamStats?.gain?.toFixed(1) || '0'} text="Прирост (4 курс - 1 курс)" />
-                    <ValueCard value={vamStats?.totalStudents || 0} text="Всего студентов" />
+                    <ValueCard
+                        value={vamStats?.groupCount || 0}
+                        text="Групп (вузов/направлений)"
+                    />
+                    <ValueCard
+                        value={vamStats?.avgFirstCourse?.toFixed(1) || '0'}
+                        text="Средний балл на 1 курсе"
+                    />
+                    <ValueCard
+                        value={vamStats?.avgLastCourse?.toFixed(1) || '0'}
+                        text="Средний балл на 4 курсе"
+                    />
+                    <ValueCard
+                        value={vamStats?.gain?.toFixed(1) || '0'}
+                        text="Прирост (4 курс - 1 курс)"
+                    />
+                    <ValueCard
+                        value={vamStats?.totalStudents || 0}
+                        text="Всего студентов"
+                    />
                 </FlexRow>
 
                 <div style={{ marginTop: 16, marginBottom: 16 }}>
-                    <LabelledBox label="Режим отображения:" inrow nopad>
-                        <Select initValue={vamChartMode} onChange={setVamChartMode}>
-                            <Option value="combined" label="Сводный график (все группы)" />
-                            <Option value="grid" label="Отдельные графики по группам" />
+                    <LabelledBox
+                        label="Режим отображения:"
+                        inrow
+                        nopad
+                    >
+                        <Select
+                            initValue={vamChartMode}
+                            onChange={setVamChartMode}
+                        >
+                            <Option
+                                value="combined"
+                                label="Сводный график (все группы)"
+                            />
+                            <Option
+                                value="grid"
+                                label="Отдельные графики по группам"
+                            />
                         </Select>
                     </LabelledBox>
                 </div>
 
                 {vamChartMode === 'combined' ? (
                     <div className="vam-chart-combined">
-                        <VamDotPlot data={vamData} aggregate={false} />
+                        <VamDotPlot
+                            data={vamData}
+                            aggregate={false}
+                        />
                     </div>
                 ) : (
                     <div className="vam-grid">
                         {groups.map(group => (
-                            <div key={group.name} className="vam-group-card">
+                            <div
+                                key={group.name}
+                                className="vam-group-card"
+                            >
                                 <h5>{group.name}</h5>
-                                <VamDotPlot data={group.data} aggregate={false} shortLabels={true} />
+                                <VamDotPlot
+                                    data={group.data}
+                                    aggregate={false}
+                                    shortLabels={true}
+                                />
                                 <div className="vam-group-meta">
                                     Курсов: {group.data.length} · Студентов: {group.data.reduce((s, p) => s + (p.n || 0), 0)}
                                 </div>
@@ -725,14 +951,27 @@ function AdminAnalysisAdvancedView() {
                     </div>
                 )}
 
-                <details style={{ marginTop: 16, background: '#f8f9fa', borderRadius: 6, padding: '10px 14px', border: '1px solid #e9ecef' }}>
+                <details
+                    style={{ marginTop: 16, background: '#f8f9fa', borderRadius: 6, padding: '10px 14px', border: '1px solid #e9ecef' }}
+                >
                     <summary style={{ cursor: 'pointer', fontWeight: 500, color: '#2c3e50' }}>📖 Что показывает этот график?</summary>
                     <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.5 }}>
-                        <p><strong>Точечный график с доверительными интервалами</strong> показывает средний балл по выбранной компетенции на каждом курсе для каждой группы (вуза или направления).</p>
-                        <p>🎨 <strong>Разные цвета</strong> — разные группы.</p>
-                        <p>📏 <strong>Вертикальные линии</strong> — 95% доверительные интервалы (чем уже интервал, тем надёжнее оценка).</p>
-                        <p>💡 <strong>Совет:</strong> Наведите курсор на точку, чтобы увидеть точные значения и количество студентов.</p>
-                        {vamChartMode === 'grid' && <p>📋 В режиме сетки каждый график соответствует отдельной группе (вузу/направлению).</p>}
+                        <p>
+                            <strong>Точечный график с доверительными интервалами</strong> показывает средний балл по выбранной компетенции
+                            на каждом курсе для каждой группы (вуза или направления).
+                        </p>
+                        <p>
+                            🎨 <strong>Разные цвета</strong> — разные группы.
+                        </p>
+                        <p>
+                            📏 <strong>Вертикальные линии</strong> — 95% доверительные интервалы (чем уже интервал, тем надёжнее оценка).
+                        </p>
+                        <p>
+                            💡 <strong>Совет:</strong> Наведите курсор на точку, чтобы увидеть точные значения и количество студентов.
+                        </p>
+                        {vamChartMode === 'grid' && (
+                            <p>📋 В режиме сетки каждый график соответствует отдельной группе (вузу/направлению).</p>
+                        )}
                     </div>
                 </details>
             </div>
@@ -743,14 +982,24 @@ function AdminAnalysisAdvancedView() {
     return (
         <div className="AdminAnalysisAdvancedView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                <Header title="Админ: Анализ данных" name="Администратор" />
+                <Header
+                    title="Админ: Анализ данных"
+                    name="Администратор"
+                />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <h2>Визуализации</h2>
 
                     {/* Общие фильтры */}
-                    <div className="filters-section" style={{ marginBottom: 20 }}>
-                        <FlexRow wrap={WRAP.DO} gap="15" alignItems="end">
+                    <div
+                        className="filters-section"
+                        style={{ marginBottom: 20 }}
+                    >
+                        <FlexRow
+                            wrap={WRAP.DO}
+                            gap="15"
+                            alignItems="end"
+                        >
                             <MultiSelect
                                 options={filterOptions.institutions || []}
                                 value={selectedInstitutions}
@@ -795,16 +1044,25 @@ function AdminAnalysisAdvancedView() {
                         </FlexRow>
                     </div>
 
-                    <FlexRow wrap={WRAP.DO} gap="10">
+                    <FlexRow
+                        wrap={WRAP.DO}
+                        gap="10"
+                    >
                         <Button
                             text="Поток уровней (курсы)"
-                            onClick={() => { setActiveVisualization('flow'); loadLevelFlow('course'); }}
+                            onClick={() => {
+                                setActiveVisualization('flow');
+                                loadLevelFlow('course');
+                            }}
                             disabled={loading}
                             palette={activeVisualization === 'flow' ? ADMIN_PALETTE.CYAN : ADMIN_PALETTE.GRAY}
                         />
                         <Button
                             text="Поток уровней (года)"
-                            onClick={() => { setActiveVisualization('flow-year'); loadLevelFlow('year'); }}
+                            onClick={() => {
+                                setActiveVisualization('flow-year');
+                                loadLevelFlow('year');
+                            }}
                             disabled={loading}
                             palette={activeVisualization === 'flow-year' ? ADMIN_PALETTE.CYAN : ADMIN_PALETTE.GRAY}
                         />
@@ -816,17 +1074,31 @@ function AdminAnalysisAdvancedView() {
                         />
                         <Button
                             text="VAM динамика"
-                            onClick={() => { setActiveVisualization('vam'); loadVAMData(); }}
+                            onClick={() => {
+                                setActiveVisualization('vam');
+                                loadVAMData();
+                            }}
                             disabled={loading}
                             palette={activeVisualization === 'vam' ? ADMIN_PALETTE.CYAN : ADMIN_PALETTE.GRAY}
                         />
 
                         {activeVisualization === 'flow' && (
                             <>
-                                <LabelledBox label="Компетенция:" inrow nopad>
-                                    <Select initValue={flowCompetency} onChange={setFlowCompetency}>
+                                <LabelledBox
+                                    label="Компетенция:"
+                                    inrow
+                                    nopad
+                                >
+                                    <Select
+                                        initValue={flowCompetency}
+                                        onChange={setFlowCompetency}
+                                    >
                                         {Object.entries(COMPETENCIES_NAMES).map(([key, name]) => (
-                                            <Option key={key} value={key} label={name} />
+                                            <Option
+                                                key={key}
+                                                value={key}
+                                                label={name}
+                                            />
                                         ))}
                                     </Select>
                                 </LabelledBox>
@@ -841,10 +1113,21 @@ function AdminAnalysisAdvancedView() {
 
                         {activeVisualization === 'flow-year' && (
                             <>
-                                <LabelledBox label="Компетенция:" inrow nopad>
-                                    <Select initValue={flowCompetency} onChange={setFlowCompetency}>
+                                <LabelledBox
+                                    label="Компетенция:"
+                                    inrow
+                                    nopad
+                                >
+                                    <Select
+                                        initValue={flowCompetency}
+                                        onChange={setFlowCompetency}
+                                    >
                                         {Object.entries(COMPETENCIES_NAMES).map(([key, name]) => (
-                                            <Option key={key} value={key} label={name} />
+                                            <Option
+                                                key={key}
+                                                value={key}
+                                                label={name}
+                                            />
                                         ))}
                                     </Select>
                                 </LabelledBox>
@@ -859,17 +1142,41 @@ function AdminAnalysisAdvancedView() {
 
                         {activeVisualization === 'lgm' && (
                             <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                                <LabelledBox label="Компетенция:" inrow nopad>
-                                    <Select initValue={lgmCompetency} onChange={setLgmCompetency}>
+                                <LabelledBox
+                                    label="Компетенция:"
+                                    inrow
+                                    nopad
+                                >
+                                    <Select
+                                        initValue={lgmCompetency}
+                                        onChange={setLgmCompetency}
+                                    >
                                         {Object.entries(COMPETENCIES_NAMES).map(([key, name]) => (
-                                            <Option key={key} value={key} label={name} />
+                                            <Option
+                                                key={key}
+                                                value={key}
+                                                label={name}
+                                            />
                                         ))}
                                     </Select>
                                 </LabelledBox>
-                                <LabelledBox label="Группировка:" inrow nopad>
-                                    <Select initValue={lgmGroupBy} onChange={setLgmGroupBy}>
-                                        <Option value="institution" label="По ВУЗам" />
-                                        <Option value="direction" label="По направлениям" />
+                                <LabelledBox
+                                    label="Группировка:"
+                                    inrow
+                                    nopad
+                                >
+                                    <Select
+                                        initValue={lgmGroupBy}
+                                        onChange={setLgmGroupBy}
+                                    >
+                                        <Option
+                                            value="institution"
+                                            label="По ВУЗам"
+                                        />
+                                        <Option
+                                            value="direction"
+                                            label="По направлениям"
+                                        />
                                     </Select>
                                 </LabelledBox>
                                 <Button
@@ -883,17 +1190,41 @@ function AdminAnalysisAdvancedView() {
 
                         {activeVisualization === 'vam' && (
                             <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                                <LabelledBox label="Компетенция:" inrow nopad>
-                                    <Select initValue={vamCompetency} onChange={setVamCompetency}>
+                                <LabelledBox
+                                    label="Компетенция:"
+                                    inrow
+                                    nopad
+                                >
+                                    <Select
+                                        initValue={vamCompetency}
+                                        onChange={setVamCompetency}
+                                    >
                                         {Object.entries(COMPETENCIES_NAMES).map(([key, name]) => (
-                                            <Option key={key} value={key} label={name} />
+                                            <Option
+                                                key={key}
+                                                value={key}
+                                                label={name}
+                                            />
                                         ))}
                                     </Select>
                                 </LabelledBox>
-                                <LabelledBox label="Группировка:" inrow nopad>
-                                    <Select initValue={vamGroupBy} onChange={setVamGroupBy}>
-                                        <Option value="institution" label="По ВУЗам" />
-                                        <Option value="direction" label="По направлениям" />
+                                <LabelledBox
+                                    label="Группировка:"
+                                    inrow
+                                    nopad
+                                >
+                                    <Select
+                                        initValue={vamGroupBy}
+                                        onChange={setVamGroupBy}
+                                    >
+                                        <Option
+                                            value="institution"
+                                            label="По ВУЗам"
+                                        />
+                                        <Option
+                                            value="direction"
+                                            label="По направлениям"
+                                        />
                                     </Select>
                                 </LabelledBox>
                                 <Button
@@ -906,7 +1237,10 @@ function AdminAnalysisAdvancedView() {
                         )}
                     </FlexRow>
 
-                    <LoadingSpinner loading={loading} text="Загрузка визуализации..." />
+                    <LoadingSpinner
+                        loading={loading}
+                        text="Загрузка визуализации..."
+                    />
 
                     {!loading && (
                         <div className="visualization-container">

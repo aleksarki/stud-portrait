@@ -1,6 +1,6 @@
-import Card from "./Card";
+import Card from './Card';
 
-import "./ValueCard.scss";
+import './ValueCard.scss';
 
 function ValueCard({ value, text }) {
     return (

@@ -27,24 +27,24 @@ console.log('');
 exec(command, (error, stdout, stderr) => {
     console.log('=== TEST OUTPUT ===');
     console.log(stdout);
-    
+
     if (stderr) {
         console.error('=== ERRORS ===');
         console.error(stderr);
     }
-    
+
     console.log('');
     console.log('=== NEXT STEPS ===');
-    
+
     if (error) {
         console.log('Some tests failed, but check Applitools dashboard for visual results');
     } else {
         console.log('All tests completed!');
     }
-    
+
     console.log('Check AI results at: https://eyes.applitools.com');
     console.log('Note: First run creates baselines - you need to approve them');
     console.log('');
-    
+
     process.exit(error ? 1 : 0);
 });

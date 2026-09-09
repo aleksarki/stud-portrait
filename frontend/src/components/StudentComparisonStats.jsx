@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 
-import { getStudentComparisonStats } from "../api";
+import { getStudentComparisonStats } from '../api';
 
-import "./StudentComparisonStats.scss";
+import './StudentComparisonStats.scss';
 
 const StudentComparisonStats = ({ studentId, year }) => {
     const [stats, setStats] = useState(null);
@@ -24,11 +24,11 @@ const StudentComparisonStats = ({ studentId, year }) => {
                     setStats(data.data);
                 }
             })
-            .onError(error => console.error("Ошибка загрузки статистики:", error))
+            .onError(error => console.error('Ошибка загрузки статистики:', error))
             .finally(() => setLoading(false));
     };
 
-    const getPercentileColor = (percentile) => {
+    const getPercentileColor = percentile => {
         if (percentile === null || percentile === undefined) return '#e0e0e0';
         if (percentile >= 75) return '#4caf50';
         if (percentile >= 50) return '#ffc107';
@@ -36,7 +36,7 @@ const StudentComparisonStats = ({ studentId, year }) => {
         return '#f44336';
     };
 
-    const getPercentileLabel = (percentile) => {
+    const getPercentileLabel = percentile => {
         if (percentile === null || percentile === undefined) return 'Нет данных';
         if (percentile >= 75) return 'Высокий';
         if (percentile >= 50) return 'Выше среднего';
@@ -46,18 +46,19 @@ const StudentComparisonStats = ({ studentId, year }) => {
 
     const renderComparisonCard = (item, type) => {
         return (
-            <div key={item.name} className="comparison-card">
+            <div
+                key={item.name}
+                className="comparison-card"
+            >
                 <div className="card-header">
                     <h4>{item.name}</h4>
-                    <div className="score">
-                        {item.score !== null ? `${item.score} / 800` : 'Нет данных'}
-                    </div>
+                    <div className="score">{item.score !== null ? `${item.score} / 800` : 'Нет данных'}</div>
                 </div>
-                
+
                 <div className="percentiles">
                     <div className="percentile-item">
                         <div className="percentile-label">По курсу</div>
-                        <div 
+                        <div
                             className="percentile-bar"
                             style={{
                                 width: `${item.percentile_course || 0}%`,
@@ -69,10 +70,10 @@ const StudentComparisonStats = ({ studentId, year }) => {
                             <span className="percentile-rank">{getPercentileLabel(item.percentile_course)}</span>
                         </div>
                     </div>
-                    
+
                     <div className="percentile-item">
                         <div className="percentile-label">По направлению</div>
-                        <div 
+                        <div
                             className="percentile-bar"
                             style={{
                                 width: `${item.percentile_specialty || 0}%`,
@@ -84,10 +85,10 @@ const StudentComparisonStats = ({ studentId, year }) => {
                             <span className="percentile-rank">{getPercentileLabel(item.percentile_specialty)}</span>
                         </div>
                     </div>
-                    
+
                     <div className="percentile-item">
                         <div className="percentile-label">По вузу</div>
-                        <div 
+                        <div
                             className="percentile-bar"
                             style={{
                                 width: `${item.percentile_institution || 0}%`,
@@ -100,7 +101,7 @@ const StudentComparisonStats = ({ studentId, year }) => {
                         </div>
                     </div>
                 </div>
-                
+
                 <div className="averages">
                     <div className="avg-item">
                         <span className="avg-label">Среднее по курсу:</span>
@@ -117,7 +118,9 @@ const StudentComparisonStats = ({ studentId, year }) => {
                     {item.min_institution !== null && item.max_institution !== null && (
                         <div className="avg-item">
                             <span className="avg-label">Диапазон по вузу:</span>
-                            <span className="avg-value">{item.min_institution} - {item.max_institution}</span>
+                            <span className="avg-value">
+                                {item.min_institution} - {item.max_institution}
+                            </span>
                         </div>
                     )}
                 </div>
@@ -174,9 +177,7 @@ const StudentComparisonStats = ({ studentId, year }) => {
                 </button>
             </div>
 
-            <div className="comparison-grid">
-                {currentData.map(item => renderComparisonCard(item, selectedCategory))}
-            </div>
+            <div className="comparison-grid">{currentData.map(item => renderComparisonCard(item, selectedCategory))}</div>
         </div>
     );
 };

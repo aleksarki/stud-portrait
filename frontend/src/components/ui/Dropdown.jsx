@@ -1,8 +1,8 @@
-import { createContext, useEffect, useRef, useState } from "react";
+import { createContext, useEffect, useRef, useState } from 'react';
 
-import { ADMIN_PALETTE, unpackPaletteOptionsActivable } from "./palette";
+import { ADMIN_PALETTE, unpackPaletteOptionsActivable } from './palette';
 
-import "./Dropdown.scss";
+import './Dropdown.scss';
 
 export const DropdownContext = createContext({
     open: undefined,
@@ -35,12 +35,10 @@ function Dropdown({ children, label, palette = ADMIN_PALETTE.GRAY, disabled = fa
                 onClick={() => !disabled && setOpen(!open)}
             >
                 <span>{label}</span>
-                <span>{open ? "▲" : "▼"}</span>
+                <span>{open ? '▲' : '▼'}</span>
             </div>
             <div className={`drowdown-menu ${open ? 'open' : ''}`}>
-                <DropdownContext.Provider value={{open: open, setOpen: setOpen}}>
-                    {children}
-                </DropdownContext.Provider>
+                <DropdownContext.Provider value={{ open: open, setOpen: setOpen }}>{children}</DropdownContext.Provider>
             </div>
         </div>
     );

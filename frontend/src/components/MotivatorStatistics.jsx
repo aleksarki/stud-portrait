@@ -1,14 +1,11 @@
-import React, { useState, useEffect } from "react";
-import {
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-    ResponsiveContainer, Cell
-} from "recharts";
-import Select from "react-select";
+import React, { useState, useEffect } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import Select from 'react-select';
 
-import { getMotivatorStatistics } from "../api";
-import { MOTIVATORS_NAMES } from "../utilities";
+import { getMotivatorStatistics } from '../api';
+import { MOTIVATORS_NAMES } from '../utilities';
 
-import "./MotivatorStatistics.scss";
+import './MotivatorStatistics.scss';
 
 const GROUP_BY_OPTIONS = [
     { value: 'specialty', label: 'По направлениям подготовки' },
@@ -33,7 +30,7 @@ const MotivatorStatistics = ({ filters }) => {
             ...filters,
             group_by: groupBy
         };
-        
+
         getMotivatorStatistics(params)
             .onSuccess(async response => {
                 const data = await response.json();
@@ -43,7 +40,7 @@ const MotivatorStatistics = ({ filters }) => {
                     setSelectedCourse(null);
                 }
             })
-            .onError(error => console.error("Ошибка загрузки статистики:", error))
+            .onError(error => console.error('Ошибка загрузки статистики:', error))
             .finally(() => setLoading(false));
     };
 
@@ -53,7 +50,7 @@ const MotivatorStatistics = ({ filters }) => {
         if (groupBy === 'specialty') {
             // Для группировки по направлениям - показываем все мотиваторы для выбранного направления
             if (!selectedSpecialty) return [];
-            
+
             const specialty = statistics.data.find(s => s.id === selectedSpecialty);
             if (!specialty) return [];
 
@@ -63,11 +60,10 @@ const MotivatorStatistics = ({ filters }) => {
                 демотиваторы: value.demotivator_percent,
                 total: value.total_count
             }));
-        } 
-        else if (groupBy === 'course') {
+        } else if (groupBy === 'course') {
             // Для группировки по курсам - показываем все мотиваторы для выбранного курса
             if (!selectedCourse) return [];
-            
+
             const course = statistics.data.find(c => c.id === selectedCourse);
             if (!course) return [];
 
@@ -77,14 +73,13 @@ const MotivatorStatistics = ({ filters }) => {
                 демотиваторы: value.demotivator_percent,
                 total: value.total_count
             }));
-        }
-        else if (groupBy === 'specialty_course') {
+        } else if (groupBy === 'specialty_course') {
             // Для детальной группировки - показываем выбранное направление и курс
             if (!selectedSpecialty || !selectedCourse) return [];
-            
+
             const specialty = statistics.data.find(s => s.id === selectedSpecialty);
             if (!specialty) return [];
-            
+
             const course = specialty.courses.find(c => c.course === selectedCourse);
             if (!course) return [];
 
@@ -95,7 +90,7 @@ const MotivatorStatistics = ({ filters }) => {
                 total: value.total_count
             }));
         }
-        
+
         return [];
     };
 
@@ -131,7 +126,7 @@ const MotivatorStatistics = ({ filters }) => {
                     <Select
                         options={GROUP_BY_OPTIONS}
                         value={GROUP_BY_OPTIONS.find(opt => opt.value === groupBy)}
-                        onChange={(opt) => setGroupBy(opt.value)}
+                        onChange={opt => setGroupBy(opt.value)}
                         className="select"
                     />
                 </div>
@@ -142,7 +137,7 @@ const MotivatorStatistics = ({ filters }) => {
                         <Select
                             options={getSpecialtyOptions()}
                             value={getSpecialtyOptions().find(opt => opt.value === selectedSpecialty)}
-                            onChange={(opt) => setSelectedSpecialty(opt.value)}
+                            onChange={opt => setSelectedSpecialty(opt.value)}
                             placeholder="Выберите направление..."
                             className="select"
                         />
@@ -155,7 +150,7 @@ const MotivatorStatistics = ({ filters }) => {
                         <Select
                             options={getCourseOptions()}
                             value={getCourseOptions().find(opt => opt.value === selectedCourse)}
-                            onChange={(opt) => setSelectedCourse(opt.value)}
+                            onChange={opt => setSelectedCourse(opt.value)}
                             placeholder="Выберите курс..."
                             className="select"
                         />
@@ -174,44 +169,57 @@ const MotivatorStatistics = ({ filters }) => {
                             <span className="value">{chartData[0]?.total || 0}</span>
                         </div>
                     </div>
-                    
-                    <ResponsiveContainer width="100%" height={500}>
+
+                    <ResponsiveContainer
+                        width="100%"
+                        height={500}
+                    >
                         <BarChart
                             data={chartData}
                             margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
                             layout="vertical"
                         >
                             <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis type="number" domain={[0, 100]} unit="%" />
-                            <YAxis 
-                                type="category" 
-                                dataKey="name" 
+                            <XAxis
+                                type="number"
+                                domain={[0, 100]}
+                                unit="%"
+                            />
+                            <YAxis
+                                type="category"
+                                dataKey="name"
                                 width={150}
                                 tick={{ fontSize: 12 }}
                             />
-                            <Tooltip 
-                                formatter={(value) => `${value}%`}
-                                labelFormatter={(label) => `Мотиватор: ${label}`}
+                            <Tooltip
+                                formatter={value => `${value}%`}
+                                labelFormatter={label => `Мотиватор: ${label}`}
                             />
                             <Legend />
-                            <Bar 
-                                dataKey="мотиваторы" 
-                                fill="#4caf50" 
+                            <Bar
+                                dataKey="мотиваторы"
+                                fill="#4caf50"
                                 name="Мотиваторы (600-800 баллов)"
                                 barSize={20}
                             >
                                 {chartData.map((entry, index) => (
-                                    <Cell key={`cell-mot-${index}`} fill="#4caf50" />
+                                    <Cell
+                                        key={`cell-mot-${index}`}
+                                        fill="#4caf50"
+                                    />
                                 ))}
                             </Bar>
-                            <Bar 
-                                dataKey="демотиваторы" 
-                                fill="#f44336" 
+                            <Bar
+                                dataKey="демотиваторы"
+                                fill="#f44336"
                                 name="Демотиваторы (200-399 баллов)"
                                 barSize={20}
                             >
                                 {chartData.map((entry, index) => (
-                                    <Cell key={`cell-dem-${index}`} fill="#f44336" />
+                                    <Cell
+                                        key={`cell-dem-${index}`}
+                                        fill="#f44336"
+                                    />
                                 ))}
                             </Bar>
                         </BarChart>
@@ -220,9 +228,7 @@ const MotivatorStatistics = ({ filters }) => {
             )}
 
             {!loading && chartData.length === 0 && selectedSpecialty && (
-                <div className="no-data">
-                    Нет данных для отображения. Попробуйте изменить параметры фильтрации.
-                </div>
+                <div className="no-data">Нет данных для отображения. Попробуйте изменить параметры фильтрации.</div>
             )}
         </div>
     );

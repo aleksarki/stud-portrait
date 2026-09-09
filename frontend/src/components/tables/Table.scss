@@ -10,8 +10,9 @@ table.Table {
     outline: $table-bd-width solid $table-bd-color;
     outline-offset: -$table-bd-width;
     overflow: hidden;
-    
-    th, td {
+
+    th,
+    td {
         border: $table-bd-width solid $table-bd-color;
         text-align: center;
         padding: 8px;

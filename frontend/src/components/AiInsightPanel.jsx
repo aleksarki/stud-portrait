@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { postAiAnalyticsSummary } from "../api";
+import { useState, useEffect, useRef } from 'react';
+import { postAiAnalyticsSummary } from '../api';
 
 /**
  * AiInsightPanel — переиспользуемая AI-панель для аналитических страниц.
@@ -11,17 +11,17 @@ import { postAiAnalyticsSummary } from "../api";
  *   autoRun      — если true, запускается сам когда изменяется contextType (по умолчанию false)
  *   disabled     — блокировка кнопки пока страница грузится
  */
-function AiInsightPanel({ contextType, filters = {}, label = "", autoRun = false, disabled = false }) {
-    const [summary, setSummary]       = useState("");
+function AiInsightPanel({ contextType, filters = {}, label = '', autoRun = false, disabled = false }) {
+    const [summary, setSummary] = useState('');
     const [generating, setGenerating] = useState(false);
-    const [error, setError]           = useState(null);
-    const [visible, setVisible]       = useState(false);
+    const [error, setError] = useState(null);
+    const [visible, setVisible] = useState(false);
     const prevContext = useRef(null);
 
     // Сбрасываем текст при смене контекста
     useEffect(() => {
         if (prevContext.current !== contextType) {
-            setSummary("");
+            setSummary('');
             setError(null);
             prevContext.current = contextType;
         }
@@ -30,20 +30,20 @@ function AiInsightPanel({ contextType, filters = {}, label = "", autoRun = false
     const generate = () => {
         setGenerating(true);
         setError(null);
-        setSummary("");
+        setSummary('');
         setVisible(true);
 
         postAiAnalyticsSummary(contextType, filters)
             .onSuccess(async res => {
                 const data = await res.json();
                 if (data.status === 'success') {
-                    setSummary(data.summary || "Нет данных.");
+                    setSummary(data.summary || 'Нет данных.');
                 } else {
-                    setError(data.message || "Неизвестная ошибка.");
+                    setError(data.message || 'Неизвестная ошибка.');
                 }
             })
             .onError(err => {
-                setError("Ошибка соединения с сервером.");
+                setError('Ошибка соединения с сервером.');
                 console.error(err);
             })
             .finally(() => setGenerating(false));
@@ -53,12 +53,13 @@ function AiInsightPanel({ contextType, filters = {}, label = "", autoRun = false
         if (summary) navigator.clipboard.writeText(summary);
     };
 
-    const contextLabel = {
-        general:                "Общая сводка",
-        institution_comparison: "Сравнение вузов",
-        discipline_impact:      "Влияние дисциплин",
-        vam_trend:              "Динамика по курсам",
-    }[contextType] || "Аналитика";
+    const contextLabel =
+        {
+            general: 'Общая сводка',
+            institution_comparison: 'Сравнение вузов',
+            discipline_impact: 'Влияние дисциплин',
+            vam_trend: 'Динамика по курсам'
+        }[contextType] || 'Аналитика';
 
     return (
         <div className="ai-insight-panel">
@@ -70,7 +71,7 @@ function AiInsightPanel({ contextType, filters = {}, label = "", autoRun = false
                 title={`Сгенерировать AI-сводку: ${contextLabel}`}
             >
                 <span className="ai-icon">✦</span>
-                <span>{generating ? "Генерация..." : `AI: ${label || contextLabel}`}</span>
+                <span>{generating ? 'Генерация...' : `AI: ${label || contextLabel}`}</span>
                 {generating && <span className="ai-spinner" />}
             </button>
 
@@ -82,11 +83,19 @@ function AiInsightPanel({ contextType, filters = {}, label = "", autoRun = false
                         <span className="ai-context-label">{contextLabel}</span>
                         <div className="ai-insight-actions">
                             {summary && (
-                                <button className="ai-action-btn" onClick={copy} title="Копировать">
+                                <button
+                                    className="ai-action-btn"
+                                    onClick={copy}
+                                    title="Копировать"
+                                >
                                     ⎘
                                 </button>
                             )}
-                            <button className="ai-action-btn" onClick={() => setVisible(false)} title="Закрыть">
+                            <button
+                                className="ai-action-btn"
+                                onClick={() => setVisible(false)}
+                                title="Закрыть"
+                            >
                                 ✕
                             </button>
                         </div>
@@ -95,16 +104,26 @@ function AiInsightPanel({ contextType, filters = {}, label = "", autoRun = false
                     <div className="ai-insight-body">
                         {generating && (
                             <div className="ai-skeleton">
-                                <div className="ai-skeleton-line" style={{ width: '92%' }} />
-                                <div className="ai-skeleton-line" style={{ width: '78%' }} />
-                                <div className="ai-skeleton-line" style={{ width: '85%' }} />
-                                <div className="ai-skeleton-line" style={{ width: '60%' }} />
+                                <div
+                                    className="ai-skeleton-line"
+                                    style={{ width: '92%' }}
+                                />
+                                <div
+                                    className="ai-skeleton-line"
+                                    style={{ width: '78%' }}
+                                />
+                                <div
+                                    className="ai-skeleton-line"
+                                    style={{ width: '85%' }}
+                                />
+                                <div
+                                    className="ai-skeleton-line"
+                                    style={{ width: '60%' }}
+                                />
                             </div>
                         )}
                         {error && <div className="ai-error">⚠ {error}</div>}
-                        {summary && !generating && (
-                            <p className="ai-text">{summary}</p>
-                        )}
+                        {summary && !generating && <p className="ai-text">{summary}</p>}
                     </div>
                 </div>
             )}

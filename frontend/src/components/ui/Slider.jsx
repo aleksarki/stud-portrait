@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import "./Slider.scss";
+import { useEffect, useState } from 'react';
+import './Slider.scss';
 
 function Slider({ values = [], initValue, onChange, label, disabled = false }) {
     const [selected, setSelected] = useState(initValue || values[0]);
@@ -49,9 +49,9 @@ function Slider({ values = [], initValue, onChange, label, disabled = false }) {
             <div className="selected-year-display">
                 <span className="year-badge">{selected}</span>
             </div>
-            
+
             <div className="slider-container">
-                <button 
+                <button
                     className="slider-nav prev"
                     onClick={handlePrev}
                     disabled={disabled || selectedIndex === 0}
@@ -73,7 +73,7 @@ function Slider({ values = [], initValue, onChange, label, disabled = false }) {
                     />
                     <div className="slider-markers">
                         {values.map((value, index) => (
-                            <div 
+                            <div
                                 key={value}
                                 className={`slider-marker ${index === selectedIndex ? 'active' : ''}`}
                                 style={{ left: `${(index / maxIndex) * 100}%` }}
@@ -85,7 +85,7 @@ function Slider({ values = [], initValue, onChange, label, disabled = false }) {
                     </div>
                 </div>
 
-                <button 
+                <button
                     className="slider-nav next"
                     onClick={handleNext}
                     disabled={disabled || selectedIndex === maxIndex}

@@ -1,9 +1,8 @@
-import { unpackPaletteOptionsActivable } from "./palette";
+import { unpackPaletteOptionsActivable } from './palette';
 
-import "./FileInput.scss";
+import './FileInput.scss';
 
 function FileInput({ id, accept, onChange, palette, disabled = false }) {
-
     return (
         <input
             className="FileInput"

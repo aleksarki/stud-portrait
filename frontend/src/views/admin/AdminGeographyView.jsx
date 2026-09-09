@@ -1,23 +1,23 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from 'react';
 
-import { getPortraitCentersByRegion, getGeographyReport } from "../../api";
-import { LINK_TREE } from "../../utilities";
+import { getPortraitCentersByRegion, getGeographyReport } from '../../api';
+import { LINK_TREE } from '../../utilities';
 
 import { ToastContainer, toast } from 'react-toastify';
-import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
-import FlexRow from "../../components/FlexRow";
+import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from '../../components/SidebarLayout';
+import FlexRow from '../../components/FlexRow';
 
-import TitledCard from "../../components/cards/TitledCard";
-import ValueCard from "../../components/cards/ValueCard";
+import TitledCard from '../../components/cards/TitledCard';
+import ValueCard from '../../components/cards/ValueCard';
 
-import RussianFederationMap from "../../components/charts/maps/RussianFederationMap";
+import RussianFederationMap from '../../components/charts/maps/RussianFederationMap';
 
-import Slider from "../../components/ui/Slider";
+import Slider from '../../components/ui/Slider';
 
-import Button from "../../components/ui/Button";
-import { ADMIN_PALETTE } from "../../components/ui/palette";
+import Button from '../../components/ui/Button';
+import { ADMIN_PALETTE } from '../../components/ui/palette';
 
-import "./AdminGeographyView.scss";
+import './AdminGeographyView.scss';
 
 function AdminGeographyView() {
     const YEARS = ['2021/2022', '2022/2023', '2023/2024', '2024/2025', '2025/2026'];
@@ -43,13 +43,13 @@ function AdminGeographyView() {
                     setTotalCenters(data.total_centers);
                     console.log(`Данные за ${data.year}:`, data.data);
                 } else {
-                    console.error("Ошибка загрузки данных:", data.message);
-                    toast.error(`Ошибка загрузки данных: ${data.message}`)
+                    console.error('Ошибка загрузки данных:', data.message);
+                    toast.error(`Ошибка загрузки данных: ${data.message}`);
                     setRegionData([]);
                 }
             })
             .onError(error => {
-                console.error("Ошибка API:", error);
+                console.error('Ошибка API:', error);
                 toast.error('Ошибка при загрузке данных');
                 setRegionData([]);
             })
@@ -66,7 +66,7 @@ function AdminGeographyView() {
     // Обработчик клика по региону
     const handleRegionClick = region => {
         setSelectedRegion(region);
-        toast.success("Выбран регион:", region);
+        toast.success('Выбран регион:', region);
     };
 
     // Генерация отчёта
@@ -88,7 +88,7 @@ function AdminGeographyView() {
                 toast.success('Отчет создан');
             })
             .onError(error => {
-                console.error("Ошибка генерации отчёта:", error);
+                console.error('Ошибка генерации отчёта:', error);
                 toast.error('Ошибка при генерации отчёта');
             })
             .finally(() => setReportLoading(false));
@@ -102,13 +102,16 @@ function AdminGeographyView() {
     return (
         <div className="AdminGeographyView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                <Header title="Админ: География тестирования" name="Администратор1" />
+                <Header
+                    title="Админ: География тестирования"
+                    name="Администратор1"
+                />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <div className="page-header">
                         <h2>География тестирования</h2>
                         <Button
-                            text={reportLoading ? "Формирование отчёта..." : "📊 Выгрузить отчёт DOCX"}
+                            text={reportLoading ? 'Формирование отчёта...' : '📊 Выгрузить отчёт DOCX'}
                             onClick={generateReport}
                             disabled={reportLoading || loading}
                             palette={ADMIN_PALETTE.GREEN}
@@ -124,8 +127,14 @@ function AdminGeographyView() {
                     />
 
                     <FlexRow>
-                        <ValueCard value={totalCenters} text="Всего центров" />
-                        <ValueCard value={regionData.length} text="Регионов с центрами" />
+                        <ValueCard
+                            value={totalCenters}
+                            text="Всего центров"
+                        />
+                        <ValueCard
+                            value={regionData.length}
+                            text="Регионов с центрами"
+                        />
                     </FlexRow>
 
                     <TitledCard title="Прохождение тестирования в РФ">
@@ -141,14 +150,15 @@ function AdminGeographyView() {
                     </TitledCard>
                 </Content>
             </SidebarLayout>
-            <ToastContainer 
+            <ToastContainer
                 position="bottom-right"
                 autoClose={2000}
                 hideProgressBar={true}
                 newestOnTop={false}
                 closeOnClick={true}
                 rtl={false}
-                theme="light" />
+                theme="light"
+            />
         </div>
     );
 }

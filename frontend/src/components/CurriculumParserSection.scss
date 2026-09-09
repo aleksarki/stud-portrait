@@ -31,8 +31,16 @@
         font-size: 13px;
         margin-bottom: 8px;
 
-        &--info  { background: #e3f2fd; color: #1565c0; border-left: 3px solid #2196f3; }
-        &--error { background: #ffebee; color: #c62828; border-left: 3px solid #f44336; }
+        &--info {
+            background: #e3f2fd;
+            color: #1565c0;
+            border-left: 3px solid #2196f3;
+        }
+        &--error {
+            background: #ffebee;
+            color: #c62828;
+            border-left: 3px solid #f44336;
+        }
     }
 
     // Баннер последнего запуска
@@ -46,15 +54,39 @@
         flex-wrap: wrap;
         margin-bottom: 4px;
 
-        &.status-running { background: #fff8e1; border: 1px solid #ffe082; color: #f57f17; }
-        &.status-success { background: #e8f5e9; border: 1px solid #a5d6a7; color: #2e7d32; }
-        &.status-error   { background: #ffebee; border: 1px solid #ffcdd2; color: #c62828; }
+        &.status-running {
+            background: #fff8e1;
+            border: 1px solid #ffe082;
+            color: #f57f17;
+        }
+        &.status-success {
+            background: #e8f5e9;
+            border: 1px solid #a5d6a7;
+            color: #2e7d32;
+        }
+        &.status-error {
+            background: #ffebee;
+            border: 1px solid #ffcdd2;
+            color: #c62828;
+        }
 
-        .run-label  { font-weight: 600; }
-        .run-status { font-weight: 500; }
-        .run-time   { color: inherit; opacity: 0.8; }
-        .run-count  { font-weight: 600; }
-        .run-source { color: inherit; text-decoration: underline; }
+        .run-label {
+            font-weight: 600;
+        }
+        .run-status {
+            font-weight: 500;
+        }
+        .run-time {
+            color: inherit;
+            opacity: 0.8;
+        }
+        .run-count {
+            font-weight: 600;
+        }
+        .run-source {
+            color: inherit;
+            text-decoration: underline;
+        }
     }
 
     // Блок с текстом ошибки
@@ -86,9 +118,18 @@
         font-size: 12px;
         font-weight: 600;
 
-        &.status-running { background: #fff8e1; color: #f57f17; }
-        &.status-success { background: #e8f5e9; color: #2e7d32; }
-        &.status-error   { background: #ffebee; color: #c62828; }
+        &.status-running {
+            background: #fff8e1;
+            color: #f57f17;
+        }
+        &.status-success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        &.status-error {
+            background: #ffebee;
+            color: #c62828;
+        }
     }
 
     .no-mappings {
@@ -115,7 +156,13 @@
         border-radius: 10px;
         font-size: 12px;
 
-        &--std { background: #e3f2fd; color: #1565c0; }
-        &--rsv { background: #f3e5f5; color: #6a1b9a; }
+        &--std {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+        &--rsv {
+            background: #f3e5f5;
+            color: #6a1b9a;
+        }
     }
 }

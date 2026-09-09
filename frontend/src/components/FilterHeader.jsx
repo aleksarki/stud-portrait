@@ -1,7 +1,7 @@
-import {useEffect, useRef, useState} from "react";
-import {getFilterDash} from "../api";
+import { useEffect, useRef, useState } from 'react';
+import { getFilterDash } from '../api';
 import Select from 'react-select';
-import "./FilterHeader.scss"
+import './FilterHeader.scss';
 
 export default function FilterHeader({ filters, onFilterChange, resetFilters }) {
     const [options, setOptions] = useState({ institutes: [], specialties: [], years: [] });
@@ -16,7 +16,7 @@ export default function FilterHeader({ filters, onFilterChange, resetFilters }) 
                 setOptions(data.data);
                 setLoading(false);
             })
-            .onError(err => console.error("Ошибка загрузки опций", err));
+            .onError(err => console.error('Ошибка загрузки опций', err));
     }, []);
 
     useEffect(() => {
@@ -27,7 +27,7 @@ export default function FilterHeader({ filters, onFilterChange, resetFilters }) 
                     const data = await response.json();
                     setOptions(data.data);
                 })
-                .onError(err => console.error("Ошибка загрузки опций", err));
+                .onError(err => console.error('Ошибка загрузки опций', err));
             return;
         }
         const id = ++reqRef.current;
@@ -43,7 +43,9 @@ export default function FilterHeader({ filters, onFilterChange, resetFilters }) 
                     onFilterChange('specialty', '');
                 }
             })
-            .onError(() => { if (id === reqRef.current) setLoading(false); });
+            .onError(() => {
+                if (id === reqRef.current) setLoading(false);
+            });
     }, [filters?.institute]);
 
     const handleChange = (opt, name) => {
@@ -51,17 +53,15 @@ export default function FilterHeader({ filters, onFilterChange, resetFilters }) 
     };
 
     const customStyles = {
-        container: (base) => ({ ...base, flex: 1, minWidth: '200px' }),
-        control: (base) => ({ ...base, borderRadius: '8px', borderColor: '#ddd' })
+        container: base => ({ ...base, flex: 1, minWidth: '200px' }),
+        control: base => ({ ...base, borderRadius: '8px', borderColor: '#ddd' })
     };
     const findOption = (opts, value) => {
         if (!value) return null;
         return opts?.find(o => o.value === value) || null;
     };
-    const sorted = (opts) =>
-        (opts || []).slice().sort((a, b) =>
-            a.label.localeCompare(b.label, 'ru', {numeric: true, sensitivity: 'base' })
-        );
+    const sorted = opts =>
+        (opts || []).slice().sort((a, b) => a.label.localeCompare(b.label, 'ru', { numeric: true, sensitivity: 'base' }));
 
     return (
         <div className="filter-row">
@@ -102,4 +102,4 @@ export default function FilterHeader({ filters, onFilterChange, resetFilters }) 
             <button onClick={resetFilters}> Сбросить </button>
         </div>
     );
-};
+}

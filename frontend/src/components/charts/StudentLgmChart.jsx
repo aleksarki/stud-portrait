@@ -5,8 +5,14 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 const StudentLgmChart = ({ data, competency, competencyLabel }) => {
     if (!data || data.length === 0) return <div className="no-data">Нет данных</div>;
     return (
-        <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={data} margin={{ top: 20, right: 30, bottom: 20, left: 60 }}>
+        <ResponsiveContainer
+            width="100%"
+            height={300}
+        >
+            <LineChart
+                data={data}
+                margin={{ top: 20, right: 30, bottom: 20, left: 60 }}
+            >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="course" />
                 <YAxis domain={[200, 800]} />

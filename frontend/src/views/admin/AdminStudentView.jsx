@@ -1,21 +1,21 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 
-import { LINK_TREE } from "../../utilities";
-import { getStudentsList, getStudentPortrait } from "../../api";
+import { LINK_TREE } from '../../utilities';
+import { getStudentsList, getStudentPortrait } from '../../api';
 
 import { ToastContainer, toast } from 'react-toastify';
-import FlexColumn from "../../components/FlexColumn";
-import FlexRow from "../../components/FlexRow";
-import LabelledBox from "../../components/LabelledBox";
-import { SidebarLayout, LAYOUT_STYLE, Header, Sidebar, Content } from "../../components/SidebarLayout";
+import FlexColumn from '../../components/FlexColumn';
+import FlexRow from '../../components/FlexRow';
+import LabelledBox from '../../components/LabelledBox';
+import { SidebarLayout, LAYOUT_STYLE, Header, Sidebar, Content } from '../../components/SidebarLayout';
 
-import Table, { TableHeader, TableItem, TableRow } from "../../components/tables/Table";
+import Table, { TableHeader, TableItem, TableRow } from '../../components/tables/Table';
 
-import { COMPETENCIES_NAMES, VALUES_NAMES, MOTIVATORS_NAMES } from "../../utilities.js";
-import Label, { LABEL_PALETTE } from "../../components/ui/Label";
-import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import { COMPETENCIES_NAMES, VALUES_NAMES, MOTIVATORS_NAMES } from '../../utilities.js';
+import Label, { LABEL_PALETTE } from '../../components/ui/Label';
+import LoadingSpinner from '../../components/ui/LoadingSpinner';
 
-import "./AdminStudentView.scss";
+import './AdminStudentView.scss';
 
 // Компонент поиска студента
 const StudentSearch = ({ onSelectStudent }) => {
@@ -41,11 +41,11 @@ const StudentSearch = ({ onSelectStudent }) => {
                     setStudents(data.data);
                 }
             })
-            .onError(error => console.error("Ошибка поиска:", error))
+            .onError(error => console.error('Ошибка поиска:', error))
             .finally(() => setLoading(false));
     };
 
-    const handleSelectStudent = (student) => {
+    const handleSelectStudent = student => {
         setSelectedStudentId(student.id);
         setSearchTerm(student.rsv_id);
         onSelectStudent(student.id);
@@ -54,14 +54,17 @@ const StudentSearch = ({ onSelectStudent }) => {
 
     return (
         <div className="student-search">
-            <Label text="Поиск студента:" palette={LABEL_PALETTE.BLUE} />
+            <Label
+                text="Поиск студента:"
+                palette={LABEL_PALETTE.BLUE}
+            />
             <div className="search-container">
                 <input
                     type="text"
                     className="search-input"
                     placeholder="Введите ID студента, ФИО или название вуза..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={e => setSearchTerm(e.target.value)}
                 />
                 {loading && <LoadingSpinner small />}
                 {students.length > 0 && (
@@ -88,7 +91,7 @@ const StudentSearch = ({ onSelectStudent }) => {
 // Компонент информации о студенте
 const StudentInfoCard = ({ student }) => {
     if (!student) return null;
-    
+
     return (
         <LabelledBox label="📋 Основная информация">
             <div className="info-grid">
@@ -128,13 +131,13 @@ const StudentInfoCard = ({ student }) => {
 // Компонент результатов тестирования
 const TestResultsCard = ({ Results }) => {
     const [selectedYear, setSelectedYear] = useState(null);
-    
+
     useEffect(() => {
         if (!selectedYear && Results && Results.length > 0 && Results[0]?.year) {
             setSelectedYear(Results[0].year);
         }
     }, [Results, selectedYear]);
-    
+
     if (!Results || Results.length === 0) {
         return (
             <LabelledBox label="📊 Результаты тестирования">
@@ -142,25 +145,25 @@ const TestResultsCard = ({ Results }) => {
             </LabelledBox>
         );
     }
-    
+
     const currentResult = Results.find(r => r.year === selectedYear);
-    
+
     // Определение уровня для компетенций
-    const getScoreLevel = (score) => {
+    const getScoreLevel = score => {
         if (score === null || score === undefined) return { level: 'Нет данных', color: '#ccc' };
         if (score >= 600) return { level: 'Высокий', color: '#4caf50' };
         if (score >= 400) return { level: 'Средний', color: '#ffc107' };
         return { level: 'Начальный', color: '#f44336' };
     };
-    
+
     // Определение уровня для мотиваторов
-    const getMotivatorLevel = (score) => {
+    const getMotivatorLevel = score => {
         if (score === null || score === undefined) return { level: 'Нет данных', color: '#ccc' };
         if (score >= 600) return { level: 'Мотиватор', color: '#4caf50' };
         if (score >= 400) return { level: 'Не проявлено', color: '#ffc107' };
         return { level: 'Демотиватор', color: '#f44336' };
     };
-    
+
     return (
         <LabelledBox label="📊 Результаты тестирования">
             <div className="test-years">
@@ -174,7 +177,7 @@ const TestResultsCard = ({ Results }) => {
                     </button>
                 ))}
             </div>
-            
+
             {currentResult && (
                 <>
                     <div className="test-info">
@@ -188,51 +191,72 @@ const TestResultsCard = ({ Results }) => {
                             )}
                         </div>
                     </div>
-                    
+
                     <h4>Компетенции</h4>
                     <div className="scores-grid">
                         {Object.entries(COMPETENCIES_NAMES).map(([key, name]) => {
                             const score = currentResult.competencies[key];
                             const level = getScoreLevel(score);
                             return (
-                                <div key={key} className="score-item">
+                                <div
+                                    key={key}
+                                    className="score-item"
+                                >
                                     <div className="score-name">{name}</div>
-                                    <div className="score-value" style={{ color: level.color }}>
+                                    <div
+                                        className="score-value"
+                                        style={{ color: level.color }}
+                                    >
                                         {score !== null ? score : '—'}
                                     </div>
-                                    <div className="score-level" style={{ backgroundColor: level.color }}>
+                                    <div
+                                        className="score-level"
+                                        style={{ backgroundColor: level.color }}
+                                    >
                                         {level.level}
                                     </div>
                                 </div>
                             );
                         })}
                     </div>
-                    
+
                     <h4>Мотиваторы</h4>
                     <div className="scores-grid motivators">
                         {Object.entries(MOTIVATORS_NAMES).map(([key, name]) => {
                             const score = currentResult.motivators[key];
                             const level = getMotivatorLevel(score);
                             return (
-                                <div key={key} className="score-item">
+                                <div
+                                    key={key}
+                                    className="score-item"
+                                >
                                     <div className="score-name">{name}</div>
-                                    <div className="score-value" style={{ color: level.color }}>
+                                    <div
+                                        className="score-value"
+                                        style={{ color: level.color }}
+                                    >
                                         {score !== null ? score : '—'}
                                     </div>
-                                    <div className="score-level" style={{ backgroundColor: level.color }}>
+                                    <div
+                                        className="score-level"
+                                        style={{ backgroundColor: level.color }}
+                                    >
                                         {level.level}
                                     </div>
                                 </div>
                             );
                         })}
                     </div>
-                    
+
                     <h4>Ценности</h4>
                     <div className="scores-grid values">
                         {Object.entries(VALUES_NAMES).map(([key, name]) => {
                             const score = currentResult.values[key];
                             return (
-                                <div key={key} className="score-item">
+                                <div
+                                    key={key}
+                                    className="score-item"
+                                >
                                     <div className="score-name">{name}</div>
                                     <div className="score-value">{score !== null ? score : '—'}</div>
                                 </div>
@@ -254,17 +278,20 @@ const AcademicPerformanceCard = ({ grades }) => {
             </LabelledBox>
         );
     }
-    
+
     const groupedByYear = {};
     grades.forEach(grade => {
         if (!groupedByYear[grade.year]) groupedByYear[grade.year] = [];
         groupedByYear[grade.year].push(grade);
     });
-    
+
     return (
         <LabelledBox label="📚 Оценки по дисциплинам">
             {Object.entries(groupedByYear).map(([year, yearGrades]) => (
-                <div key={year} className="grades-year">
+                <div
+                    key={year}
+                    className="grades-year"
+                >
                     <h4>{year}</h4>
                     <Table>
                         <TableHeader>
@@ -293,7 +320,7 @@ const CoursesCard = ({ courses }) => {
             </LabelledBox>
         );
     }
-    
+
     // Курсы и их названия
     const courseFields = [
         { key: 'an_dec', name: 'Анализ и принятие решений' },
@@ -319,18 +346,24 @@ const CoursesCard = ({ courses }) => {
         { key: 'cross_cultural_comm', name: 'Кросс-культурная коммуникация' },
         { key: 'mentoring', name: 'Наставничество' }
     ];
-    
+
     return (
         <LabelledBox label="🎓 Пройденные образовательные курсы">
             {courses.map((course, idx) => (
-                <div key={idx} className="course-item">
+                <div
+                    key={idx}
+                    className="course-item"
+                >
                     <h4>Курс {idx + 1}</h4>
                     <div className="course-scores">
                         {courseFields.map(field => {
                             const value = course[field.key];
                             if (value !== null && value !== undefined) {
                                 return (
-                                    <div key={field.key} className="course-score">
+                                    <div
+                                        key={field.key}
+                                        className="course-score"
+                                    >
                                         <span className="course-score-label">{field.name}:</span>
                                         <span className="course-score-value">{value}</span>
                                     </div>
@@ -349,7 +382,7 @@ function AdminStudentView() {
     const [selectedStudentId, setSelectedStudentId] = useState(null);
     const [studentPortrait, setStudentPortrait] = useState(null);
     const [loading, setLoading] = useState(false);
-    
+
     useEffect(() => {
         if (selectedStudentId) {
             loadStudentPortrait(selectedStudentId);
@@ -357,8 +390,8 @@ function AdminStudentView() {
             setStudentPortrait(null);
         }
     }, [selectedStudentId]);
-    
-    const loadStudentPortrait = async (studentId) => {
+
+    const loadStudentPortrait = async studentId => {
         setLoading(true);
         getStudentPortrait(studentId)
             .onSuccess(async response => {
@@ -366,29 +399,32 @@ function AdminStudentView() {
                 if (data.status === 'success') {
                     setStudentPortrait(data.data);
                 } else {
-                    console.error("Ошибка загрузки портрета:", data.message);
-                    toast.error("Ошибка при загрузке портрета");
+                    console.error('Ошибка загрузки портрета:', data.message);
+                    toast.error('Ошибка при загрузке портрета');
                 }
             })
             .onError(error => {
-                console.error("Ошибка:", error);
-                toast.error("Ошибка при загрузке портрета");
+                console.error('Ошибка:', error);
+                toast.error('Ошибка при загрузке портрета');
             })
             .finally(() => setLoading(false));
     };
-    
+
     return (
         <div className="AdminStudentView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                <Header title="Админ: Просмотр студента" name="Администратор1" />
+                <Header
+                    title="Админ: Просмотр студента"
+                    name="Администратор1"
+                />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <h2>Цифровой портрет студента</h2>
-                    
+
                     <StudentSearch onSelectStudent={setSelectedStudentId} />
-                    
+
                     {loading && <LoadingSpinner text="Загрузка портрета студента..." />}
-                    
+
                     {!loading && studentPortrait && (
                         <FlexColumn gap="24">
                             <StudentInfoCard student={studentPortrait.student_info} />
@@ -397,22 +433,21 @@ function AdminStudentView() {
                             <CoursesCard courses={studentPortrait.courses} />
                         </FlexColumn>
                     )}
-                    
+
                     {!loading && !studentPortrait && selectedStudentId && (
-                        <div className="no-data-large">
-                            Не удалось загрузить данные студента
-                        </div>
+                        <div className="no-data-large">Не удалось загрузить данные студента</div>
                     )}
                 </Content>
             </SidebarLayout>
-            <ToastContainer 
+            <ToastContainer
                 position="bottom-right"
                 autoClose={2000}
                 hideProgressBar={true}
                 newestOnTop={false}
                 closeOnClick={true}
                 rtl={false}
-                theme="light" />
+                theme="light"
+            />
         </div>
     );
 }

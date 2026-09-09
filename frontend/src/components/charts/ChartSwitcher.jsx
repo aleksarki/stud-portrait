@@ -1,10 +1,10 @@
-import RadarChart from "./RadarChart";
-import BarChart from "./BarChart";
+import RadarChart from './RadarChart';
+import BarChart from './BarChart';
 
-function ChartSwitcher({title, seriesLabel, seriesData, categories, competencyKeys, height = 450}) {
+function ChartSwitcher({ title, seriesLabel, seriesData, categories, competencyKeys, height = 450 }) {
     // Автоматически выбираем тип диаграммы на основе количества категорий
     const shouldUseBarChart = categories.length <= 3;
-    
+
     if (shouldUseBarChart) {
         return (
             <BarChart
@@ -17,7 +17,7 @@ function ChartSwitcher({title, seriesLabel, seriesData, categories, competencyKe
             />
         );
     }
-    
+
     return (
         <RadarChart
             title={title}

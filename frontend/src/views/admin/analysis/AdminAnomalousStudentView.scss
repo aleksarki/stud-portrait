@@ -4,7 +4,7 @@
         padding: 16px;
         background: #fff;
         border-radius: 12px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
 
     .boxplot-container {
@@ -68,7 +68,8 @@
     .anomalies-table {
         width: 100%;
         border-collapse: collapse;
-        th, td {
+        th,
+        td {
             padding: 10px 12px;
             text-align: left;
             border-bottom: 1px solid #eee;
@@ -106,7 +107,7 @@
         background: #fff;
         border-radius: 12px;
         padding: 16px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         border: 1px solid #e9ecef;
 
         h4 {
@@ -146,13 +147,20 @@
                 font-size: 12px;
                 margin-top: 8px;
                 border-collapse: collapse;
-                th, td {
+                th,
+                td {
                     padding: 6px 8px;
                     text-align: left;
                     border-bottom: 1px solid #f0f0f0;
                 }
-                td.high { color: #e74c3c; font-weight: bold; }
-                td.low { color: #e67e22; font-weight: bold; }
+                td.high {
+                    color: #e74c3c;
+                    font-weight: bold;
+                }
+                td.low {
+                    color: #e67e22;
+                    font-weight: bold;
+                }
             }
         }
     }

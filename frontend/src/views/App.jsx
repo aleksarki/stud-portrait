@@ -2,16 +2,16 @@ import { Content, Header, SidebarLayout } from '../components/SidebarLayout';
 import './App.scss';
 
 function App() {
-  return (
-    <div className="App">
-      <SidebarLayout>
-        <Header />
-        <Content>
-          <span>начальная страница</span>
-        </Content>
-      </SidebarLayout>
-    </div>
-  );
+    return (
+        <div className="App">
+            <SidebarLayout>
+                <Header />
+                <Content>
+                    <span>начальная страница</span>
+                </Content>
+            </SidebarLayout>
+        </div>
+    );
 }
 
 export default App;

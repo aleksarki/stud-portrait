@@ -1,6 +1,6 @@
-import Card from "./Card";
+import Card from './Card';
 
-import "./TitledCard.scss";
+import './TitledCard.scss';
 
 function TitledCard({ children, title }) {
     return (

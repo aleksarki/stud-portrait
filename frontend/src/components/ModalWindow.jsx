@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 
-import "./ModalWindow.scss";
+import './ModalWindow.scss';
 
 function ModalWindow({ children, title, visible = true, setVisible }) {
     if (!visible) {
@@ -14,7 +14,7 @@ function ModalWindow({ children, title, visible = true, setVisible }) {
             <div className="content">
                 <div className="ModalHeader">
                     <span className="title">{title}</span>
-                    <button 
+                    <button
                         className="close-btn"
                         onClick={() => setVisible?.(false)}
                     >
@@ -29,15 +29,11 @@ function ModalWindow({ children, title, visible = true, setVisible }) {
 }
 
 export function ModalBody({ children }) {
-    return (
-        <div className="ModalBody">{children}</div>
-    );
+    return <div className="ModalBody">{children}</div>;
 }
 
 export function ModalFooter({ children }) {
-    return (
-        <div className="ModalFooter">{children}</div>
-    );
+    return <div className="ModalFooter">{children}</div>;
 }
 
 export default ModalWindow;

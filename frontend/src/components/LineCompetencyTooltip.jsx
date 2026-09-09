@@ -1,7 +1,7 @@
-import ReactApexChart from "react-apexcharts";
-import CompetencyTooltip from "./CompetencyTooltip";
+import ReactApexChart from 'react-apexcharts';
+import CompetencyTooltip from './CompetencyTooltip';
 
-import "./LineCompetencyTooltip.scss";
+import './LineCompetencyTooltip.scss';
 
 function LineCompetencyTooltip({ name, description, position, years, values }) {
     const chartOptions = {
@@ -66,21 +66,21 @@ function LineCompetencyTooltip({ name, description, position, years, values }) {
                     y2: 200,
                     borderColor: 'transparent',
                     fillColor: '#FFF9C4',
-                    opacity: .6,
+                    opacity: 0.6
                 },
                 {
                     y: 599,
                     y2: 400,
                     borderColor: 'transparent',
                     fillColor: '#C8E6C9',
-                    opacity: .6,
+                    opacity: 0.6
                 },
                 {
                     y: 800,
                     y2: 600,
                     borderColor: 'transparent',
                     fillColor: '#A5D6A7',
-                    opacity: .6,
+                    opacity: 0.6
                 }
             ]
         }
@@ -93,14 +93,16 @@ function LineCompetencyTooltip({ name, description, position, years, values }) {
     };
 
     // data to pass into the chart
-    const chartSeries = [{
-        name: name,
-        data: values.map((value, index) => ({
-            x: years[index],
-            y: value,
-            fillColor: getPointColor(value)
-        }))
-    }];
+    const chartSeries = [
+        {
+            name: name,
+            data: values.map((value, index) => ({
+                x: years[index],
+                y: value,
+                fillColor: getPointColor(value)
+            }))
+        }
+    ];
 
     return (
         <CompetencyTooltip
@@ -126,7 +128,8 @@ function LineCompetencyTooltip({ name, description, position, years, values }) {
                             Текущее значение: <strong>{values[0]}</strong>
                         </div>
                         <div className="value-category">
-                            Категория: <span style={{color: getPointColor(values[0])}}>
+                            Категория:{' '}
+                            <span style={{ color: getPointColor(values[0]) }}>
                                 {values[0] < 400 ? 'низкий' : values[0] < 600 ? 'средний' : 'высокий'}
                             </span>
                         </div>

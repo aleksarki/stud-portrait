@@ -11,13 +11,13 @@
     .student-card {
         background: white;
         border-radius: 12px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
         margin-bottom: 16px;
         overflow: hidden;
         transition: box-shadow 0.2s;
 
         &:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
         }
 
         .student-card-header {
@@ -120,8 +120,8 @@
     }
 
     .section-title-possible {
-    margin-top: 40px;
-}
+        margin-top: 40px;
+    }
 
     .account-email {
         font-size: 0.8rem;

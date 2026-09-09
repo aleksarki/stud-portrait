@@ -1,9 +1,9 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState } from 'react';
 
-import Dropdown, { DropdownContext } from "./Dropdown";
-import { ADMIN_PALETTE } from "./palette";
+import Dropdown, { DropdownContext } from './Dropdown';
+import { ADMIN_PALETTE } from './palette';
 
-import "./Select.scss";
+import './Select.scss';
 
 const SelectContext = createContext({
     selectedValue: undefined,
@@ -12,10 +12,7 @@ const SelectContext = createContext({
     onChangeCallback: undefined
 });
 
-function Select({
-    children, initValue, onChange, placeholder = "Выберите...",
-    palette = ADMIN_PALETTE.GRAY, disabled = false
-}) {
+function Select({ children, initValue, onChange, placeholder = 'Выберите...', palette = ADMIN_PALETTE.GRAY, disabled = false }) {
     const arr = React.Children.toArray(children);
 
     const [value, setValue] = useState(initValue);
@@ -24,17 +21,19 @@ function Select({
             ...arr.filter(child => child.type === Option),
             ...arr
                 .filter(child => child.type === OptionGroup)
-                .reduce((acc, group) => [...acc, ...(
-                    React.Children
-                        .toArray(group.props.children)
-                        .filter(child => child.type === Option)
-                )], [])
-        ]
-            .find(child => child.props.value === initValue)?.props?.label
+                .reduce(
+                    (acc, group) => [...acc, ...React.Children.toArray(group.props.children).filter(child => child.type === Option)],
+                    []
+                )
+        ].find(child => child.props.value === initValue)?.props?.label
     );
 
     return (
-        <Dropdown label={label ?? placeholder} palette={palette} disabled={disabled}>
+        <Dropdown
+            label={label ?? placeholder}
+            palette={palette}
+            disabled={disabled}
+        >
             <SelectContext.Provider
                 value={{
                     selectedValue: value,
@@ -51,13 +50,8 @@ function Select({
 }
 
 export function Option({ value, label, onClick }) {
-    const {
-        selectedValue,
-        valueSetter,
-        labelSetter,
-        onChangeCallback
-    } = useContext(SelectContext);
-    const {setOpen} = useContext(DropdownContext);
+    const { selectedValue, valueSetter, labelSetter, onChangeCallback } = useContext(SelectContext);
+    const { setOpen } = useContext(DropdownContext);
     return (
         <div
             className={`Option ${selectedValue === value ? 'selected' : ''}`}

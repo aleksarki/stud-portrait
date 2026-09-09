@@ -1,36 +1,36 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 
-import { postPortraitDataseshNew, getPortraitGetFilterOptionsWithCounts, postAiAnalyticsSummary } from "../../../api";
-import { LINK_TREE, COMPETENCIES_NAMES } from "../../../utilities";
+import { postPortraitDataseshNew, getPortraitGetFilterOptionsWithCounts, postAiAnalyticsSummary } from '../../../api';
+import { LINK_TREE, COMPETENCIES_NAMES } from '../../../utilities';
 
-import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
+import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from '../../../components/SidebarLayout';
 
-import MultiSelect from "../../../components/ui/MultiSelect";
-import Button from "../../../components/ui/Button";
-import LoadingSpinner from "../../../components/ui/LoadingSpinner";
-import { ADMIN_PALETTE } from "../../../components/ui/palette";
-import Select, { Option } from "../../../components/ui/Select";
+import MultiSelect from '../../../components/ui/MultiSelect';
+import Button from '../../../components/ui/Button';
+import LoadingSpinner from '../../../components/ui/LoadingSpinner';
+import { ADMIN_PALETTE } from '../../../components/ui/palette';
+import Select, { Option } from '../../../components/ui/Select';
 
-import "./AdminAiAnalyticsView.scss";
+import './AdminAiAnalyticsView.scss';
 
 function AdminAiAnalyticsView() {
     const [sessionId, setSessionId] = useState(null);
     const [loading, setLoading] = useState(false);
     const [generating, setGenerating] = useState(false);
-    const [summary, setSummary] = useState("");
+    const [summary, setSummary] = useState('');
 
     // Фильтры
     const [selectedInstitutions, setSelectedInstitutions] = useState([]);
     const [selectedDirections, setSelectedDirections] = useState([]);
     const [selectedCourses, setSelectedCourses] = useState([]);
-    const [selectedCompetency, setSelectedCompetency] = useState("res_comp_leadership");
-    const [analysisType, setAnalysisType] = useState("general");
+    const [selectedCompetency, setSelectedCompetency] = useState('res_comp_leadership');
+    const [analysisType, setAnalysisType] = useState('general');
 
     const [filterOptions, setFilterOptions] = useState({
         institutions: [],
         directions: [],
         allDirections: [],
-        courses: [],
+        courses: []
     });
 
     // Инициализация сессии
@@ -51,7 +51,7 @@ function AdminAiAnalyticsView() {
         init();
     }, []);
 
-    const loadFilterOptions = async (sid) => {
+    const loadFilterOptions = async sid => {
         if (!sid) return;
         getPortraitGetFilterOptionsWithCounts(sid)
             .onSuccess(async response => {
@@ -61,7 +61,7 @@ function AdminAiAnalyticsView() {
                         institutions: data.data?.institutions || [],
                         directions: data.data?.directions || [],
                         allDirections: data.data?.directions || [],
-                        courses: data.data?.courses || [],
+                        courses: data.data?.courses || []
                     });
                 }
             })
@@ -70,28 +70,31 @@ function AdminAiAnalyticsView() {
 
     const generateReport = async () => {
         setGenerating(true);
-        setSummary("");
+        setSummary('');
         try {
             const response = await postAiAnalyticsSummary(analysisType, {
                 institutions: selectedInstitutions,
                 directions: selectedDirections,
                 courses: selectedCourses,
-                competency: selectedCompetency,
+                competency: selectedCompetency
             });
-            response.onSuccess(async res => {
-                const data = await res.json();
-                if (data.status === 'success') {
-                    setSummary(data.summary);
-                } else {
-                    setSummary("❌ Ошибка: " + (data.message || "Неизвестная ошибка"));
-                }
-            }).onError(err => {
-                console.error(err);
-                setSummary("❌ Ошибка при запросе к серверу.");
-            }).finally(() => setGenerating(false));
+            response
+                .onSuccess(async res => {
+                    const data = await res.json();
+                    if (data.status === 'success') {
+                        setSummary(data.summary);
+                    } else {
+                        setSummary('❌ Ошибка: ' + (data.message || 'Неизвестная ошибка'));
+                    }
+                })
+                .onError(err => {
+                    console.error(err);
+                    setSummary('❌ Ошибка при запросе к серверу.');
+                })
+                .finally(() => setGenerating(false));
         } catch (err) {
             console.error(err);
-            setSummary("❌ Ошибка при генерации отчёта.");
+            setSummary('❌ Ошибка при генерации отчёта.');
             setGenerating(false);
         }
     };
@@ -99,20 +102,44 @@ function AdminAiAnalyticsView() {
     return (
         <div className="AdminAiAnalyticsView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                <Header title="Админ: AI-аналитика" name="Администратор" />
+                <Header
+                    title="Админ: AI-аналитика"
+                    name="Администратор"
+                />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <h2>Интеллектуальная аналитика</h2>
-                    <p>Выберите тип анализа и фильтры, затем нажмите "Сгенерировать отчёт". ИИ проанализирует данные и выдаст краткие выводы.</p>
+                    <p>
+                        Выберите тип анализа и фильтры, затем нажмите "Сгенерировать отчёт". ИИ проанализирует данные и выдаст краткие
+                        выводы.
+                    </p>
 
-                    <div className="filters-panel" style={{ marginBottom: 20, display: 'flex', flexWrap: 'wrap', gap: 15, alignItems: 'end' }}>
+                    <div
+                        className="filters-panel"
+                        style={{ marginBottom: 20, display: 'flex', flexWrap: 'wrap', gap: 15, alignItems: 'end' }}
+                    >
                         <div style={{ minWidth: 200 }}>
                             <label>Тип анализа:</label>
-                            <Select initValue={analysisType} onChange={setAnalysisType}>
-                                <Option value="general" label="Общая сводка" />
-                                <Option value="institution_comparison" label="Сравнение вузов" />
-                                <Option value="discipline_impact" label="Влияние дисциплин" />
-                                <Option value="vam_trend" label="Динамика по курсам (VAM)" />
+                            <Select
+                                initValue={analysisType}
+                                onChange={setAnalysisType}
+                            >
+                                <Option
+                                    value="general"
+                                    label="Общая сводка"
+                                />
+                                <Option
+                                    value="institution_comparison"
+                                    label="Сравнение вузов"
+                                />
+                                <Option
+                                    value="discipline_impact"
+                                    label="Влияние дисциплин"
+                                />
+                                <Option
+                                    value="vam_trend"
+                                    label="Динамика по курсам (VAM)"
+                                />
                             </Select>
                         </div>
 
@@ -147,29 +174,40 @@ function AdminAiAnalyticsView() {
 
                         <div style={{ minWidth: 200 }}>
                             <label>Компетенция:</label>
-                            <Select initValue={selectedCompetency} onChange={setSelectedCompetency}>
+                            <Select
+                                initValue={selectedCompetency}
+                                onChange={setSelectedCompetency}
+                            >
                                 {Object.entries(COMPETENCIES_NAMES).map(([key, name]) => (
-                                    <Option key={key} value={key} label={name} />
+                                    <Option
+                                        key={key}
+                                        value={key}
+                                        label={name}
+                                    />
                                 ))}
                             </Select>
                         </div>
 
                         <Button
-                            text={generating ? "Генерация..." : "Сгенерировать отчёт"}
+                            text={generating ? 'Генерация...' : 'Сгенерировать отчёт'}
                             onClick={generateReport}
                             disabled={generating || loading}
                             palette={ADMIN_PALETTE.CYAN}
                         />
                     </div>
 
-                    <LoadingSpinner loading={loading || generating} text="Загрузка..." />
+                    <LoadingSpinner
+                        loading={loading || generating}
+                        text="Загрузка..."
+                    />
 
                     {summary && (
-                        <div className="ai-summary" style={{ marginTop: 20, padding: 20, background: '#f8f9fa', borderRadius: 12, borderLeft: '4px solid #1976d2' }}>
+                        <div
+                            className="ai-summary"
+                            style={{ marginTop: 20, padding: 20, background: '#f8f9fa', borderRadius: 12, borderLeft: '4px solid #1976d2' }}
+                        >
                             <h3>📊 Аналитический отчёт</h3>
-                            <div style={{ whiteSpace: 'pre-wrap', fontSize: '1rem', lineHeight: 1.5 }}>
-                                {summary}
-                            </div>
+                            <div style={{ whiteSpace: 'pre-wrap', fontSize: '1rem', lineHeight: 1.5 }}>{summary}</div>
                             <Button
                                 text="Копировать текст"
                                 onClick={() => navigator.clipboard.writeText(summary)}

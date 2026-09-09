@@ -25,12 +25,12 @@ describe('Responsive Design', () => {
                 width: viewport.width,
                 height: viewport.height
             });
-            
+
             await baseTest.openApp('/student/123');
             await baseTest.driver.sleep(3000);
-            
+
             await baseTest.takeScreenshot(`Student Main Page - ${viewport.name}`);
-            
+
             // Проверка адаптивности сетки графиков
             if (viewport.width < 768) {
                 const charts = await baseTest.driver.findElements(By.css('.chart-card'));

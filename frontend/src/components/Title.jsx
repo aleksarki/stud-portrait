@@ -1,4 +1,4 @@
-import "./Title.scss";
+import './Title.scss';
 
 function Title({ title }) {
     return (

@@ -10,9 +10,9 @@
 
 @mixin paletted-activable() {
     @include paletted();
-    
+
     transition: all 0.2s ease;
-    
+
     &:hover:not(:disabled) {
         color: var(--hoverFg);
         background: var(--hoverBg);
@@ -35,7 +35,7 @@
         cursor: not-allowed;
         transform: none;
         // opacity: 0.6;
-        
+
         color: var(--disabledFg);
         background: var(--disabledBg);
         border: var(--disabledBorder);

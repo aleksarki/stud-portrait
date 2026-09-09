@@ -35,8 +35,14 @@ const LgmSpaghettiPlot = ({ data, maxIndividualTrajectories = 100 }) => {
     const trajectoriesToShow = individual_trajectories.slice(0, maxIndividualTrajectories);
 
     return (
-        <ResponsiveContainer width="100%" height={400}>
-            <LineChart data={chartData} margin={{ top: 20, right: 30, bottom: 20, left: 60 }}>
+        <ResponsiveContainer
+            width="100%"
+            height={400}
+        >
+            <LineChart
+                data={chartData}
+                margin={{ top: 20, right: 30, bottom: 20, left: 60 }}
+            >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="course" />
                 <YAxis />

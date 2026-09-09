@@ -1,8 +1,8 @@
-import { ADMIN_PALETTE, unpackPaletteOptions } from "./palette";
+import { ADMIN_PALETTE, unpackPaletteOptions } from './palette';
 
-import "./NumberField.scss";
+import './NumberField.scss';
 
-function NumberField({ value, min, max, onChange, palette = ADMIN_PALETTE.GRAY}) {
+function NumberField({ value, min, max, onChange, palette = ADMIN_PALETTE.GRAY }) {
     return (
         <input
             className="NumberField"

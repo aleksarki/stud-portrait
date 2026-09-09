@@ -23,7 +23,10 @@
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+    transition:
+        background 0.15s,
+        border-color 0.15s,
+        transform 0.1s;
     letter-spacing: 0.01em;
 
     &:hover:not(:disabled) {
@@ -104,7 +107,9 @@
         padding: 2px 6px;
         border-radius: 4px;
         font-size: 14px;
-        transition: color 0.15s, background 0.15s;
+        transition:
+            color 0.15s,
+            background 0.15s;
 
         &:hover {
             color: #94a3b8;
@@ -150,15 +155,26 @@
 
 /* ── Анимации ── */
 @keyframes ai-spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 @keyframes ai-pulse {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: 0.4; }
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.4;
+    }
 }
 
 @keyframes ai-shimmer {
-    0%   { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
 }

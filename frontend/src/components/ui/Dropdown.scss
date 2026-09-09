@@ -42,12 +42,12 @@
                 transform: var(--activeTransform);
             }
         }
-        
+
         &.disabled {
             cursor: not-allowed;
             transform: none;
             // opacity: 0.6;
-            
+
             color: var(--disabledFg);
             background: var(--disabledBg);
             border: var(--disabledBorder);
@@ -72,7 +72,8 @@
 
         @include palette.paletted();
 
-        &:not(.open), &.disabled {
+        &:not(.open),
+        &.disabled {
             display: none;
         }
 

@@ -2,7 +2,6 @@
 
 **StudPortrait** - web app for building digital student portrait and analysing the tendance of student skills.
 
-
 ## Installation & launch
 
 ### Frontend
@@ -20,7 +19,6 @@ npm i
 cd frontend
 npm run dev
 ```
-
 
 ---
 
@@ -55,7 +53,6 @@ cd src
 python manage.py test
 ```
 
-
 ---
 
 ### LLM service
@@ -77,7 +74,6 @@ python -m venv .venv
 .venv\Scripts\activate
 uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
 ```
-
 
 ---
 

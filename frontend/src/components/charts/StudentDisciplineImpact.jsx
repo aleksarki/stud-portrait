@@ -35,12 +35,13 @@ const StudentDisciplineImpact = ({ studentId }) => {
     return (
         <div className="student-discipline-impact">
             <h3>📚 Влияние дисциплин на ваши компетенции</h3>
-            <p className="info-text">
-                Для каждой дисциплины показаны баллы компетенций до и после её изучения, а также изменение.
-            </p>
+            <p className="info-text">Для каждой дисциплины показаны баллы компетенций до и после её изучения, а также изменение.</p>
             <div className="disciplines-list">
                 {data.map((item, idx) => (
-                    <div key={idx} className="discipline-card">
+                    <div
+                        key={idx}
+                        className="discipline-card"
+                    >
                         <div className="discipline-header">
                             <strong>{item.discipline}</strong>
                             <span>Оценка: {item.grade}</span>
@@ -67,7 +68,8 @@ const StudentDisciplineImpact = ({ studentId }) => {
                                             <td>{before}</td>
                                             <td>{after}</td>
                                             <td className={`diff ${diffClass}`}>
-                                                {diff > 0 ? '+' : ''}{diff}
+                                                {diff > 0 ? '+' : ''}
+                                                {diff}
                                             </td>
                                         </tr>
                                     );

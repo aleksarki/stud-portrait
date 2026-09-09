@@ -3,20 +3,20 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import Chart from 'react-apexcharts';
 
 import { ToastContainer, toast } from 'react-toastify';
-import { FIELD_NAMES, LINK_TREE } from "../../utilities.js";
+import { FIELD_NAMES, LINK_TREE } from '../../utilities.js';
 import { postPortraitDataseshGroupSelected } from '../../api.js';
 
-import FlexRow, { WRAP } from "../../components/FlexRow";
-import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
+import FlexRow, { WRAP } from '../../components/FlexRow';
+import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from '../../components/SidebarLayout';
 
-import TitledCard from "../../components/cards/TitledCard";
+import TitledCard from '../../components/cards/TitledCard';
 
 import Button from '../../components/ui/Button';
 import Label from '../../components/ui/Label';
 import { ADMIN_PALETTE } from '../../components/ui/palette.js';
 import Select, { Option } from '../../components/ui/Select.jsx';
 
-import "./AdminGroupingView.scss";
+import './AdminGroupingView.scss';
 
 function AdminGroupingView() {
     const location = useLocation();
@@ -37,18 +37,18 @@ function AdminGroupingView() {
         }
     }, [location, navigate]);
 
-    const fetchGroupedData = async (data) => {
+    const fetchGroupedData = async data => {
         setLoading(true);
-        postPortraitDataseshGroupSelected(data.sessionId, data.selectedIds, data.groupingColumn)  // REVIEW error?
+        postPortraitDataseshGroupSelected(data.sessionId, data.selectedIds, data.groupingColumn) // REVIEW error?
             .onSuccess(async response => {
                 const result = await response.json();
                 if (result.status === 'success') {
                     setChartData(result.grouped_data);
                 } else {
-                    console.error("Error from server:", result.message);
+                    console.error('Error from server:', result.message);
                 }
             })
-            .onError(error => console.error("Error fetching grouped data:", error))
+            .onError(error => console.error('Error fetching grouped data:', error))
             .finally(() => setLoading(false));
     };
 
@@ -91,7 +91,10 @@ function AdminGroupingView() {
         return (
             <div className="AdminGroupingView">
                 <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                    <Header title="Админ: Группировка данных" name="Администратор1" />
+                    <Header
+                        title="Админ: Группировка данных"
+                        name="Администратор1"
+                    />
                     <Sidebar linkTree={LINK_TREE} />
                     <Content>
                         <div className="loading">
@@ -107,7 +110,10 @@ function AdminGroupingView() {
     return (
         <div className="AdminGroupingView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                <Header title="Админ: Группировка данных" name="Администратор1" />
+                <Header
+                    title="Админ: Группировка данных"
+                    name="Администратор1"
+                />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <div className="grouping-container">
@@ -115,10 +121,22 @@ function AdminGroupingView() {
                             <h1>Группировка данных</h1>
                             <FlexRow wrap={WRAP.DO}>
                                 <label>Тип диаграммы:</label>
-                                <Select initValue={chartType} onChange={setChartType}>
-                                    <Option value="line" label="Линейная" />
-                                    <Option value="bar" label="Столбчатая" />
-                                    <Option value="area" label="Областная" />
+                                <Select
+                                    initValue={chartType}
+                                    onChange={setChartType}
+                                >
+                                    <Option
+                                        value="line"
+                                        label="Линейная"
+                                    />
+                                    <Option
+                                        value="bar"
+                                        label="Столбчатая"
+                                    />
+                                    <Option
+                                        value="area"
+                                        label="Областная"
+                                    />
                                 </Select>
                                 <Button
                                     text="← Назад к результатам"
@@ -127,9 +145,10 @@ function AdminGroupingView() {
                                 />
                                 {groupingData && (
                                     <Label>
-                                        Группировка по: <strong>{FIELD_NAMES[groupingData.groupingColumn] || groupingData.groupingColumn}</strong> | 
-                                        Записей: <strong>{groupingData.selectedIds.length}</strong> | 
-                                        Фильтров: <strong>{groupingData.filters.length}</strong>
+                                        Группировка по:{' '}
+                                        <strong>{FIELD_NAMES[groupingData.groupingColumn] || groupingData.groupingColumn}</strong> |
+                                        Записей: <strong>{groupingData.selectedIds.length}</strong> | Фильтров:{' '}
+                                        <strong>{groupingData.filters.length}</strong>
                                     </Label>
                                 )}
                             </FlexRow>
@@ -153,8 +172,7 @@ function AdminGroupingView() {
                                 palette={activeTab === 'values' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
                             />
                         </FlexRow>
-                        <div className="data-tabs">
-                        </div>
+                        <div className="data-tabs"></div>
 
                         {/* Компетенции */}
                         {activeTab === 'competences' && chartData?.competences && (
@@ -162,14 +180,13 @@ function AdminGroupingView() {
                                 {Object.entries(chartData.competences).map(([competence, data]) => (
                                     <TitledCard title={FIELD_NAMES[competence]}>
                                         <Chart
-                                            options={getChartOptions(
-                                                FIELD_NAMES[competence] || competence,
-                                                data.groups
-                                            )}
-                                            series={[{
-                                                name: FIELD_NAMES[competence] || competence,
-                                                data: data.values
-                                            }]}
+                                            options={getChartOptions(FIELD_NAMES[competence] || competence, data.groups)}
+                                            series={[
+                                                {
+                                                    name: FIELD_NAMES[competence] || competence,
+                                                    data: data.values
+                                                }
+                                            ]}
                                             type={chartType}
                                             height={400}
                                         />
@@ -182,16 +199,18 @@ function AdminGroupingView() {
                         {activeTab === 'motivators' && chartData?.motivators && (
                             <div className="charts-grid">
                                 {Object.entries(chartData.motivators).map(([motivator, data]) => (
-                                    <div key={motivator} className="chart-container">
+                                    <div
+                                        key={motivator}
+                                        className="chart-container"
+                                    >
                                         <Chart
-                                            options={getChartOptions(
-                                                FIELD_NAMES[motivator] || motivator,
-                                                data.groups
-                                            )}
-                                            series={[{
-                                                name: FIELD_NAMES[motivator] || motivator,
-                                                data: data.values
-                                            }]}
+                                            options={getChartOptions(FIELD_NAMES[motivator] || motivator, data.groups)}
+                                            series={[
+                                                {
+                                                    name: FIELD_NAMES[motivator] || motivator,
+                                                    data: data.values
+                                                }
+                                            ]}
                                             type={chartType}
                                             height={400}
                                         />
@@ -204,16 +223,18 @@ function AdminGroupingView() {
                         {activeTab === 'values' && chartData?.values && (
                             <div className="charts-grid">
                                 {Object.entries(chartData.values).map(([value, data]) => (
-                                    <div key={value} className="chart-container">
+                                    <div
+                                        key={value}
+                                        className="chart-container"
+                                    >
                                         <Chart
-                                            options={getChartOptions(
-                                                FIELD_NAMES[value] || value,
-                                                data.groups
-                                            )}
-                                            series={[{
-                                                name: FIELD_NAMES[value] || value,
-                                                data: data.values
-                                            }]}
+                                            options={getChartOptions(FIELD_NAMES[value] || value, data.groups)}
+                                            series={[
+                                                {
+                                                    name: FIELD_NAMES[value] || value,
+                                                    data: data.values
+                                                }
+                                            ]}
                                             type={chartType}
                                             height={400}
                                         />
@@ -226,7 +247,8 @@ function AdminGroupingView() {
                             <div className="no-data">
                                 <div className="no-data-icon">📊</div>
                                 <div className="no-data-text">
-                                    <strong>Нет данных для отображения</strong><br />
+                                    <strong>Нет данных для отображения</strong>
+                                    <br />
                                     Не удалось загрузить данные для группировки
                                 </div>
                             </div>
@@ -234,14 +256,15 @@ function AdminGroupingView() {
                     </div>
                 </Content>
             </SidebarLayout>
-            <ToastContainer 
+            <ToastContainer
                 position="bottom-right"
                 autoClose={2000}
                 hideProgressBar={true}
                 newestOnTop={false}
                 closeOnClick={true}
                 rtl={false}
-                theme="light" />
+                theme="light"
+            />
         </div>
     );
 }

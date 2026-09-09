@@ -4,12 +4,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    
+
     > div {
         width: 100% !important;
         max-width: 100% !important;
         height: 100% !important;
-        
+
         svg {
             width: 100% !important;
             height: 100% !important;
@@ -31,11 +31,11 @@
         .apexcharts-radar-series ~ g text,
         text.apexcharts-xaxis-label,
         .apexcharts-yaxis-label,
-        g[class*="apexcharts-xaxis"] text {
+        g[class*='apexcharts-xaxis'] text {
             font-size: 14px !important;
             fill: #111111 !important;
         }
-        
+
         // Увеличиваем отступы для многострочных labels
         .apexcharts-radar-polygon {
             transform: scale(0.9);
@@ -54,14 +54,14 @@
         border-radius: 8px !important;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
         padding: 15px;
-        
+
         .apexcharts-tooltip-title {
             background: #f8f9fa !important;
             border-bottom: 1px solid #e9ecef !important;
             font-weight: 600 !important;
             padding: 8px 12px !important;
         }
-        
+
         .apexcharts-tooltip-series-group {
             padding: 12px !important;
         }

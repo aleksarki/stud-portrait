@@ -1,28 +1,31 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 
-import { getPortraitStudentResults, getStudentComparisonStats, getStudentResumeData, windowGenerateDocxResume } from "../../api";
+import { getPortraitStudentResults, getStudentComparisonStats, getStudentResumeData, windowGenerateDocxResume } from '../../api';
 import {
-    getAvailableProfiles, getAvailableCategories, getAvailableYears,
-    getCategoryDataForYear, COMPETENCIES_NAMES,
+    getAvailableProfiles,
+    getAvailableCategories,
+    getAvailableYears,
+    getCategoryDataForYear,
+    COMPETENCIES_NAMES,
     MOTIVATORS_NAMES
-} from "../../utilities";
+} from '../../utilities';
 
-import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
-import StudentComparisonStats from "../../components/StudentComparisonStats";
-import Title from "../../components/Title";
+import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from '../../components/SidebarLayout';
+import StudentComparisonStats from '../../components/StudentComparisonStats';
+import Title from '../../components/Title';
 
-import Button from "../../components/ui/Button";
-import { STUDENT_PALETTE } from "../../components/ui/palette";
-import Select, { Option } from "../../components/ui/Select";
+import Button from '../../components/ui/Button';
+import { STUDENT_PALETTE } from '../../components/ui/palette';
+import Select, { Option } from '../../components/ui/Select';
 
-import ChartSwitcher from "../../components/charts/ChartSwitcher";
-import StudentVamChart from "../../components/charts/StudentVamChart";
+import ChartSwitcher from '../../components/charts/ChartSwitcher';
+import StudentVamChart from '../../components/charts/StudentVamChart';
 import StudentLgmChart from '../../components/charts/StudentLgmChart';
 import StudentDisciplineImpact from '../../components/charts/StudentDisciplineImpact';
-import PlanetaryChart from "../../components/charts/PlanetaryChart";
+import PlanetaryChart from '../../components/charts/PlanetaryChart';
 
-import "./StudentMainView.scss";
+import './StudentMainView.scss';
 
 function StudentMainView() {
     const { studentId } = useParams();
@@ -82,10 +85,13 @@ function StudentMainView() {
                 title: profile.title
             }));
 
-            setLinkList([{
-                to: `/student/${studResults.student.stud_id}`,
-                title: "Главная страница"
-            }, ...profileLinks]);
+            setLinkList([
+                {
+                    to: `/student/${studResults.student.stud_id}`,
+                    title: 'Главная страница'
+                },
+                ...profileLinks
+            ]);
 
             const years = getAvailableYears(studResults.results);
             setAvailableYears(years);
@@ -118,7 +124,7 @@ function StudentMainView() {
                     setComparisonStats(data.data);
                 }
             })
-            .onError(error => console.error("Ошибка загрузки сравнения:", error))
+            .onError(error => console.error('Ошибка загрузки сравнения:', error))
             .finally(() => setLoadingComparison(false));
     };
 
@@ -129,7 +135,7 @@ function StudentMainView() {
         }
     }, [selectedYear]);
 
-    const updateChartsData = (year) => {
+    const updateChartsData = year => {
         if (!studResults?.results?.length || !year) return;
 
         const availableProfiles = getAvailableProfiles(studResults.results);
@@ -142,9 +148,7 @@ function StudentMainView() {
                 const yearData = getCategoryDataForYear(studResults.results, profile.key, category.key, year);
 
                 if (yearData.labels.length > 0) {
-                    const competencyKeys = category.fields
-                        .filter(field => yearData.labels.includes(field.label))
-                        .map(field => field.key);
+                    const competencyKeys = category.fields.filter(field => yearData.labels.includes(field.label)).map(field => field.key);
 
                     charts.push({
                         profile: profile,
@@ -196,7 +200,7 @@ function StudentMainView() {
     };
 
     // ПОДГОТОВКА ДАННЫХ ДЛЯ LGM ГРАФИКА
-    const prepareLgmData = (results) => {
+    const prepareLgmData = results => {
         if (!results || results.length === 0) {
             setLgmData([]);
             return;
@@ -214,7 +218,7 @@ function StudentMainView() {
                 }
             });
         });
-        const courses = Object.keys(byCourse).sort((a,b) => Number(a) - Number(b));
+        const courses = Object.keys(byCourse).sort((a, b) => Number(a) - Number(b));
         if (courses.length < 2) {
             console.warn('Недостаточно данных для LGM (нужно минимум 2 курса)');
             setLgmData([]);
@@ -294,7 +298,10 @@ function StudentMainView() {
     return (
         <div className="StudentMainView">
             <SidebarLayout style={LAYOUT_STYLE.NORMAL}>
-                <Header title="Профиль" name={`${studResults?.student?.stud_name}`} />
+                <Header
+                    title="Профиль"
+                    name={`${studResults?.student?.stud_name}`}
+                />
                 <Sidebar links={linkList} />
                 <Content>
                     <Title title="Главная страница" />
@@ -306,20 +313,25 @@ function StudentMainView() {
                                     initValue={selectedYear}
                                     onChange={setSelectedYear}
                                 >
-                                    {availableYears.map(year => <Option value={year} label={year} />)}
+                                    {availableYears.map(year => (
+                                        <Option
+                                            value={year}
+                                            label={year}
+                                        />
+                                    ))}
                                 </Select>
                             </div>
                         )}
 
                         <div className="action-buttons">
                             <Button
-                                text={analyticsLoading ? "Загрузка..." : showAnalytics ? "Скрыть аналитику" : "Показать аналитику"}
+                                text={analyticsLoading ? 'Загрузка...' : showAnalytics ? 'Скрыть аналитику' : 'Показать аналитику'}
                                 onClick={toggleAnalytics}
                                 disabled={analyticsLoading}
                                 palette={STUDENT_PALETTE.BLUE}
                             />
                             <Button
-                                text={resumeGenerating ? "Загрузка..." : "Скачать резюме DOCX"}
+                                text={resumeGenerating ? 'Загрузка...' : 'Скачать резюме DOCX'}
                                 onClick={generateDocxResume}
                                 disabled={resumeGenerating}
                                 palette={STUDENT_PALETTE.GREEN}
@@ -332,9 +344,7 @@ function StudentMainView() {
                         <div className="analytics-section">
                             <div className="analytics-header">
                                 <h2>Аналитика надпрофессиональных компетенций</h2>
-                                <p className="analytics-description">
-                                    Анализ результатов тестирования с рекомендациями по развитию
-                                </p>
+                                <p className="analytics-description">Анализ результатов тестирования с рекомендациями по развитию</p>
                             </div>
 
                             {analyticsData.general_interpretation && (
@@ -344,10 +354,13 @@ function StudentMainView() {
                             )}
 
                             <div className="analytics-cards-grid">
-                                {analyticsData.competencies?.map((comp) => {
+                                {analyticsData.competencies?.map(comp => {
                                     if (!comp.ai) return null;
                                     return (
-                                        <div key={comp.field} className="analytics-card">
+                                        <div
+                                            key={comp.field}
+                                            className="analytics-card"
+                                        >
                                             <div className="analytics-card-header">
                                                 <div className="competency-title">
                                                     <span className="emoji">{comp.ai.emoji}</span>
@@ -364,7 +377,10 @@ function StudentMainView() {
                                                     }}
                                                 ></div>
                                             </div>
-                                            <div className="level-indicator" style={{ color: comp.ai.color }}>
+                                            <div
+                                                className="level-indicator"
+                                                style={{ color: comp.ai.color }}
+                                            >
                                                 <strong>{comp.ai.level.toUpperCase()}</strong> уровень
                                                 <span className="percentile">({comp.ai.percentile}-й процентиль)</span>
                                             </div>
@@ -394,7 +410,10 @@ function StudentMainView() {
                             <div className="loading">Загрузка данных...</div>
                         ) : chartsData.length > 0 ? (
                             chartsData.map((chart, index) => (
-                                <div key={index} className="chart-card">
+                                <div
+                                    key={index}
+                                    className="chart-card"
+                                >
                                     <div className="chart-header">
                                         <h3>{chart.title}</h3>
                                         {chart.year && <span className="chart-year">{chart.year}</span>}
@@ -411,7 +430,7 @@ function StudentMainView() {
                             ))
                         ) : (
                             <div className="no-data">
-                                {availableYears.length > 0 ? "Нет данных для отображения" : "Нет доступных данных"}
+                                {availableYears.length > 0 ? 'Нет данных для отображения' : 'Нет доступных данных'}
                             </div>
                         )}
                         {/* Диаграмма компетенций */}
@@ -441,8 +460,8 @@ function StudentMainView() {
 
                     {/* СРАВНИТЕЛЬНАЯ СТАТИСТИКА */}
                     <StudentComparisonStats
-                        studentId={studentId} 
-                        year={selectedYear} 
+                        studentId={studentId}
+                        year={selectedYear}
                     />
 
                     {/* VAM ГРАФИК ДЛЯ СТУДЕНТА */}
@@ -455,11 +474,17 @@ function StudentMainView() {
                                 onChange={setVamCompetency}
                             >
                                 {Object.entries(COMPETENCIES_NAMES).map(([key, name]) => (
-                                    <Option value={key} label={name} />
+                                    <Option
+                                        value={key}
+                                        label={name}
+                                    />
                                 ))}
                             </Select>
                         </div>
-                        <StudentVamChart studentId={studentId} competency={vamCompetency} />
+                        <StudentVamChart
+                            studentId={studentId}
+                            competency={vamCompetency}
+                        />
                     </div>
 
                     {/* LGM ГРАФИК ДЛЯ СТУДЕНТА */}
@@ -472,7 +497,10 @@ function StudentMainView() {
                                 onChange={setLgmCompetency}
                             >
                                 {Object.entries(COMPETENCIES_NAMES).map(([key, name]) => (
-                                    <Option value={key} label={name} />
+                                    <Option
+                                        value={key}
+                                        label={name}
+                                    />
                                 ))}
                             </Select>
                         </div>

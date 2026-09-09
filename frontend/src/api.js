@@ -25,7 +25,7 @@ class AsyncChain {
 class WindowChain {
     constructor(url) {
         this.url = url;
-        this.timeoutCallback = null
+        this.timeoutCallback = null;
         this.errorCallback = null;
     }
 
@@ -49,8 +49,8 @@ class WindowChain {
     }
 }
 
-const PROTOCOL = "http";
-const HOST = "localhost:8000";
+const PROTOCOL = 'http';
+const HOST = 'localhost:8000';
 
 /* *** AUDIT *** */
 
@@ -81,7 +81,7 @@ export function postAuditExecuteSQL(query) {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/audit/execute-sql/`, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify({ query })
     });
@@ -112,7 +112,7 @@ export function getDataloadTemplates() {
     return new AsyncChain(promise);
 }
 
-export function postDataloadTemplateSave(name, config, description = "") {
+export function postDataloadTemplateSave(name, config, description = '') {
     const promise = fetch(`${PROTOCOL}://${HOST}/portrait/dataload/template-save/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -238,8 +238,12 @@ export function getPortraitGetInstitutionDirections(selectedInstitutions) {
 }
 
 export function getPortraitGetFilterOptionsWithCounts(
-    sessionId, selectedInstitutions, selectedDirections, selectedCourses,
-    selectedTestAttempts, selectedCompetencies
+    sessionId,
+    selectedInstitutions,
+    selectedDirections,
+    selectedCourses,
+    selectedTestAttempts,
+    selectedCompetencies
 ) {
     const params = new URLSearchParams({ session_id: sessionId });
     selectedInstitutions?.forEach(id => params.append('institution_ids[]', id));
@@ -306,7 +310,7 @@ export function postGetLgmGrowers(competency, groupBy, groupId, institutionIds =
             group_by: groupBy,
             group_id: groupId,
             institution_ids: institutionIds,
-            direction_ids: directionIds,
+            direction_ids: directionIds
         })
     });
     return new AsyncChain(promise);
@@ -514,7 +518,7 @@ export function postGetBoxplotData(competency, institutionIds = [], directionIds
             competency,
             institution_ids: institutionIds,
             direction_ids: directionIds,
-            group_by: groupBy,
+            group_by: groupBy
         })
     });
     return new AsyncChain(promise);
@@ -540,15 +544,7 @@ export function getCompetencyTrendByYear(institute, specialty) {
     return new AsyncChain(promise);
 }
 
-
-export function getTopCorrelations({
-    topN = 20,
-    sortBy = 'abs',
-    minN = 30,
-    institute = null,
-    specialty = null,
-    year = null
-} = {}) {
+export function getTopCorrelations({ topN = 20, sortBy = 'abs', minN = 30, institute = null, specialty = null, year = null } = {}) {
     const params = new URLSearchParams();
     params.append('top_n', topN);
     params.append('sort_by', sortBy);
@@ -561,13 +557,7 @@ export function getTopCorrelations({
     return new AsyncChain(promise);
 }
 
-export function getCompetencySegmentation({
-    competency,
-    institute = null,
-    specialty = null,
-    year = null,
-    motivatorThreshold = 600
-} = {}) {
+export function getCompetencySegmentation({ competency, institute = null, specialty = null, year = null, motivatorThreshold = 600 } = {}) {
     const params = new URLSearchParams();
     params.append('competency', competency);
     params.append('motivator_threshold', motivatorThreshold);

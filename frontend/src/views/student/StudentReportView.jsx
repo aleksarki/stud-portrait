@@ -1,17 +1,17 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { getPortraitStudentResults } from "../../api";
-import { getAvailableProfiles, getAvailableCategories, prepareCategoryTableData, RESULT_PROFILES } from "../../utilities";
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { getPortraitStudentResults } from '../../api';
+import { getAvailableProfiles, getAvailableCategories, prepareCategoryTableData, RESULT_PROFILES } from '../../utilities';
 
-import ResultTable from "../../components/ResultTable";
-import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
-import Subtitle from "../../components/Subtitle";
-import Title from "../../components/Title";
+import ResultTable from '../../components/ResultTable';
+import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from '../../components/SidebarLayout';
+import Subtitle from '../../components/Subtitle';
+import Title from '../../components/Title';
 
-import "./StudentReportView.scss";
+import './StudentReportView.scss';
 
 function StudentReportView() {
-    const {studentId, reportType} = useParams();
+    const { studentId, reportType } = useParams();
     const [studResults, setStudResults] = useState();
     const [linkList, setLinkList] = useState([]);
     const [tablesData, setTablesData] = useState([]);
@@ -25,7 +25,7 @@ function StudentReportView() {
                 .onSuccess(async response => {
                     const data = await response.json();
                     if (data.status === 'success') {
-                        setStudResults({student: data.student, results: data.results});
+                        setStudResults({ student: data.student, results: data.results });
                     }
                 })
                 .onError(error => console.error(error))
@@ -47,11 +47,14 @@ function StudentReportView() {
                     title: profile.title
                 };
             });
-            
-            setLinkList([{
-                to: `/student/${studResults.student.stud_id}`,
-                title: "Главная страница"
-            }, ...profileLinks]);
+
+            setLinkList([
+                {
+                    to: `/student/${studResults.student.stud_id}`,
+                    title: 'Главная страница'
+                },
+                ...profileLinks
+            ]);
         };
 
         const prepareTablesData = () => {
@@ -61,11 +64,7 @@ function StudentReportView() {
             const tables = [];
 
             availableCategories.forEach(category => {
-                const { tableData, years } = prepareCategoryTableData(
-                    studResults.results, 
-                    reportType, 
-                    category.key
-                );
+                const { tableData, years } = prepareCategoryTableData(studResults.results, reportType, category.key);
 
                 console.log('Table data for', category.key, tableData); // Для отладки
                 console.log('Years for', category.key, years); // Для отладки
@@ -93,7 +92,10 @@ function StudentReportView() {
     return (
         <div className="StudentReportView">
             <SidebarLayout style={LAYOUT_STYLE.NORMAL}>
-                <Header title="Результаты" name={`${studResults?.student?.stud_name}`} />
+                <Header
+                    title="Результаты"
+                    name={`${studResults?.student?.stud_name}`}
+                />
                 <Sidebar links={linkList} />
                 <Content>
                     <Title title={reportTitle} />
@@ -102,7 +104,10 @@ function StudentReportView() {
                             <div className="loading">Загрузка данных...</div>
                         ) : tablesData.length > 0 ? (
                             tablesData.map((table, index) => (
-                                <div key={index} className="category-table-section">
+                                <div
+                                    key={index}
+                                    className="category-table-section"
+                                >
                                     <Subtitle text={table.title} />
                                     <ResultTable
                                         data={table.tableData}

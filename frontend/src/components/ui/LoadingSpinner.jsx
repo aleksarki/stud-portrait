@@ -1,4 +1,4 @@
-import "./LoadingSpinner.scss";
+import './LoadingSpinner.scss';
 
 function LoadingSpinner({ loading = true, text }) {
     if (!loading) {

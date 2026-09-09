@@ -16,16 +16,16 @@
         "center_name": "H",
         "edu_level_name": "L",
         "inst_name": "I",
-        
+
         "part_rsv_id": "C",
         "part_gender": "E",
         "part_course_num": "M",
-        
+
         "res_year": "B",
         "res_course_num": "M",
         "res_high_potential": "D",
         "res_summary_report": "P",
-        
+
         "res_comp_info_analysis": "Q",
         "res_comp_planning": "R",
         "res_comp_result_orientation": "S",
@@ -38,7 +38,7 @@
         "res_comp_client_focus": "Z",
         "res_comp_communication": "AA",
         "res_comp_passive_vocab": "AB",
-        
+
         "spec_name": "O",
         "form_name": "N"
       }
@@ -49,7 +49,7 @@
       "columns": {
         "part_rsv_id": "B",
         "res_year": "C",
-        
+
         "res_mot_autonomy": "D",
         "res_mot_altruism": "E",
         "res_mot_challenge": "F",
@@ -74,7 +74,7 @@
       "columns": {
         "part_rsv_id": "B",
         "res_year": "C",
-        
+
         "res_val_honesty_justice": "D",
         "res_val_humanism": "E",
         "res_val_patriotism": "F",
@@ -88,7 +88,7 @@
       "start_row": 4,
       "columns": {
         "part_rsv_id": "B",
-        
+
         "course_an_dec": "C",
         "course_client_focus": "D",
         "course_communication": "E",

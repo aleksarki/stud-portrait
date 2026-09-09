@@ -13,7 +13,7 @@
         align-items: center;
         margin-bottom: 15px;
         flex-shrink: 0;
-        
+
         h2 {
             margin: 0;
             color: #333;
@@ -54,7 +54,8 @@
                 background-color: #e3f2fd;
             }
 
-            th, td {
+            th,
+            td {
                 &:first-child {
                     position: sticky;
                     left: 0;
@@ -118,7 +119,7 @@
         font-size: 16px;
         flex: 1;
         background: #f8f9fa;
-        
+
         .no-data-icon {
             font-size: 48px;
             margin-bottom: 20px;
@@ -134,16 +135,16 @@
             gap: 15px;
             align-items: flex-start;
         }
-        
+
         .stats-overview {
             grid-template-columns: 1fr;
         }
-        
+
         .progress-legend {
             flex-direction: column;
             align-items: flex-start;
             gap: 10px;
-            
+
             .legend-items {
                 gap: 10px;
             }

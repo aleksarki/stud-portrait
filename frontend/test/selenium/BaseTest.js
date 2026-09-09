@@ -11,10 +11,8 @@ class BaseTest {
 
     async setup() {
         console.log('Setting up browser and Applitools...');
-        
-        this.driver = await new Builder()
-            .forBrowser(Browser.CHROME)
-            .build();
+
+        this.driver = await new Builder().forBrowser(Browser.CHROME).build();
 
         // Конфигурация Applitools
         const config = new Configuration();
@@ -27,9 +25,9 @@ class BaseTest {
         config.setIgnoreDisplacements(true);
         config.setIgnoreCaret(true); // Игнорировать мигающий курсор
         config.setWaitBeforeScreenshots(1000); // Ждать 1 сек перед скриншотом
-        
+
         this.eyes.setConfiguration(config);
-        
+
         // Увеличиваем таймауты
         await this.driver.manage().setTimeouts({
             implicit: 15000,
@@ -42,19 +40,19 @@ class BaseTest {
 
     async teardown() {
         console.log('Cleaning up...');
-        
+
         // Закрываем Applitools
         try {
             await this.eyes.abortAsync();
         } catch (e) {
             console.log('Applitools abort error:', e.message);
         }
-        
+
         // Закрываем драйвер
         if (this.driver) {
             await this.driver.quit();
         }
-        
+
         // Получаем результаты тестов
         try {
             const allTestResults = await this.runner.getAllTestResults(false);
@@ -72,13 +70,13 @@ class BaseTest {
         const appUrl = process.env.APP_URL || 'http://localhost:3000';
         const fullUrl = appUrl + path;
         console.log(`Opening: ${fullUrl}`);
-        
+
         await this.driver.get(fullUrl);
         await this.driver.manage().window().maximize();
-        
+
         // Ждем загрузки
         await this.driver.sleep(3000);
-        
+
         // Проверяем, что страница загрузилась
         try {
             await this.driver.wait(until.elementLocated(By.css('body')), 10000);
@@ -115,11 +113,7 @@ class BaseTest {
     }
 
     async waitForElement(selector, timeout = 20000) {
-        return await this.driver.wait(
-            until.elementLocated(By.css(selector)),
-            timeout,
-            `Element ${selector} not found within ${timeout}ms`
-        );
+        return await this.driver.wait(until.elementLocated(By.css(selector)), timeout, `Element ${selector} not found within ${timeout}ms`);
     }
 
     async isElementDisplayed(selector) {

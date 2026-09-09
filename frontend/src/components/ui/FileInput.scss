@@ -1,6 +1,6 @@
 @use 'palette';
 
-input.FileInput[type="file"] {
+input.FileInput[type='file'] {
     padding: 8px 16px !important;
     border-radius: 4px;
     white-space: nowrap;
@@ -13,6 +13,6 @@ input.FileInput[type="file"] {
     &::file-selector-button {
         display: none;
     }
-    
+
     @include palette.paletted-activable();
 }

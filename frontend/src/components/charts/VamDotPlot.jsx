@@ -20,9 +20,7 @@ function aggregateGroups(data) {
 
             // Объединённый SE через дисперсию
             const pooledVar = points.reduce((s, p) => {
-                const se = p.ci_upper != null && p.ci_lower != null
-                    ? (p.ci_upper - p.ci_lower) / (2 * 1.96)
-                    : 0;
+                const se = p.ci_upper != null && p.ci_lower != null ? (p.ci_upper - p.ci_lower) / (2 * 1.96) : 0;
                 return s + se * se;
             }, 0);
             const combinedSE = Math.sqrt(pooledVar / (points.length * points.length));
@@ -33,23 +31,23 @@ function aggregateGroups(data) {
                 ci_lower: weightedVA - 1.96 * combinedSE,
                 ci_upper: weightedVA + 1.96 * combinedSE,
                 n: totalN,
-                courses: points.length,
+                courses: points.length
             };
         })
         .sort((a, b) => b.value_added - a.value_added);
 }
 
-const POSITIVE_COLOR  = '#1976d2';
-const NEGATIVE_COLOR  = '#e53935';
-const NEUTRAL_COLOR   = '#888780';
+const POSITIVE_COLOR = '#1976d2';
+const NEGATIVE_COLOR = '#e53935';
+const NEUTRAL_COLOR = '#888780';
 const ZERO_LINE_COLOR = '#e0e0e0';
 
-const ROW_HEIGHT  = 44;
+const ROW_HEIGHT = 44;
 const LABEL_WIDTH = 200;
-const CHART_LEFT  = LABEL_WIDTH + 16;
+const CHART_LEFT = LABEL_WIDTH + 16;
 const CHART_RIGHT_PAD = 100;
-const TOP_PAD     = 36;
-const BOTTOM_PAD  = 32;
+const TOP_PAD = 36;
+const BOTTOM_PAD = 32;
 
 const VamDotPlot = ({ data, aggregate = true, shortLabels = false }) => {
     const [hovered, setHovered] = useState(null);
@@ -63,7 +61,7 @@ const VamDotPlot = ({ data, aggregate = true, shortLabels = false }) => {
                 ci_lower: item.ci_lower ?? item.value_added,
                 ci_upper: item.ci_upper ?? item.value_added,
                 n: item.n ?? 1,
-                course: item.course,
+                course: item.course
             }));
         }
         return aggregateGroups(data);
@@ -93,7 +91,7 @@ const VamDotPlot = ({ data, aggregate = true, shortLabels = false }) => {
         return <div style={{ padding: 24, color: '#888', textAlign: 'center' }}>Нет данных для отображения</div>;
     }
 
-    const getColor = (item) => {
+    const getColor = item => {
         const ciCrossesZero = item.ci_lower <= 0 && item.ci_upper >= 0;
         if (ciCrossesZero) return NEUTRAL_COLOR;
         return item.value_added >= 0 ? POSITIVE_COLOR : NEGATIVE_COLOR;
@@ -106,7 +104,7 @@ const VamDotPlot = ({ data, aggregate = true, shortLabels = false }) => {
             visible: true,
             x: e.clientX - rect.left,
             y: e.clientY - rect.top,
-            item,
+            item
         });
         setHovered(idx);
     };
@@ -118,9 +116,7 @@ const VamDotPlot = ({ data, aggregate = true, shortLabels = false }) => {
 
     // Отметки на оси X
     const tickCount = 5;
-    const ticks = Array.from({ length: tickCount }, (_, i) =>
-        minVal + (i / (tickCount - 1)) * (maxVal - minVal)
-    );
+    const ticks = Array.from({ length: tickCount }, (_, i) => minVal + (i / (tickCount - 1)) * (maxVal - minVal));
 
     return (
         <div style={{ position: 'relative', width: '100%', userSelect: 'none' }}>
@@ -131,44 +127,53 @@ const VamDotPlot = ({ data, aggregate = true, shortLabels = false }) => {
             >
                 {/* Нулевая линия */}
                 <line
-                    x1={zeroX} y1={TOP_PAD - 8}
-                    x2={zeroX} y2={TOP_PAD + groups.length * ROW_HEIGHT}
+                    x1={zeroX}
+                    y1={TOP_PAD - 8}
+                    x2={zeroX}
+                    y2={TOP_PAD + groups.length * ROW_HEIGHT}
                     stroke={ZERO_LINE_COLOR}
                     strokeWidth={1.5}
                 />
                 <text
-                    x={zeroX} y={TOP_PAD - 12}
+                    x={zeroX}
+                    y={TOP_PAD - 12}
                     textAnchor="middle"
                     fontSize={11}
                     fill="#aaa"
-                >0</text>
+                >
+                    0
+                </text>
 
                 {/* Подписи осей */}
-                {ticks.map((tick, i) => (
-                    tick === 0 ? null :
-                    <text
-                        key={i}
-                        x={scaleX(tick)}
-                        y={TOP_PAD + groups.length * ROW_HEIGHT + 18}
-                        textAnchor="middle"
-                        fontSize={10}
-                        fill="#bbb"
-                    >
-                        {tick > 0 ? `+${tick.toFixed(1)}` : tick.toFixed(1)}
-                    </text>
-                ))}
+                {ticks.map((tick, i) =>
+                    tick === 0 ? null : (
+                        <text
+                            key={i}
+                            x={scaleX(tick)}
+                            y={TOP_PAD + groups.length * ROW_HEIGHT + 18}
+                            textAnchor="middle"
+                            fontSize={10}
+                            fill="#bbb"
+                        >
+                            {tick > 0 ? `+${tick.toFixed(1)}` : tick.toFixed(1)}
+                        </text>
+                    )
+                )}
 
                 {/* Сетка */}
-                {ticks.map((tick, i) => (
-                    tick === 0 ? null :
-                    <line
-                        key={i}
-                        x1={scaleX(tick)} y1={TOP_PAD - 8}
-                        x2={scaleX(tick)} y2={TOP_PAD + groups.length * ROW_HEIGHT}
-                        stroke="#f0f0f0"
-                        strokeWidth={1}
-                    />
-                ))}
+                {ticks.map((tick, i) =>
+                    tick === 0 ? null : (
+                        <line
+                            key={i}
+                            x1={scaleX(tick)}
+                            y1={TOP_PAD - 8}
+                            x2={scaleX(tick)}
+                            y2={TOP_PAD + groups.length * ROW_HEIGHT}
+                            stroke="#f0f0f0"
+                            strokeWidth={1}
+                        />
+                    )
+                )}
 
                 {/* Строки */}
                 {groups.map((item, idx) => {
@@ -214,8 +219,10 @@ const VamDotPlot = ({ data, aggregate = true, shortLabels = false }) => {
 
                             {/* CI линия */}
                             <line
-                                x1={cxLo} y1={cy}
-                                x2={cxHi} y2={cy}
+                                x1={cxLo}
+                                y1={cy}
+                                x2={cxHi}
+                                y2={cy}
                                 stroke={color}
                                 strokeWidth={isHovered ? 2.5 : 1.5}
                                 opacity={ciCrossesZero ? 0.45 : 0.8}
@@ -223,8 +230,10 @@ const VamDotPlot = ({ data, aggregate = true, shortLabels = false }) => {
 
                             {/* Whisker левый */}
                             <line
-                                x1={cxLo} y1={cy - 5}
-                                x2={cxLo} y2={cy + 5}
+                                x1={cxLo}
+                                y1={cy - 5}
+                                x2={cxLo}
+                                y2={cy + 5}
                                 stroke={color}
                                 strokeWidth={isHovered ? 2 : 1.5}
                                 opacity={ciCrossesZero ? 0.45 : 0.8}
@@ -232,8 +241,10 @@ const VamDotPlot = ({ data, aggregate = true, shortLabels = false }) => {
 
                             {/* Whisker правый */}
                             <line
-                                x1={cxHi} y1={cy - 5}
-                                x2={cxHi} y2={cy + 5}
+                                x1={cxHi}
+                                y1={cy - 5}
+                                x2={cxHi}
+                                y2={cy + 5}
                                 stroke={color}
                                 strokeWidth={isHovered ? 2 : 1.5}
                                 opacity={ciCrossesZero ? 0.45 : 0.8}
@@ -259,7 +270,8 @@ const VamDotPlot = ({ data, aggregate = true, shortLabels = false }) => {
                                 fill={color}
                                 opacity={ciCrossesZero ? 0.6 : 0.9}
                             >
-                                {item.value_added > 0 ? '+' : ''}{item.value_added.toFixed(2)}
+                                {item.value_added > 0 ? '+' : ''}
+                                {item.value_added.toFixed(2)}
                             </text>
                         </g>
                     );
@@ -280,23 +292,76 @@ const VamDotPlot = ({ data, aggregate = true, shortLabels = false }) => {
             {/* Легенда */}
             <div style={{ display: 'flex', gap: 20, marginTop: 8, fontSize: 12, color: '#666', paddingLeft: LABEL_WIDTH + 16 }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <svg width="20" height="12">
-                        <line x1="0" y1="6" x2="20" y2="6" stroke={POSITIVE_COLOR} strokeWidth="1.5" />
-                        <circle cx="10" cy="6" r="4" fill={POSITIVE_COLOR} stroke="white" strokeWidth="1.5" />
+                    <svg
+                        width="20"
+                        height="12"
+                    >
+                        <line
+                            x1="0"
+                            y1="6"
+                            x2="20"
+                            y2="6"
+                            stroke={POSITIVE_COLOR}
+                            strokeWidth="1.5"
+                        />
+                        <circle
+                            cx="10"
+                            cy="6"
+                            r="4"
+                            fill={POSITIVE_COLOR}
+                            stroke="white"
+                            strokeWidth="1.5"
+                        />
                     </svg>
                     Значимо выше ожидаемого
                 </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <svg width="20" height="12">
-                        <line x1="0" y1="6" x2="20" y2="6" stroke={NEUTRAL_COLOR} strokeWidth="1.5" opacity="0.5" />
-                        <circle cx="10" cy="6" r="4" fill={NEUTRAL_COLOR} stroke="white" strokeWidth="1.5" opacity="0.6" />
+                    <svg
+                        width="20"
+                        height="12"
+                    >
+                        <line
+                            x1="0"
+                            y1="6"
+                            x2="20"
+                            y2="6"
+                            stroke={NEUTRAL_COLOR}
+                            strokeWidth="1.5"
+                            opacity="0.5"
+                        />
+                        <circle
+                            cx="10"
+                            cy="6"
+                            r="4"
+                            fill={NEUTRAL_COLOR}
+                            stroke="white"
+                            strokeWidth="1.5"
+                            opacity="0.6"
+                        />
                     </svg>
                     ДИ пересекает ноль (незначимо)
                 </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <svg width="20" height="12">
-                        <line x1="0" y1="6" x2="20" y2="6" stroke={NEGATIVE_COLOR} strokeWidth="1.5" />
-                        <circle cx="10" cy="6" r="4" fill={NEGATIVE_COLOR} stroke="white" strokeWidth="1.5" />
+                    <svg
+                        width="20"
+                        height="12"
+                    >
+                        <line
+                            x1="0"
+                            y1="6"
+                            x2="20"
+                            y2="6"
+                            stroke={NEGATIVE_COLOR}
+                            strokeWidth="1.5"
+                        />
+                        <circle
+                            cx="10"
+                            cy="6"
+                            r="4"
+                            fill={NEGATIVE_COLOR}
+                            stroke="white"
+                            strokeWidth="1.5"
+                        />
                     </svg>
                     Значимо ниже ожидаемого
                 </span>
@@ -304,25 +369,31 @@ const VamDotPlot = ({ data, aggregate = true, shortLabels = false }) => {
 
             {/* Тултип */}
             {tooltip.visible && tooltip.item && (
-                <div style={{
-                    position: 'absolute',
-                    left: tooltip.x + 14,
-                    top: tooltip.y - 10,
-                    background: 'white',
-                    border: '1px solid #e0e0e0',
-                    borderRadius: 6,
-                    padding: '8px 12px',
-                    fontSize: 12,
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
-                    pointerEvents: 'none',
-                    zIndex: 10,
-                    minWidth: 180,
-                    lineHeight: 1.7,
-                }}>
+                <div
+                    style={{
+                        position: 'absolute',
+                        left: tooltip.x + 14,
+                        top: tooltip.y - 10,
+                        background: 'white',
+                        border: '1px solid #e0e0e0',
+                        borderRadius: 6,
+                        padding: '8px 12px',
+                        fontSize: 12,
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+                        pointerEvents: 'none',
+                        zIndex: 10,
+                        minWidth: 180,
+                        lineHeight: 1.7
+                    }}
+                >
                     <div style={{ fontWeight: 500, marginBottom: 4, fontSize: 13 }}>{tooltip.item.name}</div>
-                    <div>VA: <strong style={{ color: getColor(tooltip.item) }}>
-                        {tooltip.item.value_added > 0 ? '+' : ''}{tooltip.item.value_added.toFixed(3)}
-                    </strong></div>
+                    <div>
+                        VA:{' '}
+                        <strong style={{ color: getColor(tooltip.item) }}>
+                            {tooltip.item.value_added > 0 ? '+' : ''}
+                            {tooltip.item.value_added.toFixed(3)}
+                        </strong>
+                    </div>
                     <div style={{ color: '#888' }}>
                         95% ДИ: [{tooltip.item.ci_lower.toFixed(3)}; {tooltip.item.ci_upper.toFixed(3)}]
                     </div>

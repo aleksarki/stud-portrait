@@ -1,22 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
-import { getAuditSchema, getAuditTableData, getAuditStats } from "../../api";
-import { SUPER_LINK_TREE } from "../../utilities";
+import { getAuditSchema, getAuditTableData, getAuditStats } from '../../api';
+import { SUPER_LINK_TREE } from '../../utilities';
 
-import FlexColumn from "../../components/FlexColumn";
-import FlexRow from "../../components/FlexRow";
-import LabelledBox from "../../components/LabelledBox";
-import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../components/SidebarLayout";
+import FlexColumn from '../../components/FlexColumn';
+import FlexRow from '../../components/FlexRow';
+import LabelledBox from '../../components/LabelledBox';
+import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from '../../components/SidebarLayout';
 
-import ValueCard from "../../components/cards/ValueCard";
+import ValueCard from '../../components/cards/ValueCard';
 
-import Table, { TableHeader, TableItem, TableRow } from "../../components/tables/Table";
-import DbContentTable from "../../components/tables/DbContentTable";
+import Table, { TableHeader, TableItem, TableRow } from '../../components/tables/Table';
+import DbContentTable from '../../components/tables/DbContentTable';
 
-import Label from "../../components/ui/Label";
-import NoData from "../../components/ui/NoData";
+import Label from '../../components/ui/Label';
+import NoData from '../../components/ui/NoData';
 
-import "./SuperAuditView.scss";
+import './SuperAuditView.scss';
 
 function SuperAuditView() {
     const [schema, setSchema] = useState(null);
@@ -47,7 +47,7 @@ function SuperAuditView() {
                     setStats(data.info);
                 }
             })
-            .onError(error => console.error("Ошибка загрузки статистики:", error));
+            .onError(error => console.error('Ошибка загрузки статистики:', error));
     };
 
     const loadSchema = async () => {
@@ -59,11 +59,11 @@ function SuperAuditView() {
                     setSchema(data.schema);
                 }
             })
-            .onError(error => console.error("Ошибка загрузки схемы:", error))
+            .onError(error => console.error('Ошибка загрузки схемы:', error))
             .finally(() => setLoading(false));
     };
 
-    const loadTableData = async (tableName) => {
+    const loadTableData = async tableName => {
         getAuditTableData(tableName, 20)
             .onSuccess(async response => {
                 const data = await response.json();
@@ -71,28 +71,48 @@ function SuperAuditView() {
                     setTableData(data.sample);
                 }
             })
-            .onError(error => console.error("Ошибка загрузки данных таблицы:", error));
+            .onError(error => console.error('Ошибка загрузки данных таблицы:', error));
     };
 
-    const filteredTables = schema?.tables.filter(table =>
-        table.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        table.verbose_name?.toLowerCase().includes(searchTerm.toLowerCase())
-    ) || [];
+    const filteredTables =
+        schema?.tables.filter(
+            table =>
+                table.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                table.verbose_name?.toLowerCase().includes(searchTerm.toLowerCase())
+        ) || [];
 
     return (
         <div className="SuperAuditView">
             <SidebarLayout style={LAYOUT_STYLE.ADMIN}>
-                <Header title="Суперадмин: Аудит данных" name="СуперАдминистратор1" />
+                <Header
+                    title="Суперадмин: Аудит данных"
+                    name="СуперАдминистратор1"
+                />
                 <Sidebar linkTree={SUPER_LINK_TREE} />
                 <Content>
                     <h2>Статистика и аудит данных</h2>
                     {stats && (
                         <div className="stats-grid">
-                            <ValueCard value={stats.total_tables} text="Таблиц" />
-                            <ValueCard value={stats.total_models} text="Моделей" />
-                            <ValueCard value={stats.total_rows.toLocaleString()} text="Всего строк" />
-                            <ValueCard value={`${stats.db_size_mb} МБ`} text="Размер БД" />
-                            <ValueCard value={stats.db_engine} text="Движок" />
+                            <ValueCard
+                                value={stats.total_tables}
+                                text="Таблиц"
+                            />
+                            <ValueCard
+                                value={stats.total_models}
+                                text="Моделей"
+                            />
+                            <ValueCard
+                                value={stats.total_rows.toLocaleString()}
+                                text="Всего строк"
+                            />
+                            <ValueCard
+                                value={`${stats.db_size_mb} МБ`}
+                                text="Размер БД"
+                            />
+                            <ValueCard
+                                value={stats.db_engine}
+                                text="Движок"
+                            />
                         </div>
                     )}
 
@@ -102,7 +122,7 @@ function SuperAuditView() {
                                 type="text"
                                 placeholder="Поиск таблиц..."
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onChange={e => setSearchTerm(e.target.value)}
                             />
                             <span className="search-count">
                                 Найдено: {filteredTables.length} / {schema?.tables.length}
@@ -145,36 +165,40 @@ function SuperAuditView() {
                                                         <TableItem>Unique</TableItem>
                                                         <TableItem>Связано с</TableItem>
                                                     </TableHeader>
-                                                    {schema.tables.find(t => t.name === selectedTable).columns.map(col => (
-                                                        <TableRow key={col.name}>
-                                                            <TableItem><code>{col.name}</code></TableItem>
-                                                            <TableItem>{col.type}</TableItem>
-                                                            <TableItem>{col.db_type}</TableItem>
-                                                            <TableItem>{col.null ? '✓' : '✗'}</TableItem>
-                                                            <TableItem>{col.primary_key ? '✓' : '✗'}</TableItem>
-                                                            <TableItem>{col.unique ? '✓' : '✗'}</TableItem>
-                                                            <TableItem>{col.references || '—'}</TableItem>
-                                                        </TableRow>
-                                                    ))}
+                                                    {schema.tables
+                                                        .find(t => t.name === selectedTable)
+                                                        .columns.map(col => (
+                                                            <TableRow key={col.name}>
+                                                                <TableItem>
+                                                                    <code>{col.name}</code>
+                                                                </TableItem>
+                                                                <TableItem>{col.type}</TableItem>
+                                                                <TableItem>{col.db_type}</TableItem>
+                                                                <TableItem>{col.null ? '✓' : '✗'}</TableItem>
+                                                                <TableItem>{col.primary_key ? '✓' : '✗'}</TableItem>
+                                                                <TableItem>{col.unique ? '✓' : '✗'}</TableItem>
+                                                                <TableItem>{col.references || '—'}</TableItem>
+                                                            </TableRow>
+                                                        ))}
                                                 </Table>
                                             )}
                                         </LabelledBox>
                                         <LabelledBox label={`Предпросмотр данных (${tableData?.rows?.length} строк)`}>
                                             {tableData && (
                                                 <FlexColumn>
-                                                    {(!tableData?.rows || tableData?.rows?.length === 0) ? (
+                                                    {!tableData?.rows || tableData?.rows?.length === 0 ? (
                                                         <NoData text="Нет данных для отображения" />
-                                                    ) : <>
-                                                        <DbContentTable data={tableData} />
-                                                    </>}
+                                                    ) : (
+                                                        <>
+                                                            <DbContentTable data={tableData} />
+                                                        </>
+                                                    )}
                                                 </FlexColumn>
                                             )}
                                         </LabelledBox>
                                     </>
                                 ) : (
-                                    <div className="no-selection">
-                                        Выберите таблицу для просмотра деталей
-                                    </div>
+                                    <div className="no-selection">Выберите таблицу для просмотра деталей</div>
                                 )}
                             </div>
                         </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 import {
     getAnalyzeAllDisciplinesImpact,
@@ -8,28 +8,28 @@ import {
     postAnalyzeDisciplineImpactAdvanced,
     postGetDisciplineHeatmapData,
     postPortraitDataseshNew
-} from "../../../api";
-import { COMPETENCIES_NAMES, LINK_TREE } from "../../../utilities";
+} from '../../../api';
+import { COMPETENCIES_NAMES, LINK_TREE } from '../../../utilities';
 
-import FlexRow from "../../../components/FlexRow";
-import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from "../../../components/SidebarLayout";
+import FlexRow from '../../../components/FlexRow';
+import { Content, Header, LAYOUT_STYLE, Sidebar, SidebarLayout } from '../../../components/SidebarLayout';
 
-import TitledCard from "../../../components/cards/TitledCard";
+import TitledCard from '../../../components/cards/TitledCard';
 
-import Table, { TableHeader, TableItem, TableRow } from "../../../components/tables/Table";
+import Table, { TableHeader, TableItem, TableRow } from '../../../components/tables/Table';
 
 import Button from '../../../components/ui/Button';
-import ColorBox, { BOX_COLOR } from "../../../components/ui/ColorBox";
-import Label from "../../../components/ui/Label";
-import LoadingSpinner from "../../../components/ui/LoadingSpinner";
+import ColorBox, { BOX_COLOR } from '../../../components/ui/ColorBox';
+import Label from '../../../components/ui/Label';
+import LoadingSpinner from '../../../components/ui/LoadingSpinner';
 import MultiSelect from '../../../components/ui/MultiSelect';
-import NoData from "../../../components/ui/NoData";
-import { ADMIN_PALETTE } from "../../../components/ui/palette";
+import NoData from '../../../components/ui/NoData';
+import { ADMIN_PALETTE } from '../../../components/ui/palette';
 
 import SankeyDiagram from '../../../components/charts/SankeyDiagram';
 
-import AiInsightPanel from "../../../components/AiInsightPanel";
-import "./AdminAnalysisDisciplinesView.scss";
+import AiInsightPanel from '../../../components/AiInsightPanel';
+import './AdminAnalysisDisciplinesView.scss';
 
 function AdminAnalysisDisciplinesView() {
     // -------------------- STATE --------------------
@@ -77,9 +77,15 @@ function AdminAnalysisDisciplinesView() {
 
     const loadFilterOptions = async (sid, updateCounts = false) => {
         if (!sid) return;
-        (
-            updateCounts
-            ? getPortraitGetFilterOptionsWithCounts(sid, selectedInstitutions, selectedDirections, selectedCourses, selectedTestAttempts, selectedCompetencies)
+        (updateCounts
+            ? getPortraitGetFilterOptionsWithCounts(
+                  sid,
+                  selectedInstitutions,
+                  selectedDirections,
+                  selectedCourses,
+                  selectedTestAttempts,
+                  selectedCompetencies
+              )
             : getPortraitGetFilterOptionsWithCounts(sid)
         )
             .onSuccess(async response => {
@@ -89,11 +95,13 @@ function AdminAnalysisDisciplinesView() {
                     let disciplines = [];
                     try {
                         const discRes = getPortraitGetDisciplines();
-                        const discData = await new Promise((resolve) => {
-                            discRes.onSuccess(async d => {
-                                const json = await d.json();
-                                resolve(json);
-                            }).onError(() => resolve({ disciplines: [] }));
+                        const discData = await new Promise(resolve => {
+                            discRes
+                                .onSuccess(async d => {
+                                    const json = await d.json();
+                                    resolve(json);
+                                })
+                                .onError(() => resolve({ disciplines: [] }));
                         });
                         if (discData.status === 'success') {
                             disciplines = discData.disciplines || [];
@@ -108,7 +116,9 @@ function AdminAnalysisDisciplinesView() {
                         allDirections: data.data?.directions || [],
                         courses: data.data?.courses || [],
                         testAttempts: data.data?.test_attempts || [],
-                        competencies: data.data?.competencies || Object.keys(COMPETENCIES_NAMES).map(c => ({ id: c, name: COMPETENCIES_NAMES[c], count: 0 })),
+                        competencies:
+                            data.data?.competencies ||
+                            Object.keys(COMPETENCIES_NAMES).map(c => ({ id: c, name: COMPETENCIES_NAMES[c], count: 0 })),
                         students: data.data?.students || [],
                         disciplines: disciplines
                     });
@@ -150,7 +160,7 @@ function AdminAnalysisDisciplinesView() {
     const [activeTab, setActiveTab] = useState('impact');
     const [sankeyImpactData, setSankeyImpactData] = useState(null);
     const [heatmapByDirection, setHeatmapByDirection] = useState({});
-    const [heatmapDirections, setHeatmapDirections]   = useState([]);
+    const [heatmapDirections, setHeatmapDirections] = useState([]);
     const [selectedHeatmapDir, setSelectedHeatmapDir] = useState('__all__');
 
     // Загрузка комплексного анализа всех дисциплин
@@ -178,17 +188,9 @@ function AdminAnalysisDisciplinesView() {
         setLoading(true);
         setActiveTab('impact');
 
-        const competencies = selectedCompetencies.length > 0 
-            ? selectedCompetencies 
-            : Object.keys(COMPETENCIES_NAMES).slice(0, 3); // По умолчанию первые 3 компетенции
+        const competencies = selectedCompetencies.length > 0 ? selectedCompetencies : Object.keys(COMPETENCIES_NAMES).slice(0, 3); // По умолчанию первые 3 компетенции
 
-        postAnalyzeDisciplineImpactAdvanced(
-            competencies,
-            selectedDisciplines,
-            selectedInstitutions,
-            selectedDirections,
-            5
-        )
+        postAnalyzeDisciplineImpactAdvanced(competencies, selectedDisciplines, selectedInstitutions, selectedDirections, 5)
             .onSuccess(async response => {
                 const data = await response.json();
                 if (data.status === 'success') {
@@ -229,7 +231,7 @@ function AdminAnalysisDisciplinesView() {
 
     const renderAllDisciplinesImpact = () => {
         if (!allDisciplinesData) {
-            return <NoData text="Нет данных для отображения" />
+            return <NoData text="Нет данных для отображения" />;
         }
 
         const { impact_matrix, competencies_analyzed } = allDisciplinesData;
@@ -251,9 +253,12 @@ function AdminAnalysisDisciplinesView() {
             <div className="all-disciplines-results">
                 <h4>Комплексный анализ всех дисциплин</h4>
                 <p className="info-text">Проанализировано компетенций: {competencies_analyzed}</p>
-                
+
                 {Object.entries(byCompetency).map(([comp, items]) => (
-                    <div key={comp} className="competency-group">
+                    <div
+                        key={comp}
+                        className="competency-group"
+                    >
                         <h5>{COMPETENCIES_NAMES[comp] || comp}</h5>
                         <table className="impact-table">
                             <thead>
@@ -268,15 +273,13 @@ function AdminAnalysisDisciplinesView() {
                                     <tr key={idx}>
                                         <td>{item.discipline}</td>
                                         <td>
-                                            <span className={`effect-badge ${
-                                                Math.abs(item.impact_data?.average_effect_size || 0) > 0.5 ? 'large' : 'small'
-                                            }`}>
+                                            <span
+                                                className={`effect-badge ${Math.abs(item.impact_data?.average_effect_size || 0) > 0.5 ? 'large' : 'small'}`}
+                                            >
                                                 {(item.impact_data?.average_effect_size || 0).toFixed(3)}
                                             </span>
                                         </td>
-                                        <td>
-                                            {item.impact_data?.effective ? '✅' : '⚠️'}
-                                        </td>
+                                        <td>{item.impact_data?.effective ? '✅' : '⚠️'}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -290,13 +293,14 @@ function AdminAnalysisDisciplinesView() {
     // Вспомогательная функция: одна таблица тепловой карты
     const renderHeatmapTable = (data, label = null) => {
         if (!data || data.length === 0) return null;
-        const disciplines  = [...new Set(data.map(d => d.discipline))].sort();
+        const disciplines = [...new Set(data.map(d => d.discipline))].sort();
         const competencies = [...new Set(data.map(d => d.competency))].sort();
         return (
-            <div className="heatmap-section" key={label}>
-                {label && (
-                    <div className="heatmap-section-label">{label}</div>
-                )}
+            <div
+                className="heatmap-section"
+                key={label}
+            >
+                {label && <div className="heatmap-section-label">{label}</div>}
                 <div className="heatmap-scroll">
                     <Table>
                         <TableHeader>
@@ -312,9 +316,8 @@ function AdminAnalysisDisciplinesView() {
                                     const cell = data.find(d => d.discipline === disc && d.competency === comp);
                                     const effectSize = cell?.effect_size || 0;
                                     const intensity = Math.min(Math.abs(effectSize) / 1.0, 1);
-                                    const color = effectSize >= 0
-                                        ? `rgba(76,175,80,${intensity * 0.7})`
-                                        : `rgba(244,67,54,${intensity * 0.7})`;
+                                    const color =
+                                        effectSize >= 0 ? `rgba(76,175,80,${intensity * 0.7})` : `rgba(244,67,54,${intensity * 0.7})`;
                                     return (
                                         <TableItem
                                             key={comp}
@@ -343,8 +346,14 @@ function AdminAnalysisDisciplinesView() {
             <FlexRow margin="12 0 0 0">
                 <Label>
                     <FlexRow gap="20">
-                        <FlexRow><ColorBox color={BOX_COLOR.GREEN} /><span>Положительный эффект</span></FlexRow>
-                        <FlexRow><ColorBox color={BOX_COLOR.RED} /><span>Отрицательный эффект</span></FlexRow>
+                        <FlexRow>
+                            <ColorBox color={BOX_COLOR.GREEN} />
+                            <span>Положительный эффект</span>
+                        </FlexRow>
+                        <FlexRow>
+                            <ColorBox color={BOX_COLOR.RED} />
+                            <span>Отрицательный эффект</span>
+                        </FlexRow>
                         <span>Жирная граница = статистически значим (p &lt; 0.05)</span>
                     </FlexRow>
                 </Label>
@@ -362,18 +371,24 @@ function AdminAnalysisDisciplinesView() {
                         <button
                             className={selectedHeatmapDir === '__all__' ? 'active' : ''}
                             onClick={() => setSelectedHeatmapDir('__all__')}
-                        >Сводная</button>
+                        >
+                            Сводная
+                        </button>
                         <button
                             className={selectedHeatmapDir === '__each__' ? 'active' : ''}
                             onClick={() => setSelectedHeatmapDir('__each__')}
-                        >Все направления сразу</button>
+                        >
+                            Все направления сразу
+                        </button>
                         {heatmapDirections.map(dir => (
                             <button
                                 key={dir}
                                 className={selectedHeatmapDir === dir ? 'active' : ''}
                                 onClick={() => setSelectedHeatmapDir(dir)}
                                 title={dir}
-                            >{dir}</button>
+                            >
+                                {dir}
+                            </button>
                         ))}
                     </div>
                 )}
@@ -390,9 +405,7 @@ function AdminAnalysisDisciplinesView() {
                 {selectedHeatmapDir === '__each__' && (
                     <>
                         {renderHeatmapTable(heatmapData, '📊 Все направления (сводная)')}
-                        {heatmapDirections.map(dir =>
-                            renderHeatmapTable(heatmapByDirection[dir], `📂 ${dir}`)
-                        )}
+                        {heatmapDirections.map(dir => renderHeatmapTable(heatmapByDirection[dir], `📂 ${dir}`))}
                         {legend}
                     </>
                 )}
@@ -410,21 +423,27 @@ function AdminAnalysisDisciplinesView() {
 
     // Цвет строки по оценке
     const GRADE_COLOR = {
-        'отл.':     'rgba(76,175,80,0.12)',
-        'хор.':     'rgba(33,150,243,0.10)',
-        'удовл.':   'rgba(255,193,7,0.15)',
-        'неудовл.': 'rgba(244,67,54,0.13)',
+        'отл.': 'rgba(76,175,80,0.12)',
+        'хор.': 'rgba(33,150,243,0.10)',
+        'удовл.': 'rgba(255,193,7,0.15)',
+        'неудовл.': 'rgba(244,67,54,0.13)'
     };
 
     const renderGradeRows = (gradeImpacts, prefix = '') =>
         Object.entries(gradeImpacts || {}).map(([grade, impact]) => (
-            <TableRow key={prefix + grade} style={{ background: GRADE_COLOR[grade] || 'transparent' }}>
+            <TableRow
+                key={prefix + grade}
+                style={{ background: GRADE_COLOR[grade] || 'transparent' }}
+            >
                 <TableItem>{grade}</TableItem>
                 <TableItem>{impact.n_students}</TableItem>
                 <TableItem>{impact.mean_before?.toFixed(1) ?? '—'}</TableItem>
                 <TableItem>{impact.mean_after?.toFixed(1) ?? '—'}</TableItem>
-                <TableItem style={{ color: impact.mean_gain > 0 ? '#2e7d32' : impact.mean_gain < 0 ? '#c62828' : 'inherit', fontWeight: 600 }}>
-                    {impact.mean_gain > 0 ? '+' : ''}{impact.mean_gain?.toFixed(1) ?? '0.0'}
+                <TableItem
+                    style={{ color: impact.mean_gain > 0 ? '#2e7d32' : impact.mean_gain < 0 ? '#c62828' : 'inherit', fontWeight: 600 }}
+                >
+                    {impact.mean_gain > 0 ? '+' : ''}
+                    {impact.mean_gain?.toFixed(1) ?? '0.0'}
                 </TableItem>
                 <TableItem>{impact.cohens_d?.toFixed(3) ?? '0.000'}</TableItem>
                 <TableItem>{impact.p_value?.toFixed(4) ?? '0.0000'}</TableItem>
@@ -453,13 +472,15 @@ function AdminAnalysisDisciplinesView() {
         return (
             <div className="discipline-impact-results">
                 {disciplineData.map((result, idx) => (
-                    <div key={idx} className="discipline-result-card">
+                    <div
+                        key={idx}
+                        className="discipline-result-card"
+                    >
                         <h5>📊 {COMPETENCIES_NAMES[result.competency] || result.competency}</h5>
 
                         {result.results && result.results.length > 0 ? (
                             result.results.map((disc, didx) => (
                                 <TitledCard title={disc.discipline}>
-
                                     {/* ── Агрегат по всем направлениям ── */}
                                     <h6 style={{ margin: '0 0 6px', color: '#555', fontWeight: 500 }}>Все направления</h6>
                                     <Table>
@@ -474,8 +495,20 @@ function AdminAnalysisDisciplinesView() {
                                                 📂 По направлениям ({Object.keys(disc.by_direction).length})
                                             </summary>
                                             {Object.entries(disc.by_direction).map(([direction, dirData]) => (
-                                                <div key={direction} style={{ marginTop: 10 }}>
-                                                    <div style={{ fontWeight: 500, fontSize: 13, color: '#333', marginBottom: 4, paddingLeft: 4, borderLeft: '3px solid #1565c0' }}>
+                                                <div
+                                                    key={direction}
+                                                    style={{ marginTop: 10 }}
+                                                >
+                                                    <div
+                                                        style={{
+                                                            fontWeight: 500,
+                                                            fontSize: 13,
+                                                            color: '#333',
+                                                            marginBottom: 4,
+                                                            paddingLeft: 4,
+                                                            borderLeft: '3px solid #1565c0'
+                                                        }}
+                                                    >
                                                         {direction}
                                                     </div>
                                                     <Table>
@@ -491,10 +524,14 @@ function AdminAnalysisDisciplinesView() {
                                         <Label>
                                             <FlexRow gap="15">
                                                 <span>{disc.summary?.effective ? 'Эффективна' : 'Неэффективна'}</span>
-                                                {disc.summary && <>
-                                                    <span>Средний эффект: {disc.summary.average_effect_size?.toFixed(3) || '0.000'}</span>
-                                                    <span>Средний прирост: {disc.summary.average_gain?.toFixed(1) || '0.0'}</span>
-                                                </>}
+                                                {disc.summary && (
+                                                    <>
+                                                        <span>
+                                                            Средний эффект: {disc.summary.average_effect_size?.toFixed(3) || '0.000'}
+                                                        </span>
+                                                        <span>Средний прирост: {disc.summary.average_gain?.toFixed(1) || '0.0'}</span>
+                                                    </>
+                                                )}
                                             </FlexRow>
                                         </Label>
                                     </FlexRow>
@@ -510,7 +547,7 @@ function AdminAnalysisDisciplinesView() {
     };
 
     // Функция преобразования
-    const prepareSankeyFromHeatmap = (heatmapData) => {
+    const prepareSankeyFromHeatmap = heatmapData => {
         if (!heatmapData || heatmapData.length === 0) return null;
         const disciplines = [...new Set(heatmapData.map(d => d.discipline))];
         const competencies = [...new Set(heatmapData.map(d => d.competency_label))];
@@ -519,7 +556,9 @@ function AdminAnalysisDisciplinesView() {
             ...competencies.map(c => ({ name: c, type: 'competency' }))
         ];
         const nodeIndex = {};
-        nodes.forEach((node, idx) => { nodeIndex[node.name] = idx; });
+        nodes.forEach((node, idx) => {
+            nodeIndex[node.name] = idx;
+        });
 
         const links = heatmapData
             .filter(d => d.effect_size !== null && d.effect_size !== 0)
@@ -535,9 +574,10 @@ function AdminAnalysisDisciplinesView() {
     const showImpactSankey = () => {
         if (!heatmapData) return;
         // __each__ → общая сводка; конкретное направление → данные по нему
-        const activeData = (selectedHeatmapDir === '__all__' || selectedHeatmapDir === '__each__')
-            ? heatmapData
-            : (heatmapByDirection[selectedHeatmapDir] || heatmapData);
+        const activeData =
+            selectedHeatmapDir === '__all__' || selectedHeatmapDir === '__each__'
+                ? heatmapData
+                : heatmapByDirection[selectedHeatmapDir] || heatmapData;
         const prepared = prepareSankeyFromHeatmap(activeData);
         if (prepared) {
             setSankeyImpactData(prepared);
@@ -550,7 +590,10 @@ function AdminAnalysisDisciplinesView() {
     return (
         <div className="AdminAnalysisDisciplinesView">
             <SidebarLayout style={LAYOUT_STYLE.MODEUS}>
-                <Header title="Админ: Анализ данных" name="Администратор" />
+                <Header
+                    title="Админ: Анализ данных"
+                    name="Администратор"
+                />
                 <Sidebar linkTree={LINK_TREE} />
                 <Content>
                     <h2>Анализ влияния дисциплин на компетенции</h2>
@@ -590,68 +633,101 @@ function AdminAnalysisDisciplinesView() {
                                 onClick={showImpactSankey}
                                 disabled={!heatmapData || loading}
                                 palette={ADMIN_PALETTE.PURPLE}
-                                title={selectedHeatmapDir !== '__all__' && selectedHeatmapDir !== '__each__'
-                                    ? `Санки по направлению: ${selectedHeatmapDir}`
-                                    : 'Санки по всем направлениям'}
+                                title={
+                                    selectedHeatmapDir !== '__all__' && selectedHeatmapDir !== '__each__'
+                                        ? `Санки по направлению: ${selectedHeatmapDir}`
+                                        : 'Санки по всем направлениям'
+                                }
                             />
                         </FlexRow>
                     </div>
 
-                    <LoadingSpinner loading={loading} text="Загрузка анализа дисциплин..." />
+                    <LoadingSpinner
+                        loading={loading}
+                        text="Загрузка анализа дисциплин..."
+                    />
 
-                    {!loading && (disciplineData || heatmapData || allDisciplinesData) && <>
-                        <FlexRow>
-                            {disciplineData && (
-                                <Button
-                                    text="Влияние дисциплин"
-                                    onClick={() => setActiveTab('impact')}
-                                    palette={activeTab === 'impact' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
-                                />
-                            )}
-                            {heatmapData && (
-                                <Button
-                                    text="Тепловая карта"
-                                    onClick={() => setActiveTab('heatmap')}
-                                    palette={activeTab === 'heatmap' ? ADMIN_PALETTE.BROWN : ADMIN_PALETTE.GRAY}
-                                />
-                            )}
-                            {allDisciplinesData && (
-                                <Button
-                                    text="Комплексный анализ"
-                                    onClick={() => setActiveTab('all')}
-                                    palette={activeTab === 'all' ? ADMIN_PALETTE.GREEN : ADMIN_PALETTE.GRAY}
-                                />
-                            )}
-                            {sankeyImpactData && (
-                                <Button
-                                    text="Санки влияния"
-                                    onClick={() => setActiveTab('sankey')}
-                                    palette={activeTab === 'sankey' ? ADMIN_PALETTE.PURPLE : ADMIN_PALETTE.GRAY}
-                                />
-                            )}
-                        </FlexRow>
+                    {!loading && (disciplineData || heatmapData || allDisciplinesData) && (
+                        <>
+                            <FlexRow>
+                                {disciplineData && (
+                                    <Button
+                                        text="Влияние дисциплин"
+                                        onClick={() => setActiveTab('impact')}
+                                        palette={activeTab === 'impact' ? ADMIN_PALETTE.BLUE : ADMIN_PALETTE.GRAY}
+                                    />
+                                )}
+                                {heatmapData && (
+                                    <Button
+                                        text="Тепловая карта"
+                                        onClick={() => setActiveTab('heatmap')}
+                                        palette={activeTab === 'heatmap' ? ADMIN_PALETTE.BROWN : ADMIN_PALETTE.GRAY}
+                                    />
+                                )}
+                                {allDisciplinesData && (
+                                    <Button
+                                        text="Комплексный анализ"
+                                        onClick={() => setActiveTab('all')}
+                                        palette={activeTab === 'all' ? ADMIN_PALETTE.GREEN : ADMIN_PALETTE.GRAY}
+                                    />
+                                )}
+                                {sankeyImpactData && (
+                                    <Button
+                                        text="Санки влияния"
+                                        onClick={() => setActiveTab('sankey')}
+                                        palette={activeTab === 'sankey' ? ADMIN_PALETTE.PURPLE : ADMIN_PALETTE.GRAY}
+                                    />
+                                )}
+                            </FlexRow>
 
-                        <div className="tab-content">
-                            {activeTab === 'impact' && renderDisciplineImpact()}
-                            {activeTab === 'heatmap' && renderHeatmap()}
-                            {activeTab === 'all' && renderAllDisciplinesImpact()}
-                            {activeTab === 'sankey' && sankeyImpactData && (
-                                <>
-                                    <SankeyDiagram data={sankeyImpactData} title={`Влияние дисциплин на компетенции${selectedHeatmapDir !== '__all__' ? ` — ${selectedHeatmapDir}` : ''}`} height={500} />
-                                    <details style={{ marginTop: 16, background: '#f8f9fa', borderRadius: 6, padding: '10px 14px', border: '1px solid #e9ecef' }}>
-                                        <summary style={{ cursor: 'pointer', fontWeight: 500, color: '#2c3e50' }}>📖 Что показывает эта диаграмма?</summary>
-                                        <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.5 }}>
-                                            <p><strong>Диаграмма Санки</strong> отображает влияние дисциплин на развитие компетенций.</p>
-                                            <p>🔵 <strong>Левые узлы</strong> — дисциплины, <strong>правые узлы</strong> — компетенции.</p>
-                                            <p>📊 <strong>Толщина потока</strong> пропорциональна величине эффекта (Cohen's d). Чем толще линия, тем сильнее дисциплина влияет на компетенцию.</p>
-                                            <p>🎨 <strong>Цвет узлов</strong>: дисциплины — синий, компетенции — оранжевый.</p>
-                                            <p>💡 <strong>Совет:</strong> Наведите курсор на поток, чтобы увидеть точное значение Effect Size.</p>
-                                        </div>
-                                    </details>
-                                </>
-                            )}
-                        </div>
-                    </>}
+                            <div className="tab-content">
+                                {activeTab === 'impact' && renderDisciplineImpact()}
+                                {activeTab === 'heatmap' && renderHeatmap()}
+                                {activeTab === 'all' && renderAllDisciplinesImpact()}
+                                {activeTab === 'sankey' && sankeyImpactData && (
+                                    <>
+                                        <SankeyDiagram
+                                            data={sankeyImpactData}
+                                            title={`Влияние дисциплин на компетенции${selectedHeatmapDir !== '__all__' ? ` — ${selectedHeatmapDir}` : ''}`}
+                                            height={500}
+                                        />
+                                        <details
+                                            style={{
+                                                marginTop: 16,
+                                                background: '#f8f9fa',
+                                                borderRadius: 6,
+                                                padding: '10px 14px',
+                                                border: '1px solid #e9ecef'
+                                            }}
+                                        >
+                                            <summary style={{ cursor: 'pointer', fontWeight: 500, color: '#2c3e50' }}>
+                                                📖 Что показывает эта диаграмма?
+                                            </summary>
+                                            <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.5 }}>
+                                                <p>
+                                                    <strong>Диаграмма Санки</strong> отображает влияние дисциплин на развитие компетенций.
+                                                </p>
+                                                <p>
+                                                    🔵 <strong>Левые узлы</strong> — дисциплины, <strong>правые узлы</strong> — компетенции.
+                                                </p>
+                                                <p>
+                                                    📊 <strong>Толщина потока</strong> пропорциональна величине эффекта (Cohen's d). Чем
+                                                    толще линия, тем сильнее дисциплина влияет на компетенцию.
+                                                </p>
+                                                <p>
+                                                    🎨 <strong>Цвет узлов</strong>: дисциплины — синий, компетенции — оранжевый.
+                                                </p>
+                                                <p>
+                                                    💡 <strong>Совет:</strong> Наведите курсор на поток, чтобы увидеть точное значение
+                                                    Effect Size.
+                                                </p>
+                                            </div>
+                                        </details>
+                                    </>
+                                )}
+                            </div>
+                        </>
+                    )}
                 </Content>
             </SidebarLayout>
         </div>

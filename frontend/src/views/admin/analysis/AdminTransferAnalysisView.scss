@@ -1,5 +1,4 @@
 .AdminTransferAnalysisView {
-
     .page-description {
         color: #555;
         font-size: 14px;
@@ -152,11 +151,23 @@
         border-radius: 6px;
         padding: 8px 12px;
         font-size: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
-        .traj-tooltip-year  { font-weight: 700; color: #333; margin-bottom: 3px; }
-        .traj-tooltip-inst  { color: #555; }
-        .traj-tooltip-dir   { color: #777; font-style: italic; }
-        .traj-tooltip-score { margin-top: 4px; color: #1565c0; }
+        .traj-tooltip-year {
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 3px;
+        }
+        .traj-tooltip-inst {
+            color: #555;
+        }
+        .traj-tooltip-dir {
+            color: #777;
+            font-style: italic;
+        }
+        .traj-tooltip-score {
+            margin-top: 4px;
+            color: #1565c0;
+        }
     }
 }
