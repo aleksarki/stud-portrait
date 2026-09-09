@@ -1,8 +1,10 @@
 
+DROP TABLE IF EXISTS DataUploadTemplate   CASCADE;
 DROP TABLE IF EXISTS AcademicPerformances CASCADE;
 DROP TABLE IF EXISTS CourseResults        CASCADE;
-DROP TABLE IF EXISTS TestResults          CASCADE;
+DROP TABLE IF EXISTS Results          CASCADE;
 DROP TABLE IF EXISTS Participants         CASCADE;
+DROP TABLE IF EXISTS StudentMapping       CASCADE;
 DROP TABLE IF EXISTS EducationDisciplines CASCADE;
 DROP TABLE IF EXISTS EducationSpecialties CASCADE;
 DROP TABLE IF EXISTS EducationForms       CASCADE;
@@ -66,7 +68,7 @@ INSERT INTO EducationForms (edu_form_name) VALUES
 CREATE TABLE EducationSpecialties
 (
     edu_spec_id    INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    edu_spec_name  VARCHAR(512)  NOT NULL
+    edu_spec_name  VARCHAR(1024)  NOT NULL
 );
 
 CREATE INDEX education_specialties_name ON EducationSpecialties(edu_spec_name);
@@ -74,23 +76,34 @@ CREATE INDEX education_specialties_name ON EducationSpecialties(edu_spec_name);
 -- Учебная дисциплина
 CREATE TABLE EducationDisciplines
 (
-    edu_disc_id    INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    edu_disc_name  VARCHAR(512)  NOT NULL
+    edu_disc_id    INTEGER        PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    edu_disc_name  VARCHAR(1024)  NOT NULL
+);
+
+-- Соотнесение студентов с тестированием РСВ
+CREATE TABLE StudentMapping (
+    mapping_id          INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    mapping_rsv         VARCHAR(512)  UNIQUE NOT NULL,
+    mapping_stud_name   VARCHAR(512)  NOT NULL,
+    mapping_stud_gender INT,
+    mapping_email       VARCHAR(256),
+    mapping_created_at  TIMESTAMP
 );
 
 -- Участник тестирования
 CREATE TABLE Participants
 (
-    part_id      INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    part_rsv_id  VARCHAR(512)  UNIQUE NOT NULL,  -- ID участника RSV
-    part_name    VARCHAR(1024),
-    part_gender  INT
+    part_id          INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    part_rsv_id         VARCHAR(512)  UNIQUE NOT NULL,  -- ID участника RSV,
+    part_course_num  INTEGER,
+    part_name        VARCHAR(1024),
+    part_gender      INT
 );
 
 -- CREATE INDEX idx_participants_rsv_id ON Participants(part_rsv_id);
 
--- Результат прохождения тестирования РСВ
-CREATE TABLE TestResults
+-- Результат прохождения тестирования РСВ +
+CREATE TABLE Results
 (
     res_id             INTEGER      PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     res_participant    INT          NOT NULL REFERENCES Participants(part_id)         ON DELETE CASCADE  ON UPDATE CASCADE,
@@ -143,9 +156,9 @@ CREATE TABLE TestResults
     res_val_environment      INT  CHECK (res_val_environment     BETWEEN 200 AND 800)
 );
 
-CREATE INDEX idx_test_results_participant ON TestResults(res_participant);
+CREATE INDEX idx_test_results_participant ON Results(res_participant);
 
--- Результат прохождения курсов РСВ
+-- Результат прохождения курсов РСВ +
 CREATE TABLE CourseResults
 (
     course_id           INTEGER  PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -177,7 +190,7 @@ CREATE TABLE CourseResults
 
 CREATE INDEX idx_course_results_participant ON CourseResults(course_participant);
 
--- Академическая успеваемость
+-- Академическая успеваемость +
 CREATE TABLE AcademicPerformances
 (
     perf_id              INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -208,4 +221,14 @@ CREATE TABLE students_amounts (
 
     CONSTRAINT unique_institution_year
         UNIQUE (inst_id, year)
+);
+
+-- Шаблон загрузки данных администратором
+CREATE TABLE DataUploadTemplate (
+    template_id          INTEGER       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    template_name        VARCHAR(256)  UNIQUE NOT NULL,
+    template_description TEXT,
+    template_config      JSON NOT NULL,
+    template_created_at  TIMESTAMP,
+    template_updated_at  TIMESTAMP
 );

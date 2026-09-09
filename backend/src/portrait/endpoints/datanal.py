@@ -1,6 +1,5 @@
 # Модуль анализа данных.
 
-
 import numpy as np
 import pandas as pd
 from scipy import stats
@@ -21,6 +20,15 @@ class ValueAddedModel:
         self.global_expected_growth = None  # задаётся извне или вычисляется на когорте
 
     def compute_global_baseline(self, cohort_df):
+        """
+        Вычисляет глобальный ожидаемый рост на основе когорты.
+        
+        Args:
+            cohort_df: DataFrame с колонками [student_id, year, course, competency_score]
+        
+        Returns:
+            float: Ожидаемый рост
+        """
         all_growths = []
         for _, sdf in cohort_df.groupby('student_id'):
             sdf = sdf.sort_values(['year', 'course'])
@@ -44,9 +52,14 @@ class ValueAddedModel:
 
     def fit_for_student(self, student_data, expected_growth=None):
         """
-        expected_growth: если None — используется self.global_expected_growth.
-                         Если и оно None — fallback на 5% от начального балла
-                         (только для одиночного студента без когорты).
+        Рассчитывает Value-Added для одного студента.
+        
+        Args:
+            student_data: DataFrame с колонками [year, course, competency_score]
+            expected_growth: Ожидаемый рост (если None - используется глобальный baseline)
+        
+        Returns:
+            dict: Результаты анализа
         """
         if len(student_data) < 2:
             return {'status': 'insufficient_data',
@@ -100,6 +113,12 @@ class ValueAddedModel:
     def fit_cohort(self, cohort_data):
         """
         Сначала вычисляет глобальный baseline, потом считает VAM для каждого студента.
+        
+        Args:
+            cohort_data: DataFrame с колонками [student_id, year, course, competency_score]
+        
+        Returns:
+            dict: Результаты анализа когорты
         """
         cohort_df = cohort_data.rename(columns={'time_point': 'course'}) \
             if 'time_point' in cohort_data.columns else cohort_data.copy()
@@ -267,20 +286,63 @@ class DisciplineImpactAnalyzer:
     3. Effect size (Cohen's d)
     """
     
-    def analyze_discipline_impact(self, discipline_data, competency_field):
+    # Поддерживаемые форматы оценок
+    GRADES_TEXT = ['отл.', 'хор.', 'удовл.', 'неудовл.', 'не явился']
+    GRADES_NUM = [5, 4, 3, 2, 1]
+    
+    @staticmethod
+    def convert_grade_to_text(grade):
+        """Конвертирует числовую оценку в текстовый формат."""
+        if grade is None:
+            return None
+        grade_map = {
+            5: 'отл.',
+            4: 'хор.',
+            3: 'удовл.',
+            2: 'неудовл.',
+            1: 'не явился'
+        }
+        return grade_map.get(int(grade), str(grade))
+    
+    @staticmethod
+    def convert_grade_to_num(grade_text):
+        """Конвертирует текстовую оценку в числовой формат."""
+        if grade_text is None:
+            return None
+        grade_text = str(grade_text).strip().lower()
+        grade_map = {
+            'отл.': 5,
+            'отлично': 5,
+            'хор.': 4,
+            'хорошо': 4,
+            'удовл.': 3,
+            'удовлетворительно': 3,
+            'неудовл.': 2,
+            'неудовлетворительно': 2,
+            'не явился': 1,
+            'неявка': 1
+        }
+        return grade_map.get(grade_text, None)
+    
+    def analyze_discipline_impact(self, discipline_data, competency_field, grade_format='text'):
         """
         Анализирует влияние дисциплины на компетенцию.
         
         Args:
-            discipline_data: DataFrame с колонками [student_id, discipline, grade, year]
+            discipline_data: DataFrame с колонками [student_id, discipline, grade, year, {competency}_before, {competency}_after]
             competency_field: Название поля компетенции
+            grade_format: 'text' или 'num' - формат оценок в данных
         
         Returns:
             dict: Результаты анализа
         """
-        results = []
+        # Определяем список оценок в зависимости от формата
+        if grade_format == 'num':
+            grades = self.GRADES_NUM
+        else:
+            grades = self.GRADES_TEXT
         
-        GRADES = ['отл.', 'хор.', 'удовл.', 'неудовл.']
+        results = []
 
         def _calc_grade_impact(group_df, grade, competency_field):
             """Считает статистику для одной оценки в одной группе."""
@@ -310,7 +372,7 @@ class DisciplineImpactAnalyzer:
 
             # --- Общая статистика по оценкам (агрегат по всем направлениям) ---
             grade_impacts = {}
-            for grade in GRADES:
+            for grade in grades:
                 impact = _calc_grade_impact(disc_df, grade, competency_field)
                 if impact:
                     grade_impacts[grade] = impact
@@ -320,7 +382,7 @@ class DisciplineImpactAnalyzer:
             if 'direction' in disc_df.columns:
                 for direction, dir_df in disc_df.groupby('direction'):
                     dir_grades = {}
-                    for grade in GRADES:
+                    for grade in grades:
                         impact = _calc_grade_impact(dir_df, grade, competency_field)
                         if impact:
                             dir_grades[grade] = impact
@@ -344,12 +406,13 @@ class DisciplineImpactAnalyzer:
             'results': results
         }
     
-    def analyze_all_disciplines(self, full_data):
+    def analyze_all_disciplines(self, full_data, grade_format='text'):
         """
         Анализирует влияние всех дисциплин на все компетенции.
         
         Args:
             full_data: DataFrame с полными данными
+            grade_format: 'text' или 'num' - формат оценок
         
         Returns:
             dict: Комплексные результаты
@@ -365,7 +428,7 @@ class DisciplineImpactAnalyzer:
         all_results = {}
         
         for comp in competencies:
-            comp_results = self.analyze_discipline_impact(full_data, comp)
+            comp_results = self.analyze_discipline_impact(full_data, comp, grade_format)
             all_results[comp] = comp_results
         
         # Создаём сводную матрицу влияния
@@ -397,8 +460,8 @@ class DisciplineImpactAnalyzer:
         all_gains = [impact['mean_gain'] for impact in grade_impacts.values()]
         all_cohens_d = [impact['cohens_d'] for impact in grade_impacts.values()]
         
-        avg_gain = np.mean(all_gains)
-        avg_effect = np.mean(all_cohens_d)
+        avg_gain = np.mean(all_gains) if all_gains else 0
+        avg_effect = np.mean(all_cohens_d) if all_cohens_d else 0
         
         return {
             'average_gain': float(avg_gain),
@@ -495,25 +558,29 @@ class CrossSectionalAnalyzer:
         # ANOVA для проверки различий между группами
         if len(results) >= 2:
             groups_data = [data[data[dimension] == r['group']][competency_field].dropna() for r in results]
-            f_stat, p_value = stats.f_oneway(*groups_data)
+            groups_data = [g for g in groups_data if len(g) > 1]  # Убираем группы с 1 элементом
             
-            return {
-                'status': 'success',
-                'dimension': dimension,
-                'competency': competency_field,
-                'groups': results,
-                'anova': {
-                    'f_statistic': float(f_stat),
-                    'p_value': float(p_value),
-                    'significant_difference': p_value < 0.05
-                }
-            }
+            if len(groups_data) >= 2:
+                try:
+                    f_stat, p_value = stats.f_oneway(*groups_data)
+                    anova_result = {
+                        'f_statistic': float(f_stat),
+                        'p_value': float(p_value),
+                        'significant_difference': p_value < 0.05
+                    }
+                except:
+                    anova_result = None
+            else:
+                anova_result = None
+        else:
+            anova_result = None
         
         return {
             'status': 'success',
             'dimension': dimension,
             'competency': competency_field,
-            'groups': results
+            'groups': results,
+            'anova': anova_result
         }
     
     def compare_all_dimensions(self, data, competency_field):

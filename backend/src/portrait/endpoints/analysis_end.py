@@ -23,6 +23,76 @@ from .datanal import (
 
 from ..mlmodel import MlModel
 
+
+# ────────────────────────────────────────────────────────────
+# Вспомогательная функция: ID участников, прошедших >= 4 тестов
+# с учётом дублей аккаунтов (объединение по Email из StudentMapping)
+# ────────────────────────────────────────────────────────────
+
+def _get_qualified_participant_ids(min_tests: int = 4):
+    """
+    Возвращает (qualified_ids, total_unique_students):
+      - qualified_ids: set[int] — part_id всех участников, принадлежащих
+        "уникальным студентам" с суммарно >= min_tests Results.
+      - total_unique_students: int — количество таких уникальных студентов.
+
+    Логика объединения:
+      1. Студенты с одинаковым непустым Email в StudentMapping считаются
+         одним человеком (разные аккаунты РСВ).
+      2. Участники без Email или без StudentMapping считаются отдельными людьми.
+      3. Суммируем количество Results по всем аккаунтам одного человека.
+      4. Если итоговая сумма >= min_tests — все part_id этого человека включаются.
+    """
+    from collections import defaultdict
+
+    # mapping_rsv → email (или None)
+    rsv_to_email = {
+        m.mapping_rsv: (m.mapping_email.strip().lower() if m.mapping_email and m.mapping_email.strip() else None)
+        for m in StudentMapping.objects.only('mapping_rsv', 'mapping_email')
+    }
+
+    # mapping_rsv → part_id
+    rsv_to_part = {
+        p.part_rsv_id: p.part_id
+        for p in Participants.objects.only('part_id', 'part_rsv_id')
+        if p.part_rsv_id
+    }
+
+    # part_id → result_count
+    part_result_counts = dict(
+        Results.objects
+        .values('res_participant_id')
+        .annotate(cnt=Count('pk'))
+        .values_list('res_participant_id', 'cnt')
+    )
+
+    # Группируем part_id по "уникальному студенту"
+    # ключ: email (если есть) или "solo:{part_id}"
+    email_to_parts = defaultdict(list)
+    for rsv_id, email in rsv_to_email.items():
+        part_id = rsv_to_part.get(rsv_id)
+        if part_id is None:
+            continue
+        key = email if email else f'solo:{part_id}'
+        email_to_parts[key].append(part_id)
+
+    # Участники вообще без StudentMapping
+    all_mapped_part_ids = {pid for parts in email_to_parts.values() for pid in parts}
+    for part_id in part_result_counts:
+        if part_id not in all_mapped_part_ids:
+            email_to_parts[f'solo:{part_id}'].append(part_id)
+
+    qualified_ids = set()
+    total_unique = 0
+    for _key, part_ids in email_to_parts.items():
+        total = sum(part_result_counts.get(pid, 0) for pid in part_ids)
+        if total >= min_tests:
+            total_unique += 1
+            qualified_ids.update(part_ids)
+
+    return qualified_ids, total_unique
+
+
 # Ключ: название дисциплины, значение: множество кодов компетенций
 # fixme this should not be hardcoded
 DISCIPLINE_COMPETENCY_MAP = {
@@ -53,6 +123,7 @@ DISCIPLINE_COMPETENCY_MAP = {
     }
 }
 
+
 # ============================================================
 # VAM для конкретного студента
 # ============================================================
@@ -63,12 +134,12 @@ DISCIPLINE_COMPETENCY_MAP = {
 def analyze_student_vam(request):
     try:
         student_id = request.GET.get('student_id')
-        competency = request.GET.get('competency', 'res_comp_leadership')
+        competency = request.GET.get('competency', COMP.LEADERSHIP)
         if not student_id:
             return JsonResponse({'status': 'error', 'message': 'student_id required'}, status=400)
 
         # Получаем все результаты студента, сортируем по году/курсу
-        results = Results.objects.filter(res_participant_id=student_id).order_by('res_year', 'res_course_num')
+        results = Results.objects.filter(res_participant_id=student_id).order_by('res_year', 'res_course')
         if not results:
             return JsonResponse({'status': 'error', 'message': 'Нет данных для студента'}, status=404)
 
@@ -78,7 +149,7 @@ def analyze_student_vam(request):
             if score is not None:
                 data.append({
                     'year': r.res_year,
-                    'course': r.res_course_num,
+                    'course': r.res_course,
                     'competency_score': score
                 })
 
@@ -100,9 +171,9 @@ def analyze_student_vam(request):
 
         participant = Participants.objects.get(part_id=student_id)
         try:
-            mapping = Studentmapping.objects.get(rsv_id=participant.part_rsv_id)
-            student_name = mapping.student_name
-        except:
+            mapping = StudentMapping.objects.get(mapping_rsv=participant.part_rsv_id)
+            student_name = mapping.mapping_stud_name
+        except StudentMapping.DoesNotExist:
             student_name = f"Участник {participant.part_rsv_id}"
 
         analysis['student_info'] = {
@@ -129,12 +200,12 @@ def analyze_student_vam(request):
 def analyze_cohort_lgm(request):
     try:
         body = json.loads(request.body)
-        competency = body.get('competency', 'res_comp_leadership')
+        competency = body.get('competency', COMP.LEADERSHIP)
         institution_ids = body.get('institution_ids', [])
         direction_ids = body.get('direction_ids', [])
-        group_by = body.get('group_by', 'institution')  # ← теперь читаем явно от клиента
+        group_by = body.get('group_by', 'institution')
 
-        # ---- 1. Приведение типов и поддержка названий ----
+        # ---- 1. Приведение типов ----
         clean_inst_ids = []
         for id_ in institution_ids:
             if str(id_).isdigit():
@@ -149,11 +220,11 @@ def analyze_cohort_lgm(request):
             if str(id_).isdigit():
                 clean_dir_ids.append(int(id_))
             else:
-                spec = Specialties.objects.filter(spec_name=id_).first()
+                spec = EducationSpecialties.objects.filter(edu_spec_name=id_).first()
                 if spec:
-                    clean_dir_ids.append(spec.spec_id)
+                    clean_dir_ids.append(spec.edu_spec_id)
 
-        # ---- 2. Определяем group_ids в зависимости от group_by ----
+        # ---- 2. Определяем group_ids ----
         if not clean_inst_ids and not clean_dir_ids:
             # Фильтры не выбраны — берём все группы нужного типа
             if group_by == 'institution':
@@ -163,7 +234,7 @@ def analyze_cohort_lgm(request):
             else:
                 group_ids = list(Results.objects.filter(
                     **{f'{competency}__isnull': False}
-                ).values_list('res_spec_id', flat=True).distinct())
+                ).values_list('res_edu_specialty_id', flat=True).distinct())
             group_ids = [gid for gid in group_ids if gid is not None]
 
         elif group_by == 'direction':
@@ -176,7 +247,7 @@ def analyze_cohort_lgm(request):
                 group_ids = list(Results.objects.filter(
                     res_institution_id__in=clean_inst_ids,
                     **{f'{competency}__isnull': False}
-                ).values_list('res_spec_id', flat=True).distinct())
+                ).values_list('res_edu_specialty_id', flat=True).distinct())
                 group_ids = [gid for gid in group_ids if gid is not None]
 
         else:  # group_by == 'institution'
@@ -186,25 +257,30 @@ def analyze_cohort_lgm(request):
                 # Вузы не выбраны, но группировка по вузам —
                 # берём все вузы в рамках выбранных направлений
                 group_ids = list(Results.objects.filter(
-                    res_spec_id__in=clean_dir_ids,
+                    res_edu_specialty_id__in=clean_dir_ids,
                     **{f'{competency}__isnull': False}
                 ).values_list('res_institution_id', flat=True).distinct())
                 group_ids = [gid for gid in group_ids if gid is not None]
 
         # ---- 3. Сбор данных и расчёт LGM для каждой группы ----
+        # Только студенты с >= 4 тестированиями (с учётом объединения по Email)
+        qualified_ids, total_qualified_students = _get_qualified_participant_ids(min_tests=4)
+
         results = []
         for gid in group_ids:
             query = Q()
             if group_by == 'institution':
                 query &= Q(res_institution_id=gid)
             else:
-                query &= Q(res_spec_id=gid)
-                # Если вузы заданы как фильтр выборки — применяем
+                query &= Q(res_edu_specialty_id=gid)
                 if clean_inst_ids:
                     query &= Q(res_institution_id__in=clean_inst_ids)
 
+            # Только квалифицированные участники
+            query &= Q(res_participant_id__in=qualified_ids)
+
             results_qs = Results.objects.filter(query).order_by(
-                'res_participant_id', 'res_year', 'res_course_num'
+                'res_participant_id', 'res_year', 'res_course'
             )
             data = []
             for r in results_qs:
@@ -212,7 +288,7 @@ def analyze_cohort_lgm(request):
                 if score is not None:
                     data.append({
                         'student_id': r.res_participant_id,
-                        'time_point': r.res_course_num,
+                        'time_point': r.res_course,
                         'competency_score': score
                     })
 
@@ -228,8 +304,19 @@ def analyze_cohort_lgm(request):
                     inst = Institutions.objects.filter(inst_id=gid).first()
                     group_name = inst.inst_name if inst else f"ВУЗ {gid}"
                 else:
-                    spec = Specialties.objects.filter(spec_id=gid).first()
-                    group_name = spec.spec_name if spec else f"Направление {gid}"
+                    spec = EducationSpecialties.objects.filter(edu_spec_id=gid).first()
+                    group_name = spec.edu_spec_name if spec else f"Направление {gid}"
+
+                # Агрегируем фактические средние баллы по курсам для этой группы
+                from collections import defaultdict
+                course_scores = defaultdict(list)
+                for row in data:
+                    if row.get('time_point') and row.get('competency_score') is not None:
+                        course_scores[int(row['time_point'])].append(float(row['competency_score']))
+                actual_by_course = [
+                    {'course': c, 'avg_score': round(float(np.mean(scores)), 2), 'n': len(scores)}
+                    for c, scores in sorted(course_scores.items())
+                ]
 
                 results.append({
                     'group_id': gid,
@@ -238,8 +325,10 @@ def analyze_cohort_lgm(request):
                     'n_students': analysis['n_students'],
                     'mean_intercept': analysis['mean_intercept'],
                     'mean_slope': analysis['mean_slope'],
+                    'mean_r_squared': analysis.get('mean_r_squared', 0),
                     'std_intercept': analysis['std_intercept'],
                     'std_slope': analysis['std_slope'],
+                    'actual_by_course': actual_by_course,
                     'interpretation': analysis.get('interpretation'),
                     'trajectories': analysis.get('trajectories', [])
                 })
@@ -247,13 +336,14 @@ def analyze_cohort_lgm(request):
         if not results:
             return JsonResponse({
                 'status': 'error',
-                'message': 'Нет данных для анализа LGM (возможно, недостаточно лонгитюдных измерений)'
+                'message': 'Нет данных для анализа LGM'
             }, status=404)
 
         return JsonResponse({
             'status': 'success',
             'competency': competency,
             'group_by': group_by,
+            'total_qualified_students': total_qualified_students,
             'data': _convert_numpy_types(results)
         })
 
@@ -288,7 +378,7 @@ def get_lgm_growers(request):
     """
     try:
         body = json.loads(request.body)
-        competency = body.get('competency', 'res_comp_leadership')
+        competency = body.get('competency', COMP.LEADERSHIP)
         group_by = body.get('group_by', 'institution')
         group_id = body.get('group_id')
         institution_ids = body.get('institution_ids', [])
@@ -299,18 +389,23 @@ def get_lgm_growers(request):
 
         group_id = int(group_id)
 
+        # Только студенты с >= 4 тестированиями (объединение по Email)
+        qualified_ids, _ = _get_qualified_participant_ids(min_tests=4)
+
         # Формируем запрос — те же условия, что в analyze_cohort_lgm
         query = Q()
         if group_by == 'institution':
             query &= Q(res_institution_id=group_id)
         else:
-            query &= Q(res_spec_id=group_id)
+            query &= Q(res_edu_specialty_id=group_id)
             clean_inst_ids = [int(i) for i in institution_ids if str(i).isdigit()]
             if clean_inst_ids:
                 query &= Q(res_institution_id__in=clean_inst_ids)
 
+        query &= Q(res_participant_id__in=qualified_ids)
+
         results_qs = Results.objects.filter(query).order_by(
-            'res_participant_id', 'res_year', 'res_course_num'
+            'res_participant_id', 'res_year', 'res_course'
         )
 
         data = []
@@ -319,7 +414,7 @@ def get_lgm_growers(request):
             if score is not None:
                 data.append({
                     'student_id': r.res_participant_id,
-                    'time_point': r.res_course_num,
+                    'time_point': r.res_course,
                     'competency_score': score
                 })
 
@@ -351,17 +446,17 @@ def get_lgm_growers(request):
                 try:
                     participant = Participants.objects.get(part_id=sid)
                     try:
-                        mapping = Studentmapping.objects.get(rsv_id=participant.part_rsv_id)
-                        name = mapping.student_name
-                    except Studentmapping.DoesNotExist:
+                        mapping = StudentMapping.objects.get(mapping_rsv=participant.part_rsv_id)
+                        name = mapping.mapping_stud_name
+                    except StudentMapping.DoesNotExist:
                         name = participant.part_rsv_id or str(sid)
                     # Берём последний результат для определения вуза/направления
                     last_result = Results.objects.filter(
                         res_participant_id=sid
-                    ).select_related('res_institution', 'res_spec').order_by('-res_year', '-res_course_num').first()
+                    ).select_related('res_institution', 'res_edu_specialty').order_by('-res_year', '-res_course').first()
                     if last_result:
                         institution_name = last_result.res_institution.inst_name if last_result.res_institution else ''
-                        direction_name = last_result.res_spec.spec_name if last_result.res_spec else ''
+                        direction_name = last_result.res_edu_specialty.edu_spec_name if last_result.res_edu_specialty else ''
                 except Participants.DoesNotExist:
                     pass
                 enriched.append({
@@ -461,9 +556,9 @@ def _get_discipline_impact_for_competency(competency):
     try:
         perf_data = []
         
-        for perf in Academicperformance.objects.select_related('perf_part').all():
+        for perf in AcademicPerformances.objects.select_related('perf_participant', 'perf_edu_discipline').all():
             year = perf.perf_year
-            student = perf.perf_part
+            student = perf.perf_participant
             
             try:
                 year_start = int(year.split('/')[0])
@@ -475,7 +570,7 @@ def _get_discipline_impact_for_competency(competency):
                 res_participant=student
             ).filter(
                 Q(res_year__lt=year)
-            ).order_by('-res_year', '-res_course_num').first()
+            ).order_by('-res_year', '-res_course').first()
             
             after_year = f"{year_start+1}/{year_start+2}"
             after_result = Results.objects.filter(
@@ -490,8 +585,8 @@ def _get_discipline_impact_for_competency(competency):
                 if before_score is not None and after_score is not None:
                     perf_data.append({
                         'student_id': student.part_id,
-                        'discipline': perf.perf_discipline,
-                        'grade': perf.perf_main_attestation,
+                        'discipline': perf.perf_edu_discipline.edu_disc_name,
+                        'grade': perf.perf_main,
                         'year': year,
                         f'{competency}_before': before_score,
                         f'{competency}_after': after_score
@@ -504,7 +599,7 @@ def _get_discipline_impact_for_competency(competency):
         analyzer = DisciplineImpactAnalyzer()
         return analyzer.analyze_discipline_impact(df, competency)
         
-    except:
+    except Exception as e:
         return None
 
 
@@ -521,7 +616,7 @@ def analyze_discipline_impact_advanced(request):
     """
     try:
         body = json.loads(request.body)
-        competencies = body.get('competencies', ['res_comp_leadership'])
+        competencies = body.get('competencies', [COMP.LEADERSHIP])
         disciplines = body.get('disciplines', [])
         institution_ids = body.get('institution_ids', [])
         direction_ids = body.get('direction_ids', []) 
@@ -530,62 +625,58 @@ def analyze_discipline_impact_advanced(request):
         results = []
         
         for competency in competencies:
-            perf_query = Academicperformance.objects.select_related('perf_part')
+            perf_query = AcademicPerformances.objects.select_related('perf_participant', 'perf_edu_discipline')
             
             if disciplines:
                 q = Q()
                 for disc in disciplines:
-                    q |= Q(perf_discipline__icontains=disc)
+                    q |= Q(perf_edu_discipline__edu_disc_name__icontains=disc)
                 perf_query = perf_query.filter(q)
             
-            # Фильтрация по institution_ids и direction_ids
+            # Фильтрация по institution_ids и direction_ids через Results
             if institution_ids or direction_ids:
-                filters = Q()
+                # Находим participants, подходящих под фильтры
+                participant_filters = Q()
                 if institution_ids:
                     # Проверяем, что institution_ids - это числа
                     inst_ids = [int(id) for id in institution_ids if str(id).isdigit()]
                     if inst_ids:
-                        filters &= Q(perf_part__part_institution_id__in=inst_ids)
-                
+                        participant_filters &= Q(res_institution_id__in=inst_ids)
                 if direction_ids:
                     dir_ids = []
                     for dir_id in direction_ids:
                         if str(dir_id).isdigit():
                             dir_ids.append(int(dir_id))
                         else:
-                            # Ищем ID по названию направления
-                            try:
-                                spec = Specialties.objects.filter(spec_name=dir_id).first()
-                                if spec:
-                                    dir_ids.append(spec.spec_id)
-                            except:
-                                pass
+                            spec = EducationSpecialties.objects.filter(edu_spec_name=dir_id).first()
+                            if spec:
+                                dir_ids.append(spec.edu_spec_id)
                     if dir_ids:
-                        filters &= Q(perf_part__part_spec_id__in=dir_ids)
+                        participant_filters &= Q(res_edu_specialty_id__in=dir_ids)
                 
-                perf_query = perf_query.filter(filters)
+                # Получаем part_id участников, подходящих под фильтры
+                qualified_participants = Results.objects.filter(participant_filters).values_list('res_participant_id', flat=True).distinct()
+                perf_query = perf_query.filter(perf_participant_id__in=qualified_participants)
             
             perf_data = []
             
             for perf in perf_query:
                 year = perf.perf_year
-                student = perf.perf_part
+                student = perf.perf_participant
                 
                 try:
                     year_start = int(year.split('/')[0])
                 except:
                     continue
                 
-                before_result = Results.objects                    \
-                    .select_related('res_spec', 'res_institution') \
-                    .filter(res_participant=student)               \
-                    .filter(Q(res_year__lt=year))                  \
-                    .order_by('-res_year', '-res_course_num').first()
+                before_result = Results.objects.filter(
+                    res_participant=student
+                ).filter(Q(res_year__lt=year)).order_by('-res_year', '-res_course').first()
 
-                after_result = Results.objects                      \
-                    .select_related('res_spec', 'res_institution')  \
-                    .filter(res_participant=student, res_year=year) \
-                    .order_by('-res_course_num').first()
+                after_result = Results.objects.filter(
+                    res_participant=student, 
+                    res_year=year
+                ).order_by('-res_course').first()
                 
                 if before_result and after_result:
                     before_score = getattr(before_result, competency, None)
@@ -594,21 +685,21 @@ def analyze_discipline_impact_advanced(request):
                     if before_score is not None and after_score is not None:
                         # Направление: ищем в результате (res_spec), затем у участника (part_spec)
                         direction = (
-                            (after_result.res_spec.spec_name  if after_result.res_spec  else None) or
-                            (before_result.res_spec.spec_name if before_result.res_spec else None) or
-                            (student.part_spec.spec_name      if student.part_spec      else None) or
+                            (after_result.res_edu_specialty.edu_spec_name if after_result.res_edu_specialty else None) or
+                            (before_result.res_edu_specialty.edu_spec_name if before_result.res_edu_specialty else None) or
                             'Не указано'
                         )
                         institution = (
-                            (after_result.res_institution.inst_name  if after_result.res_institution  else None) or
+                            (after_result.res_institution.inst_name if after_result.res_institution else None) or
                             (before_result.res_institution.inst_name if before_result.res_institution else None) or
-                            (student.part_institution.inst_name      if student.part_institution      else None) or
                             'Не указано'
                         )
+                        # ИСПРАВЛЕНИЕ: преобразуем grade в текст для совместимости с DisciplineImpactAnalyzer
+                        grade_text = convert_grade_to_text(perf.perf_main)
                         perf_data.append({
                             'student_id': student.part_id,
-                            'discipline': perf.perf_discipline,
-                            'grade': perf.perf_main_attestation,
+                            'discipline': perf.perf_edu_discipline.edu_disc_name,
+                            'grade': grade_text,  # теперь текстовая оценка
                             'year': year,
                             'institution': institution,
                             'direction': direction,
@@ -618,6 +709,7 @@ def analyze_discipline_impact_advanced(request):
             
             if not perf_data:
                 continue
+            
             print(f"[{competency}] Всего записей: {len(perf_data)}")
             print(f"[{competency}] Дисциплины: {set(d['discipline'] for d in perf_data)}")
             
@@ -630,10 +722,25 @@ def analyze_discipline_impact_advanced(request):
             if not filtered_perf_data:
                 continue
 
+            # ИСПРАВЛЕНИЕ: проверяем количество студентов по каждой дисциплине
             df = pd.DataFrame(filtered_perf_data)
-
+            
+            # Группируем по дисциплине и проверяем минимальное количество
+            valid_disciplines = []
+            for disc, group in df.groupby('discipline'):
+                unique_students = group['student_id'].nunique()
+                if unique_students >= min_students:
+                    valid_disciplines.append(disc)
+            
+            if not valid_disciplines:
+                print(f"[{competency}] Нет дисциплин с >= {min_students} студентами")
+                continue
+            
+            # Фильтруем данные только по валидным дисциплинам
+            df_filtered = df[df['discipline'].isin(valid_disciplines)]
+            
             analyzer = DisciplineImpactAnalyzer()
-            analysis = analyzer.analyze_discipline_impact(df, competency)
+            analysis = analyzer.analyze_discipline_impact(df_filtered, competency)
             
             if analysis['status'] == 'success':
                 analysis['competency'] = competency
@@ -641,7 +748,6 @@ def analyze_discipline_impact_advanced(request):
                 
                 # Конвертируем bool значения в строки JSON
                 analysis = _convert_numpy_types(analysis)
-                
                 results.append(analysis)
         
         return JsonResponse({
@@ -659,13 +765,27 @@ def analyze_discipline_impact_advanced(request):
         }, status=500)
 
 
+def convert_grade_to_text(grade_num):
+    """Конвертирует числовую оценку (1-5) в текстовый формат для совместимости с DisciplineImpactAnalyzer."""
+    if grade_num is None:
+        return None
+    grade_map = {
+        5: 'отл.',
+        4: 'хор.',
+        3: 'удовл.',
+        2: 'неудовл.',
+        1: 'не явился'
+    }
+    return grade_map.get(grade_num, str(grade_num))
+
+
 def _convert_numpy_types(obj):
     """Конвертирует numpy/pandas типы в Python типы для JSON сериализации"""
     if isinstance(obj, dict):
         return {k: _convert_numpy_types(v) for k, v in obj.items()}
     elif isinstance(obj, list):
         return [_convert_numpy_types(item) for item in obj]
-    elif isinstance(obj, (np.bool_, bool)):  # Добавлена обработка bool
+    elif isinstance(obj, (np.bool_, bool)):
         return bool(obj)
     elif isinstance(obj, np.integer):
         return int(obj)
@@ -675,7 +795,7 @@ def _convert_numpy_types(obj):
         return obj
     elif obj is None:
         return None
-    elif pd.isna(obj):  # Обработка NaN
+    elif pd.isna(obj):
         return None
     else:
         try:
@@ -718,61 +838,59 @@ def get_discipline_heatmap_data(request):
         # Собираем все дисциплины и их эффекты
         heatmap_data = []
         
-        perf_query = Academicperformance.objects.select_related('perf_part')
+        perf_query = AcademicPerformances.objects.select_related('perf_participant', 'perf_edu_discipline')
         
-        if institution_ids:
-            # Преобразуем в числа
-            inst_ids = [int(id) for id in institution_ids if str(id).isdigit()]
-            if inst_ids:
-                perf_query = perf_query.filter(perf_part__part_institution_id__in=inst_ids)
-        
-        if direction_ids:
-            dir_ids = []
-            for dir_id in direction_ids:
-                if str(dir_id).isdigit():
-                    dir_ids.append(int(dir_id))
-                else:
-                    # Ищем ID по названию направления
-                    try:
-                        spec = Specialties.objects.filter(spec_name=dir_id).first()
+        if institution_ids or direction_ids:
+            participant_filters = Q()
+            if institution_ids:
+                inst_ids = [int(id) for id in institution_ids if str(id).isdigit()]
+                if inst_ids:
+                    participant_filters &= Q(res_institution_id__in=inst_ids)
+            if direction_ids:
+                dir_ids = []
+                for dir_id in direction_ids:
+                    if str(dir_id).isdigit():
+                        dir_ids.append(int(dir_id))
+                    else:
+                        spec = EducationSpecialties.objects.filter(edu_spec_name=dir_id).first()
                         if spec:
-                            dir_ids.append(spec.spec_id)
-                    except:
-                        pass
-            if dir_ids:
-                perf_query = perf_query.filter(perf_part__part_spec_id__in=dir_ids)
+                            dir_ids.append(spec.edu_spec_id)
+                if dir_ids:
+                    participant_filters &= Q(res_edu_specialty_id__in=dir_ids)
+            
+            qualified_participants = Results.objects.filter(participant_filters).values_list('res_participant_id', flat=True).distinct()
+            perf_query = perf_query.filter(perf_participant_id__in=qualified_participants)
         
-        # Группируем по дисциплинам
         disciplines = set()
         perf_data_by_disc = {}
         
         for perf in perf_query:
-            disc = perf.perf_discipline
+            disc = perf.perf_edu_discipline.edu_disc_name
             disciplines.add(disc)
             
             if disc not in perf_data_by_disc:
                 perf_data_by_disc[disc] = []
             
             year = perf.perf_year
-            student = perf.perf_part
+            student = perf.perf_participant
             
             # Результат до (предыдущий год)
             before_result = Results.objects.filter(
                 res_participant=student
-            ).filter(Q(res_year__lt=year)).order_by('-res_year', '-res_course_num').first()
+            ).filter(Q(res_year__lt=year)).order_by('-res_year', '-res_course').first()
             
             # Результат после – за тот же год, самая поздняя запись
             after_result = Results.objects.filter(
                 res_participant=student,
                 res_year=year
-            ).order_by('-res_course_num').first()
+            ).order_by('-res_course').first()
             
             if before_result and after_result:
                 # Направление: ищем в результате, затем у участника
                 direction = (
-                    (after_result.res_spec.spec_name  if after_result.res_spec  else None) or
-                    (before_result.res_spec.spec_name if before_result.res_spec else None) or
-                    (student.part_spec.spec_name      if student.part_spec      else None) or
+                    (after_result.res_edu_specialty.edu_spec_name if after_result.res_edu_specialty else None) or
+                    (before_result.res_edu_specialty.edu_spec_name if before_result.res_edu_specialty else None) or
+                    (student.part_spec.edu_spec_name      if student.part_spec      else None) or
                     'Не указано'
                 )
                 for comp in competencies:
@@ -784,7 +902,7 @@ def get_discipline_heatmap_data(request):
                             'competency': comp,
                             f'{comp}_before': before_score,
                             f'{comp}_after': after_score,
-                            'grade': perf.perf_main_attestation,
+                            'grade': perf.perf_main,
                             'direction': direction,
                         })
         
@@ -820,40 +938,6 @@ def get_discipline_heatmap_data(request):
                             'n_students': len(before)
                         })
         
-        # ── Эффект по направлениям ──
-        heatmap_by_direction = {}   # { direction: [ {discipline, competency, effect_size, ...} ] }
-        for disc in disciplines:
-            if disc not in perf_data_by_disc or not perf_data_by_disc[disc]:
-                continue
-            df_all = pd.DataFrame(perf_data_by_disc[disc])
-            if 'direction' not in df_all.columns:
-                continue
-            for direction, dir_df in df_all.groupby('direction'):
-                for comp in competencies:
-                    bcol, acol = f'{comp}_before', f'{comp}_after'
-                    if bcol not in dir_df.columns or acol not in dir_df.columns:
-                        continue
-                    before = dir_df[bcol].dropna()
-                    after  = dir_df[acol].dropna()
-                    if len(before) < 3:
-                        continue
-                    mean_diff  = float(after.mean() - before.mean())
-                    std_pooled = np.sqrt((before.std()**2 + after.std()**2) / 2)
-                    cohens_d   = mean_diff / std_pooled if std_pooled > 0 else 0
-                    t_stat, p_value = stats.ttest_rel(after, before)
-                    heatmap_by_direction.setdefault(direction, []).append({
-                        'discipline':       disc,
-                        'competency':       comp,
-                        'competency_label': COMP.names[comp],
-                        'effect_size':      float(cohens_d),
-                        'mean_gain':        mean_diff,
-                        'p_value':          float(p_value),
-                        'significant':      bool(p_value < 0.05),
-                        'n_students':       len(before),
-                    })
-
-        heatmap_by_direction = {k: _convert_numpy_types(v) for k, v in heatmap_by_direction.items()}
-
         heatmap_data = _convert_numpy_types(heatmap_data)
         
         full_heatmap = []
@@ -882,8 +966,6 @@ def get_discipline_heatmap_data(request):
         return JsonResponse({
             'status': 'success',
             'data': full_heatmap,
-            'data_by_direction': heatmap_by_direction,
-            'directions': sorted(heatmap_by_direction.keys()),
             'disciplines': list(DISCIPLINE_COMPETENCY_MAP.keys()),
             'competencies': competencies
         })
@@ -911,26 +993,21 @@ def get_disciplines(request):
     GET /portrait/get-disciplines/
     """
     try:
-        # Получаем уникальные дисциплины
-        disciplines = Academicperformance.objects.values_list('perf_discipline', flat=True).distinct().order_by('perf_discipline')
+        disciplines = EducationDisciplines.objects.all().values('edu_disc_id', 'edu_disc_name').order_by('edu_disc_name')
         
-        # Преобразуем в список
-        disciplines_list = list(disciplines)
-        
-        # Для каждой дисциплины можно также получить количество студентов
         disciplines_with_counts = []
-        for disc in disciplines_list:
-            count = Academicperformance.objects.filter(perf_discipline=disc).values('perf_part').distinct().count()
+        for disc in disciplines:
+            count = AcademicPerformances.objects.filter(perf_edu_discipline_id=disc['edu_disc_id']).values('perf_participant').distinct().count()
             disciplines_with_counts.append({
-                'id': disc,
-                'name': disc,
+                'id': disc['edu_disc_id'],
+                'name': disc['edu_disc_name'],
                 'count': count
             })
         
         return JsonResponse({
             'status': 'success',
             'disciplines': disciplines_with_counts,
-            'total_count': len(disciplines_list)
+            'total_count': len(disciplines_with_counts)
         })
         
     except Exception as e:
@@ -962,23 +1039,22 @@ def analyze_student_discipline_impact(request):
         except Participants.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'Студент не найден'}, status=404)
 
-        # Получаем все дисциплины студента, отсортированные по году
-        disciplines = Academicperformance.objects.filter(perf_part=participant).order_by('perf_year')
+        disciplines = AcademicPerformances.objects.filter(
+            perf_participant=participant
+        ).select_related('perf_edu_discipline').order_by('perf_year')
 
         results = []
         for disc in disciplines:
             year = disc.perf_year
-            # Результат до (предыдущий год)
-            before_result = Results.objects                             \
-                .filter(res_participant=participant, res_year__lt=year) \
-                .order_by('-res_year', '-res_course_num')               \
-                .first()
+            before_result = Results.objects.filter(
+                res_participant=participant, 
+                res_year__lt=year
+            ).order_by('-res_year', '-res_course').first()
 
-            # Результат после (тот же год)
-            after_result = Results.objects                          \
-                .filter(res_participant=participant, res_year=year) \
-                .order_by('-res_course_num')                        \
-                .first()
+            after_result = Results.objects.filter(
+                res_participant=participant, 
+                res_year=year
+            ).order_by('-res_course').first()
 
             if not before_result or not after_result:
                 continue  # недостаточно данных для этой дисциплины
@@ -998,9 +1074,9 @@ def analyze_student_discipline_impact(request):
 
             # Формируем запись
             results.append({
-                'discipline': disc.perf_discipline,
+                'discipline': disc.perf_edu_discipline.edu_disc_name,
                 'year': year,
-                'grade': disc.perf_main_attestation,
+                'grade': disc.perf_main,
                 'competencies_before': competencies_before,
                 'competencies_after': competencies_after,
             })
@@ -1016,6 +1092,10 @@ def analyze_student_discipline_impact(request):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 
+# ============================================================
+# COMPETENCY LEVEL FLOW
+# ============================================================
+
 @cached()
 @method(POST)
 @jsonResponse
@@ -1025,33 +1105,30 @@ def get_competency_level_flow(request):
     """
     body = json.loads(request.body)
     competency = body.get('competency')
-    institution_ids = body.get('institution_ids', [])
-    direction_ids = body.get('direction_ids', [])
+    institution_ids = [int(i) for i in body.get('institution_ids', []) if str(i).isdigit()]
+    direction_ids   = [int(i) for i in body.get('direction_ids', []) if str(i).isdigit()]
 
     if not competency:
         raise ResponseError("Competency required")
 
-    # Фильтруем участников
-    participants_qs = Participants.objects.all()
+    # Фильтруем результаты
+    results_qs = Results.objects.all()
     if institution_ids:
-        participants_qs = participants_qs.filter(**isIn(TPART.INSTITUTION, institution_ids))
+        results_qs = results_qs.filter(res_institution_id__in=institution_ids)
     if direction_ids:
-        participants_qs = participants_qs.filter(**isIn(TPART.EDU_SPEC, direction_ids))
+        results_qs = results_qs.filter(res_edu_specialty_id__in=direction_ids)
 
-    # Получаем все результаты выбранных участников, сортируем по студенту и курсу
-    results = Results.objects                                                               \
-        .filter(**isIn(TRES.PARTICIPANT, participants_qs.values_list(TPART.ID, flat=True))) \
-        .order_by(TRES.PARTICIPANT, TRES.COURSE_NUM)
+    results_qs = results_qs.order_by('res_participant_id', 'res_course')
 
     # Группируем по студентам
     student_data = {}
-    for r in results:
-        sid = r.res_participant
+    for r in results_qs:
+        sid = r.res_participant_id
         score = getattr(r, competency, None)
         if score is None:
             continue
-        course = r.res_course_num
-        if course not in [1,2,3,4]:
+        course = r.res_course
+        if course not in [1, 2, 3, 4]:
             continue
         if sid not in student_data:
             student_data[sid] = {}
@@ -1073,8 +1150,8 @@ def get_competency_level_flow(request):
         else:
             return 'Высокий'
 
-    courses = 1, 2, 3, 4
-    levels = 'Начальный', 'Средний', 'Высокий'
+    courses = (1, 2, 3, 4)
+    levels = ('Начальный', 'Средний', 'Высокий')
     nodes = []
     node_index = {}
     for course in courses:
@@ -1087,8 +1164,6 @@ def get_competency_level_flow(request):
     transition_counts = {}
     for sid, scores in student_data.items():
         sorted_courses = sorted(scores.keys())
-        if len(sorted_courses) > 1:
-            print(sid, scores)
         for i in range(len(sorted_courses)-1):
             c_from = sorted_courses[i]
             c_to = sorted_courses[i+1]
@@ -1119,28 +1194,24 @@ def get_competency_level_flow_yearly(request):
     """
     body = json.loads(request.body)
     competency = body.get('competency')
-    institution_ids = body.get('institution_ids', [])
-    direction_ids = body.get('direction_ids', [])
+    institution_ids = [int(i) for i in body.get('institution_ids', []) if str(i).isdigit()]
+    direction_ids   = [int(i) for i in body.get('direction_ids', []) if str(i).isdigit()]
 
     if not competency:
         raise ResponseError("Competency required")
 
-    # Фильтруем участников
-    participants_qs = Participants.objects.all()
+    results_qs = Results.objects.all()
     if institution_ids:
-        participants_qs = participants_qs.filter(**isIn(TPART.INSTITUTION, institution_ids))
+        results_qs = results_qs.filter(res_institution_id__in=institution_ids)
     if direction_ids:
-        participants_qs = participants_qs.filter(**isIn(TPART.EDU_SPEC, direction_ids))
+        results_qs = results_qs.filter(res_edu_specialty_id__in=direction_ids)
 
-    # Получаем все результаты выбранных участников, сортируем по студенту и курсу
-    results = Results.objects                                                               \
-        .filter(**isIn(TRES.PARTICIPANT, participants_qs.values_list(TPART.ID, flat=True))) \
-        .order_by(TRES.PARTICIPANT, TRES.COURSE_NUM)
+    results_qs = results_qs.order_by('res_participant_id', 'res_course')
 
     # Группируем по студентам
     student_data = {}
-    for r in results:
-        sid = r.res_participant
+    for r in results_qs:
+        sid = r.res_participant_id
         score = getattr(r, competency, None)
         if score is None:
             continue
@@ -1165,8 +1236,8 @@ def get_competency_level_flow_yearly(request):
         else:
             return 'Высокий'
 
-    years = '2021/2022', '2022/2023', '2023/2024', '2024/2025', '2025/2026'
-    levels = 'Начальный', 'Средний', 'Высокий'
+    years = ('2021/2022', '2022/2023', '2023/2024', '2024/2025', '2025/2026')
+    levels = ('Начальный', 'Средний', 'Высокий')
     nodes = []
     node_index = {}
     for year in years:
@@ -1178,24 +1249,27 @@ def get_competency_level_flow_yearly(request):
     # Подсчёт переходов между последовательными годами
     transition_counts = {}
     for sid, scores in student_data.items():
-        sorted_courses = sorted(scores.keys())
-        if len(sorted_courses) > 1:
-            print(sid, scores)
-        for i in range(len(sorted_courses)-1):
-            c_from = sorted_courses[i]
-            c_to = sorted_courses[i+1]
-            if int(c_from.split('/')[0]) != int(c_to.split('/')[0]) - 1:
+        sorted_years = sorted(scores.keys())
+        for i in range(len(sorted_years)-1):
+            y_from = sorted_years[i]
+            y_to = sorted_years[i+1]
+            try:
+                year_from_int = int(y_from.split('/')[0])
+                year_to_int = int(y_to.split('/')[0])
+                if year_to_int != year_from_int + 1:
+                    continue
+            except:
                 continue
-            level_from = get_level(scores[c_from])
-            level_to = get_level(scores[c_to])
-            key = (c_from, level_from, c_to, level_to)
+            level_from = get_level(scores[y_from])
+            level_to = get_level(scores[y_to])
+            key = (y_from, level_from, y_to, level_to)
             transition_counts[key] = transition_counts.get(key, 0) + 1
 
     links = []
-    for (c_from, level_from, c_to, level_to), count in transition_counts.items():
+    for (y_from, level_from, y_to, level_to), count in transition_counts.items():
         links.append({
-            'source': node_index[(c_from, level_from)],
-            'target': node_index[(c_to, level_to)],
+            'source': node_index[(y_from, level_from)],
+            'target': node_index[(y_to, level_to)],
             'value': count
         })
 
@@ -1203,7 +1277,7 @@ def get_competency_level_flow_yearly(request):
 
 
 # ============================================================
-# VAM TREND DATA - для линейных графиков по курсам
+# VAM TREND DATA
 # ============================================================
 
 @cached()
@@ -1218,15 +1292,14 @@ def get_vam_trend_data(request):
     try:
         body = json.loads(request.body)
         group_by = body.get('group_by', 'institution')
-        competency = body.get('competency', 'res_comp_leadership')
+        competency = body.get('competency', COMP.LEADERSHIP)
         selected_groups = body.get('selected_groups', [])
 
         filter_institutions = body.get('filter_institutions', [])
         filter_directions = body.get('filter_directions', [])
         filter_courses = body.get('filter_courses', [])
 
-        # Базовый queryset
-        results = Results.objects.select_related('res_institution', 'res_spec')
+        results = Results.objects.select_related('res_institution', 'res_edu_specialty')
 
         if filter_institutions:
             results = results.filter(res_institution_id__in=filter_institutions)
@@ -1236,13 +1309,13 @@ def get_vam_trend_data(request):
                 if str(d).isdigit():
                     dir_ids.append(int(d))
                 else:
-                    spec = Specialties.objects.filter(spec_name=d).first()
+                    spec = EducationSpecialties.objects.filter(edu_spec_name=d).first()
                     if spec:
-                        dir_ids.append(spec.spec_id)
+                        dir_ids.append(spec.edu_spec_id)
             if dir_ids:
-                results = results.filter(res_spec_id__in=dir_ids)
+                results = results.filter(res_edu_specialty_id__in=dir_ids)
         if filter_courses:
-            results = results.filter(res_course_num__in=filter_courses)
+            results = results.filter(res_course__in=filter_courses)
 
         if selected_groups:
             if group_by == 'institution':
@@ -1254,10 +1327,10 @@ def get_vam_trend_data(request):
                     if str(g).isdigit():
                         spec_ids.append(int(g))
                     else:
-                        spec = Specialties.objects.filter(spec_name=g).first()
+                        spec = EducationSpecialties.objects.filter(edu_spec_name=g).first()
                         if spec:
-                            spec_ids.append(spec.spec_id)
-                results = results.filter(res_spec_id__in=spec_ids) if spec_ids else results.none()
+                            spec_ids.append(spec.edu_spec_id)
+                results = results.filter(res_edu_specialty_id__in=spec_ids) if spec_ids else results.none()
 
         # Собираем данные с лонгитюдной структурой: student -> курс -> балл
         data = []
@@ -1266,13 +1339,13 @@ def get_vam_trend_data(request):
             if score is None:
                 continue
             data.append({
-                'group_id':   r.res_institution_id if group_by == 'institution' else r.res_spec_id,
+                'group_id': r.res_institution_id if group_by == 'institution' else r.res_edu_specialty_id,
                 'group_name': (r.res_institution.inst_name if r.res_institution else 'Неизвестно')
                               if group_by == 'institution'
-                              else (r.res_spec.spec_name if r.res_spec else 'Неизвестно'),
+                              else (r.res_edu_specialty.edu_spec_name if r.res_edu_specialty else 'Неизвестно'),
                 'student_id': r.res_participant_id,
-                'year':       r.res_year,
-                'course':     r.res_course_num,
+                'year': r.res_year,
+                'course': r.res_course,
                 'comp_score': score,
             })
 
@@ -1321,31 +1394,31 @@ def get_vam_trend_data(request):
                 mean_va = va_arr.mean()
                 se = va_arr.std() / np.sqrt(len(va_arr))
                 courses_data.append({
-                    'course':      int(course),
+                    'course': int(course),
                     'value_added': float(mean_va),
-                    'ci_lower':    float(mean_va - 1.96 * se),
-                    'ci_upper':    float(mean_va + 1.96 * se),
-                    'n':           int(len(va_values)),
+                    'ci_lower': float(mean_va - 1.96 * se),
+                    'ci_upper': float(mean_va + 1.96 * se),
+                    'n': int(len(va_values)),
                 })
 
             if courses_data:
                 result_data.append({
-                    'group_id':   int(group_id),
+                    'group_id': int(group_id),
                     'group_name': str(group_name),
-                    'courses':    courses_data,
+                    'courses': courses_data,
                 })
 
         if not result_data:
             return JsonResponse({
                 'status': 'error',
-                'message': 'Недостаточно лонгитюдных данных для VAM (нужны студенты с 2+ замерами)'
+                'message': 'Недостаточно лонгитюдных данных для VAM'
             }, status=404)
 
         return JsonResponse({
-            'status':     'success',
-            'group_by':   group_by,
+            'status': 'success',
+            'group_by': group_by,
             'competency': competency,
-            'data':       _convert_numpy_types(result_data),
+            'data': _convert_numpy_types(result_data),
         })
 
     except Exception as e:
@@ -1353,6 +1426,10 @@ def get_vam_trend_data(request):
         traceback.print_exc()
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
+
+# ============================================================
+# GETTERS FOR FILTERS
+# ============================================================
 
 @cached()
 @csrf_exempt
@@ -1375,7 +1452,7 @@ def get_institutions(request):
 def get_directions(request):
     """Возвращает список всех направлений (специальностей)."""
     try:
-        directions = Specialties.objects.all().values('spec_id', 'spec_name')
+        directions = EducationSpecialties.objects.all().values('edu_spec_id', 'edu_spec_name')
         return JsonResponse({
             'status': 'success',
             'directions': list(directions)
@@ -1383,6 +1460,10 @@ def get_directions(request):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
+
+# ============================================================
+# AI ANALYTICS SUMMARY
+# ============================================================
 
 @cached()
 @csrf_exempt
@@ -1403,16 +1484,16 @@ def ai_analytics_summary(request):
         inst_ids = filters.get('institutions', [])
         dir_ids = filters.get('directions', [])
         courses = filters.get('courses', [])
-        competency = filters.get('competency', 'res_comp_leadership')
+        competency = filters.get('competency', COMP.LEADERSHIP)
         year = filters.get('year', None)
 
-        results_qs = Results.objects.select_related('res_institution', 'res_spec')
+        results_qs = Results.objects.select_related('res_institution', 'res_edu_specialty')
         if inst_ids:
             results_qs = results_qs.filter(res_institution_id__in=inst_ids)
         if dir_ids:
-            results_qs = results_qs.filter(res_spec_id__in=dir_ids)
+            results_qs = results_qs.filter(res_edu_specialty_id__in=dir_ids)
         if courses:
-            results_qs = results_qs.filter(res_course_num__in=courses)
+            results_qs = results_qs.filter(res_course__in=courses)
         if year:
             results_qs = results_qs.filter(res_year=year)
 
@@ -1439,8 +1520,7 @@ def ai_analytics_summary(request):
                 low_pct = medium_pct = high_pct = 0
 
             comp_display = COMP.names.get(competency, competency)
-            prompt = f"""
-Ты — аналитик образовательной платформы. На основе следующих данных напиши краткий аналитический отчёт (3-5 предложений) для администратора.
+            prompt = f"""Ты — аналитик образовательной платформы. На основе следующих данных напиши краткий аналитический отчёт (3-5 предложений) для администратора.
 
 Данные:
 - Всего участников: {total_students}
@@ -1475,31 +1555,36 @@ def ai_analytics_summary(request):
 """
 
         elif context_type == 'discipline_impact':
-            from .datanal import DisciplineImpactAnalyzer
             analyzer = DisciplineImpactAnalyzer()
             perf_data = []
-            perf_qs = Academicperformance.objects.select_related('perf_part')
-            if inst_ids:
-                perf_qs = perf_qs.filter(perf_part__part_institution_id__in=inst_ids)
-            if dir_ids:
-                perf_qs = perf_qs.filter(perf_part__part_spec_id__in=dir_ids)
+            perf_qs = AcademicPerformances.objects.select_related('perf_participant', 'perf_edu_discipline')
+            
+            # Фильтрация через participants
+            if inst_ids or dir_ids:
+                participant_filters = Q()
+                if inst_ids:
+                    participant_filters &= Q(res_institution_id__in=inst_ids)
+                if dir_ids:
+                    participant_filters &= Q(res_edu_specialty_id__in=dir_ids)
+                qualified_participants = Results.objects.filter(participant_filters).values_list('res_participant_id', flat=True).distinct()
+                perf_qs = perf_qs.filter(perf_participant_id__in=qualified_participants)
 
             for perf in perf_qs[:200]:
                 year_perf = perf.perf_year
-                student = perf.perf_part
+                student = perf.perf_participant
                 try:
                     year_start = int(year_perf.split('/')[0])
                 except:
                     continue
                 before = Results.objects.filter(res_participant=student, res_year__lt=year_perf).order_by('-res_year').first()
-                after = Results.objects.filter(res_participant=student, res_year=year_perf).order_by('-res_course_num').first()
+                after = Results.objects.filter(res_participant=student, res_year=year_perf).order_by('-res_course').first()
                 if before and after:
                     before_score = getattr(before, competency, None)
                     after_score = getattr(after, competency, None)
                     if before_score and after_score:
                         perf_data.append({
-                            'discipline': perf.perf_discipline,
-                            'grade': perf.perf_main_attestation,
+                            'discipline': perf.perf_edu_discipline.edu_disc_name,
+                            'grade': perf.perf_main,
                             f'{competency}_before': before_score,
                             f'{competency}_after': after_score
                         })
@@ -1573,7 +1658,13 @@ def ai_analytics_summary(request):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 
+# ============================================================
+# STUDENT COMPARISON STATS
+# ============================================================
+
 @cached()
+@csrf_exempt
+@require_http_methods(["GET"])
 def get_student_comparison_stats(request):
     """
     Получение сравнительной статистики студента.
@@ -1588,10 +1679,7 @@ def get_student_comparison_stats(request):
         if not student_id:
             return JsonResponse({'status': 'error', 'message': 'student_id required'}, status=400)
         
-        # Получаем данные студента
-        student_results = Results.objects.filter(
-            res_participant__part_id=student_id
-        )
+        student_results = Results.objects.filter(res_participant_id=student_id)
         
         if year:
             student_results = student_results.filter(res_year=year)
@@ -1600,28 +1688,18 @@ def get_student_comparison_stats(request):
             return JsonResponse({'status': 'error', 'message': 'Student results not found'}, status=404)
         
         student = student_results.first()
-        student_participant = student.res_participant
         
-        # Определяем контекст сравнения
-        institution = student_participant.part_institution
-        specialty = student_participant.part_spec
-        course_num = student.res_course_num
+        # Получаем контекст из Results (учебная информация теперь здесь)
+        institution = student.res_institution
+        specialty = student.res_edu_specialty
+        course_num = student.res_course
         
         # Получаем всех студентов для сравнения
         all_results = Results.objects.filter(res_year=student.res_year)
         
-        # Фильтруем по институту
-        institution_results = all_results.filter(
-            res_participant__part_institution=institution
-        ) if institution else None
-        
-        # Фильтруем по направлению
-        specialty_results = all_results.filter(
-            res_participant__part_spec=specialty
-        ) if specialty else None
-        
-        # Фильтруем по курсу
-        course_results = all_results.filter(res_course_num=course_num)
+        institution_results = all_results.filter(res_institution=institution) if institution else None
+        specialty_results = all_results.filter(res_edu_specialty=specialty) if specialty else None
+        course_results = all_results.filter(res_course=course_num)
         
         # Функция расчета процентиля
         def calculate_percentile(student_value, all_values):
@@ -1698,12 +1776,18 @@ def get_student_comparison_stats(request):
         competencies_stats = calculate_stats(all_results, COMP.list)
         motivators_stats = calculate_stats(all_results, MOT.list)
         
-        # Формируем результат
+        participant = Participants.objects.get(part_id=student_id)
+        try:
+            mapping = StudentMapping.objects.get(mapping_rsv=participant.part_rsv_id)
+            student_name = mapping.mapping_stud_name
+        except StudentMapping.DoesNotExist:
+            student_name = participant.part_rsv_id
+        
         result = {
             'student_info': {
-                'name': student_participant.part_rsv_id,
+                'name': student_name,
                 'institution': institution.inst_name if institution else 'Не указан',
-                'specialty': specialty.spec_name if specialty else 'Не указано',
+                'specialty': specialty.edu_spec_name if specialty else 'Не указано',
                 'course': course_num,
                 'year': student.res_year
             },
@@ -1718,30 +1802,30 @@ def get_student_comparison_stats(request):
         
         for field, stats in competencies_stats.items():
             result['competencies'].append({
-                'name':                   COMP.names.get(field, field),
-                'score':                  stats['student_score'],
+                'name': COMP.names.get(field, field),
+                'score': stats['student_score'],
                 'percentile_institution': stats['percentile_institution'],
-                'percentile_specialty':   stats['percentile_specialty'],
-                'percentile_course':      stats['percentile_course'],
-                'avg_institution':        stats['avg_institution'],
-                'avg_specialty':          stats['avg_specialty'],
-                'avg_course':             stats['avg_course'],
-                'min_institution':        stats['min_institution'],
-                'max_institution':        stats['max_institution']
+                'percentile_specialty': stats['percentile_specialty'],
+                'percentile_course': stats['percentile_course'],
+                'avg_institution': stats['avg_institution'],
+                'avg_specialty': stats['avg_specialty'],
+                'avg_course': stats['avg_course'],
+                'min_institution': stats['min_institution'],
+                'max_institution': stats['max_institution']
             })
         
         for field, stats in motivators_stats.items():
             result['motivators'].append({
-                'name':                   MOT.names.get(field, field),
-                'score':                  stats['student_score'],
+                'name': MOT.names.get(field, field),
+                'score': stats['student_score'],
                 'percentile_institution': stats['percentile_institution'],
-                'percentile_specialty':   stats['percentile_specialty'],
-                'percentile_course':      stats['percentile_course'],
-                'avg_institution':        stats['avg_institution'],
-                'avg_specialty':          stats['avg_specialty'],
-                'avg_course':             stats['avg_course'],
-                'min_institution':        stats['min_institution'],
-                'max_institution':        stats['max_institution']
+                'percentile_specialty': stats['percentile_specialty'],
+                'percentile_course': stats['percentile_course'],
+                'avg_institution': stats['avg_institution'],
+                'avg_specialty': stats['avg_specialty'],
+                'avg_course': stats['avg_course'],
+                'min_institution': stats['min_institution'],
+                'max_institution': stats['max_institution']
             })
         
         return JsonResponse({
@@ -1750,13 +1834,21 @@ def get_student_comparison_stats(request):
         })
         
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return JsonResponse({
             'status': 'error',
             'message': str(e)
         }, status=500)
 
 
+# ============================================================
+# EDUCATION PROFILES COMPARISON
+# ============================================================
+
 @cached()
+@csrf_exempt
+@require_http_methods(["GET"])
 def get_education_profiles_comparison(request):
     """
     Получение усреднённых профилей по направлениям подготовки.
@@ -1775,10 +1867,10 @@ def get_education_profiles_comparison(request):
         # Получаем список направлений
         if specialties_param:
             specialty_ids = [int(x) for x in specialties_param.split(',') if x]
-            specialties = Specialties.objects.filter(spec_id__in=specialty_ids)
+            specialties = EducationSpecialties.objects.filter(edu_spec_id__in=specialty_ids)
         else:
             # Если не указаны, берем топ-10 по количеству студентов
-            specialties = Specialties.objects.all()
+            specialties = EducationSpecialties.objects.all()
         
         # Поля для анализа
         motivator_fields = MOT.list if include_motivators else []
@@ -1788,10 +1880,7 @@ def get_education_profiles_comparison(request):
         results = []
         
         for specialty in specialties:
-            # Получаем результаты по направлению
-            queryset = Results.objects.filter(
-                res_participant__part_spec=specialty
-            ).select_related('res_participant')
+            queryset = Results.objects.filter(res_edu_specialty=specialty)
             
             if year:
                 queryset = queryset.filter(res_year=year)
@@ -1816,8 +1905,8 @@ def get_education_profiles_comparison(request):
                     profile[field] = {'avg': None, 'count': 0, 'std': 0}
             
             results.append({
-                'id': specialty.spec_id,
-                'name': specialty.spec_name,
+                'id': specialty.edu_spec_id,
+                'name': specialty.edu_spec_name,
                 'total_students': total_students,
                 'profile': profile
             })
@@ -1879,6 +1968,8 @@ def get_education_profiles_comparison(request):
         })
         
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return JsonResponse({
             'status': 'error',
             'message': str(e)
@@ -1896,9 +1987,9 @@ def StdDevCalculation(values):
     return math.sqrt(variance)
 
 
-# portrait/analysis_end.py
-
-# portrait/analysis_end.py
+# ============================================================
+# BOXPLOT DATA
+# ============================================================
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -1930,12 +2021,11 @@ def get_boxplot_data(request):
         if not competency:
             return JsonResponse({'status': 'error', 'message': 'competency required'}, status=400)
 
-        # Базовый queryset результатов
-        qs = Results.objects.select_related('res_participant', 'res_institution', 'res_spec')
+        qs = Results.objects.select_related('res_participant', 'res_institution', 'res_edu_specialty')
         if institution_ids:
             qs = qs.filter(res_institution_id__in=institution_ids)
         if direction_ids:
-            qs = qs.filter(res_spec_id__in=direction_ids)
+            qs = qs.filter(res_edu_specialty_id__in=direction_ids)
 
         # Определяем группировку
         effective_group_by = None
@@ -1961,22 +2051,22 @@ def get_boxplot_data(request):
                 scores.append(score)
                 participant = r.res_participant
                 try:
-                    mapping = Studentmapping.objects.get(rsv_id=participant.part_rsv_id)
-                    student_name = mapping.student_name
-                except Studentmapping.DoesNotExist:
+                    mapping = StudentMapping.objects.get(mapping_rsv=participant.part_rsv_id)
+                    student_name = mapping.mapping_stud_name
+                except StudentMapping.DoesNotExist:
                     student_name = participant.part_rsv_id
                 students_data.append({
                     'student_id': participant.part_id,
                     'name': student_name,
                     'score': score,
                     'institution': r.res_institution.inst_name if r.res_institution else 'Не указан',
-                    'direction': r.res_spec.spec_name if r.res_spec else 'Не указано',
+                    'direction': r.res_edu_specialty.edu_spec_name if r.res_edu_specialty else 'Не указано',
                 })
 
             if len(scores) < 5:
                 return JsonResponse({
                     'status': 'error',
-                    'message': 'Недостаточно данных для построения ящика с усами (нужно минимум 5 студентов)'
+                    'message': 'Недостаточно данных (нужно минимум 5 студентов)'
                 }, status=400)
 
             scores_array = np.array(scores)
@@ -2018,11 +2108,11 @@ def get_boxplot_data(request):
             if score is None:
                 continue
             if effective_group_by == 'institution':
-                group_id = r.res_institution_id
+                group_id = r.res_institution
                 group_name = r.res_institution.inst_name if r.res_institution else 'Не указан'
-            else:  # direction
-                group_id = r.res_spec_id
-                group_name = r.res_spec.spec_name if r.res_spec else 'Не указано'
+            else:
+                group_id = r.res_edu_specialty
+                group_name = r.res_edu_specialty.edu_spec_name if r.res_edu_specialty else 'Не указано'
 
             if group_id not in groups_data:
                 groups_data[group_id] = {
@@ -2035,23 +2125,23 @@ def get_boxplot_data(request):
             # собираем информацию о студенте
             participant = r.res_participant
             try:
-                mapping = Studentmapping.objects.get(rsv_id=participant.part_rsv_id)
-                student_name = mapping.student_name
-            except Studentmapping.DoesNotExist:
+                mapping = StudentMapping.objects.get(mapping_rsv=participant.part_rsv_id)
+                student_name = mapping.mapping_stud_name
+            except StudentMapping.DoesNotExist:
                 student_name = participant.part_rsv_id
             groups_data[group_id]['students'].append({
                 'student_id': participant.part_id,
                 'name': student_name,
                 'score': score,
                 'institution': r.res_institution.inst_name if r.res_institution else 'Не указан',
-                'direction': r.res_spec.spec_name if r.res_spec else 'Не указано',
+                'direction': r.res_edu_specialty.edu_spec_name if r.res_edu_specialty else 'Не указано',
             })
 
         # Вычисляем статистику для каждой группы
         result_groups = []
         for gid, gdata in groups_data.items():
             scores_array = np.array(gdata['scores'])
-            if len(scores_array) < 5:  # недостаточно данных для ящика
+            if len(scores_array) < 5:
                 continue
             q1, median, q3 = np.percentile(scores_array, [25, 50, 75])
             iqr = q3 - q1
@@ -2095,25 +2185,22 @@ def get_boxplot_data(request):
         import traceback
         traceback.print_exc()
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
-    
+
+
+# ============================================================
+# DUPLICATE ACCOUNTS
+# ============================================================
+
 @csrf_exempt
 @require_http_methods(["GET"])
 def get_duplicate_accounts(request):
-    """
-    Возвращает студентов, у которых один email соответствует нескольким rsv_id.
-
-    Исправления:
-    - Убран @cached(): данные должны читаться свежими, иначе кнопка «Обновить» не работает.
-    - Устранён N+1: все Participants и Results подгружаются двумя запросами вместо O(n*m).
-    """
     try:
-        # Находим email, которые встречаются более одного раза в StudentMapping
         duplicate_emails = list(
-            Studentmapping.objects.values('email')
-            .annotate(count=Count('rsv_id'))
-            .filter(count__gt=1, email__isnull=False)
-            .exclude(email__exact='')
-            .values_list('email', flat=True)
+            StudentMapping.objects.values('mapping_email')
+            .annotate(count=Count('mapping_rsv'))
+            .filter(count__gt=1, mapping_email__isnull=False)
+            .exclude(mapping_email__exact='')
+            .values_list('mapping_email', flat=True)
         )
 
         if not duplicate_emails:
@@ -2123,32 +2210,26 @@ def get_duplicate_accounts(request):
                 'students': []
             })
 
-        # Загружаем все нужные маппинги одним запросом
-        all_mappings = Studentmapping.objects.filter(email__in=duplicate_emails)
+        all_mappings = StudentMapping.objects.filter(mapping_email__in=duplicate_emails)
 
         # Группируем маппинги по email и собираем все rsv_id
         from collections import defaultdict
         email_to_mappings = defaultdict(list)
         all_rsv_ids = []
         for m in all_mappings:
-            email_to_mappings[m.email].append(m)
-            all_rsv_ids.append(m.rsv_id)
+            email_to_mappings[m.mapping_email].append(m)
+            all_rsv_ids.append(m.mapping_rsv)
 
         # Загружаем всех участников одним запросом и индексируем по rsv_id
         participants_by_rsv = {
             p.part_rsv_id: p
-            for p in Participants.objects.filter(part_rsv_id__in=all_rsv_ids)
+            for p in Participants.objects.filter(part_rsv__in=all_rsv_ids)
         }
 
         # Загружаем все результаты одним запросом и группируем по participant_id
         participant_ids = [p.part_id for p in participants_by_rsv.values()]
         results_by_participant = defaultdict(list)
-        results_qs = (
-            Results.objects
-            .filter(res_participant_id__in=participant_ids)
-            .select_related('res_institution', 'res_spec')
-            .order_by('res_year', 'res_course_num')
-        )
+        results_qs = Results.objects.filter(res_participant_id__in=participant_ids).select_related('res_institution', 'res_edu_specialty').order_by('res_year', 'res_course')
         for r in results_qs:
             results_by_participant[r.res_participant_id].append(r)
 
@@ -2156,7 +2237,7 @@ def get_duplicate_accounts(request):
         result_students = []
         for email in duplicate_emails:
             mappings = email_to_mappings[email]
-            rsv_ids = [m.rsv_id for m in mappings]
+            rsv_ids = [m.mapping_rsv for m in mappings]
 
             accounts_info = []
             for rsv_id in rsv_ids:
@@ -2172,9 +2253,9 @@ def get_duplicate_accounts(request):
                 results_data = [
                     {
                         'year': r.res_year,
-                        'course': r.res_course_num,
+                        'course': r.res_course,
                         'institution': r.res_institution.inst_name if r.res_institution else None,
-                        'specialty': r.res_spec.spec_name if r.res_spec else None,
+                        'specialty': r.res_edu_specialty.edu_spec_name if r.res_edu_specialty else None,
                         'competency_leadership': r.res_comp_leadership,
                     }
                     for r in results_by_participant.get(participant.part_id, [])
@@ -2188,7 +2269,7 @@ def get_duplicate_accounts(request):
                     'results': results_data
                 })
 
-            student_name = mappings[0].student_name
+            student_name = mappings[0].mapping_stud_name
             result_students.append({
                 'email': email,
                 'student_name': student_name,
@@ -2206,6 +2287,7 @@ def get_duplicate_accounts(request):
         traceback.print_exc()
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
+
 @csrf_exempt
 @require_http_methods(["GET"])
 def get_possible_duplicate_accounts(request):
@@ -2220,22 +2302,22 @@ def get_possible_duplicate_accounts(request):
 
         # Находим email, которые уже являются точными дублями — исключим их
         exact_duplicate_emails = set(
-            Studentmapping.objects.values('email')
-            .annotate(count=Count('rsv_id'))
-            .filter(count__gt=1, email__isnull=False)
-            .exclude(email__exact='')
-            .values_list('email', flat=True)
+            StudentMapping.objects.values('mapping_email')
+            .annotate(count=Count('mapping_rsv'))
+            .filter(count__gt=1, mapping_email__isnull=False)
+            .exclude(mapping_email__exact='')
+            .values_list('mapping_email', flat=True)
         )
 
         # Группируем всех студентов по (student_name, student_gender)
-        all_mappings = Studentmapping.objects.all()
+        all_mappings = StudentMapping.objects.all()
 
         groups = defaultdict(list)
         for m in all_mappings:
             # Пропускаем тех, кто уже в точных дублях по email
-            if m.email and m.email in exact_duplicate_emails:
+            if m.mapping_email and m.mapping_email in exact_duplicate_emails:
                 continue
-            key = (m.student_name.strip(), m.student_gender or '')
+            key = (m.mapping_stud_name.strip(), m.mapping_stud_gender or '')
             groups[key].append(m)
 
         # Оставляем только группы с 2+ записями — это и есть возможные дубли
@@ -2244,28 +2326,25 @@ def get_possible_duplicate_accounts(request):
             if len(mappings) < 2:
                 continue
 
-            rsv_ids = [m.rsv_id for m in mappings]
+            rsv_ids = [m.mapping_rsv for m in mappings]
 
             # Подгружаем участников и результаты (те же 3 запроса, что в get_duplicate_accounts)
             participants_by_rsv = {
                 p.part_rsv_id: p
-                for p in Participants.objects.filter(part_rsv_id__in=rsv_ids)
+                for p in Participants.objects.filter(part_rsv__in=rsv_ids)
             }
             participant_ids = [p.part_id for p in participants_by_rsv.values()]
             results_by_participant = defaultdict(list)
-            for r in (Results.objects
-                      .filter(res_participant_id__in=participant_ids)
-                      .select_related('res_institution', 'res_spec')
-                      .order_by('res_year', 'res_course_num')):
+            for r in Results.objects.filter(res_participant_id__in=participant_ids).select_related('res_institution', 'res_edu_specialty').order_by('res_year', 'res_course'):
                 results_by_participant[r.res_participant_id].append(r)
 
             accounts_info = []
             for m in mappings:
-                participant = participants_by_rsv.get(m.rsv_id)
+                participant = participants_by_rsv.get(m.mapping_rsv)
                 if not participant:
                     accounts_info.append({
-                        'rsv_id': m.rsv_id,
-                        'email': m.email or None,
+                        'rsv_id': m.mapping_rsv,
+                        'email': m.mapping_email or None,
                         'exists_in_participants': False,
                         'results': []
                     })
@@ -2274,16 +2353,16 @@ def get_possible_duplicate_accounts(request):
                 results_data = [
                     {
                         'year': r.res_year,
-                        'course': r.res_course_num,
+                        'course': r.res_course,
                         'institution': r.res_institution.inst_name if r.res_institution else None,
-                        'specialty': r.res_spec.spec_name if r.res_spec else None,
+                        'specialty': r.res_edu_specialty.edu_spec_name if r.res_edu_specialty else None,
                         'competency_leadership': r.res_comp_leadership,
                     }
                     for r in results_by_participant.get(participant.part_id, [])
                 ]
                 accounts_info.append({
-                    'rsv_id': m.rsv_id,
-                    'email': m.email or None,
+                    'rsv_id': m.mapping_rsv,
+                    'email': m.mapping_email or None,
                     'exists_in_participants': True,
                     'participant_id': participant.part_id,
                     'gender': participant.part_gender,
@@ -2300,6 +2379,96 @@ def get_possible_duplicate_accounts(request):
         return JsonResponse({
             'status': 'success',
             'students': result_students
+        }, json_dumps_params={'ensure_ascii': False})
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+# ============================================================
+# LGM для конкретного студента
+# ============================================================
+
+@cached()
+@csrf_exempt
+@require_http_methods(["GET"])
+def analyze_student_lgm(request):
+    """
+    LGM для одного студента: возвращает его intercept, slope,
+    фактические точки и predicted-траекторию.
+
+    GET /portrait/analyze-student-lgm/?student_id=123&competency=res_comp_leadership
+    """
+    try:
+        student_id = request.GET.get('student_id')
+        competency = request.GET.get('competency', COMP.LEADERSHIP)
+        if not student_id:
+            return JsonResponse({'status': 'error', 'message': 'student_id required'}, status=400)
+
+        results = Results.objects.filter(
+            res_participant_id=student_id
+        ).order_by('res_year', 'res_course')
+
+        data = []
+        for r in results:
+            score = getattr(r, competency, None)
+            if score is not None and r.res_course:
+                data.append({
+                    'student_id': student_id,
+                    'time_point': r.res_course,
+                    'competency_score': score,
+                    'year': r.res_year,
+                    'course': r.res_course,
+                })
+
+        if len(data) < 2:
+            return JsonResponse({
+                'status': 'insufficient_data',
+                'message': 'Недостаточно данных для LGM (нужно минимум 2 замера)'
+            }, status=400)
+
+        df = pd.DataFrame(data)
+        lgm = LatentGrowthModel()
+
+        # fit() требует student_id, time_point, competency_score
+        analysis = lgm.fit(df)
+
+        if analysis['status'] != 'success':
+            return JsonResponse({'status': 'error', 'message': analysis.get('message')})
+
+        # У студента ровно одна траектория
+        traj = analysis['trajectories'][0] if analysis['trajectories'] else {}
+        intercept = traj.get('intercept', analysis['mean_intercept'])
+        slope = traj.get('slope', analysis['mean_slope'])
+
+        # Фактические точки (дедупликация по курсу — берём последний)
+        by_course = {}
+        for row in data:
+            c = row['course']
+            by_course[c] = row
+        actual_points = sorted(by_course.values(), key=lambda x: x['course'])
+
+        # Predicted trajectory по курсам 1–4
+        courses = [1, 2, 3, 4]
+        predicted = [
+            {'course': c, 'predicted': round(intercept + slope * (c - actual_points[0]['course']), 2)}
+            for c in courses
+        ]
+
+        return JsonResponse({
+            'status': 'success',
+            'competency': competency,
+            'intercept': round(float(intercept), 2),
+            'slope': round(float(slope), 4),
+            'r_squared': round(float(traj.get('r_squared', 0)), 3),
+            'n_measurements': len(actual_points),
+            'actual_points': [
+                {'course': p['course'], 'year': p['year'], 'score': p['competency_score']}
+                for p in actual_points
+            ],
+            'predicted_trajectory': predicted,
         }, json_dumps_params={'ensure_ascii': False})
 
     except Exception as e:

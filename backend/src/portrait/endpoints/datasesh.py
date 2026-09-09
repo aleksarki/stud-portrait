@@ -199,10 +199,10 @@ def extract_session_data(request):
     session = acquire_session(session_id)
 
     results_query = Results.objects \
-        .all()                      \
+        .all()                          \
         .select_related(
-            TRES.PARTICIPANT, TRES.CENTER, TRES.INSTITUTION,
-            TRES.EDU_LEVEL, TRES.EDU_FORM, TRES.EDU_SPEC
+            tRES.PARTICIPANT, tRES.CENTER, tRES.INSTITUTION,
+            tRES.EDU_LEVEL, tRES.EDU_FORM, tRES.EDU_SPEC
         )
 
     for filter in session.filters:
@@ -312,11 +312,11 @@ def export_selected_results(request):
     if not selected_ids:
         raise ResponseError("No records provided for export")
 
-    results_query = Results.objects            \
-        .filter(**isIn(TRES.ID, selected_ids)) \
+    results_query = Results.objects        \
+        .filter(**isIn(tRES.ID, selected_ids)) \
         .select_related(
-            TRES.PARTICIPANT, TRES.CENTER, TRES.INSTITUTION,
-            TRES.EDU_LEVEL, TRES.EDU_FORM, TRES.EDU_SPEC
+            tRES.PARTICIPANT, tRES.CENTER, tRES.INSTITUTION,
+            tRES.EDU_LEVEL, tRES.EDU_FORM, tRES.EDU_SPEC
         )
 
     return xlsxResponse(
@@ -343,11 +343,11 @@ def group_data(request):  # REVIEW
     if not groupping_column:
         raise ResponseError("Grouping column not specified")
 
-    results_query = Results.objects          \
-        .filter(isIn(TRES.ID, selected_ids)) \
+    results_query = Results.objects      \
+        .filter(**isIn(tRES.ID, selected_ids)) \
         .select_related(
-            TRES.PARTICIPANT, TRES.CENTER, TRES.INSTITUTION,
-            TRES.EDU_LEVEL, TRES.EDU_FORM, TRES.EDU_SPEC
+            tRES.PARTICIPANT, tRES.CENTER, tRES.INSTITUTION,
+            tRES.EDU_LEVEL, tRES.EDU_FORM, tRES.EDU_SPEC
         )
     
     for filter in session.filters:
@@ -436,14 +436,14 @@ def stats_with_filters(request):
     total_participants =  Participants.objects.count()
     total_tests =         Results.objects.count()
     unique_institutions = Institutions.objects.count()
-    unique_centers =      Competencecenters.objects.count()
+    unique_centers =      CompetenceCenters.objects.count()
 
     # Участники по году получения первой оценки
-    first_year_stats = Results.objects           \
-        .values(TRES.PARTICIPANT)                \
-        .annotate(first_year=Min(TRES.YEAR))     \
+    first_year_stats = Results.objects       \
+        .values(tRES.PARTICIPANT)                \
+        .annotate(first_year=Min(tRES.YEAR))     \
         .values('first_year')                    \
-        .annotate(count=Count(TRES.PARTICIPANT)) \
+        .annotate(count=Count(tRES.PARTICIPANT)) \
         .order_by('first_year')
 
     participants_by_first_year = {
@@ -452,98 +452,98 @@ def stats_with_filters(request):
     }
 
     # Участники по центрам компетенций (топ-15)
-    centers_stats = Results.objects                             \
-        .filter(**isNull(TRES.CENTER, False))                   \
-        .values(join(TRES.CENTER, TCENTER.NAME))                \
-        .annotate(count=Count(TRES.PARTICIPANT, distinct=True)) \
+    centers_stats = Results.objects                         \
+        .filter(**isNull(tRES.CENTER, False))                   \
+        .values(join(tRES.CENTER, tCENTER.NAME))                \
+        .annotate(count=Count(tRES.PARTICIPANT, distinct=True)) \
         .order_by('-count')[:15]
     
     participants_by_center = {
-        "centers": [stat[J(TRES.CENTER, TCENTER.NAME)] for stat in centers_stats if stat[J(TRES.CENTER, TCENTER.NAME)]],
-        "counts":  [stat['count']                      for stat in centers_stats if stat[J(TRES.CENTER, TCENTER.NAME)]]
+        "centers": [stat[J(tRES.CENTER, tCENTER.NAME)] for stat in centers_stats if stat[J(tRES.CENTER, tCENTER.NAME)]],
+        "counts":  [stat['count']                      for stat in centers_stats if stat[J(tRES.CENTER, tCENTER.NAME)]]
     }
 
     # Участники по учебным заведениям (топ-15)
-    institutions_stats = Results.objects                        \
-        .filter(**isNull(TRES.INSTITUTION, False))              \
-        .values(join(TRES.INSTITUTION, TINST.NAME))             \
-        .annotate(count=Count(TRES.PARTICIPANT, distinct=True)) \
+    institutions_stats = Results.objects                    \
+        .filter(**isNull(tRES.INSTITUTION, False))              \
+        .values(join(tRES.INSTITUTION, tINST.NAME))             \
+        .annotate(count=Count(tRES.PARTICIPANT, distinct=True)) \
         .order_by('-count')[:15]
 
     participants_by_institution = {
-        "institutions": [stat[J(TRES.INSTITUTION, TINST.NAME)] for stat in institutions_stats if stat[J(TRES.INSTITUTION, TINST.NAME)]],
-        "counts":       [stat['count']                         for stat in institutions_stats if stat[J(TRES.INSTITUTION, TINST.NAME)]]
+        "institutions": [stat[J(tRES.INSTITUTION, tINST.NAME)] for stat in institutions_stats if stat[J(tRES.INSTITUTION, tINST.NAME)]],
+        "counts":       [stat['count']                         for stat in institutions_stats if stat[J(tRES.INSTITUTION, tINST.NAME)]]
     }
 
     # Специальности участников
-    specialties_stats = Results.objects                         \
-        .filter(**isNull(TRES.EDU_SPEC, False))                 \
-        .values(join(TRES.EDU_SPEC, TSPEC.NAME))                \
-        .annotate(count=Count(TRES.PARTICIPANT, distinct=True)) \
+    specialties_stats = Results.objects                     \
+        .filter(**isNull(tRES.EDU_SPEC, False))                 \
+        .values(join(tRES.EDU_SPEC, tSPEC.NAME))                \
+        .annotate(count=Count(tRES.PARTICIPANT, distinct=True)) \
         .order_by('-count')
 
     specialties_distribution = {
-        "specialties": [stat[J(TRES.EDU_SPEC, TSPEC.NAME)] for stat in specialties_stats if stat[J(TRES.EDU_SPEC, TSPEC.NAME)]],
-        "counts":      [stat['count']                      for stat in specialties_stats if stat[J(TRES.EDU_SPEC, TSPEC.NAME)]]
+        "specialties": [stat[J(tRES.EDU_SPEC, tSPEC.NAME)] for stat in specialties_stats if stat[J(tRES.EDU_SPEC, tSPEC.NAME)]],
+        "counts":      [stat['count']                      for stat in specialties_stats if stat[J(tRES.EDU_SPEC, tSPEC.NAME)]]
     }
 
     # Динамика тестирований по годам
-    tests_by_year = Results.objects         \
-        .filter(**isNull(TRES.YEAR, False)) \
-        .values(TRES.YEAR)                  \
-        .annotate(count=Count(TRES.ID))     \
-        .order_by(TRES.YEAR)
+    tests_by_year = Results.objects     \
+        .filter(**isNull(tRES.YEAR, False)) \
+        .values(tRES.YEAR)                  \
+        .annotate(count=Count(tRES.ID))     \
+        .order_by(tRES.YEAR)
 
     tests_by_year_data = {
-        "years":  [str(stat[TRES.YEAR]) for stat in tests_by_year if stat[TRES.YEAR]],
-        "counts": [stat['count']        for stat in tests_by_year if stat[TRES.YEAR]]
+        "years":  [str(stat[tRES.YEAR]) for stat in tests_by_year if stat[tRES.YEAR]],
+        "counts": [stat['count']        for stat in tests_by_year if stat[tRES.YEAR]]
     }
 
     competences_by_year = [
         {
             "name":   COMP.names[field],
-            "years":  [str(stat[TRES.YEAR])               for stat in yearly_stats1 if stat[TRES.YEAR]],
-            "values": [round(float(stat['avg_value']), 1) for stat in yearly_stats1 if stat[TRES.YEAR]]
+            "years":  [str(stat[tRES.YEAR])               for stat in yearly_stats1 if stat[tRES.YEAR]],
+            "values": [round(float(stat['avg_value']), 1) for stat in yearly_stats1 if stat[tRES.YEAR]]
         }
         for field in COMP.list
         if (
-            yearly_stats1 := Results.objects                                \
-                .filter(**isNull(field, False), **isNull(TRES.YEAR, False)) \
-                .values(TRES.YEAR)                                          \
+            yearly_stats1 := Results.objects                            \
+                .filter(**isNull(field, False), **isNull(tRES.YEAR, False)) \
+                .values(tRES.YEAR)                                          \
                 .annotate(avg_value=Avg(field))                             \
-                .order_by(TRES.YEAR)
+                .order_by(tRES.YEAR)
         )
     ]
 
     motivators_by_year = [
         {
             "name":   MOT.names[field],
-            "years":  [str(stat[TRES.YEAR])               for stat in yearly_stats2 if stat[TRES.YEAR]],
-            "values": [round(float(stat['avg_value']), 1) for stat in yearly_stats2 if stat[TRES.YEAR]]
+            "years":  [str(stat[tRES.YEAR])               for stat in yearly_stats2 if stat[tRES.YEAR]],
+            "values": [round(float(stat['avg_value']), 1) for stat in yearly_stats2 if stat[tRES.YEAR]]
         }
         for field in MOT.list
         if (
-            yearly_stats2 := Results.objects                                \
-                .filter(**isNull(field, False), **isNull(TRES.YEAR, False)) \
-                .values(TRES.YEAR)                                          \
+            yearly_stats2 := Results.objects                            \
+                .filter(**isNull(field, False), **isNull(tRES.YEAR, False)) \
+                .values(tRES.YEAR)                                          \
                 .annotate(avg_value=Avg(field))                             \
-                .order_by(TRES.YEAR)
+                .order_by(tRES.YEAR)
         )
     ]
 
     values_by_year = [
         {
             "name":   VAL.names[field],
-            "years":  [str(stat[TRES.YEAR])               for stat in yearly_stats3 if stat[TRES.YEAR]],
-            "values": [round(float(stat['avg_value']), 1) for stat in yearly_stats3 if stat[TRES.YEAR]]
+            "years":  [str(stat[tRES.YEAR])               for stat in yearly_stats3 if stat[tRES.YEAR]],
+            "values": [round(float(stat['avg_value']), 1) for stat in yearly_stats3 if stat[tRES.YEAR]]
         }
         for field in VAL.list
         if (
-            yearly_stats3 := Results.objects                                \
-                .filter(**isNull(field, False), **isNull(TRES.YEAR, False)) \
-                .values(TRES.YEAR)                                          \
+            yearly_stats3 := Results.objects                            \
+                .filter(**isNull(field, False), **isNull(tRES.YEAR, False)) \
+                .values(tRES.YEAR)                                          \
                 .annotate(avg_value=Avg(field))                             \
-                .order_by(TRES.YEAR)
+                .order_by(tRES.YEAR)
         )
     ]
 
@@ -571,14 +571,14 @@ def stats_with_filters(request):
 # ! ================================================== CONSTANTS =================================================== ! #
 
 RESULTS_FIELD_MAP = {
-    'part_gender':    J(TRES.PARTICIPANT, TPART.GENDER),
-    'center':         J(TRES.CENTER,      TCENTER.NAME),
-    'institution':    J(TRES.INSTITUTION, TINST.NAME),
-    'edu_level':      J(TRES.EDU_LEVEL,   TLEVEL.NAME),
-    'study_form':     J(TRES.EDU_FORM,    TFORM.NAME),
-    'specialty':      J(TRES.EDU_SPEC,    TSPEC.NAME),
-    'res_year':       TRES.YEAR,
-    'res_course_num': TRES.COURSE_NUM
+    'part_gender':    J(tRES.PARTICIPANT, tPART.GENDER),
+    'center':         J(tRES.CENTER,      tCENTER.NAME),
+    'institution':    J(tRES.INSTITUTION, tINST.NAME),
+    'edu_level':      J(tRES.EDU_LEVEL,   tLEVEL.NAME),
+    'study_form':     J(tRES.EDU_FORM,    tFORM.NAME),      # ИЗМЕНЕНО: tFORM вместо tStudyForms
+    'specialty':      J(tRES.EDU_SPEC,    tSPEC.NAME),      # ИЗМЕНЕНО: tSPEC вместо tSpecialties
+    'res_year':       tRES.YEAR,
+    'res_course_num': tRES.COURSE_NUM                        # ИЗМЕНЕНО: COURSE_NUM вместо COURSE_NUM
 }
 
 
@@ -599,22 +599,23 @@ def acquire_session(id: str) -> DataViewSession:
 def result_to_json(result, visible_columns=None):  # REVIEW
     """ Format results data before dispatching it.
     """
+    # ИЗМЕНЕНО: обновлены названия полей для новой схемы
     base_data = {
         "res_id": result.res_id,
         "participant": {
             "part_id":        result.res_participant.part_id,
-            "part_rsv_id":    result.res_participant.part_rsv_id,
+            "part_rsv_id":       result.res_participant.part_rsv_id,        # было part_rsv_id
             "part_gender":    result.res_participant.part_gender,
         },
         "center":             result.res_center.center_name       if result.res_center      else None,
         "institution":        result.res_institution.inst_name    if result.res_institution else None,
         "edu_level":          result.res_edu_level.edu_level_name if result.res_edu_level   else None,
-        "study_form":         result.res_form.form_name           if result.res_form        else None,
-        "specialty":          result.res_spec.spec_name           if result.res_spec        else None,
+        "study_form":         result.res_edu_form.edu_form_name   if result.res_edu_form    else None,  # было res_form
+        "specialty":          result.res_edu_specialty.edu_spec_name if result.res_edu_specialty else None,  # было res_spec
         "res_year":           result.res_year,
-        "res_course_num":     result.res_course_num,
-        "res_high_potential": result.res_high_potential,
-        "res_summary_report": result.res_summary_report,
+        "res_course_num":     result.res_course,                   # было res_course_num
+        "res_potential":      result.res_potential,                # было res_high_potential
+        "res_report":         result.res_report,                   # было res_summary_report
     }
 
     if visible_columns:
@@ -651,19 +652,20 @@ def result_to_json(result, visible_columns=None):  # REVIEW
 def format_result_for_export(result, visible_columns=None):  # REVIEW
     """ Format results data before putting it into Excel.
     """
+    # ИЗМЕНЕНО: обновлены названия полей для новой схемы
     row = {
         "ID результата":       result.res_id,
-        "ID РСВ результата":   result.res_participant.part_rsv_id,
+        "ID РСВ":              result.res_participant.part_rsv_id,      # было part_rsv_id
         "Пол":                 result.res_participant.part_gender,
         "Центр компетенций":   result.res_center.center_name       if result.res_center      else "",
         "Учебное заведение":   result.res_institution.inst_name    if result.res_institution else "",
         "Уровень образования": result.res_edu_level.edu_level_name if result.res_edu_level   else "",
-        "Форма обучения":      result.res_form.form_name           if result.res_form        else "",
-        "Специальность":       result.res_spec.spec_name           if result.res_spec        else "",
+        "Форма обучения":      result.res_edu_form.edu_form_name   if result.res_edu_form    else "",  # было res_form
+        "Специальность":       result.res_edu_specialty.edu_spec_name if result.res_edu_specialty else "",  # было res_spec
         "Учебный год":         result.res_year,
-        "Номер курса":         result.res_course_num,
-        "Высокий потенциал":   result.res_high_potential or "",
-        "Сводный отчет":       result.res_summary_report or "",
+        "Номер курса":         result.res_course,                   # было res_course_num
+        "Потенциал":           result.res_potential or "",          # было res_high_potential
+        "Отчет":               result.res_report or "",             # было res_summary_report
     }
 
     all_fields = {}
@@ -680,17 +682,17 @@ def format_result_for_export(result, visible_columns=None):  # REVIEW
 
 
 def get_group_value(result, grouping_column):  # REVIEW
-    """ Get value for groupping from result.
+    """ Get value for grouping from result.
     """ # what?
     match grouping_column:
         case 'part_gender':    return attrIfObj(result.res_participant, 'part_gender')
         case 'center':         return attrIfObj(result.res_center,      'center_name')
         case 'institution':    return attrIfObj(result.res_institution, 'inst_name')
         case 'edu_level':      return attrIfObj(result.res_edu_level,   'edu_level_name')
-        case 'study_form':     return attrIfObj(result.res_form,        'form_name')
-        case 'specialty':      return attrIfObj(result.res_spec,        'spec_name')
+        case 'study_form':     return attrIfObj(result.res_edu_form,    'edu_form_name')      # было res_form
+        case 'specialty':      return attrIfObj(result.res_edu_specialty, 'edu_spec_name')    # было res_spec
         case 'res_year':       return result.res_year
-        case 'res_course_num': return result.res_course_num
+        case 'res_course_num': return result.res_course                 # было res_course_num
         case _:                return None
 
 

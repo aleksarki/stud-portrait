@@ -15,6 +15,13 @@ from .common import *
 @csrf_exempt
 def get_database_schema(request):
     """ Get schema of the database: tables, columns, rows.
+    
+    GET /portrait/get-database-schema/?table_name=optional_table_name
+    
+    Returns:
+        - tables: list of tables with their columns, row counts, and metadata
+        - total_tables: total number of tables
+        - total_rows: total number of rows across all tables
     """
     table_name = request.GET.get('table_name')
 
@@ -80,6 +87,11 @@ def get_database_schema(request):
 @csrf_exempt
 def get_table_sample_data(request):
     """ Get selected data from a table.
+    
+    GET /portrait/get-table-sample-data/?table_name=table_name&limit=10
+    
+    Returns:
+        - sample: dictionary containing table data, column info, and row counts
     """
     table_name = request.GET.get('table_name')
     limit =  int(request.GET.get('limit', 10))
@@ -122,6 +134,12 @@ def get_table_sample_data(request):
 @csrf_exempt
 def execute_raw_sql(request):
     """ Execute an SQL query.
+    
+    POST /portrait/execute-raw-sql/
+    Body: {"query": "SELECT * FROM table_name"}
+    
+    Returns:
+        - data: query results or execution status
     """
     data = json.loads(request.body)
     query = data.get('query', '')
@@ -174,6 +192,11 @@ def execute_raw_sql(request):
 @csrf_exempt
 def get_database_stats(request):
     """ Get general info about the database.
+    
+    GET /portrait/get-database-stats/
+    
+    Returns:
+        - info: total tables, models, rows, database size, and engine
     """
     total_models = len(apps.get_models())
     total_tables = 0
@@ -203,7 +226,8 @@ def get_database_stats(request):
                 db_size = cursor.fetchone()[0] / (1024 * 1024)  # MB
             elif db_engine == 'mysql':
                 cursor.execute("SELECT SUM(data_length + index_length) FROM information_schema.tables WHERE table_schema = DATABASE()")
-                db_size = cursor.fetchone()[0] / (1024 * 1024) if cursor.fetchone()[0] else 0
+                result = cursor.fetchone()
+                db_size = result[0] / (1024 * 1024) if result and result[0] else 0
     
     return {"info": {
         "total_tables": total_tables,

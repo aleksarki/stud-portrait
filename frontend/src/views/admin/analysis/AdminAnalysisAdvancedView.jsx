@@ -64,6 +64,7 @@ function AdminAnalysisAdvancedView() {
     // Поток уровней
     const [flowData, setFlowData] = useState(null);
     const [flowCompetency, setFlowCompetency] = useState(COMPETENCIES.INFO_ANALYSIS);
+    const [flowType, setFlowType] = useState('course'); // 'course' | 'year'
 
     // LGM
     const [lgmCohortData, setLgmCohortData] = useState(null);
@@ -255,21 +256,26 @@ function AdminAnalysisAdvancedView() {
     };
 
     // -------------------- Поток уровней --------------------
-    const loadLevelFlow = type => {
+    const loadLevelFlow = (type) => {
+        const resolvedType = type ?? flowType;
+        setFlowType(resolvedType);
+        setFlowData(null);
         setLoading(true);
-        // Для потока уровней направление может быть передано как ID или имя – используем ID
         const directionIds = selectedDirections.map(id => Number(id)).filter(v => !isNaN(v));
         (
-            type === 'year' ?
-            postGetCompetencyLevelFlowYearly :
-            postGetCompetencyLevelFlow
+            resolvedType === 'year'
+            ? postGetCompetencyLevelFlowYearly
+            : postGetCompetencyLevelFlow
         )
         (flowCompetency, selectedInstitutions, directionIds)
             .onSuccess(async response => {
                 const data = await response.json();
                 if (data.status === 'success') {
+                    if (!data.nodes || data.nodes.length === 0) {
+                        alert('Нет данных для построения диаграммы Санки по выбранным фильтрам');
+                        return;
+                    }
                     setFlowData({ nodes: data.nodes, links: data.links });
-                    console.log(data)
                 } else {
                     alert('Ошибка: ' + (data.message || 'Неизвестная ошибка'));
                 }
@@ -362,24 +368,38 @@ function AdminAnalysisAdvancedView() {
         if (!lgmCohortData || !lgmCohortData.data || lgmCohortData.data.length === 0) {
             return <NoData text="Нет данных для отображения" />;
         }
-        const { competency, group_by, data: groups } = lgmCohortData;
+        const { competency, group_by, data: groups, total_qualified_students } = lgmCohortData;
 
         const combinedData = [];
         for (let course = 1; course <= 4; course++) {
             const point = { course: `${course} курс` };
             groups.forEach(group => {
-                point[group.group_name] = group.mean_intercept + group.mean_slope * (course - 1);
+                point[group.group_name] = +(group.mean_intercept + group.mean_slope * (course - 1)).toFixed(2);
             });
             combinedData.push(point);
         }
 
         const colors = ['#1976d2', '#e67e22', '#2ecc71', '#e74c3c', '#9b59b6', '#f1c40f', '#1abc9c', '#e84393'];
+        const ACTUAL_COLOR = '#1976d2';
+        const PREDICTED_COLOR = '#e67e22';
+        const COURSE_LABELS = { 1: '1 курс', 2: '2 курс', 3: '3 курс', 4: '4 курс' };
 
         return (
             <div className="lgm-cohort-container">
                 <h4>Latent Growth Model – Когортный анализ</h4>
-                <p>Компетенция: {COMPETENCIES_NAMES[competency] || competency}</p>
-                <p>Группировка: {group_by === 'institution' ? 'по ВУЗам' : 'по направлениям'}</p>
+                <p style={{ color: '#666', fontSize: 13 }}>
+                    Компетенция: <strong>{COMPETENCIES_NAMES[competency] || competency}</strong>
+                    {' · '}Группировка: <strong>{group_by === 'institution' ? 'по ВУЗам' : 'по направлениям'}</strong>
+                    {total_qualified_students != null && (
+                        <span style={{
+                            marginLeft: 12, background: '#e8f4fd', color: '#1976d2',
+                            border: '1px solid #bbdefb', borderRadius: 10,
+                            padding: '2px 10px', fontSize: 12, fontWeight: 500
+                        }}>
+                            👥 {total_qualified_students} уникальных студентов (≥4 тестирований)
+                        </span>
+                    )}
+                </p>
 
                 <div style={{ marginTop: 16, marginBottom: 16 }}>
                     <LabelledBox label="Режим отображения:" inrow nopad>
@@ -396,7 +416,7 @@ function AdminAnalysisAdvancedView() {
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="course" />
                             <YAxis domain={[200, 800]} />
-                            <Tooltip />
+                            <Tooltip formatter={(v) => v != null ? [Number(v).toFixed(1)] : ['-']} />
                             <Legend />
                             {groups.map((group, idx) => (
                                 <Line
@@ -411,55 +431,103 @@ function AdminAnalysisAdvancedView() {
                         </LineChart>
                     </ResponsiveContainer>
                 ) : (
-                    <div
-                        className="lgm-grid"
-                        style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',  // всегда ровно 2 столбца
-                            gap: 16,
-                        }}
-                    >
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
                         {groups.map((group, idx) => {
-                            const chartData = [];
-                            for (let course = 1; course <= 4; course++) {
-                                chartData.push({
-                                    course: `${course} курс`,
-                                    value: group.mean_intercept + group.mean_slope * (course - 1)
-                                });
-                            }
                             const color = colors[idx % colors.length];
+
+                            // Строим данные для графика: predicted + actual
+                            const actualByKey = Object.fromEntries(
+                                (group.actual_by_course || []).map(p => [p.course, p.avg_score])
+                            );
+                            const firstActualCourse = group.actual_by_course?.length
+                                ? group.actual_by_course[0].course
+                                : 1;
+                            const chartData = [1, 2, 3, 4].map(c => ({
+                                name: COURSE_LABELS[c] ?? `${c} курс`,
+                                predicted: +(group.mean_intercept + group.mean_slope * (c - firstActualCourse)).toFixed(2),
+                                actual: actualByKey[c] ?? null,
+                            }));
+
+                            const r2Pct = group.mean_r_squared != null ? Math.round(group.mean_r_squared * 100) : null;
+                            const r2Color = r2Pct == null ? '#aaa'
+                                : r2Pct > 80 ? '#2ecc71'
+                                : r2Pct > 50 ? '#e67e22'
+                                : '#e74c3c';
+
+                            const abs = Math.abs(group.mean_slope);
+                            const neutral = abs < 1;
+                            const slopeColor = neutral ? '#888' : group.mean_slope > 0 ? '#2ecc71' : '#e74c3c';
+                            const slopeArrow = neutral ? '→' : group.mean_slope > 0 ? '↑' : '↓';
+                            const slopeLabel = neutral ? 'стабильно' : group.mean_slope > 0 ? 'растёт' : 'снижается';
+
                             return (
                                 <div
                                     key={group.group_id}
                                     className="lgm-group-card"
                                     style={{ border: '1px solid #e0e0e0', borderRadius: 8, padding: '14px 16px', background: '#fafafa' }}
                                 >
-                                    <h5 style={{ marginBottom: 4, fontSize: 13, fontWeight: 600, color: '#2c3e50' }}>
+                                    <h5 style={{ marginBottom: 6, fontSize: 13, fontWeight: 600, color: '#2c3e50' }}>
                                         {group.group_name}
                                     </h5>
-                                    <div style={{ fontSize: 11, color: '#999', marginBottom: 10 }}>
-                                        {group.n_students} студентов · старт {group.mean_intercept.toFixed(1)} · рост {group.mean_slope > 0 ? '+' : ''}{group.mean_slope.toFixed(3)}/курс
+
+                                    {/* Метрики: slope, R², студенты */}
+                                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
+                                        <span style={{ fontSize: 12, color: '#666' }}>
+                                            Старт: <strong>{group.mean_intercept.toFixed(1)}</strong>
+                                        </span>
+                                        <span style={{
+                                            display: 'inline-flex', alignItems: 'center', gap: 3,
+                                            background: `${slopeColor}18`, color: slopeColor,
+                                            border: `1px solid ${slopeColor}44`,
+                                            borderRadius: 10, padding: '2px 8px', fontSize: 11, fontWeight: 500,
+                                        }}>
+                                            {slopeArrow} {slopeLabel} ({group.mean_slope > 0 ? '+' : ''}{group.mean_slope.toFixed(2)}/курс)
+                                        </span>
+                                        {r2Pct != null && (
+                                            <span style={{ fontSize: 12, color: '#666' }}>
+                                                R²: <strong style={{ color: r2Color }}>{r2Pct}%</strong>
+                                            </span>
+                                        )}
+                                        <span style={{ fontSize: 12, color: '#999' }}>
+                                            {group.n_students} студ.
+                                        </span>
                                     </div>
+
                                     <ResponsiveContainer width="100%" height={260}>
                                         <LineChart data={chartData} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
                                             <CartesianGrid strokeDasharray="3 3" stroke="#ececec" />
-                                            <XAxis dataKey="course" tick={{ fontSize: 11 }} />
-                                            <YAxis tick={{ fontSize: 11 }} width={40} domain={[200, 800]} />
+                                            <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                                            <YAxis tick={{ fontSize: 11 }} width={40} domain={['auto', 'auto']} />
                                             <Tooltip
-                                                formatter={(val) => [val.toFixed(2), 'Траектория']}
+                                                formatter={(val, name) => val == null ? ['-', name] : [Number(val).toFixed(1), name]}
                                                 contentStyle={{ fontSize: 12 }}
                                             />
+                                            <Legend wrapperStyle={{ fontSize: 11 }} />
+                                            {/* LGM-траектория */}
+                                            <Line
+                                                type="linear"
+                                                dataKey="predicted"
+                                                name="LGM-траектория"
+                                                stroke={PREDICTED_COLOR}
+                                                strokeWidth={2}
+                                                strokeDasharray="6 3"
+                                                dot={{ r: 3, fill: PREDICTED_COLOR }}
+                                                activeDot={{ r: 5 }}
+                                            />
+                                            {/* Фактический средний балл */}
                                             <Line
                                                 type="monotone"
-                                                dataKey="value"
-                                                stroke={color}
+                                                dataKey="actual"
+                                                name="Факт. ср. балл"
+                                                stroke={ACTUAL_COLOR}
                                                 strokeWidth={2.5}
-                                                dot={{ r: 4, fill: color }}
-                                                activeDot={{ r: 6 }}
-                                                name="Средняя траектория"
+                                                dot={{ r: 5, fill: ACTUAL_COLOR, stroke: 'white', strokeWidth: 1.5 }}
+                                                activeDot={{ r: 7 }}
+                                                connectNulls={false}
                                             />
                                         </LineChart>
                                     </ResponsiveContainer>
+
                                     {group.interpretation && (
                                         <details style={{ marginTop: 8 }}>
                                             <summary style={{ fontSize: 12, cursor: 'pointer', color: '#666' }}>Интерпретация</summary>
@@ -566,6 +634,14 @@ function AdminAnalysisAdvancedView() {
                                             </details>
                                         );
                                     })()}
+
+                                    <div style={{
+                                        marginTop: 10, fontSize: 11, color: '#999', lineHeight: 1.5,
+                                        background: '#f8f9fa', borderRadius: 6, padding: '6px 10px',
+                                    }}>
+                                        Синяя — фактический средний балл. Оранжевая пунктир — LGM-траектория.
+                                        R² = качество подгонки (выше = лучше).
+                                    </div>
                                 </div>
                             );
                         })}
@@ -697,8 +773,8 @@ function AdminAnalysisAdvancedView() {
                                 text="Применить фильтры"
                                 onClick={() => {
                                     if (activeVisualization === 'lgm') loadLGMCohortData();
-                                    else if (activeVisualization === 'flow') loadLevelFlow();
-                                    else if (activeVisualization === 'flow-year') loadLevelFlow("year");
+                                    else if (activeVisualization === 'flow') loadLevelFlow('course');
+                                    else if (activeVisualization === 'flow-year') loadLevelFlow('year');
                                     else if (activeVisualization === 'vam') loadVAMData();
                                 }}
                                 palette={ADMIN_PALETTE.CYAN}
@@ -722,13 +798,13 @@ function AdminAnalysisAdvancedView() {
                     <FlexRow wrap={WRAP.DO} gap="10">
                         <Button
                             text="Поток уровней (курсы)"
-                            onClick={() => { setActiveVisualization('flow'); loadLevelFlow(); }}
+                            onClick={() => { setActiveVisualization('flow'); loadLevelFlow('course'); }}
                             disabled={loading}
                             palette={activeVisualization === 'flow' ? ADMIN_PALETTE.CYAN : ADMIN_PALETTE.GRAY}
                         />
                         <Button
                             text="Поток уровней (года)"
-                            onClick={() => { setActiveVisualization('flow-year'); loadLevelFlow("year"); }}
+                            onClick={() => { setActiveVisualization('flow-year'); loadLevelFlow('year'); }}
                             disabled={loading}
                             palette={activeVisualization === 'flow-year' ? ADMIN_PALETTE.CYAN : ADMIN_PALETTE.GRAY}
                         />
@@ -756,7 +832,7 @@ function AdminAnalysisAdvancedView() {
                                 </LabelledBox>
                                 <Button
                                     text="Загрузить"
-                                    onClick={loadLevelFlow}
+                                    onClick={() => loadLevelFlow('course')}
                                     disabled={loading}
                                     palette={ADMIN_PALETTE.CYAN}
                                 />
@@ -774,7 +850,7 @@ function AdminAnalysisAdvancedView() {
                                 </LabelledBox>
                                 <Button
                                     text="Загрузить"
-                                    onClick={() => loadLevelFlow("year")}
+                                    onClick={() => loadLevelFlow('year')}
                                     disabled={loading}
                                     palette={ADMIN_PALETTE.CYAN}
                                 />
